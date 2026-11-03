@@ -1,0 +1,62 @@
+# Crawler
+
+A first person dungeon crawler written in Free Pascal (OBJFPC mode) with a
+textured raycasting engine. It renders at 320x240 into a software framebuffer
+and upscales with nearest-neighbour filtering for a crisp retro look. The
+camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
+as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
+
+## Features
+
+- Textured raycasting walls (DDA grid cast) with per-face shading.
+- Floor and ceiling casting with the same distance fog as the walls.
+- Look up and down (vertical pitch) plus free turning, by mouse or arrow keys.
+- Procedurally generated textures, so there are no external asset files.
+- Openable doors, a scrolling compass, a crosshair and an overhead automap.
+- A HUD drawn with a built-in 5x7 bitmap font.
+
+## Controls
+
+| Input | Action |
+|-------|--------|
+| W / S | Move forward / back |
+| A / D or Q / E | Strafe left / right |
+| Mouse | Look (turn and pitch) |
+| Up / Down arrows | Move forward / back |
+| Left / Right arrows | Turn |
+| Space | Open or close a door directly ahead |
+| M | Toggle the automap |
+| Esc | Quit |
+
+## Requirements
+
+- Free Pascal Compiler (fpc) 3.2 or newer.
+- The SDL2 runtime shared library. The game loads `libSDL2-2.0.so.0` at
+  runtime with dlopen, so no `-dev` package or Pascal SDL bindings are needed.
+  On Debian/Ubuntu: `sudo apt install libsdl2-2.0-0`.
+
+## Build and run
+
+```sh
+make        # builds build/crawler
+make run    # builds and runs
+make clean  # removes the build directory
+```
+
+## Layout
+
+| File | Role |
+|------|------|
+| `crawler.lpr` | Program entry: window, main loop, input, timing. |
+| `src/sdl2min.pas` | Minimal runtime binding to the SDL2 shared library. |
+| `src/gfx.pas` | Framebuffer, drawing primitives and the bitmap font. |
+| `src/textures.pas` | Procedural wall, floor and ceiling textures. |
+| `src/world.pas` | Map grid, player camera, movement and collision. |
+| `src/raycast.pas` | The textured raycasting renderer. |
+| `src/hud.pas` | Border, compass, crosshair and automap overlay. |
+
+## Notes
+
+The map lives in `src/world.pas` as a 24x24 grid of characters. Digit `0` is
+open floor, `1`-`3` select wall textures (brick, stone, moss) and `4` is a
+door. Edit the `LAYOUT` constant to change the dungeon.

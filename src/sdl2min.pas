@@ -1,0 +1,228 @@
+unit sdl2min;
+
+{** Minimal runtime binding to the system SDL2 shared library.
+
+  This unit avoids any dependency on the fpc-sdl2 packages or a
+  libSDL2.so development symlink. It loads libSDL2-2.0.so.0 with
+  dlopen at startup and binds only the handful of entry points the
+  crawler needs: video, a streaming texture, event polling, the
+  keyboard state array, relative mouse mode and timing. }
+
+{$mode objfpc}{$H+}
+
+interface
+
+const
+  { ---- Init flags ---- }
+  SDL_INIT_VIDEO  = $00000020;
+  SDL_INIT_EVENTS = $00004000;
+
+  { ---- Window ---- }
+  SDL_WINDOWPOS_CENTERED = $2FFF0000;
+  SDL_WINDOW_SHOWN       = $00000004;
+
+  { ---- Renderer ---- }
+  SDL_RENDERER_ACCELERATED = $00000002;
+  SDL_RENDERER_PRESENTVSYNC = $00000004;
+
+  { ---- Texture ---- }
+  SDL_PIXELFORMAT_ARGB8888 = $16362004;
+  SDL_TEXTUREACCESS_STREAMING = 1;
+
+  { ---- Event types ---- }
+  SDL_QUITEV          = $100;
+  SDL_KEYDOWN         = $300;
+  SDL_KEYUP           = $301;
+  SDL_MOUSEMOTION     = $400;
+  SDL_MOUSEBUTTONDOWN = $401;
+  SDL_MOUSEBUTTONUP   = $402;
+
+  { ---- Mouse buttons ---- }
+  SDL_BUTTON_LEFT  = 1;
+  SDL_BUTTON_RIGHT = 3;
+
+  { ---- Scancodes (USB HID usage ids, as SDL uses them) ---- }
+  SDL_SCANCODE_A = 4;      SDL_SCANCODE_D = 7;
+  SDL_SCANCODE_E = 8;      SDL_SCANCODE_Q = 20;
+  SDL_SCANCODE_S = 22;     SDL_SCANCODE_W = 26;
+  SDL_SCANCODE_M = 16;
+  SDL_SCANCODE_SPACE  = 44;
+  SDL_SCANCODE_ESCAPE = 41;
+  SDL_SCANCODE_RIGHT  = 79;
+  SDL_SCANCODE_LEFT   = 80;
+  SDL_SCANCODE_DOWN   = 81;
+  SDL_SCANCODE_UP     = 82;
+  SDL_SCANCODE_LSHIFT = 225;
+  SDL_NUM_SCANCODES   = 512;
+
+type
+  { ---- Event records (field layout matches SDL 2 ABI) ---- }
+  TSDL_Keysym = record
+    scancode: Int32;
+    sym: Int32;
+    modi: UInt16;
+    unused: UInt32;
+  end;
+
+  TSDL_KeyboardEvent = record
+    kind: UInt32;
+    timestamp: UInt32;
+    windowID: UInt32;
+    state: UInt8;
+    rep: UInt8;
+    padding2: UInt8;
+    padding3: UInt8;
+    keysym: TSDL_Keysym;
+  end;
+
+  TSDL_MouseMotionEvent = record
+    kind: UInt32;
+    timestamp: UInt32;
+    windowID: UInt32;
+    which: UInt32;
+    state: UInt32;
+    x: Int32;
+    y: Int32;
+    xrel: Int32;
+    yrel: Int32;
+  end;
+
+  TSDL_MouseButtonEvent = record
+    kind: UInt32;
+    timestamp: UInt32;
+    windowID: UInt32;
+    which: UInt32;
+    button: UInt8;
+    state: UInt8;
+    clicks: UInt8;
+    padding1: UInt8;
+    x: Int32;
+    y: Int32;
+  end;
+
+  TSDL_Event = record
+    case longint of
+      0: (kind: UInt32; raw: array[0..59] of byte);
+      1: (key: TSDL_KeyboardEvent);
+      2: (motion: TSDL_MouseMotionEvent);
+      3: (button: TSDL_MouseButtonEvent);
+  end;
+
+  PUInt8 = ^UInt8;
+
+  { ---- Entry point signatures ---- }
+  TSDL_InitFn        = function(flags: UInt32): Int32; cdecl;
+  TSDL_QuitFn        = procedure; cdecl;
+  TSDL_GetErrorFn    = function: PChar; cdecl;
+  TSDL_SetHintFn     = function(name, value: PChar): Int32; cdecl;
+  TSDL_CreateWindowFn = function(title: PChar; x, y, w, h: Int32; flags: UInt32): Pointer; cdecl;
+  TSDL_CreateRendererFn = function(win: Pointer; index: Int32; flags: UInt32): Pointer; cdecl;
+  TSDL_CreateTextureFn = function(ren: Pointer; format: UInt32; access, w, h: Int32): Pointer; cdecl;
+  TSDL_UpdateTextureFn = function(tex, rect, pixels: Pointer; pitch: Int32): Int32; cdecl;
+  TSDL_RenderClearFn = function(ren: Pointer): Int32; cdecl;
+  TSDL_RenderCopyFn  = function(ren, tex, src, dst: Pointer): Int32; cdecl;
+  TSDL_RenderPresentFn = procedure(ren: Pointer); cdecl;
+  TSDL_DestroyTextureFn = procedure(tex: Pointer); cdecl;
+  TSDL_DestroyRendererFn = procedure(ren: Pointer); cdecl;
+  TSDL_DestroyWindowFn = procedure(win: Pointer); cdecl;
+  TSDL_PollEventFn   = function(ev: Pointer): Int32; cdecl;
+  TSDL_GetTicksFn    = function: UInt32; cdecl;
+  TSDL_DelayFn       = procedure(ms: UInt32); cdecl;
+  TSDL_GetKeyboardStateFn = function(numkeys: Pointer): PUInt8; cdecl;
+  TSDL_SetRelativeMouseModeFn = function(enabled: Int32): Int32; cdecl;
+  TSDL_ShowCursorFn  = function(toggle: Int32): Int32; cdecl;
+
+var
+  SDL_Init: TSDL_InitFn;
+  SDL_Quit: TSDL_QuitFn;
+  SDL_GetError: TSDL_GetErrorFn;
+  SDL_SetHint: TSDL_SetHintFn;
+  SDL_CreateWindow: TSDL_CreateWindowFn;
+  SDL_CreateRenderer: TSDL_CreateRendererFn;
+  SDL_CreateTexture: TSDL_CreateTextureFn;
+  SDL_UpdateTexture: TSDL_UpdateTextureFn;
+  SDL_RenderClear: TSDL_RenderClearFn;
+  SDL_RenderCopy: TSDL_RenderCopyFn;
+  SDL_RenderPresent: TSDL_RenderPresentFn;
+  SDL_DestroyTexture: TSDL_DestroyTextureFn;
+  SDL_DestroyRenderer: TSDL_DestroyRendererFn;
+  SDL_DestroyWindow: TSDL_DestroyWindowFn;
+  SDL_PollEvent: TSDL_PollEventFn;
+  SDL_GetTicks: TSDL_GetTicksFn;
+  SDL_Delay: TSDL_DelayFn;
+  SDL_GetKeyboardState: TSDL_GetKeyboardStateFn;
+  SDL_SetRelativeMouseMode: TSDL_SetRelativeMouseModeFn;
+  SDL_ShowCursor: TSDL_ShowCursorFn;
+
+function LoadSDL2: boolean;
+procedure UnloadSDL2;
+
+implementation
+
+uses
+  dynlibs;
+
+const
+  SDL_SONAMES: array[0..2] of string = (
+    'libSDL2-2.0.so.0', 'libSDL2.so', 'libSDL2-2.0.so');
+
+var
+  libHandle: TLibHandle = NilHandle;
+
+function Bind(const name: string): Pointer;
+{** Resolve one entry point, halting with a clear message if absent. }
+begin
+  Bind := GetProcedureAddress(libHandle, name);
+  if Bind = nil then begin
+    writeln(StdErr, 'sdl2min: missing symbol ', name);
+    halt(2);
+  end;
+end;
+
+function LoadSDL2: boolean;
+var
+  i: longint;
+begin
+  for i := 0 to High(SDL_SONAMES) do begin
+    libHandle := LoadLibrary(SDL_SONAMES[i]);
+    if libHandle <> NilHandle then
+      break;
+  end;
+  if libHandle = NilHandle then begin
+    LoadSDL2 := false;
+    exit;
+  end;
+
+  SDL_Init := TSDL_InitFn(Bind('SDL_Init'));
+  SDL_Quit := TSDL_QuitFn(Bind('SDL_Quit'));
+  SDL_GetError := TSDL_GetErrorFn(Bind('SDL_GetError'));
+  SDL_SetHint := TSDL_SetHintFn(Bind('SDL_SetHint'));
+  SDL_CreateWindow := TSDL_CreateWindowFn(Bind('SDL_CreateWindow'));
+  SDL_CreateRenderer := TSDL_CreateRendererFn(Bind('SDL_CreateRenderer'));
+  SDL_CreateTexture := TSDL_CreateTextureFn(Bind('SDL_CreateTexture'));
+  SDL_UpdateTexture := TSDL_UpdateTextureFn(Bind('SDL_UpdateTexture'));
+  SDL_RenderClear := TSDL_RenderClearFn(Bind('SDL_RenderClear'));
+  SDL_RenderCopy := TSDL_RenderCopyFn(Bind('SDL_RenderCopy'));
+  SDL_RenderPresent := TSDL_RenderPresentFn(Bind('SDL_RenderPresent'));
+  SDL_DestroyTexture := TSDL_DestroyTextureFn(Bind('SDL_DestroyTexture'));
+  SDL_DestroyRenderer := TSDL_DestroyRendererFn(Bind('SDL_DestroyRenderer'));
+  SDL_DestroyWindow := TSDL_DestroyWindowFn(Bind('SDL_DestroyWindow'));
+  SDL_PollEvent := TSDL_PollEventFn(Bind('SDL_PollEvent'));
+  SDL_GetTicks := TSDL_GetTicksFn(Bind('SDL_GetTicks'));
+  SDL_Delay := TSDL_DelayFn(Bind('SDL_Delay'));
+  SDL_GetKeyboardState := TSDL_GetKeyboardStateFn(Bind('SDL_GetKeyboardState'));
+  SDL_SetRelativeMouseMode := TSDL_SetRelativeMouseModeFn(Bind('SDL_SetRelativeMouseMode'));
+  SDL_ShowCursor := TSDL_ShowCursorFn(Bind('SDL_ShowCursor'));
+
+  LoadSDL2 := true;
+end;
+
+procedure UnloadSDL2;
+begin
+  if libHandle <> NilHandle then begin
+    UnloadLibrary(libHandle);
+    libHandle := NilHandle;
+  end;
+end;
+
+end.
