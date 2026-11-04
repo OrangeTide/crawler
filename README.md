@@ -59,7 +59,8 @@ make clean  # removes the build directory
 
 | File | Role |
 |------|------|
-| `crawler.lpr` | Program entry: window, main loop, input, timing. |
+| `crawler.lpr` | Platform layer: SDL setup, window, frame loop, framebuffer upload. |
+| `src/game.pas` | Game state machine: routes input, update and render per state. |
 | `src/sdl2min.pas` | Minimal runtime binding to the SDL2 shared library. |
 | `src/gfx.pas` | Framebuffer, drawing primitives and the bitmap font. |
 | `src/textures.pas` | Procedural wall, floor and ceiling textures. |
