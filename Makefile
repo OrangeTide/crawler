@@ -11,10 +11,11 @@ MONSTERS  = content/monsters.txt
 SPECIES   = content/species.txt
 CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
-CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(MAPS)
+DIALOGS   = content/dialogs.txt
+CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) $(MAPS)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
-            classes $(CLASSES) backgrounds $(BACKG)
+            classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS)
 
 .PHONY: all run clean tools
 

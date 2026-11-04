@@ -1,0 +1,25 @@
+# Conversations. See dialogtext.pas for the format.
+dialog BARKEEP
+node 0
+text "Welcome to the Prancing Pony, traveller. What will it be?"
+resp "Heard any rumors?" goto 1
+resp "Show me your wares." shop
+resp "Nothing, thanks." end
+node 1
+text "They say the old crypt below the town stirs with restless dead."
+resp "Tell me more." goto 2
+resp "Back." goto 0
+node 2
+text "Clear it out and the reeve will pay well. Mind the locked vault."
+resp "I will look into it." setflag QUEST_CRYPT
+resp "Back." goto 0
+
+dialog ELDER
+node 0
+text "You there. The town has need of brave sorts. Will you help us?"
+resp "What is wrong?" goto 1
+resp "Not now." end
+node 1
+text "Foul things crawl up from the deep. Drive them back and be rewarded."
+resp "I accept." setflag QUEST_MAIN
+resp "I must decline." goto 0

@@ -14,7 +14,7 @@ program mkassets;
 
 uses
   sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
-  monsters, montext, chardata, chartext;
+  monsters, montext, chardata, chartext, dialog, dialogtext;
 
 var
   w: TPakWriter;
@@ -133,6 +133,22 @@ begin
   writeln('  backgrounds (', n, ') from ', fn);
 end;
 
+procedure AddDialogs(const fn: string);
+var
+  cs: array[0 .. 127] of TConversation;
+  dyn: array of TConversation;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseDialogs(fn, cs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := cs[k];
+  PakWAdd(w, 'DLGS', EncodeDialogs(dyn));
+  writeln('  dialogs (', n, ') from ', fn);
+end;
+
 var
   i: longint;
 begin
@@ -164,6 +180,8 @@ begin
       AddClasses(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'backgrounds' then begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'dialogs' then begin
+      AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);

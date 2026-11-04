@@ -38,6 +38,8 @@ filtering, the same way the game presents it.
 - Items and monsters loaded from compiled tables, with per-class starting kits.
 - Turn-based combat on the AX&X rules: side initiative, range bands, attacks and
   saves, brush-with-death, morale, guard and potion actions.
+- Keyword dialog with NPCs, a buy shop, story flags and a quest journal. The
+  game now starts in a town hub with a barkeep and an elder.
 
 ## Controls
 
@@ -52,6 +54,8 @@ filtering, the same way the game presents it.
 | Space | Open or close a door directly ahead |
 | M | Toggle the small minimap |
 | Tab | Open or close the fullscreen map |
+| J | Open or close the quest journal |
+| Space or click | Talk to an NPC ahead or under the cursor |
 | C | Force a test encounter (while a party exists) |
 | Esc | Quit |
 
@@ -92,6 +96,9 @@ make clean  # removes the build directory
 | `src/monsters.pas` | Monster database and table codec. |
 | `src/montext.pas` | Parser for the monster table, used by the tool. |
 | `src/combat.pas` | Turn-based AX&X combat: initiative, bands, morale. |
+| `src/flags.pas` | Story flags and the quest journal. |
+| `src/dialog.pas` | Conversation data, decoder and runtime. |
+| `src/dialogtext.pas` | Parser for the text conversation format. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

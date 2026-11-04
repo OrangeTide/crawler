@@ -18,7 +18,7 @@ interface
 
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
-                gsDialog, gsFullMap, gsInventory, gsMenu, gsGameOver);
+                gsDialog, gsShop, gsFullMap, gsInventory, gsMenu, gsGameOver);
 
 var
   State: TGameState;
@@ -33,7 +33,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
-  rng, rules, items, chardata, party, monsters, combat;
+  rng, rules, items, chardata, party, monsters, combat, flags, dialog;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -51,6 +51,8 @@ var
   cursorX, cursorY: longint;
   rmbHeld: boolean;
   currentMapName: string;
+  dlgNpcName: string;
+  shopSel: longint;
 
   titleSel: longint;
   ccSlot: longint;
@@ -95,26 +97,53 @@ end;
 
 procedure StartCombat(depth: longint); forward;
 
+procedure StartDialog(const dlgName, npcName: string);
+begin
+  DialogStart(dlgName);
+  if DlgActive then begin
+    dlgNpcName := npcName;
+    State := gsDialog;
+  end;
+end;
+
 procedure ExploreInteract;
-{** Left click: act on whatever tile the cursor points at. For now that
-  means opening or closing a door within reach. }
+{** Left click: act on whatever tile the cursor points at. A door opens,
+  an NPC starts talking. }
 var
   camX: double;
   tx, ty: longint;
+  dlg, nm: string;
 begin
   camX := 2.0 * cursorX / FBW - 1.0;
-  if PickTile(camX, 1.8, tx, ty) then
-    if TileAt(tx, ty) = TILE_DOOR then
+  if PickTile(camX, 1.8, tx, ty) then begin
+    if NpcAt(tx, ty, dlg, nm) then
+      StartDialog(dlg, nm)
+    else if TileAt(tx, ty) = TILE_DOOR then
       ToggleDoor(tx, ty);
+  end;
+end;
+
+procedure InteractAhead;
+{** Space: talk to an NPC directly ahead, else open a door. }
+var
+  dx, dy: longint;
+  dlg, nm: string;
+begin
+  ForwardDelta(dx, dy);
+  if NpcAt(TileX + dx, TileY + dy, dlg, nm) then
+    StartDialog(dlg, nm)
+  else
+    OpenDoorAhead;
 end;
 
 procedure ExploreKeyDown(scancode: longint);
 begin
   case scancode of
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
-    SDL_SCANCODE_SPACE:  OpenDoorAhead;
+    SDL_SCANCODE_SPACE:  InteractAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
     SDL_SCANCODE_TAB:    State := gsFullMap;
+    SDL_SCANCODE_J:      State := gsMenu;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
   end;
 end;
@@ -213,6 +242,39 @@ begin
   DrawText((FBW - Length(s) * 6) div 2, y, s, c);
 end;
 
+procedure DrawWrapped(x, y, widthChars: longint; const s: string; c: TColor);
+{** Draw text word-wrapped to widthChars columns, 10px line pitch. }
+var
+  words: array[0 .. 63] of string;
+  nw, i, start, len, ln: longint;
+  line, w: string;
+begin
+  { split into words }
+  nw := 0; start := 1; len := Length(s);
+  for i := 1 to len + 1 do
+    if (i > len) or (s[i] = ' ') then begin
+      if (i > start) and (nw <= High(words)) then begin
+        words[nw] := Copy(s, start, i - start);
+        inc(nw);
+      end;
+      start := i + 1;
+    end;
+  line := ''; ln := 0;
+  for i := 0 to nw - 1 do begin
+    w := words[i];
+    if (line <> '') and (Length(line) + 1 + Length(w) > widthChars) then begin
+      DrawText(x, y + ln * 10, line, c);
+      inc(ln);
+      line := w;
+    end else if line = '' then
+      line := w
+    else
+      line := line + ' ' + w;
+  end;
+  if line <> '' then
+    DrawText(x, y + ln * 10, line, c);
+end;
+
 function ClassOr0(const id: string): longint;
 begin
   ClassOr0 := ClassIndex(id);
@@ -226,9 +288,10 @@ begin
 end;
 
 procedure StartGame;
-{** Hand off from the menus to the dungeon. }
+{** Hand off from the menus to the starting town. }
 begin
-  if not LoadMapByName('DUNGEON', 'start') then begin
+  FlagsReset;
+  if not LoadMapByName('TOWN', 'spawn') then begin
     writeln(StdErr, 'game: could not load the starting map');
     QuitRequested := true;
     exit;
@@ -490,6 +553,141 @@ begin
   end;
 end;
 
+{ ---- Dialog state ---- }
+
+procedure DialogRender;
+var
+  i, py, n: longint;
+begin
+  RenderView;
+  FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
+  py := 118;
+  FillRectBlend(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);
+  FrameRect(8, py, FBW - 16, FBH - py - 8, RGB(120, 110, 90));
+  DrawText(16, py + 6, dlgNpcName, RGB(230, 210, 140));
+  if DlgActive then begin
+    DrawWrapped(16, py + 20, 48, Convs[DlgConv].nodes[DlgNode].text,
+      RGB(205, 205, 190));
+    n := DialogRespCount;
+    for i := 0 to n - 1 do
+      DrawText(20, py + 56 + i * 11,
+        IntToStr(i + 1) + ') ' + DialogRespText(i), RGB(170, 200, 170));
+  end;
+end;
+
+procedure SyncJournal;
+{** Turn freshly set quest flags into journal lines, once each. }
+begin
+  if FlagHas('QUEST_MAIN') and (not FlagHas('J_MAIN')) then begin
+    JournalAdd('Aid the town against the things from the deep.');
+    FlagSet('J_MAIN');
+  end;
+  if FlagHas('QUEST_CRYPT') and (not FlagHas('J_CRYPT')) then begin
+    JournalAdd('Clear the crypt beneath the town for the reeve.');
+    FlagSet('J_CRYPT');
+  end;
+end;
+
+procedure DialogAfterChoice;
+begin
+  SyncJournal;
+  if DlgShopReq then begin
+    shopSel := 0;
+    State := gsShop;
+  end else if not DlgActive then
+    State := gsExplore;
+end;
+
+procedure DialogKeyDown(scancode: longint);
+var
+  pick: longint;
+begin
+  pick := -1;
+  case scancode of
+    SDL_SCANCODE_1: pick := 0;
+    SDL_SCANCODE_2: pick := 1;
+    SDL_SCANCODE_3: pick := 2;
+    SDL_SCANCODE_4: pick := 3;
+    SDL_SCANCODE_5: pick := 4;
+    SDL_SCANCODE_ESCAPE: begin DlgActive := false; State := gsExplore; exit; end;
+  end;
+  if (pick >= 0) and (pick < DialogRespCount) then begin
+    DialogChoose(pick);
+    DialogAfterChoice;
+  end;
+end;
+
+{ ---- Shop state ---- }
+
+function BuyableCount: longint;
+var i, n: longint;
+begin
+  n := 0;
+  for i := 0 to High(ItemDefs) do
+    if (ItemDefs[i].value > 0) and (ItemDefs[i].kind <> IK_TREASURE) then inc(n);
+  BuyableCount := n;
+end;
+
+function NthBuyable(idx: longint): longint;
+var i, n: longint;
+begin
+  n := 0;
+  for i := 0 to High(ItemDefs) do
+    if (ItemDefs[i].value > 0) and (ItemDefs[i].kind <> IK_TREASURE) then begin
+      if n = idx then begin NthBuyable := i; exit; end;
+      inc(n);
+    end;
+  NthBuyable := -1;
+end;
+
+procedure ShopRender;
+var
+  i, cnt, di, y: longint;
+  c: TColor;
+begin
+  ClearFB(RGB(12, 10, 14));
+  DrawText(12, 8, 'TRADER', RGB(220, 200, 120));
+  DrawText(FBW - 120, 8, 'GOLD ' + IntToStr(PartyGold), RGB(220, 200, 120));
+  cnt := BuyableCount;
+  y := 26;
+  for i := 0 to cnt - 1 do begin
+    di := NthBuyable(i);
+    if i = shopSel then begin
+      c := RGB(240, 230, 150);
+      DrawText(10, y, '>', c);
+    end else
+      c := RGB(180, 180, 160);
+    DrawText(18, y, ItemDefs[di].name, c);
+    DrawText(180, y, IntToStr(ItemDefs[di].value) + ' GP', c);
+    inc(y, 11);
+    if y > FBH - 24 then break;
+  end;
+  DrawText(12, FBH - 14, 'ARROWS SELECT  ENTER BUY  ESC LEAVE', RGB(140, 150, 120));
+end;
+
+procedure ShopKeyDown(scancode: longint);
+var
+  cnt, di: longint;
+begin
+  cnt := BuyableCount;
+  case scancode of
+    SDL_SCANCODE_UP:   if shopSel > 0 then dec(shopSel);
+    SDL_SCANCODE_DOWN: if shopSel < cnt - 1 then inc(shopSel);
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
+      di := NthBuyable(shopSel);
+      if (di >= 0) and (PartyGold >= ItemDefs[di].value) and (Length(Roster) > 0) then
+      begin
+        PartyGold := PartyGold - ItemDefs[di].value;
+        PackAdd(Roster[0], ItemDefs[di].id, 1);
+      end;
+    end;
+    SDL_SCANCODE_ESCAPE: begin
+      DlgShopReq := false;
+      if DlgActive then State := gsDialog else State := gsExplore;
+    end;
+  end;
+end;
+
 { ---- Full map state ---- }
 
 procedure FullMapKeyDown(scancode: longint);
@@ -497,6 +695,33 @@ begin
   case scancode of
     SDL_SCANCODE_TAB, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_M:
       State := gsExplore;
+  end;
+end;
+
+{ ---- Journal state ---- }
+
+procedure JournalRender;
+var
+  i, y: longint;
+begin
+  ClearFB(RGB(10, 10, 16));
+  DrawText(12, 10, 'JOURNAL', RGB(220, 200, 120));
+  if Length(Journal) = 0 then
+    DrawText(16, 30, 'No quests recorded yet.', RGB(150, 150, 130))
+  else begin
+    y := 30;
+    for i := 0 to High(Journal) do begin
+      DrawWrapped(16, y, 48, '- ' + Journal[i], RGB(195, 200, 180));
+      inc(y, 22);
+    end;
+  end;
+  DrawText(12, FBH - 14, 'J OR ESC TO CLOSE', RGB(130, 140, 110));
+end;
+
+procedure JournalKeyDown(scancode: longint);
+begin
+  case scancode of
+    SDL_SCANCODE_J, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;
 
@@ -559,6 +784,11 @@ begin
     writeln(StdErr, 'game: missing species/class/background tables in ', pakPath);
     exit;
   end;
+  if not LoadMonsters(GamePak) then begin
+    writeln(StdErr, 'game: missing monster table in ', pakPath);
+    exit;
+  end;
+  LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
 
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
@@ -585,6 +815,9 @@ begin
           gsNewParty: CCKeyDown(ev.key.keysym.scancode);
           gsExplore:  ExploreKeyDown(ev.key.keysym.scancode);
           gsFullMap:  FullMapKeyDown(ev.key.keysym.scancode);
+          gsDialog:   DialogKeyDown(ev.key.keysym.scancode);
+          gsShop:     ShopKeyDown(ev.key.keysym.scancode);
+          gsMenu:     JournalKeyDown(ev.key.keysym.scancode);
           gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
         end;
@@ -618,6 +851,9 @@ begin
     gsNewParty: CCRender;
     gsExplore:  ExploreRender(fps);
     gsFullMap:  DrawFullMap;
+    gsDialog:   DialogRender;
+    gsShop:     ShopRender;
+    gsMenu:     JournalRender;
     gsCombat:   CombatRender;
     gsGameOver: GameOverRender;
   end;

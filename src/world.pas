@@ -68,6 +68,7 @@ procedure ToggleDoor(tx, ty: longint);
 procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
+function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 procedure ForwardDelta(out dx, dy: longint);
 procedure ComputeVisibility;
 
@@ -213,10 +214,26 @@ begin
     TileAt := Map[my][mx];
 end;
 
+function NpcTileOccupied(mx, my: longint): boolean;
+var
+  i: longint;
+begin
+  NpcTileOccupied := false;
+  for i := 0 to High(CurMap.npcs) do
+    if (CurMap.npcs[i].x = mx) and (CurMap.npcs[i].y = my) then begin
+      NpcTileOccupied := true;
+      exit;
+    end;
+end;
+
 function IsBlocking(mx, my: longint): boolean;
 var
   t: byte;
 begin
+  if NpcTileOccupied(mx, my) then begin
+    IsBlocking := true;
+    exit;
+  end;
   t := TileAt(mx, my);
   if t = TILE_EMPTY then
     IsBlocking := false
@@ -416,6 +433,22 @@ begin
       target := CurMap.portals[i].target;
       marker := CurMap.portals[i].marker;
       PortalAt := true;
+      exit;
+    end;
+end;
+
+function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
+var
+  i: longint;
+begin
+  NpcAt := false;
+  dialogName := '';
+  npcName := '';
+  for i := 0 to High(CurMap.npcs) do
+    if (CurMap.npcs[i].x = mx) and (CurMap.npcs[i].y = my) then begin
+      dialogName := CurMap.npcs[i].dialog;
+      npcName := CurMap.npcs[i].name;
+      NpcAt := true;
       exit;
     end;
 end;

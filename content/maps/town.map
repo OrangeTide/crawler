@@ -1,18 +1,22 @@
-# A small stone room that links back to the dungeon, proving multi-map
-# loading and portals. It grows into the starting town later.
+# The starting town: a safe hub with two NPCs and the dungeon gate.
 map TOWN
-size 8 8
+size 12 10
 tileset 0
 music 0
 walls
-22222222
-20000002
-20000002
-20000002
-20000002
-20000002
-20000002
-22222222
+222222222222
+200000000002
+200000000002
+200000000002
+200000000002
+200000000002
+200000000002
+200000000002
+200000000002
+222222222222
 end
 marker gate 2 2 E
-portal 5 5 DUNGEON back
+marker spawn 6 5 N
+portal 10 8 DUNGEON back
+npc 4 2 BARKEEP Barkeep
+npc 8 3 ELDER Elder

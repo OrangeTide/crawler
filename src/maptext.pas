@@ -72,12 +72,14 @@ var
   mk: TMarker;
   po: TPortal;
   dr: TDoorMeta;
+  np: TNpc;
 begin
   ParseMapText := false;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
+  m.npcs := nil;
   inWalls := false;
   row := 0;
 
@@ -154,6 +156,14 @@ begin
         if ntok >= 5 then dr.key := tok[4] else dr.key := '';
         SetLength(m.doors, Length(m.doors) + 1);
         m.doors[High(m.doors)] := dr;
+      end else if tok[0] = 'npc' then begin
+        if ntok < 5 then begin errmsg := 'npc needs X Y DIALOG NAME'; exit; end;
+        np.x := StrToInt(tok[1]);
+        np.y := StrToInt(tok[2]);
+        np.dialog := tok[3];
+        np.name := tok[4];
+        SetLength(m.npcs, Length(m.npcs) + 1);
+        m.npcs[High(m.npcs)] := np;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;
