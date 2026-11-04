@@ -6,6 +6,18 @@ and upscales with nearest-neighbour filtering for a crisp retro look. The
 camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
 as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
 
+## Screenshots
+
+The images below are the 320x240 framebuffer upscaled 4x with nearest-neighbour
+filtering, the same way the game presents it.
+
+| | |
+|---|---|
+| ![Brick corridor with the automap open](screenshots/hero.png) | ![Looking down a long corridor into the fog](screenshots/corridor.png) |
+| A brick corridor with the compass, crosshair and overhead automap. | Distance fog fading a long corridor toward black. |
+| ![A closed wooden door ahead](screenshots/door.png) | ![A mossy stone wall beside brick](screenshots/moss.png) |
+| A planked door with iron bands and a handle, framed by the corridor. | Green-flecked moss on stone next to a brick wall. |
+
 ## Features
 
 - Textured raycasting walls (DDA grid cast) with per-face shading.
