@@ -80,7 +80,9 @@ begin
   SDL_SetRelativeMouseMode(1);
   SDL_ShowCursor(0);
 
-  GameInit;
+  if not GameInit then begin
+    Shutdown; halt(1);
+  end;
 
   prevTicks := SDL_GetTicks();
   lastFpsTick := prevTicks;

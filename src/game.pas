@@ -24,7 +24,7 @@ var
   State: TGameState;
   QuitRequested: boolean;
 
-procedure GameInit;
+function GameInit: boolean;
 procedure GameHandleEvents;
 procedure GameUpdate(dt: double);
 procedure GameRender(fps: longint);
@@ -32,7 +32,7 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sdl2min, world, raycast, hud, textures;
+  sysutils, sdl2min, pak, world, raycast, hud, textures;
 
 const
   MOVE_SPEED   = 3.2;     { tiles per second }
@@ -47,6 +47,7 @@ type
 var
   keys: PKeyArray;
   showMap: boolean;
+  GamePak: TPak;
 
 function KeyDown(scancode: longint): boolean; inline;
 begin
@@ -106,14 +107,47 @@ end;
 
 { ---- State machine entry points ---- }
 
-procedure GameInit;
+function FindPak: string;
+{** Look for game.pak next to the binary, then in common run dirs. }
+var
+  base: string;
 begin
-  BuildTextures;
+  base := ExtractFilePath(ParamStr(0));
+  if FileExists(base + 'game.pak') then
+    FindPak := base + 'game.pak'
+  else if FileExists('game.pak') then
+    FindPak := 'game.pak'
+  else if FileExists('build/game.pak') then
+    FindPak := 'build/game.pak'
+  else
+    FindPak := '';
+end;
+
+function GameInit: boolean;
+var
+  pakPath: string;
+begin
+  GameInit := false;
+  pakPath := FindPak;
+  if pakPath = '' then begin
+    writeln(StdErr, 'game: could not find game.pak (run make to build it)');
+    exit;
+  end;
+  if not PakLoad(pakPath, GamePak) then begin
+    writeln(StdErr, 'game: could not load ', pakPath);
+    exit;
+  end;
+  if not LoadTextures(GamePak) then begin
+    writeln(StdErr, 'game: missing or bad textures in ', pakPath);
+    exit;
+  end;
+
   InitWorld;
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
   State := gsExplore;
+  GameInit := true;
 end;
 
 procedure GameHandleEvents;
