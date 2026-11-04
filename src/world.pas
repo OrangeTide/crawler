@@ -26,8 +26,7 @@ const
   TILE_DOOR  = TEX_DOOR;
 
   STEP_DUR = 0.12;   { seconds per tile step }
-  TURN_DUR = 0.12;   { seconds per 90 degree turn }
-  LOOK_YAW_MAX = 0.9;    { radians, about 50 degrees }
+  TURN_DUR = 0.12;   { seconds per 90 degree turn and view align }
   LOOK_PITCH_MAX = 120;  { framebuffer pixels }
 
 type
@@ -57,8 +56,7 @@ procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
 function MotionBusy: boolean;
 procedure UpdateMotion(dt: double);
-procedure AddLook(dyaw, dpitch: double);
-procedure EaseLook(dt: double);
+procedure FreeLook(dyaw, dpitch: double);
 
 procedure ToggleDoor(tx, ty: longint);
 procedure OpenDoorAhead;
@@ -69,12 +67,12 @@ procedure ForwardDelta(out dx, dy: longint);
 implementation
 
 var
-  curX, curY, curAng: double;         { animated camera base }
-  moving, turning: boolean;
+  curX, curY: double;                 { animated position }
+  viewAng, viewPitch: double;         { free continuous view }
+  moving, aligning: boolean;
   fromX, fromY, toX, toY: double;
   fromAng, toAng: double;
-  tweenT: double;
-  lookYaw, lookPitch: double;
+  moveT, alignT: double;
 
 function DirAngle(d: longint): double;
 begin
@@ -85,6 +83,39 @@ begin
   else
     DirAngle := Pi;
   end;
+end;
+
+function AngNorm(a: double): double;
+{** Wrap an angle to (-Pi, Pi]. }
+begin
+  while a > Pi do a := a - 2 * Pi;
+  while a <= -Pi do a := a + 2 * Pi;
+  AngNorm := a;
+end;
+
+function NearestCardinal(a: double): longint;
+{** The DIR_* whose angle is closest to a. }
+var
+  k: longint;
+begin
+  k := Round(a / (Pi / 2)) mod 4;
+  if k < 0 then k := k + 4;
+  case k of
+    0: NearestCardinal := DIR_E;
+    1: NearestCardinal := DIR_S;
+    2: NearestCardinal := DIR_W;
+  else
+    NearestCardinal := DIR_N;
+  end;
+end;
+
+procedure StartAlign(targetDir: longint);
+{** Tween the view to a cardinal by the shortest path. }
+begin
+  fromAng := viewAng;
+  toAng := viewAng + AngNorm(DirAngle(targetDir) - viewAng);
+  aligning := true;
+  alignT := 0;
 end;
 
 procedure ForwardDelta(out dx, dy: longint);
@@ -99,18 +130,15 @@ begin
 end;
 
 procedure ApplyCamera;
-{** Recompute the rendered camera from the animated base and look. }
-var
-  a: double;
+{** Recompute the rendered camera from the free view angle. }
 begin
-  a := curAng + lookYaw;
-  Cam.dirX := cos(a);
-  Cam.dirY := sin(a);
-  Cam.planeX := -sin(a) * 0.66;
-  Cam.planeY := cos(a) * 0.66;
+  Cam.dirX := cos(viewAng);
+  Cam.dirY := sin(viewAng);
+  Cam.planeX := -sin(viewAng) * 0.66;
+  Cam.planeY := cos(viewAng) * 0.66;
   Cam.posX := curX;
   Cam.posY := curY;
-  Cam.pitch := lookPitch;
+  Cam.pitch := viewPitch;
 end;
 
 function LoadMapData(const m: TMapData): boolean;
@@ -159,12 +187,12 @@ begin
 
   curX := TileX + 0.5;
   curY := TileY + 0.5;
-  curAng := DirAngle(FaceDir);
-  lookYaw := 0;
-  lookPitch := 0;
+  viewAng := DirAngle(FaceDir);
+  viewPitch := 0;
   moving := false;
-  turning := false;
-  tweenT := 0;
+  aligning := false;
+  moveT := 0;
+  alignT := 0;
   ApplyCamera;
 end;
 
@@ -194,14 +222,18 @@ end;
 
 function MotionBusy: boolean;
 begin
-  MotionBusy := moving or turning;
+  MotionBusy := moving or aligning;
 end;
 
 procedure RequestStep(fwd, strafe: longint);
+{** Stepping first aligns the facing to the nearest cardinal of the
+  current view, then moves one tile along it. }
 var
   fx, fy, rx, ry, dx, dy, nx, ny: longint;
 begin
   if MotionBusy then exit;
+  FaceDir := NearestCardinal(viewAng);
+  StartAlign(FaceDir);
   ForwardDelta(fx, fy);
   rx := -fy;   { right vector is the forward vector turned 90 degrees }
   ry := fx;
@@ -215,62 +247,54 @@ begin
   toX := nx + 0.5; toY := ny + 0.5;
   TileX := nx; TileY := ny;
   moving := true;
-  tweenT := 0;
+  moveT := 0;
 end;
 
 procedure RequestTurn(dir: longint);
+{** Turn 90 degrees from the current facing and align the view to it,
+  taking the shortest path from wherever free look left the view. }
 begin
   if MotionBusy then exit;
   FaceDir := (FaceDir + dir + 4) mod 4;
-  fromAng := curAng;
-  toAng := curAng + dir * (Pi / 2);
-  turning := true;
-  tweenT := 0;
+  StartAlign(FaceDir);
 end;
 
 procedure UpdateMotion(dt: double);
 var
   e: double;
 begin
-  if moving or turning then begin
-    if moving then
-      tweenT := tweenT + dt / STEP_DUR
-    else
-      tweenT := tweenT + dt / TURN_DUR;
-    if tweenT > 1 then tweenT := 1;
-    e := 1 - (1 - tweenT) * (1 - tweenT);   { ease out }
-    if moving then begin
-      curX := fromX + (toX - fromX) * e;
-      curY := fromY + (toY - fromY) * e;
+  if moving then begin
+    moveT := moveT + dt / STEP_DUR;
+    if moveT > 1 then moveT := 1;
+    e := 1 - (1 - moveT) * (1 - moveT);   { ease out }
+    curX := fromX + (toX - fromX) * e;
+    curY := fromY + (toY - fromY) * e;
+    if moveT >= 1 then begin
+      curX := toX; curY := toY; moving := false;
     end;
-    if turning then
-      curAng := fromAng + (toAng - fromAng) * e;
-    if tweenT >= 1 then begin
-      if moving then begin curX := toX; curY := toY; moving := false; end;
-      if turning then begin curAng := toAng; turning := false; end;
+  end;
+  if aligning then begin
+    alignT := alignT + dt / TURN_DUR;
+    if alignT > 1 then alignT := 1;
+    e := 1 - (1 - alignT) * (1 - alignT);
+    viewAng := fromAng + (toAng - fromAng) * e;
+    if alignT >= 1 then begin
+      viewAng := AngNorm(toAng);
+      aligning := false;
     end;
   end;
   ApplyCamera;
 end;
 
-procedure AddLook(dyaw, dpitch: double);
+procedure FreeLook(dyaw, dpitch: double);
+{** Mouse free look: rotate the view continuously, cancel any pending
+  alignment so the look wins, and never recentre on its own. }
 begin
-  lookYaw := lookYaw + dyaw;
-  if lookYaw > LOOK_YAW_MAX then lookYaw := LOOK_YAW_MAX;
-  if lookYaw < -LOOK_YAW_MAX then lookYaw := -LOOK_YAW_MAX;
-  lookPitch := lookPitch + dpitch;
-  if lookPitch > LOOK_PITCH_MAX then lookPitch := LOOK_PITCH_MAX;
-  if lookPitch < -LOOK_PITCH_MAX then lookPitch := -LOOK_PITCH_MAX;
-end;
-
-procedure EaseLook(dt: double);
-var
-  k: double;
-begin
-  k := 1 - dt * 10;        { exponential-ish decay toward centre }
-  if k < 0 then k := 0;
-  lookYaw := lookYaw * k;
-  lookPitch := lookPitch * k;
+  aligning := false;
+  viewAng := viewAng + dyaw;
+  viewPitch := viewPitch + dpitch;
+  if viewPitch > LOOK_PITCH_MAX then viewPitch := LOOK_PITCH_MAX;
+  if viewPitch < -LOOK_PITCH_MAX then viewPitch := -LOOK_PITCH_MAX;
 end;
 
 function DoorIsLocked(mx, my: longint): boolean;

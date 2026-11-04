@@ -115,7 +115,7 @@ end;
 procedure ExploreMouseMotion(xrel, yrel: longint);
 begin
   if rmbHeld then
-    AddLook(xrel * MOUSE_YAW, -yrel * MOUSE_PITCH)
+    FreeLook(xrel * MOUSE_YAW, -yrel * MOUSE_PITCH)
   else begin
     cursorX := cursorX + xrel;
     cursorY := cursorY + yrel;
@@ -155,19 +155,17 @@ begin
       RequestStep(1, 0)
     else if KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN) then
       RequestStep(-1, 0)
-    else if KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_A) then
+    else if KeyDown(SDL_SCANCODE_A) then
       RequestStep(0, -1)
-    else if KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_D) then
+    else if KeyDown(SDL_SCANCODE_D) then
       RequestStep(0, 1)
-    else if KeyDown(SDL_SCANCODE_LEFT) then
+    else if KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_LEFT) then
       RequestTurn(-1)
-    else if KeyDown(SDL_SCANCODE_RIGHT) then
+    else if KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_RIGHT) then
       RequestTurn(1);
   end;
 
   UpdateMotion(dt);
-  if not rmbHeld then
-    EaseLook(dt);
   CheckPortal;
 end;
 
