@@ -28,6 +28,11 @@ const
   STEP_DUR = 0.12;   { seconds per tile step }
   TURN_DUR = 0.12;   { seconds per 90 degree turn and view align }
   LOOK_PITCH_MAX = 120;  { framebuffer pixels }
+  LIGHT_RADIUS = 5;      { tiles the party can see }
+
+  VIS_UNSEEN     = 0;
+  VIS_REMEMBERED = 1;
+  VIS_VISIBLE    = 2;
 
 type
   TCamera = record
@@ -41,6 +46,7 @@ var
   Cam: TCamera;
   Map: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   DoorOpen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
+  Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   MapW, MapH: longint;
   CurMap: TMapData;
 
@@ -63,6 +69,7 @@ procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 procedure ForwardDelta(out dx, dy: longint);
+procedure ComputeVisibility;
 
 implementation
 
@@ -155,6 +162,7 @@ begin
     for x := 0 to MAXMAP - 1 do begin
       Map[y][x] := 1;
       DoorOpen[y][x] := false;
+      Seen[y][x] := VIS_UNSEEN;
     end;
   for y := 0 to MapH - 1 do
     for x := 0 to MapW - 1 do
@@ -193,6 +201,7 @@ begin
   aligning := false;
   moveT := 0;
   alignT := 0;
+  ComputeVisibility;
   ApplyCamera;
 end;
 
@@ -271,6 +280,7 @@ begin
     curY := fromY + (toY - fromY) * e;
     if moveT >= 1 then begin
       curX := toX; curY := toY; moving := false;
+      ComputeVisibility;
     end;
   end;
   if aligning then begin
@@ -347,6 +357,51 @@ begin
     end;
     t := t + 0.05;
   end;
+end;
+
+function SightClear(x0, y0, x1, y1: longint): boolean;
+{** True if no solid tile stands strictly between the two tile centres.
+  The endpoints are not treated as blockers, so a wall you look at is
+  itself revealed. }
+var
+  fx, fy, dx, dy, tx, ty: double;
+  steps, i: longint;
+begin
+  SightClear := true;
+  fx := x0 + 0.5; fy := y0 + 0.5;
+  dx := (x1 - x0); dy := (y1 - y0);
+  steps := Round(sqrt(dx * dx + dy * dy) * 4) + 1;
+  for i := 1 to steps - 1 do begin
+    tx := fx + dx * i / steps;
+    ty := fy + dy * i / steps;
+    if (trunc(tx) = x1) and (trunc(ty) = y1) then continue;
+    if (trunc(tx) = x0) and (trunc(ty) = y0) then continue;
+    if IsBlocking(trunc(tx), trunc(ty)) then begin
+      SightClear := false;
+      exit;
+    end;
+  end;
+end;
+
+procedure ComputeVisibility;
+var
+  x, y, dx, dy: longint;
+begin
+  { demote what was visible to remembered }
+  for y := 0 to MapH - 1 do
+    for x := 0 to MapW - 1 do
+      if Seen[y][x] = VIS_VISIBLE then
+        Seen[y][x] := VIS_REMEMBERED;
+  { mark tiles in sight within the light radius }
+  for dy := -LIGHT_RADIUS to LIGHT_RADIUS do
+    for dx := -LIGHT_RADIUS to LIGHT_RADIUS do begin
+      x := TileX + dx;
+      y := TileY + dy;
+      if (x < 0) or (x >= MapW) or (y < 0) or (y >= MapH) then continue;
+      if dx * dx + dy * dy > LIGHT_RADIUS * LIGHT_RADIUS then continue;
+      if SightClear(TileX, TileY, x, y) then
+        Seen[y][x] := VIS_VISIBLE;
+    end;
 end;
 
 function PortalAt(mx, my: longint; out target, marker: string): boolean;

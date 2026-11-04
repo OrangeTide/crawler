@@ -114,6 +114,7 @@ begin
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_SPACE:  OpenDoorAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
+    SDL_SCANCODE_TAB:    State := gsFullMap;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
   end;
 end;
@@ -489,6 +490,16 @@ begin
   end;
 end;
 
+{ ---- Full map state ---- }
+
+procedure FullMapKeyDown(scancode: longint);
+begin
+  case scancode of
+    SDL_SCANCODE_TAB, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_M:
+      State := gsExplore;
+  end;
+end;
+
 { ---- Game over state ---- }
 
 procedure GameOverRender;
@@ -573,6 +584,7 @@ begin
           gsTitle:    TitleKeyDown(ev.key.keysym.scancode);
           gsNewParty: CCKeyDown(ev.key.keysym.scancode);
           gsExplore:  ExploreKeyDown(ev.key.keysym.scancode);
+          gsFullMap:  FullMapKeyDown(ev.key.keysym.scancode);
           gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
         end;
@@ -605,6 +617,7 @@ begin
     gsTitle:    TitleRender;
     gsNewParty: CCRender;
     gsExplore:  ExploreRender(fps);
+    gsFullMap:  DrawFullMap;
     gsCombat:   CombatRender;
     gsGameOver: GameOverRender;
   end;

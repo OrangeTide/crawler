@@ -1,24 +1,26 @@
 unit hud;
 
-{** Heads-up overlay drawn on top of the 3D view.
+{** Heads-up overlay and the maps.
 
-  A carved stone border frames the viewport, a compass strip shows the
-  facing, a crosshair marks the centre and an optional automap gives an
-  overhead view of explored ground. }
+  The in-world HUD is deliberately light: a carved border, a compass, a
+  crosshair, a small translucent minimap that shows only the explored
+  ground around the party, and a party status strip. The fog of war in
+  world decides what the maps reveal. A separate fullscreen map replaces
+  the 3D view and shows the whole explored level. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 procedure DrawHud(showMap: boolean; fps: longint);
+procedure DrawFullMap;
 
 implementation
 
 uses
-  math, gfx, world;
+  math, gfx, world, party;
 
 function NormAngle(a: double): double;
-{** Wrap an angle to the range (-Pi, Pi]. }
 begin
   while a > Pi do a := a - 2 * Pi;
   while a <= -Pi do a := a + 2 * Pi;
@@ -32,7 +34,6 @@ begin
   lit := RGB(120, 112, 96);
   dark := RGB(28, 26, 22);
   mid := RGB(74, 70, 58);
-  { bevelled 4px frame around the whole screen }
   FrameRect(0, 0, FBW, FBH, dark);
   FillRect(1, 1, FBW - 2, 3, lit);
   FillRect(1, 1, 3, FBH - 2, lit);
@@ -42,8 +43,6 @@ begin
 end;
 
 procedure DrawCompass;
-{** A strip at the top with cardinal letters that scroll with facing.
-  Screen angle 0 points along +X (east). }
 var
   i, sx: longint;
   ang, a: double;
@@ -53,19 +52,15 @@ begin
   FillRect(FBW div 2 - 60, 6, 120, 11, RGB(20, 18, 14));
   FrameRect(FBW div 2 - 60, 6, 120, 11, RGB(90, 84, 70));
   cx := FBW div 2;
-
-  { atan2 of the direction gives the heading; +X is east, 0 radians. }
   ang := ArcTan2(Cam.dirY, Cam.dirX);
-
   for i := 0 to 3 do begin
     case i of
       0: begin a := 0;        mark := 'E'; end;
-      1: begin a := Pi / 2;   mark := 'S'; end;  { +Y is south on screen }
+      1: begin a := Pi / 2;   mark := 'S'; end;
       2: begin a := Pi;       mark := 'W'; end;
     else
       begin a := -Pi / 2;     mark := 'N'; end;
     end;
-    { horizontal offset of this cardinal from the view centre }
     sx := cx + Round(NormAngle(a - ang) * (76.0 / Pi));
     if (sx > FBW div 2 - 56) and (sx < FBW div 2 + 52) then
       DrawChar(sx - 2, 8, mark, RGB(230, 220, 150));
@@ -86,40 +81,85 @@ begin
   VLine(cx, cy + 2, 3, c);
 end;
 
-procedure DrawMap;
-const
-  CELL = 5;
+function TileColor(tx, ty: longint; out col: TColor): boolean;
+{** Pick a minimap colour for a tile from its contents and fog state.
+  Returns false if the tile has never been seen. }
 var
-  ox, oy, x, y: longint;
+  vis: byte;
   t: byte;
-  c: TColor;
-  px, py: longint;
+  dim: boolean;
 begin
-  ox := FBW - MapW * CELL - 8;
-  oy := 8;
-  FillRect(ox - 2, oy - 2, MapW * CELL + 4, MapH * CELL + 4, RGB(10, 10, 12));
-  FrameRect(ox - 2, oy - 2, MapW * CELL + 4, MapH * CELL + 4, RGB(90, 84, 70));
+  TileColor := false;
+  if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
+  vis := Seen[ty][tx];
+  if vis = VIS_UNSEEN then exit;
+  dim := vis = VIS_REMEMBERED;
+  t := TileAt(tx, ty);
+  if t = TILE_DOOR then begin
+    if DoorOpen[ty][tx] then col := RGB(60, 120, 50)
+    else col := RGB(175, 125, 45);
+  end else if t = 0 then
+    col := RGB(60, 60, 72)
+  else
+    col := RGB(120, 116, 108);
+  if dim then
+    col := Shade(col, 110);
+  TileColor := true;
+end;
 
-  for y := 0 to MapH - 1 do
-    for x := 0 to MapW - 1 do begin
-      t := TileAt(x, y);
-      if t = TILE_DOOR then begin
-        if DoorOpen[y][x] then
-          c := RGB(60, 90, 40)
-        else
-          c := RGB(170, 120, 40);
-      end else if t = 0 then
-        c := RGB(40, 40, 48)
-      else
-        c := RGB(100, 96, 88);
-      FillRect(ox + x * CELL, oy + y * CELL, CELL - 1, CELL - 1, c);
+procedure DrawMiniMap;
+const
+  WR = 8;              { tiles each side of the party }
+  CELL = 3;
+var
+  span, px, py, dx, dy, tx, ty, fx, fy: longint;
+  col: TColor;
+begin
+  span := (2 * WR + 1) * CELL;
+  px := FBW - span - 8;
+  py := 8;
+  FillRectBlend(px - 2, py - 2, span + 4, span + 4, RGB(10, 10, 14), 170);
+  FrameRect(px - 2, py - 2, span + 4, span + 4, RGB(90, 84, 70));
+
+  for dy := -WR to WR do
+    for dx := -WR to WR do begin
+      tx := TileX + dx;
+      ty := TileY + dy;
+      if TileColor(tx, ty, col) then
+        FillRect(px + (dx + WR) * CELL, py + (dy + WR) * CELL, CELL, CELL, col);
     end;
 
-  { player marker and a line showing facing }
-  px := ox + Trunc(Cam.posX * CELL);
-  py := oy + Trunc(Cam.posY * CELL);
-  FillRect(px - 1, py - 1, 3, 3, RGB(240, 60, 60));
-  PutPixel(px + Round(Cam.dirX * 4), py + Round(Cam.dirY * 4), RGB(255, 230, 120));
+  { party marker at the centre and a facing tick }
+  FillRect(px + WR * CELL, py + WR * CELL, CELL, CELL, RGB(240, 70, 70));
+  ForwardDelta(fx, fy);
+  PutPixel(px + WR * CELL + 1 + fx * 2, py + WR * CELL + 1 + fy * 2,
+    RGB(255, 230, 120));
+end;
+
+procedure DrawPartyStrip;
+var
+  i, n, slotW, x, barW: longint;
+  c: TColor;
+  nm: string;
+begin
+  n := Length(Roster);
+  if n = 0 then exit;
+  slotW := (FBW - 16) div 4;
+  FillRectBlend(8, FBH - 26, FBW - 16, 18, RGB(12, 10, 10), 160);
+  for i := 0 to n - 1 do begin
+    x := 8 + i * slotW + 2;
+    if not Roster[i].alive then c := RGB(150, 70, 70)
+    else if Roster[i].downed then c := RGB(170, 130, 80)
+    else c := RGB(200, 205, 180);
+    nm := Copy(Roster[i].name, 1, 6);
+    DrawText(x, FBH - 24, nm, c);
+    { HP bar }
+    barW := slotW - 8;
+    FillRect(x, FBH - 14, barW, 3, RGB(50, 20, 20));
+    if Roster[i].hpMax > 0 then
+      FillRect(x, FBH - 14,
+        (barW * Roster[i].hp) div Roster[i].hpMax, 3, RGB(70, 170, 70));
+  end;
 end;
 
 procedure DrawHud(showMap: boolean; fps: longint);
@@ -130,14 +170,39 @@ begin
   DrawCompass;
   DrawCrosshair;
   if showMap then
-    DrawMap;
-
-  { status line along the bottom }
-  FillRect(8, FBH - 20, FBW - 16, 12, RGB(18, 16, 12));
+    DrawMiniMap;
+  DrawPartyStrip;
   Str(fps, s);
-  DrawText(12, FBH - 18, 'FPS ' + s, RGB(150, 200, 150));
-  DrawText(90, FBH - 18, 'WASD MOVE  ARROWS LOOK  SPACE DOOR  M MAP  ESC QUIT',
-    RGB(170, 160, 130));
+  DrawText(12, FBH - 34, 'FPS ' + s, RGB(120, 150, 120));
+end;
+
+procedure DrawFullMap;
+var
+  cell, ox, oy, x, y: longint;
+  col: TColor;
+  fx, fy: longint;
+begin
+  ClearFB(RGB(8, 8, 12));
+  cell := (FBW - 24) div MapW;
+  if (FBH - 40) div MapH < cell then cell := (FBH - 40) div MapH;
+  if cell < 2 then cell := 2;
+  if cell > 12 then cell := 12;
+  ox := (FBW - MapW * cell) div 2;
+  oy := (FBH - MapH * cell) div 2 + 6;
+
+  DrawText(12, 8, 'MAP', RGB(220, 200, 120));
+  DrawText(FBW - 120, 8, 'TAB OR ESC TO CLOSE', RGB(120, 120, 100));
+
+  for y := 0 to MapH - 1 do
+    for x := 0 to MapW - 1 do
+      if TileColor(x, y, col) then
+        FillRect(ox + x * cell, oy + y * cell, cell, cell, col);
+
+  { player marker }
+  FillRect(ox + TileX * cell, oy + TileY * cell, cell, cell, RGB(240, 70, 70));
+  ForwardDelta(fx, fy);
+  FillRect(ox + (TileX + fx) * cell + cell div 2,
+           oy + (TileY + fy) * cell + cell div 2, 2, 2, RGB(255, 230, 120));
 end;
 
 end.

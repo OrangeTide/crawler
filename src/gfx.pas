@@ -28,6 +28,8 @@ procedure ClearFB(c: TColor);
 procedure PutPixel(x, y: longint; c: TColor); inline;
 procedure FillRect(x, y, w, h: longint; c: TColor);
 procedure FrameRect(x, y, w, h: longint; c: TColor);
+procedure BlendPixel(x, y: longint; c: TColor; alpha: byte);
+procedure FillRectBlend(x, y, w, h: longint; c: TColor; alpha: byte);
 procedure HLine(x, y, len: longint; c: TColor);
 procedure VLine(x, y, len: longint; c: TColor);
 procedure DrawChar(x, y: longint; ch: char; c: TColor);
@@ -97,6 +99,39 @@ begin
   HLine(x, y + h - 1, w, c);
   VLine(x, y, h, c);
   VLine(x + w - 1, y, h, c);
+end;
+
+procedure BlendPixel(x, y: longint; c: TColor; alpha: byte);
+{** Alpha-blend c over the existing pixel. alpha 0 keeps the dst, 255
+  replaces it. Used for translucent HUD overlays. }
+var
+  d: TColor;
+  sr, sg, sb, dr, dg, db, ia: longint;
+begin
+  if (x < 0) or (x >= FBW) or (y < 0) or (y >= FBH) then exit;
+  if alpha = 0 then exit;
+  if alpha = 255 then begin
+    FB[y * FBW + x] := c;
+    exit;
+  end;
+  d := FB[y * FBW + x];
+  ia := 255 - alpha;
+  sr := (c shr 16) and $FF; sg := (c shr 8) and $FF; sb := c and $FF;
+  dr := (d shr 16) and $FF; dg := (d shr 8) and $FF; db := d and $FF;
+  dr := (sr * alpha + dr * ia) div 255;
+  dg := (sg * alpha + dg * ia) div 255;
+  db := (sb * alpha + db * ia) div 255;
+  FB[y * FBW + x] := TColor($FF000000) or (TColor(dr) shl 16) or
+    (TColor(dg) shl 8) or TColor(db);
+end;
+
+procedure FillRectBlend(x, y, w, h: longint; c: TColor; alpha: byte);
+var
+  i, j: longint;
+begin
+  for j := 0 to h - 1 do
+    for i := 0 to w - 1 do
+      BlendPixel(x + i, y + j, c, alpha);
 end;
 
 { ---- Bitmap font: 5 wide x 7 tall, low 5 bits of each row byte ----
