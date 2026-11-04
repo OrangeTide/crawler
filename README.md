@@ -40,6 +40,8 @@ filtering, the same way the game presents it.
   saves, brush-with-death, morale, guard and potion actions.
 - Keyword dialog with NPCs, a buy shop, story flags and a quest journal. The
   game now starts in a town hub with a barkeep and an elder.
+- Save and load, including the party, gold, flags, journal, position and the
+  explored fog of every visited map, from the title screen or F5 and F9.
 
 ## Controls
 
@@ -55,6 +57,7 @@ filtering, the same way the game presents it.
 | M | Toggle the small minimap |
 | Tab | Open or close the fullscreen map |
 | J | Open or close the quest journal |
+| F5 / F9 | Save / load the game |
 | Space or click | Talk to an NPC ahead or under the cursor |
 | C | Force a test encounter (while a party exists) |
 | Esc | Quit |
@@ -99,6 +102,8 @@ make clean  # removes the build directory
 | `src/flags.pas` | Story flags and the quest journal. |
 | `src/dialog.pas` | Conversation data, decoder and runtime. |
 | `src/dialogtext.pas` | Parser for the text conversation format. |
+| `src/mapstate.pas` | Per-map fog and door snapshots across visits. |
+| `src/save.pas` | Save and load of the whole game to a file. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

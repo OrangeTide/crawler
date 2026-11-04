@@ -33,7 +33,8 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
-  rng, rules, items, chardata, party, monsters, combat, flags, dialog;
+  rng, rules, items, chardata, party, monsters, combat, flags, dialog,
+  mapstate, save;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -50,9 +51,10 @@ var
   lastTX, lastTY: longint;
   cursorX, cursorY: longint;
   rmbHeld: boolean;
-  currentMapName: string;
   dlgNpcName: string;
   shopSel: longint;
+  saveMsg: string;
+  saveMsgT: double;
 
   titleSel: longint;
   ccSlot: longint;
@@ -68,24 +70,51 @@ const
     'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
     'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
 
-function LoadMapByName(const name, marker: string): boolean;
-{** Pull a map lump from the pak, decode it and place the party. }
+function SavePath: string;
+begin
+  SavePath := ExtractFilePath(ParamStr(0)) + 'save1.sav';
+end;
+
+function LoadMapLump(const name: string): boolean;
+{** Decode a map lump into the world, capturing the map being left and
+  restoring any saved fog and doors for the one being entered. }
 var
   blob: TByteArray;
   md: TMapData;
 begin
+  LoadMapLump := false;
+  if not PakGet(GamePak, name, blob) then exit;
+  if not DecodeMap(blob, md) then exit;
+  if CurMapName <> '' then
+    MapStateCapture(CurMapName);
+  if not LoadMapData(md) then exit;
+  CurMapName := name;
+  MapStateRestore(name);     { bring back fog and doors if visited before }
+  LoadMapLump := true;
+end;
+
+function LoadMapByName(const name, marker: string): boolean;
+{** Load a map and place the party at a named marker. }
+begin
   LoadMapByName := false;
-  if not PakGet(GamePak, name, blob) then
-    exit;
-  if not DecodeMap(blob, md) then
-    exit;
-  if not LoadMapData(md) then
-    exit;
+  if not LoadMapLump(name) then exit;
   PlaceAtMarker(marker);
-  currentMapName := name;
   lastTX := TileX;
   lastTY := TileY;
   LoadMapByName := true;
+end;
+
+function ContinueGame: boolean;
+{** Load the save, then reload its map at the saved position. }
+begin
+  ContinueGame := false;
+  if not LoadGame(SavePath) then exit;
+  CurMapName := '';          { do not capture a stale resident map }
+  if not LoadMapLump(LoadedMapName) then exit;
+  PlaceAt(LoadedTX, LoadedTY, LoadedFace);
+  lastTX := TileX;
+  lastTY := TileY;
+  ContinueGame := true;
 end;
 
 function KeyDown(scancode: longint): boolean; inline;
@@ -145,6 +174,16 @@ begin
     SDL_SCANCODE_TAB:    State := gsFullMap;
     SDL_SCANCODE_J:      State := gsMenu;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
+    SDL_SCANCODE_F5: begin
+      if SaveGame(SavePath) then saveMsg := 'GAME SAVED'
+      else saveMsg := 'SAVE FAILED';
+      saveMsgT := 2.0;
+    end;
+    SDL_SCANCODE_F9:
+      if ContinueGame then begin
+        saveMsg := 'GAME LOADED';
+        saveMsgT := 2.0;
+      end;
   end;
 end;
 
@@ -191,7 +230,7 @@ begin
     exit;
   end;
   { Town is safe; elsewhere a small per-step chance of an encounter. }
-  if (currentMapName <> 'TOWN') and (Length(Roster) > 0) then
+  if (CurMapName <> 'TOWN') and (Length(Roster) > 0) then
     if Range(1, 18) = 1 then
       StartCombat(1);
 end;
@@ -215,6 +254,7 @@ begin
   end;
 
   UpdateMotion(dt);
+  if saveMsgT > 0 then saveMsgT := saveMsgT - dt;
   CheckTileEvents;
 end;
 
@@ -232,6 +272,8 @@ procedure ExploreRender(fps: longint);
 begin
   RenderView;
   DrawHud(showMap, fps);
+  if saveMsgT > 0 then
+    DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));
   DrawCursor;
 end;
 
@@ -291,6 +333,8 @@ procedure StartGame;
 {** Hand off from the menus to the starting town. }
 begin
   FlagsReset;
+  MapStateReset;
+  CurMapName := '';
   if not LoadMapByName('TOWN', 'spawn') then begin
     writeln(StdErr, 'game: could not load the starting map');
     QuitRequested := true;
@@ -302,12 +346,12 @@ end;
 { ---- Title state ---- }
 
 const
-  TITLE_ITEMS = 3;
+  TITLE_ITEMS = 4;
 
 procedure TitleRender;
 const
   LABELS: array[0 .. TITLE_ITEMS - 1] of string = (
-    'NEW GAME', 'QUICK START', 'QUIT');
+    'CONTINUE', 'NEW GAME', 'QUICK START', 'QUIT');
 var
   i, y: longint;
   c: TColor;
@@ -323,6 +367,8 @@ begin
       DrawText(FBW div 2 - Length(LABELS[i]) * 3 - 12, y, '>', c);
     end else
       c := RGB(150, 140, 120);
+    if (i = 0) and (not SaveExists(SavePath)) then
+      c := RGB(80, 76, 66);
     DrawCenter(y, LABELS[i], c);
     inc(y, 16);
   end;
@@ -362,9 +408,10 @@ end;
 procedure TitleSelect;
 begin
   case titleSel of
-    0: begin State := gsNewParty; NewParty; ccSlot := 0; CCBeginSlot; end;
-    1: QuickStart;
-    2: QuitRequested := true;
+    0: if SaveExists(SavePath) then ContinueGame;
+    1: begin State := gsNewParty; NewParty; ccSlot := 0; CCBeginSlot; end;
+    2: QuickStart;
+    3: QuitRequested := true;
   end;
 end;
 

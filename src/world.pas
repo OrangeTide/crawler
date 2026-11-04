@@ -49,12 +49,14 @@ var
   Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   MapW, MapH: longint;
   CurMap: TMapData;
+  CurMapName: string;
 
   TileX, TileY: longint;   { logical tile the party stands on }
   FaceDir: longint;        { DIR_N / DIR_E / DIR_S / DIR_W }
 
 function LoadMapData(const m: TMapData): boolean;
 procedure PlaceAtMarker(const name: string);
+procedure PlaceAt(tx, ty, face: longint);
 function TileAt(mx, my: longint): byte;
 function IsBlocking(mx, my: longint): boolean;
 
@@ -194,6 +196,23 @@ begin
     FaceDir := DIR_E;
   end;
 
+  curX := TileX + 0.5;
+  curY := TileY + 0.5;
+  viewAng := DirAngle(FaceDir);
+  viewPitch := 0;
+  moving := false;
+  aligning := false;
+  moveT := 0;
+  alignT := 0;
+  ComputeVisibility;
+  ApplyCamera;
+end;
+
+procedure PlaceAt(tx, ty, face: longint);
+begin
+  TileX := tx;
+  TileY := ty;
+  FaceDir := face;
   curX := TileX + 0.5;
   curY := TileY + 0.5;
   viewAng := DirAngle(FaceDir);
