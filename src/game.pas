@@ -33,7 +33,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
-  rng, rules, items, party;
+  rng, rules, items, chardata, party;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -53,8 +53,9 @@ var
 
   titleSel: longint;
   ccSlot: longint;
-  ccKindred: TKindred;
-  ccClass: TCharClass;
+  ccSpecies: longint;
+  ccClass: longint;
+  ccBg: longint;
   ccNameIdx: longint;
   ccAbil: TAbilityScores;
   ccPreview: TCharacter;
@@ -193,6 +194,18 @@ begin
   DrawText((FBW - Length(s) * 6) div 2, y, s, c);
 end;
 
+function ClassOr0(const id: string): longint;
+begin
+  ClassOr0 := ClassIndex(id);
+  if ClassOr0 < 0 then ClassOr0 := 0;
+end;
+
+function SpeciesOr0(const id: string): longint;
+begin
+  SpeciesOr0 := SpeciesIndex(id);
+  if SpeciesOr0 < 0 then SpeciesOr0 := 0;
+end;
+
 procedure StartGame;
 {** Hand off from the menus to the dungeon. }
 begin
@@ -237,15 +250,16 @@ end;
 procedure QuickStart;
 {** Make a ready-to-play party of four and dive in. }
 var
-  i: longint;
+  i, sp: longint;
   a: TAbilityScores;
   c: TCharacter;
-  cls: array[0 .. 3] of TCharClass = (ccFighter, ccThief, ccCleric, ccMagicUser);
+  clsId: array[0 .. 3] of string = ('FIGHTER', 'THIEF', 'FRIAR', 'WIZARD');
 begin
   NewParty;
+  sp := SpeciesOr0('HUMAN');
   for i := 0 to 3 do begin
     RollAbilities(a);
-    MakeCharacter(c, NAME_POOL[i], kHuman, cls[i], a);
+    MakeCharacter(c, NAME_POOL[i], sp, ClassOr0(clsId[i]), 0, a);
     AddPartyMember(c);
   end;
   StartGame;
@@ -255,8 +269,9 @@ procedure CCRebuild; forward;
 
 procedure CCBeginSlot;
 begin
-  ccKindred := kHuman;
-  ccClass := ccFighter;
+  ccSpecies := SpeciesOr0('HUMAN');
+  ccClass := ClassOr0('FIGHTER');
+  ccBg := 0;
   ccNameIdx := ccSlot;
   RollAbilities(ccAbil);
   CCRebuild;
@@ -285,7 +300,7 @@ end;
 
 procedure CCRebuild;
 begin
-  MakeCharacter(ccPreview, NAME_POOL[ccNameIdx], ccKindred, ccClass, ccAbil);
+  MakeCharacter(ccPreview, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
 end;
 
 procedure CCRender;
@@ -299,11 +314,12 @@ begin
   DrawCenter(10, 'CREATE PARTY   MEMBER ' + IntToStr(ccSlot + 1) + ' OF '
     + IntToStr(MAX_PARTY), RGB(220, 200, 120));
 
-  DrawText(30, 34, 'NAME:    ' + NAME_POOL[ccNameIdx], RGB(200, 200, 180));
-  DrawText(30, 46, 'KINDRED: ' + KINDRED_NAME[ccKindred], RGB(200, 200, 180));
-  DrawText(30, 58, 'CLASS:   ' + CLASS_NAME[ccClass], RGB(200, 200, 180));
+  DrawText(30, 30, 'NAME:    ' + NAME_POOL[ccNameIdx], RGB(200, 200, 180));
+  DrawText(30, 42, 'SPECIES: ' + SpeciesDefs[ccSpecies].name, RGB(200, 200, 180));
+  DrawText(30, 54, 'CLASS:   ' + ClassDefs[ccClass].name, RGB(200, 200, 180));
+  DrawText(30, 66, 'PAST:    ' + BackgroundDefs[ccBg].name, RGB(190, 190, 160));
 
-  y := 80;
+  y := 84;
   for a := abSTR to abCHA do begin
     m := AbilMod(ccPreview.abil[a]);
     if m >= 0 then modStr := '+' + IntToStr(m) else modStr := IntToStr(m);
@@ -318,9 +334,9 @@ begin
   DrawText(150, 102, 'ATK ' + IntToStr(CharAttack(ccPreview, true)),
     RGB(200, 190, 150));
 
-  DrawText(20, FBH - 40, 'N NAME  K KINDRED  [ ] CLASS  R REROLL',
+  DrawText(14, FBH - 40, 'N NAME  K SPECIES  [ ] CLASS  B PAST  R REROLL',
     RGB(140, 130, 110));
-  DrawText(20, FBH - 28, 'ENTER ACCEPT   G FINISH   ESC TITLE',
+  DrawText(14, FBH - 28, 'ENTER ACCEPT   G FINISH   ESC TITLE',
     RGB(140, 130, 110));
 end;
 
@@ -328,7 +344,7 @@ procedure CCAccept;
 var
   c: TCharacter;
 begin
-  MakeCharacter(c, NAME_POOL[ccNameIdx], ccKindred, ccClass, ccAbil);
+  MakeCharacter(c, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
   AddPartyMember(c);
   inc(ccSlot);
   if ccSlot >= MAX_PARTY then
@@ -343,18 +359,19 @@ begin
     SDL_SCANCODE_N:
       ccNameIdx := (ccNameIdx + 1) mod Length(NAME_POOL);
     SDL_SCANCODE_K: begin
-      if ccKindred = High(TKindred) then ccKindred := Low(TKindred)
-      else ccKindred := Succ(ccKindred);
+      ccSpecies := (ccSpecies + 1) mod Length(SpeciesDefs);
+      CCRebuild;
+    end;
+    SDL_SCANCODE_B: begin
+      ccBg := (ccBg + 1) mod Length(BackgroundDefs);
       CCRebuild;
     end;
     SDL_SCANCODE_RIGHTBRACKET, SDL_SCANCODE_E: begin
-      if ccClass = High(TCharClass) then ccClass := Low(TCharClass)
-      else ccClass := Succ(ccClass);
+      ccClass := (ccClass + 1) mod Length(ClassDefs);
       CCRebuild;
     end;
     SDL_SCANCODE_LEFTBRACKET, SDL_SCANCODE_Q: begin
-      if ccClass = Low(TCharClass) then ccClass := High(TCharClass)
-      else ccClass := Pred(ccClass);
+      ccClass := (ccClass + Length(ClassDefs) - 1) mod Length(ClassDefs);
       CCRebuild;
     end;
     SDL_SCANCODE_R: begin
@@ -413,6 +430,10 @@ begin
   end;
   if not LoadItems(GamePak) then begin
     writeln(StdErr, 'game: missing or bad item table in ', pakPath);
+    exit;
+  end;
+  if not LoadCharData(GamePak) then begin
+    writeln(StdErr, 'game: missing species/class/background tables in ', pakPath);
     exit;
   end;
 

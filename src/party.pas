@@ -13,7 +13,7 @@ unit party;
 interface
 
 uses
-  rng, rules, items;
+  rng, rules, items, chardata;
 
 const
   MAX_PARTY = 4;
@@ -29,8 +29,9 @@ type
 
   TCharacter = record
     name: string[15];
-    kindred: TKindred;
-    klass: TCharClass;
+    species: longint;     { index into SpeciesDefs }
+    klass: longint;       { index into ClassDefs }
+    background: longint;  { index into BackgroundDefs, -1 none }
     level: byte;
     xp: longint;
     abil: TAbilityScores;
@@ -51,11 +52,10 @@ procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 function CharAC(const c: TCharacter): longint;
 function CharAttack(const c: TCharacter; melee: boolean): longint;
 function CharWeaponDie(const c: TCharacter): longint;
-function PrimeAbility(cls: TCharClass): TAbility;
 
 procedure RollAbilities(out a: TAbilityScores);
 procedure MakeCharacter(var c: TCharacter; const nm: string;
-  kin: TKindred; cls: TCharClass; const a: TAbilityScores);
+  speciesIdx, classIdx, bgIdx: longint; const a: TAbilityScores);
 procedure GiveClassKit(var c: TCharacter);
 
 procedure NewParty;
@@ -88,17 +88,6 @@ end;
 procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 begin
   c.equip[slot] := MakeInst(id, 1);
-end;
-
-function PrimeAbility(cls: TCharClass): TAbility;
-begin
-  case cls of
-    ccFighter, ccBarbarian: PrimeAbility := abSTR;
-    ccRanger, ccThief:      PrimeAbility := abDEX;
-    ccCleric:               PrimeAbility := abWIS;
-  else
-    PrimeAbility := abINT;
-  end;
 end;
 
 function CharAC(const c: TCharacter): longint;
@@ -135,7 +124,7 @@ function CharAttack(const c: TCharacter; melee: boolean): longint;
 var
   ab: longint;
 begin
-  ab := AttackBonus(CLASS_TRACK[c.klass], c.level);
+  ab := AttackBonus(TTrack(ClassDefs[c.klass].track), c.level);
   if melee then
     ab := ab + AbilMod(c.abil[abSTR])
   else
@@ -152,26 +141,31 @@ begin
 end;
 
 procedure MakeCharacter(var c: TCharacter; const nm: string;
-  kin: TKindred; cls: TCharClass; const a: TAbilityScores);
+  speciesIdx, classIdx, bgIdx: longint; const a: TAbilityScores);
 var
   ab: TAbility;
-  prime: TAbility;
+  prime, newv: longint;
   s: TEquipSlot;
 begin
   c.name := nm;
-  c.kindred := kin;
-  c.klass := cls;
+  c.species := speciesIdx;
+  c.klass := classIdx;
+  c.background := bgIdx;
   c.level := 1;
   c.xp := 0;
-  for ab := abSTR to abCHA do
-    c.abil[ab] := a[ab];
-  { Human gets +1 to its prime ability. }
-  if kin = kHuman then begin
-    prime := PrimeAbility(cls);
-    if c.abil[prime] < 18 then
-      c.abil[prime] := c.abil[prime] + 1;
+  for ab := abSTR to abCHA do begin
+    newv := a[ab] + SpeciesDefs[speciesIdx].abilBonus[ord(ab)];
+    if newv < 3 then newv := 3;
+    if newv > 18 then newv := 18;
+    c.abil[ab] := newv;
   end;
-  c.hpMax := MaxHP(cls, c.abil[abCON], 1);
+  { Human-style species give +1 to the class prime ability. }
+  if (SpeciesDefs[speciesIdx].flags and SPF_PRIMEBONUS) <> 0 then begin
+    prime := ClassDefs[classIdx].prime;
+    if c.abil[TAbility(prime)] < 18 then
+      c.abil[TAbility(prime)] := c.abil[TAbility(prime)] + 1;
+  end;
+  c.hpMax := MaxHPDie(ClassDefs[classIdx].hitDie, c.abil[abCON], 1);
   c.hp := c.hpMax;
   c.alive := true;
   for s := eqMain to eqLight do
@@ -182,37 +176,38 @@ end;
 
 procedure GiveClassKit(var c: TCharacter);
 begin
-  { Everyone carries a torch. }
+  { Everyone carries a torch. The kit archetype on the class drives the
+    rest, so a new class needs only a table row, not code. }
   SetEquip(c, eqLight, 'TORCH');
-  case c.klass of
-    ccFighter: begin
+  case ClassDefs[c.klass].kit of
+    KIT_SOLDIER: begin
       SetEquip(c, eqMain, 'SWORD');
       SetEquip(c, eqOff, 'SHIELD');
       SetEquip(c, eqArmor, 'MARMOR');
     end;
-    ccBarbarian: begin
+    KIT_HEAVY: begin
       SetEquip(c, eqMain, 'GREATAXE');
       SetEquip(c, eqArmor, 'HIDE');
       PackAdd(c, 'TROPHY', 1);
     end;
-    ccRanger: begin
+    KIT_ARCHER: begin
       SetEquip(c, eqMain, 'BOW');
       SetEquip(c, eqArmor, 'LARMOR');
       PackAdd(c, 'SWORD', 1);
       PackAdd(c, 'WOODCRFT', 1);
     end;
-    ccCleric: begin
+    KIT_PRIEST: begin
       SetEquip(c, eqMain, 'MACE');
       SetEquip(c, eqOff, 'SHIELD');
       SetEquip(c, eqArmor, 'MARMOR');
       PackAdd(c, 'HOLYSYM', 1);
     end;
-    ccThief: begin
+    KIT_THIEF: begin
       SetEquip(c, eqMain, 'DAGGER');
       SetEquip(c, eqArmor, 'LARMOR');
       PackAdd(c, 'THVTOOLS', 1);
     end;
-    ccMagicUser: begin
+    KIT_MAGE: begin
       SetEquip(c, eqMain, 'STAFF');
       PackAdd(c, 'SPELLBK', 1);
     end;

@@ -30,9 +30,9 @@ filtering, the same way the game presents it.
   from that file at runtime, using the custom PAK and PIC formats.
 - Openable doors, a scrolling compass, a crosshair and an overhead automap.
 - A HUD drawn with a built-in 5x7 bitmap font.
-- A title screen and character creation for a party of up to four, using the
-  AX&X attributes, kindreds and classes, with a quick-start option.
-- Items loaded from a compiled table, with per-class starting kits.
+- A title screen and character creation for a party of up to four, choosing
+  from data-driven species, classes and backgrounds, with a quick-start option.
+- Items and monsters loaded from compiled tables, with per-class starting kits.
 
 ## Controls
 
@@ -80,6 +80,10 @@ make clean  # removes the build directory
 | `src/items.pas` | Item database and table codec, loaded from the pak. |
 | `src/itemtext.pas` | Parser for the text item table, used by the tool. |
 | `src/party.pas` | Characters, derived stats and character creation. |
+| `src/chardata.pas` | Species, class and background tables (data-driven). |
+| `src/chartext.pas` | Parsers for the species/class/background tables. |
+| `src/monsters.pas` | Monster database and table codec. |
+| `src/montext.pas` | Parser for the monster table, used by the tool. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

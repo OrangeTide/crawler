@@ -1,0 +1,18 @@
+# Monster table.
+# mon ID HD AC ATK DMG MORALE SPEED XP FLAGS "Name"
+# ATK is the to-hit bonus, DMG the damage die, MORALE the 1d6 hold threshold.
+# FLAGS: 1 = undead, 2 = ranged.
+mon RAT      1 11 1 3 2 1  25 0 "Giant Rat"
+mon BAT      1 12 1 3 2 1  25 0 "Cave Bat"
+mon GOBLIN   1 13 1 6 4 1  25 0 "Goblin"
+mon KOBOLD   1 12 1 4 3 1  25 0 "Kobold"
+mon SKELETON 1 12 1 6 4 1  25 1 "Skeleton"
+mon ZOMBIE   2 11 2 6 5 1  50 1 "Zombie"
+mon ORC      1 13 1 8 4 1  25 0 "Orc"
+mon SPIDER   1 13 1 4 3 1  25 0 "Giant Spider"
+mon CRAB     1 14 1 6 2 1  25 0 "Shore Crab"
+mon WOLF     2 13 2 6 3 1  50 0 "Dire Wolf"
+mon BANDIT   1 12 1 6 4 1  25 0 "Bandit"
+mon GHOUL    2 13 2 6 5 1  50 1 "Ghoul"
+mon IMP      1 13 1 4 3 1  25 0 "Imp"
+mon OOZE     2 10 2 6 4 1  50 0 "Grey Ooze"

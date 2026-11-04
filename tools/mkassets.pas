@@ -13,7 +13,8 @@ program mkassets;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext;
+  sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
+  monsters, montext, chardata, chartext;
 
 var
   w: TPakWriter;
@@ -68,6 +69,70 @@ begin
   writeln('  items (', n, ') from ', fn);
 end;
 
+procedure AddMonsters(const fn: string);
+var
+  defs: array[0 .. 255] of TMonsterDef;
+  dyn: array of TMonsterDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseMonsters(fn, defs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := defs[k];
+  PakWAdd(w, 'MONS', EncodeMonsters(dyn));
+  writeln('  monsters (', n, ') from ', fn);
+end;
+
+procedure AddSpecies(const fn: string);
+var
+  defs: array[0 .. 63] of TSpeciesDef;
+  dyn: array of TSpeciesDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseSpecies(fn, defs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := defs[k];
+  PakWAdd(w, 'SPEC', EncodeSpecies(dyn));
+  writeln('  species (', n, ') from ', fn);
+end;
+
+procedure AddClasses(const fn: string);
+var
+  defs: array[0 .. 63] of TClassDef;
+  dyn: array of TClassDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseClasses(fn, defs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := defs[k];
+  PakWAdd(w, 'CLAS', EncodeClasses(dyn));
+  writeln('  classes (', n, ') from ', fn);
+end;
+
+procedure AddBackgrounds(const fn: string);
+var
+  defs: array[0 .. 63] of TBackgroundDef;
+  dyn: array of TBackgroundDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseBackgrounds(fn, defs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := defs[k];
+  PakWAdd(w, 'BKGD', EncodeBackgrounds(dyn));
+  writeln('  backgrounds (', n, ') from ', fn);
+end;
+
 var
   i: longint;
 begin
@@ -91,6 +156,14 @@ begin
       AddMap(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'items' then begin
       AddItems(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'monsters' then begin
+      AddMonsters(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'species' then begin
+      AddSpecies(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'classes' then begin
+      AddClasses(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'backgrounds' then begin
+      AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);

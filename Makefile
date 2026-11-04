@@ -7,7 +7,14 @@ PAK       = build/game.pak
 MKASSETS  = build/tools/mkassets
 MAPS      = $(wildcard content/maps/*.map)
 ITEMS     = content/items.txt
+MONSTERS  = content/monsters.txt
+SPECIES   = content/species.txt
+CLASSES   = content/classes.txt
+BACKG     = content/backgrounds.txt
+CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(MAPS)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
+TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
+            classes $(CLASSES) backgrounds $(BACKG)
 
 .PHONY: all run clean tools
 
@@ -22,8 +29,8 @@ $(MKASSETS): tools/mkassets.pas src/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -o$(MKASSETS) tools/mkassets.pas
 
-$(PAK): $(MKASSETS) $(MAPS) $(ITEMS)
-	$(MKASSETS) $(PAK) items $(ITEMS) $(MAPARGS)
+$(PAK): $(MKASSETS) $(CONTENT)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS)
 
 build:
 	mkdir -p build

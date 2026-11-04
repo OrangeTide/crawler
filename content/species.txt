@@ -1,0 +1,20 @@
+# Species table.
+# species ID "Name" STR DEX CON INT WIS CHA FLAGS XP%
+# FLAGS: 1 = darkvision, 2 = prime +1 (human style). XP% is a bonus percent.
+species HUMAN     "Human"       0  0  0  0  0  0 2 10
+species DWARF     "Dwarf"       0  0  1  0  0 -1 1  0
+species ELF       "Elf"         0  1 -1  0  0  0 1  0
+species HALFELF   "Half-Elf"    0  0  0  0  0  1 1  0
+species GNOME     "Gnome"      -1  0  0  1  0  0 1  0
+species HALFLING  "Halfling"   -1  1  0  0  0  0 0  0
+species HALFORC   "Half-Orc"    1  0  0 -1  0  0 1  0
+species TIEFLING  "Tiefling"    0  0  0  0  0  1 1  0
+species DARKELF   "Dark Elf"    0  1 -1  0  0  0 1  0
+species EARTHLING "Earthling"   0  0  0  0  0  0 0  5
+species TAINTED   "Tainted"     0  0  1  0 -1  0 1  0
+species EXOTIC    "Exotic"      0  0  0  0  0  1 0  0
+species PRIMATE   "Ape-Folk"    1  1  0 -1  0 -1 0  0
+species REPTILIAN "Reptilian"   0  0  1  0  0 -1 1  0
+species REVENANT  "Revenant"    0  0  1  0  0 -1 1  0
+species WINGED    "Winged Folk" -1 1  0  0  0  0 0  0
+species WITCHLING "Witchling"   0  0 -1  1  0  0 1  0

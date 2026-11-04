@@ -1,0 +1,37 @@
+# Class table. class ID "Name" TRACK HITDIE PRIME KIT
+# TRACK: warrior priest specialist mage
+# PRIME: STR DEX CON INT WIS CHA
+# KIT:   soldier heavy archer priest thief mage
+class FIGHTER    "Fighter"         warrior     8 STR soldier
+class BERSERKER  "Berserker"       warrior    10 STR heavy
+class KNIGHT     "Knight"          warrior     8 STR soldier
+class PALADIN    "Paladin"         warrior     8 STR soldier
+class ANTIPAL    "Anti-Paladin"    warrior     8 STR soldier
+class RANGER     "Ranger"          warrior     8 DEX archer
+class TEMPLAR    "Templar"         warrior     8 STR soldier
+class FOLKCHAMP  "Folk-Champion"   warrior     8 STR soldier
+class WILDBRUTE  "Wild-Brute"      warrior    10 STR heavy
+class RIFLEMAN   "Rifleman"        warrior     8 DEX archer
+class SKYLORD    "Sky-Lord"        warrior     8 STR soldier
+class ELDARCHER  "Eldritch-Archer" warrior     8 DEX archer
+class WARDEN     "Warden"          warrior     8 STR soldier
+class CLANSDWARF "Clansdwarf"      warrior    10 STR heavy
+class FRIAR      "Friar"           priest      6 WIS priest
+class MYSTIC     "Mystic"          priest      6 WIS priest
+class GOTHI      "Gothi"           priest      6 WIS priest
+class OCCULTIST  "Occultist"       priest      6 WIS priest
+class SAVANT     "Savant"          priest      6 WIS priest
+class THIEF      "Thief"           specialist  6 DEX thief
+class ACROBAT    "Acrobat"         specialist  6 DEX thief
+class ASSASSIN   "Assassin"        specialist  6 DEX thief
+class BARD       "Bard"            specialist  6 DEX thief
+class SCOUT      "Scout"           specialist  6 DEX archer
+class TRICKSTER  "Trickster"       specialist  6 DEX thief
+class PSYCHIC    "Psychic"         specialist  6 WIS thief
+class WIZARD     "Wizard"          mage        4 INT mage
+class WARLOCK    "Warlock"         mage        4 INT mage
+class WISEONE    "Wise-One"        mage        4 WIS mage
+class FAEMAGE    "Fae-Mage"        mage        4 INT mage
+class FORESTAL   "Forestal"        mage        4 WIS mage
+class ILLUSION   "Illusionist"     mage        4 INT mage
+class NECRONIM   "Necronimus"      mage        4 INT mage

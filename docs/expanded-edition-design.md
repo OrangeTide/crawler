@@ -179,6 +179,59 @@ A guided flow, one character at a time, up to four:
 Starting HP is max Hit Die + CON, per AX&X. The whole party can also be
 auto-generated with a "quick start" button for players who want to dive in.
 
+## 4b. Setting and system: species, classes, backgrounds
+
+The character identity options are broader than the AX&X defaults and are
+data-driven, not hardcoded. They live in `content/species.txt`,
+`content/classes.txt` and `content/backgrounds.txt`, compiled into the pak and
+loaded at startup, so the roster can grow without code changes. The mechanics
+still run on the four AX&X tracks (Warrior, Priest, Specialist, Mage), so every
+class is immediately playable; unique per-class features are future work layered
+on top of the track.
+
+### Species
+
+Dwarf, elf, half-elf, gnome, halfling, half-orc, human, tiefling, dark elf,
+Earthling human, tainted human, exotic human, primate (ape-folk), reptilian,
+revenant (undead), winged folk, and witchling.
+
+Each species row carries small ability adjustments, a flags byte (darkvision and
+the like) and an XP bonus. Human keeps the AX&X +1 to a prime ability and the
+10 percent XP bonus. The others get modest, editable traits.
+
+### Classes
+
+Every class maps to a track, a hit die and a prime ability. Grouping:
+
+- **Warrior track:** fighter, berserker, knight, paladin, anti-paladin, ranger,
+  templar, folk-champion, wild-brute, rifleman, sky-lord, eldritch-archer,
+  warden, clansdwarf. Hit die d8, or d10 for the heavy brawlers (berserker,
+  wild-brute, clansdwarf). Prime STR, or DEX for the archers (ranger,
+  eldritch-archer, rifleman).
+- **Priest track:** friar, mystic, templar-devout, gothi, occultist, savant.
+  Hit die d6, prime WIS.
+- **Specialist track:** thief, acrobat, assassin, bard, scout, trickster,
+  psychic. Hit die d6, prime DEX.
+- **Mage track:** wizard, warlock, wise-one, fae-mage, forestal, illusionist,
+  necronimus. Hit die d4, prime INT.
+
+Each class also names a starting-kit archetype (soldier, heavy, archer, priest,
+thief or mage) so the kit grant stays data-driven.
+
+### Backgrounds
+
+A background is a pre-adventuring life. Each grants a narrow competence (a bonus
+to a related check) and carries a complication the referee can lean on. The set:
+apprentice smith, failed merchant, village healer's assistant, runaway serf,
+disgraced soldier, itinerant peddler, temple acolyte, grave-digger, disowned
+noble, hedge wizard's errand-runner, ship's galley hand, former poacher, failed
+actor, courtier's servant, bandit's lookout, village reeve's deputy, failed
+guild artisan, pilgrim, former smuggler, and discharged camp follower.
+
+Each row names the skill or situation it helps (the benefit) and a short
+complication line. Mechanically the benefit is a +2 to checks the referee rules
+relevant; the full benefit and complication text lives in the content file.
+
 ## 5. Combat (AX&X rules)
 
 Combat is turn-based on the same tile grid. When it starts, the game enters
