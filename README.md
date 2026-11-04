@@ -66,6 +66,8 @@ make clean  # removes the build directory
 | `src/gfx.pas` | Framebuffer, drawing primitives and the bitmap font. |
 | `src/pak.pas` | Pack archive reader, plus a writer for the tools. |
 | `src/pic.pas` | Custom image codec (PackBits, direct or indexed colour). |
+| `src/mapfmt.pas` | Compiled map format: encode and decode map lumps. |
+| `src/maptext.pas` | Parser for the text map format, used by the tool. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |
@@ -75,6 +77,8 @@ make clean  # removes the build directory
 
 ## Notes
 
-The map lives in `src/world.pas` as a 24x24 grid of characters. Digit `0` is
-open floor, `1`-`3` select wall textures (brick, stone, moss) and `4` is a
-door. Edit the `LAYOUT` constant to change the dungeon.
+Maps live in `content/maps/*.map` as text and are compiled into `game.pak` by
+the asset tool. Each map is a grid of tile characters: `0` is open floor,
+`1`-`3` select wall textures (brick, stone, moss) and `4` is a door. A map also
+names entry markers and portals that move the party to another map, so the
+world is several maps loaded on demand rather than one hardcoded grid.

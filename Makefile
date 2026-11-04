@@ -5,6 +5,7 @@ TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild/tools -FUbuild/tools
 TARGET    = build/crawler
 PAK       = build/game.pak
 MKASSETS  = build/tools/mkassets
+MAPS      = $(wildcard content/maps/*.map)
 
 .PHONY: all run clean tools
 
@@ -19,8 +20,8 @@ $(MKASSETS): tools/mkassets.pas src/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -o$(MKASSETS) tools/mkassets.pas
 
-$(PAK): $(MKASSETS)
-	$(MKASSETS) $(PAK)
+$(PAK): $(MKASSETS) $(MAPS)
+	$(MKASSETS) $(PAK) $(MAPS)
 
 build:
 	mkdir -p build

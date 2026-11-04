@@ -1,0 +1,171 @@
+unit maptext;
+
+{** Parser for the human-authored text map format.
+
+  Turns a .map text file into a TMapData record, which mapfmt then
+  encodes to a lump. Used by the offline map compiler. The format is
+  line based:
+
+    map NAME
+    size W H
+    tileset N          (optional)
+    music N            (optional)
+    walls
+    <H rows of W tile chars, '0' floor, '1'..'4' walls and doors>
+    end
+    marker NAME X Y DIR     (DIR is N E S W)
+    portal X Y TARGET MARKER
+    door X Y LOCKED KEY     (LOCKED is 0 or 1)
+
+  Blank lines and lines starting with '#' are ignored. }
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  mapfmt;
+
+function ParseMapText(const fn: string; out m: TMapData;
+  out name: string; out errmsg: string): boolean;
+
+implementation
+
+uses
+  classes, sysutils;
+
+function DirCode(const s: string): byte;
+begin
+  if (s = 'N') or (s = 'n') then DirCode := DIR_N
+  else if (s = 'E') or (s = 'e') then DirCode := DIR_E
+  else if (s = 'S') or (s = 's') then DirCode := DIR_S
+  else DirCode := DIR_W;
+end;
+
+procedure Split(const line: string; out tok: array of string; out ntok: longint);
+var
+  i, start, len: longint;
+begin
+  ntok := 0;
+  len := Length(line);
+  i := 1;
+  while i <= len do begin
+    while (i <= len) and (line[i] = ' ') do inc(i);
+    if i > len then break;
+    start := i;
+    while (i <= len) and (line[i] <> ' ') do inc(i);
+    if ntok <= High(tok) then begin
+      tok[ntok] := Copy(line, start, i - start);
+      inc(ntok);
+    end;
+  end;
+end;
+
+function ParseMapText(const fn: string; out m: TMapData;
+  out name: string; out errmsg: string): boolean;
+var
+  lines: TStringList;
+  li, ntok, row, x: longint;
+  tok: array[0 .. 15] of string;
+  line: string;
+  inWalls: boolean;
+  mk: TMarker;
+  po: TPortal;
+  dr: TDoorMeta;
+begin
+  ParseMapText := false;
+  errmsg := '';
+  name := '';
+  m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
+  m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
+  inWalls := false;
+  row := 0;
+
+  lines := TStringList.Create;
+  try
+    lines.LoadFromFile(fn);
+    for li := 0 to lines.Count - 1 do begin
+      line := TrimRight(lines[li]);
+      if inWalls then begin
+        if (line = 'end') then begin
+          inWalls := false;
+          if row <> m.h then begin
+            errmsg := 'wall row count does not match height';
+            exit;
+          end;
+          continue;
+        end;
+        if row >= m.h then begin
+          errmsg := 'too many wall rows';
+          exit;
+        end;
+        if Length(line) < m.w then begin
+          errmsg := 'wall row ' + IntToStr(row) + ' too short';
+          exit;
+        end;
+        for x := 0 to m.w - 1 do
+          m.walls[row * m.w + x] := byte(ord(line[x + 1]) - ord('0'));
+        inc(row);
+        continue;
+      end;
+
+      if (line = '') or (line[1] = '#') then
+        continue;
+      Split(line, tok, ntok);
+      if ntok = 0 then
+        continue;
+
+      if tok[0] = 'map' then begin
+        if ntok >= 2 then name := UpperCase(tok[1]);
+      end else if tok[0] = 'size' then begin
+        if ntok < 3 then begin errmsg := 'size needs W H'; exit; end;
+        m.w := StrToInt(tok[1]);
+        m.h := StrToInt(tok[2]);
+        SetLength(m.walls, m.w * m.h);
+      end else if tok[0] = 'tileset' then
+        m.tileset := StrToInt(tok[1])
+      else if tok[0] = 'music' then
+        m.music := StrToInt(tok[1])
+      else if tok[0] = 'walls' then begin
+        if m.w = 0 then begin errmsg := 'walls before size'; exit; end;
+        inWalls := true;
+        row := 0;
+      end else if tok[0] = 'marker' then begin
+        if ntok < 5 then begin errmsg := 'marker needs NAME X Y DIR'; exit; end;
+        mk.name := tok[1];
+        mk.x := StrToInt(tok[2]);
+        mk.y := StrToInt(tok[3]);
+        mk.dir := DirCode(tok[4]);
+        SetLength(m.markers, Length(m.markers) + 1);
+        m.markers[High(m.markers)] := mk;
+      end else if tok[0] = 'portal' then begin
+        if ntok < 5 then begin errmsg := 'portal needs X Y TARGET MARKER'; exit; end;
+        po.x := StrToInt(tok[1]);
+        po.y := StrToInt(tok[2]);
+        po.target := tok[3];
+        po.marker := tok[4];
+        SetLength(m.portals, Length(m.portals) + 1);
+        m.portals[High(m.portals)] := po;
+      end else if tok[0] = 'door' then begin
+        if ntok < 4 then begin errmsg := 'door needs X Y LOCKED [KEY]'; exit; end;
+        dr.x := StrToInt(tok[1]);
+        dr.y := StrToInt(tok[2]);
+        dr.locked := StrToInt(tok[3]);
+        if ntok >= 5 then dr.key := tok[4] else dr.key := '';
+        SetLength(m.doors, Length(m.doors) + 1);
+        m.doors[High(m.doors)] := dr;
+      end else begin
+        errmsg := 'unknown directive: ' + tok[0];
+        exit;
+      end;
+    end;
+  finally
+    lines.Free;
+  end;
+
+  if m.w = 0 then begin errmsg := 'no size'; exit; end;
+  if inWalls then begin errmsg := 'walls not terminated by end'; exit; end;
+  ParseMapText := true;
+end;
+
+end.

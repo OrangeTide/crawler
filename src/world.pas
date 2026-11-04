@@ -1,105 +1,113 @@
 unit world;
 
-{** Dungeon map, player camera and movement.
+{** Active map, player camera and movement.
 
-  The map is a grid of tiles. A non-zero tile is a solid wall whose
-  value selects a wall texture. Door tiles toggle between solid and
-  open. The player camera is a Lode-style raycasting camera: a
-  position, a direction vector and a view plane, plus a vertical pitch
-  used for looking up and down. }
+  The map is no longer hardcoded. A compiled map lump is decoded into the
+  working grid, and the party is placed at a named marker. Portals move
+  the party to another map. The camera is the Lode-style raycasting
+  camera: position, direction vector, view plane and a vertical pitch. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  textures;
+  textures, mapfmt;
 
 const
-  MAPW = 24;
-  MAPH = 24;
+  MAXMAP = 64;
 
   TILE_EMPTY = 0;
-  { 1..4 reuse the TEX_* wall ids from the textures unit. }
   TILE_DOOR  = TEX_DOOR;
 
 type
   TCamera = record
-    posX, posY: double;      { position in tile units }
-    dirX, dirY: double;      { facing unit vector }
-    planeX, planeY: double;  { camera plane, length sets the FOV }
-    pitch: double;           { vertical look, in framebuffer pixels }
+    posX, posY: double;
+    dirX, dirY: double;
+    planeX, planeY: double;
+    pitch: double;
   end;
 
 var
   Cam: TCamera;
-  Map: array[0 .. MAPH - 1, 0 .. MAPW - 1] of byte;
-  DoorOpen: array[0 .. MAPH - 1, 0 .. MAPW - 1] of boolean;
+  Map: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
+  DoorOpen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
+  MapW, MapH: longint;
+  CurMap: TMapData;
 
-procedure InitWorld;
+function LoadMapData(const m: TMapData): boolean;
+procedure PlaceAtMarker(const name: string);
 function TileAt(mx, my: longint): byte;
 function IsBlocking(mx, my: longint): boolean;
 procedure MovePlayer(forward, strafe: double);
 procedure RotatePlayer(angle: double);
 procedure AddPitch(delta: double);
 procedure ToggleDoorAhead;
+function PortalAt(mx, my: longint; out target, marker: string): boolean;
 
 implementation
 
-const
-  { 24x24 dungeon. 1=brick 2=stone 3=moss 4=door, 0=open floor. }
-  LAYOUT: array[0 .. MAPH - 1] of string[MAPW] = (
-    '111111111111111111111111',
-    '100000000002220000000001',
-    '101110111102020111011101',
-    '101000100000000000100301',
-    '101011101110111011101101',
-    '100010001000100010001001',
-    '111010111011101110101111',
-    '100000000000000000000001',
-    '101111011110111101111101',
-    '100000010000400000010001',
-    '101110010111111010011101',
-    '101000000100000010000101',
-    '101011110101110110110101',
-    '100010000101000000010001',
-    '111010111101011111010111',
-    '100000100000010000000001',
-    '101110101111010101111101',
-    '101000101000000100000301',
-    '101011101011111101110101',
-    '100010001000000001000001',
-    '111010111110111011101011',
-    '103000000000200000000001',
-    '100000111002220111000001',
-    '111111111111111111111111');
-
-procedure InitWorld;
+function LoadMapData(const m: TMapData): boolean;
 var
   x, y: longint;
-  c: char;
 begin
-  for y := 0 to MAPH - 1 do
-    for x := 0 to MAPW - 1 do begin
-      c := LAYOUT[y][x + 1];
-      Map[y][x] := byte(ord(c) - ord('0'));
+  LoadMapData := false;
+  if (m.w <= 0) or (m.h <= 0) or (m.w > MAXMAP) or (m.h > MAXMAP) then
+    exit;
+  CurMap := m;
+  MapW := m.w;
+  MapH := m.h;
+  for y := 0 to MAXMAP - 1 do
+    for x := 0 to MAXMAP - 1 do begin
+      Map[y][x] := 1;            { out of extent reads as wall }
       DoorOpen[y][x] := false;
     end;
+  for y := 0 to MapH - 1 do
+    for x := 0 to MapW - 1 do
+      Map[y][x] := m.walls[y * MapW + x];
+  LoadMapData := true;
+end;
 
-  { Start near the top-left in an open cell, facing east. }
-  Cam.posX := 2.5;
-  Cam.posY := 1.5;
-  Cam.dirX := 1.0;
-  Cam.dirY := 0.0;
-  Cam.planeX := 0.0;
-  Cam.planeY := 0.66;  { ~66 degree field of view }
-  Cam.pitch := 0.0;
+procedure SetFacing(dir: byte);
+{** Point the camera along a cardinal direction, plane square to it. }
+begin
+  case dir of
+    DIR_N: begin Cam.dirX := 0; Cam.dirY := -1; Cam.planeX := 0.66; Cam.planeY := 0; end;
+    DIR_E: begin Cam.dirX := 1; Cam.dirY := 0; Cam.planeX := 0; Cam.planeY := 0.66; end;
+    DIR_S: begin Cam.dirX := 0; Cam.dirY := 1; Cam.planeX := -0.66; Cam.planeY := 0; end;
+  else
+    begin Cam.dirX := -1; Cam.dirY := 0; Cam.planeX := 0; Cam.planeY := -0.66; end;
+  end;
+end;
+
+procedure PlaceAtMarker(const name: string);
+var
+  i: longint;
+begin
+  Cam.pitch := 0;
+  for i := 0 to High(CurMap.markers) do
+    if CurMap.markers[i].name = name then begin
+      Cam.posX := CurMap.markers[i].x + 0.5;
+      Cam.posY := CurMap.markers[i].y + 0.5;
+      SetFacing(CurMap.markers[i].dir);
+      exit;
+    end;
+  { fall back to the first marker, else the centre }
+  if Length(CurMap.markers) > 0 then begin
+    Cam.posX := CurMap.markers[0].x + 0.5;
+    Cam.posY := CurMap.markers[0].y + 0.5;
+    SetFacing(CurMap.markers[0].dir);
+  end else begin
+    Cam.posX := MapW / 2;
+    Cam.posY := MapH / 2;
+    SetFacing(DIR_E);
+  end;
 end;
 
 function TileAt(mx, my: longint): byte;
 begin
-  if (mx < 0) or (mx >= MAPW) or (my < 0) or (my >= MAPH) then
-    TileAt := 1        { out of bounds reads as solid wall }
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
+    TileAt := 1
   else
     TileAt := Map[my][mx];
 end;
@@ -112,7 +120,7 @@ begin
   if t = TILE_EMPTY then
     IsBlocking := false
   else if t = TILE_DOOR then begin
-    if (mx < 0) or (mx >= MAPW) or (my < 0) or (my >= MAPH) then
+    if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
       IsBlocking := true
     else
       IsBlocking := not DoorOpen[my][mx];
@@ -128,16 +136,12 @@ begin
 end;
 
 procedure MovePlayer(forward, strafe: double);
-{** Slide along X and Y independently so the player grazes walls
-  instead of sticking. A small radius keeps the camera off surfaces. }
 const
   R = 0.18;
 var
   nx, ny: double;
   stepX, stepY: double;
 begin
-  { planeX/planeY is the FOV-scaled right vector; divide out its length
-    so strafing speed matches forward speed. }
   stepX := Cam.dirX * forward + Cam.planeX / 0.66 * strafe;
   stepY := Cam.dirY * forward + Cam.planeY / 0.66 * strafe;
 
@@ -172,15 +176,48 @@ begin
   if Cam.pitch < -120 then Cam.pitch := -120;
 end;
 
+function DoorIsLocked(mx, my: longint): boolean;
+var
+  i: longint;
+begin
+  DoorIsLocked := false;
+  for i := 0 to High(CurMap.doors) do
+    if (CurMap.doors[i].x = mx) and (CurMap.doors[i].y = my) then begin
+      DoorIsLocked := CurMap.doors[i].locked <> 0;
+      exit;
+    end;
+end;
+
 procedure ToggleDoorAhead;
-{** Open or close a door in the tile directly in front of the camera. }
 var
   tx, ty: longint;
 begin
   tx := trunc(Cam.posX + Cam.dirX * 0.6);
   ty := trunc(Cam.posY + Cam.dirY * 0.6);
-  if TileAt(tx, ty) = TILE_DOOR then
+  if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then
+    exit;
+  if TileAt(tx, ty) = TILE_DOOR then begin
+    { A locked door with no key stays shut. Keys arrive with inventory. }
+    if (not DoorOpen[ty][tx]) and DoorIsLocked(tx, ty) then
+      exit;
     DoorOpen[ty][tx] := not DoorOpen[ty][tx];
+  end;
+end;
+
+function PortalAt(mx, my: longint; out target, marker: string): boolean;
+var
+  i: longint;
+begin
+  PortalAt := false;
+  target := '';
+  marker := '';
+  for i := 0 to High(CurMap.portals) do
+    if (CurMap.portals[i].x = mx) and (CurMap.portals[i].y = my) then begin
+      target := CurMap.portals[i].target;
+      marker := CurMap.portals[i].marker;
+      PortalAt := true;
+      exit;
+    end;
 end;
 
 end.

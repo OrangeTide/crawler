@@ -32,7 +32,7 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sysutils, sdl2min, pak, world, raycast, hud, textures;
+  sysutils, sdl2min, pak, mapfmt, world, raycast, hud, textures;
 
 const
   MOVE_SPEED   = 3.2;     { tiles per second }
@@ -48,6 +48,26 @@ var
   keys: PKeyArray;
   showMap: boolean;
   GamePak: TPak;
+  lastTX, lastTY: longint;
+
+function LoadMapByName(const name, marker: string): boolean;
+{** Pull a map lump from the pak, decode it and place the party. }
+var
+  blob: TByteArray;
+  md: TMapData;
+begin
+  LoadMapByName := false;
+  if not PakGet(GamePak, name, blob) then
+    exit;
+  if not DecodeMap(blob, md) then
+    exit;
+  if not LoadMapData(md) then
+    exit;
+  PlaceAtMarker(marker);
+  lastTX := trunc(Cam.posX);
+  lastTY := trunc(Cam.posY);
+  LoadMapByName := true;
+end;
 
 function KeyDown(scancode: longint): boolean; inline;
 begin
@@ -69,6 +89,22 @@ procedure ExploreMouseMotion(xrel, yrel: longint);
 begin
   RotatePlayer(xrel * MOUSE_YAW);
   AddPitch(-yrel * MOUSE_PITCH);
+end;
+
+procedure CheckPortal;
+{** On stepping onto a new tile, follow a portal if one is there. }
+var
+  cx, cy: longint;
+  target, marker: string;
+begin
+  cx := trunc(Cam.posX);
+  cy := trunc(Cam.posY);
+  if (cx = lastTX) and (cy = lastTY) then
+    exit;
+  lastTX := cx;
+  lastTY := cy;
+  if PortalAt(cx, cy, target, marker) then
+    LoadMapByName(target, marker);
 end;
 
 procedure ExploreUpdate(dt: double);
@@ -97,6 +133,8 @@ begin
     RotatePlayer(-TURN_SPEED * dt);
   if KeyDown(SDL_SCANCODE_RIGHT) then
     RotatePlayer(TURN_SPEED * dt);
+
+  CheckPortal;
 end;
 
 procedure ExploreRender(fps: longint);
@@ -142,7 +180,10 @@ begin
     exit;
   end;
 
-  InitWorld;
+  if not LoadMapByName('DUNGEON', 'start') then begin
+    writeln(StdErr, 'game: could not load the starting map');
+    exit;
+  end;
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;

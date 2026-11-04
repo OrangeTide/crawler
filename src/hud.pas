@@ -95,13 +95,13 @@ var
   c: TColor;
   px, py: longint;
 begin
-  ox := FBW - MAPW * CELL - 8;
+  ox := FBW - MapW * CELL - 8;
   oy := 8;
-  FillRect(ox - 2, oy - 2, MAPW * CELL + 4, MAPH * CELL + 4, RGB(10, 10, 12));
-  FrameRect(ox - 2, oy - 2, MAPW * CELL + 4, MAPH * CELL + 4, RGB(90, 84, 70));
+  FillRect(ox - 2, oy - 2, MapW * CELL + 4, MapH * CELL + 4, RGB(10, 10, 12));
+  FrameRect(ox - 2, oy - 2, MapW * CELL + 4, MapH * CELL + 4, RGB(90, 84, 70));
 
-  for y := 0 to MAPH - 1 do
-    for x := 0 to MAPW - 1 do begin
+  for y := 0 to MapH - 1 do
+    for x := 0 to MapW - 1 do begin
       t := TileAt(x, y);
       if t = TILE_DOOR then begin
         if DoorOpen[y][x] then
