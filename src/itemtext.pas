@@ -1,0 +1,108 @@
+unit itemtext;
+
+{** Parser for the text item table, used by the asset tool.
+
+  One item per line:
+    item ID KIND DMG AC SLOTS VALUE FLAGS "Name"
+  KIND is weapon, armor, shield, potion, light, key, treasure or misc.
+  Blank lines and lines starting with '#' are ignored. }
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  items;
+
+function ParseItems(const fn: string; out defs: array of TItemDef;
+  out count: longint; out errmsg: string): boolean;
+
+implementation
+
+uses
+  classes, sysutils;
+
+function KindCode(const s: string): longint;
+begin
+  if s = 'weapon' then KindCode := IK_WEAPON
+  else if s = 'armor' then KindCode := IK_ARMOR
+  else if s = 'shield' then KindCode := IK_SHIELD
+  else if s = 'potion' then KindCode := IK_POTION
+  else if s = 'light' then KindCode := IK_LIGHT
+  else if s = 'key' then KindCode := IK_KEY
+  else if s = 'treasure' then KindCode := IK_TREASURE
+  else if s = 'misc' then KindCode := IK_MISC
+  else KindCode := -1;
+end;
+
+function ParseItems(const fn: string; out defs: array of TItemDef;
+  out count: longint; out errmsg: string): boolean;
+var
+  lines: TStringList;
+  li, qpos, qend, kc: longint;
+  line, rest, name: string;
+  parts: TStringList;
+  d: TItemDef;
+begin
+  ParseItems := false;
+  errmsg := '';
+  count := 0;
+  lines := TStringList.Create;
+  parts := TStringList.Create;
+  parts.Delimiter := ' ';
+  parts.StrictDelimiter := false;
+  try
+    lines.LoadFromFile(fn);
+    for li := 0 to lines.Count - 1 do begin
+      line := Trim(lines[li]);
+      if (line = '') or (line[1] = '#') then continue;
+
+      { pull the quoted name out first }
+      name := '';
+      qpos := Pos('"', line);
+      if qpos > 0 then begin
+        qend := Pos('"', Copy(line, qpos + 1, Length(line)));
+        if qend > 0 then
+          name := Copy(line, qpos + 1, qend - 1);
+        rest := Trim(Copy(line, 1, qpos - 1));
+      end else
+        rest := line;
+
+      parts.DelimitedText := rest;
+      if parts.Count < 8 then begin
+        errmsg := 'line ' + IntToStr(li + 1) + ': needs 8 fields and a name';
+        exit;
+      end;
+      if parts[0] <> 'item' then begin
+        errmsg := 'line ' + IntToStr(li + 1) + ': expected item';
+        exit;
+      end;
+      kc := KindCode(parts[2]);
+      if kc < 0 then begin
+        errmsg := 'line ' + IntToStr(li + 1) + ': bad kind ' + parts[2];
+        exit;
+      end;
+      if count > High(defs) then begin
+        errmsg := 'too many items';
+        exit;
+      end;
+      d.id := parts[1];
+      d.name := name;
+      d.kind := kc;
+      d.dmgSides := StrToInt(parts[3]);
+      d.acVal := StrToInt(parts[4]);
+      d.slots := StrToInt(parts[5]);
+      d.value := StrToInt(parts[6]);
+      d.flags := StrToInt(parts[7]);
+      d.sprite := 0;
+      defs[count] := d;
+      inc(count);
+    end;
+  finally
+    parts.Free;
+    lines.Free;
+  end;
+  ParseItems := true;
+end;
+
+end.

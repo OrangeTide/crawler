@@ -32,7 +32,8 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures;
+  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
+  rng, rules, items, party;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -49,6 +50,19 @@ var
   lastTX, lastTY: longint;
   cursorX, cursorY: longint;
   rmbHeld: boolean;
+
+  titleSel: longint;
+  ccSlot: longint;
+  ccKindred: TKindred;
+  ccClass: TCharClass;
+  ccNameIdx: longint;
+  ccAbil: TAbilityScores;
+  ccPreview: TCharacter;
+
+const
+  NAME_POOL: array[0 .. 11] of string[12] = (
+    'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
+    'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
 
 function LoadMapByName(const name, marker: string): boolean;
 {** Pull a map lump from the pak, decode it and place the party. }
@@ -174,6 +188,195 @@ begin
   DrawCursor;
 end;
 
+{ ---- Shared UI helpers ---- }
+
+procedure DrawCenter(y: longint; const s: string; c: TColor);
+begin
+  DrawText((FBW - Length(s) * 6) div 2, y, s, c);
+end;
+
+procedure StartGame;
+{** Hand off from the menus to the dungeon. }
+begin
+  if not LoadMapByName('DUNGEON', 'start') then begin
+    writeln(StdErr, 'game: could not load the starting map');
+    QuitRequested := true;
+    exit;
+  end;
+  State := gsExplore;
+end;
+
+{ ---- Title state ---- }
+
+const
+  TITLE_ITEMS = 3;
+
+procedure TitleRender;
+const
+  LABELS: array[0 .. TITLE_ITEMS - 1] of string = (
+    'NEW GAME', 'QUICK START', 'QUIT');
+var
+  i, y: longint;
+  c: TColor;
+begin
+  ClearFB(RGB(12, 10, 16));
+  FillRect(0, 44, FBW, 2, RGB(90, 70, 40));
+  DrawCenter(22, 'SHADOWS OF THE DEEP', RGB(220, 200, 120));
+  DrawCenter(32, 'A DUNGEON CRAWL', RGB(120, 110, 90));
+  y := 110;
+  for i := 0 to TITLE_ITEMS - 1 do begin
+    if i = titleSel then begin
+      c := RGB(240, 230, 150);
+      DrawText(FBW div 2 - Length(LABELS[i]) * 3 - 12, y, '>', c);
+    end else
+      c := RGB(150, 140, 120);
+    DrawCenter(y, LABELS[i], c);
+    inc(y, 16);
+  end;
+  DrawCenter(FBH - 20, 'ARROWS SELECT   ENTER CONFIRM', RGB(90, 84, 70));
+end;
+
+procedure QuickStart;
+{** Make a ready-to-play party of four and dive in. }
+var
+  i: longint;
+  a: TAbilityScores;
+  c: TCharacter;
+  cls: array[0 .. 3] of TCharClass = (ccFighter, ccThief, ccCleric, ccMagicUser);
+begin
+  NewParty;
+  for i := 0 to 3 do begin
+    RollAbilities(a);
+    MakeCharacter(c, NAME_POOL[i], kHuman, cls[i], a);
+    AddPartyMember(c);
+  end;
+  StartGame;
+end;
+
+procedure CCRebuild; forward;
+
+procedure CCBeginSlot;
+begin
+  ccKindred := kHuman;
+  ccClass := ccFighter;
+  ccNameIdx := ccSlot;
+  RollAbilities(ccAbil);
+  CCRebuild;
+end;
+
+procedure TitleSelect;
+begin
+  case titleSel of
+    0: begin State := gsNewParty; NewParty; ccSlot := 0; CCBeginSlot; end;
+    1: QuickStart;
+    2: QuitRequested := true;
+  end;
+end;
+
+procedure TitleKeyDown(scancode: longint);
+begin
+  case scancode of
+    SDL_SCANCODE_UP:     titleSel := (titleSel + TITLE_ITEMS - 1) mod TITLE_ITEMS;
+    SDL_SCANCODE_DOWN:   titleSel := (titleSel + 1) mod TITLE_ITEMS;
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: TitleSelect;
+    SDL_SCANCODE_ESCAPE: QuitRequested := true;
+  end;
+end;
+
+{ ---- Character creation state ---- }
+
+procedure CCRebuild;
+begin
+  MakeCharacter(ccPreview, NAME_POOL[ccNameIdx], ccKindred, ccClass, ccAbil);
+end;
+
+procedure CCRender;
+var
+  y: longint;
+  a: TAbility;
+  s, modStr: string;
+  m: longint;
+begin
+  ClearFB(RGB(14, 12, 18));
+  DrawCenter(10, 'CREATE PARTY   MEMBER ' + IntToStr(ccSlot + 1) + ' OF '
+    + IntToStr(MAX_PARTY), RGB(220, 200, 120));
+
+  DrawText(30, 34, 'NAME:    ' + NAME_POOL[ccNameIdx], RGB(200, 200, 180));
+  DrawText(30, 46, 'KINDRED: ' + KINDRED_NAME[ccKindred], RGB(200, 200, 180));
+  DrawText(30, 58, 'CLASS:   ' + CLASS_NAME[ccClass], RGB(200, 200, 180));
+
+  y := 80;
+  for a := abSTR to abCHA do begin
+    m := AbilMod(ccPreview.abil[a]);
+    if m >= 0 then modStr := '+' + IntToStr(m) else modStr := IntToStr(m);
+    Str(ccPreview.abil[a], s);
+    DrawText(40, y, ABIL_NAME[a] + ' ' + s + ' (' + modStr + ')',
+      RGB(180, 190, 170));
+    inc(y, 11);
+  end;
+
+  DrawText(150, 80, 'HP ' + IntToStr(ccPreview.hpMax), RGB(200, 160, 160));
+  DrawText(150, 91, 'AC ' + IntToStr(CharAC(ccPreview)), RGB(160, 180, 200));
+  DrawText(150, 102, 'ATK ' + IntToStr(CharAttack(ccPreview, true)),
+    RGB(200, 190, 150));
+
+  DrawText(20, FBH - 40, 'N NAME  K KINDRED  [ ] CLASS  R REROLL',
+    RGB(140, 130, 110));
+  DrawText(20, FBH - 28, 'ENTER ACCEPT   G FINISH   ESC TITLE',
+    RGB(140, 130, 110));
+end;
+
+procedure CCAccept;
+var
+  c: TCharacter;
+begin
+  MakeCharacter(c, NAME_POOL[ccNameIdx], ccKindred, ccClass, ccAbil);
+  AddPartyMember(c);
+  inc(ccSlot);
+  if ccSlot >= MAX_PARTY then
+    StartGame
+  else
+    CCBeginSlot;
+end;
+
+procedure CCKeyDown(scancode: longint);
+begin
+  case scancode of
+    SDL_SCANCODE_N:
+      ccNameIdx := (ccNameIdx + 1) mod Length(NAME_POOL);
+    SDL_SCANCODE_K: begin
+      if ccKindred = High(TKindred) then ccKindred := Low(TKindred)
+      else ccKindred := Succ(ccKindred);
+      CCRebuild;
+    end;
+    SDL_SCANCODE_RIGHTBRACKET, SDL_SCANCODE_E: begin
+      if ccClass = High(TCharClass) then ccClass := Low(TCharClass)
+      else ccClass := Succ(ccClass);
+      CCRebuild;
+    end;
+    SDL_SCANCODE_LEFTBRACKET, SDL_SCANCODE_Q: begin
+      if ccClass = Low(TCharClass) then ccClass := High(TCharClass)
+      else ccClass := Pred(ccClass);
+      CCRebuild;
+    end;
+    SDL_SCANCODE_R: begin
+      RollAbilities(ccAbil);
+      CCRebuild;
+    end;
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE:
+      CCAccept;
+    SDL_SCANCODE_G:
+      if Length(Roster) > 0 then
+        StartGame
+      else
+        CCAccept;
+    SDL_SCANCODE_ESCAPE: begin
+      NewParty;
+      State := gsTitle;
+    end;
+  end;
+end;
+
 { ---- State machine entry points ---- }
 
 function FindPak: string;
@@ -210,18 +413,19 @@ begin
     writeln(StdErr, 'game: missing or bad textures in ', pakPath);
     exit;
   end;
-
-  if not LoadMapByName('DUNGEON', 'start') then begin
-    writeln(StdErr, 'game: could not load the starting map');
+  if not LoadItems(GamePak) then begin
+    writeln(StdErr, 'game: missing or bad item table in ', pakPath);
     exit;
   end;
+
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
   cursorX := FBW div 2;
   cursorY := FBH div 2;
   rmbHeld := false;
-  State := gsExplore;
+  titleSel := 0;
+  State := gsTitle;
   GameInit := true;
 end;
 
@@ -235,7 +439,9 @@ begin
         QuitRequested := true;
       SDL_KEYDOWN:
         case State of
-          gsExplore: ExploreKeyDown(ev.key.keysym.scancode);
+          gsTitle:    TitleKeyDown(ev.key.keysym.scancode);
+          gsNewParty: CCKeyDown(ev.key.keysym.scancode);
+          gsExplore:  ExploreKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -263,7 +469,9 @@ end;
 procedure GameRender(fps: longint);
 begin
   case State of
-    gsExplore: ExploreRender(fps);
+    gsTitle:    TitleRender;
+    gsNewParty: CCRender;
+    gsExplore:  ExploreRender(fps);
   end;
 end;
 

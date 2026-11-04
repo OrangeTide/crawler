@@ -29,6 +29,9 @@ filtering, the same way the game presents it.
   from that file at runtime, using the custom PAK and PIC formats.
 - Openable doors, a scrolling compass, a crosshair and an overhead automap.
 - A HUD drawn with a built-in 5x7 bitmap font.
+- A title screen and character creation for a party of up to four, using the
+  AX&X attributes, kindreds and classes, with a quick-start option.
+- Items loaded from a compiled table, with per-class starting kits.
 
 ## Controls
 
@@ -71,6 +74,11 @@ make clean  # removes the build directory
 | `src/pic.pas` | Custom image codec (PackBits, direct or indexed colour). |
 | `src/mapfmt.pas` | Compiled map format: encode and decode map lumps. |
 | `src/maptext.pas` | Parser for the text map format, used by the tool. |
+| `src/rng.pas` | Deterministic xorshift PRNG with independent streams. |
+| `src/rules.pas` | AX&X rules math: abilities, classes, dice resolution. |
+| `src/items.pas` | Item database and table codec, loaded from the pak. |
+| `src/itemtext.pas` | Parser for the text item table, used by the tool. |
+| `src/party.pas` | Characters, derived stats and character creation. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

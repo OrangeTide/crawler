@@ -6,6 +6,8 @@ TARGET    = build/crawler
 PAK       = build/game.pak
 MKASSETS  = build/tools/mkassets
 MAPS      = $(wildcard content/maps/*.map)
+ITEMS     = content/items.txt
+MAPARGS   = $(foreach m,$(MAPS),map $(m))
 
 .PHONY: all run clean tools
 
@@ -20,8 +22,8 @@ $(MKASSETS): tools/mkassets.pas src/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -o$(MKASSETS) tools/mkassets.pas
 
-$(PAK): $(MKASSETS) $(MAPS)
-	$(MKASSETS) $(PAK) $(MAPS)
+$(PAK): $(MKASSETS) $(MAPS) $(ITEMS)
+	$(MKASSETS) $(PAK) items $(ITEMS) $(MAPARGS)
 
 build:
 	mkdir -p build
