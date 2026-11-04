@@ -32,13 +32,11 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sysutils, sdl2min, pak, mapfmt, world, raycast, hud, textures;
+  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures;
 
 const
-  MOVE_SPEED   = 3.2;     { tiles per second }
-  TURN_SPEED   = 2.6;     { radians per second }
-  MOUSE_YAW    = 0.0022;  { radians per mouse unit }
-  MOUSE_PITCH  = 0.8;     { pixels per mouse unit }
+  MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
+  MOUSE_PITCH  = 0.7;     { pixels per mouse unit, free look }
 
 type
   TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
@@ -49,6 +47,8 @@ var
   showMap: boolean;
   GamePak: TPak;
   lastTX, lastTY: longint;
+  cursorX, cursorY: longint;
+  rmbHeld: boolean;
 
 function LoadMapByName(const name, marker: string): boolean;
 {** Pull a map lump from the pak, decode it and place the party. }
@@ -64,8 +64,8 @@ begin
   if not LoadMapData(md) then
     exit;
   PlaceAtMarker(marker);
-  lastTX := trunc(Cam.posX);
-  lastTY := trunc(Cam.posY);
+  lastTX := TileX;
+  lastTY := TileY;
   LoadMapByName := true;
 end;
 
@@ -76,71 +76,102 @@ end;
 
 { ---- Exploration state ---- }
 
+procedure ExploreInteract;
+{** Left click: act on whatever tile the cursor points at. For now that
+  means opening or closing a door within reach. }
+var
+  camX: double;
+  tx, ty: longint;
+begin
+  camX := 2.0 * cursorX / FBW - 1.0;
+  if PickTile(camX, 1.8, tx, ty) then
+    if TileAt(tx, ty) = TILE_DOOR then
+      ToggleDoor(tx, ty);
+end;
+
 procedure ExploreKeyDown(scancode: longint);
 begin
   case scancode of
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
-    SDL_SCANCODE_SPACE:  ToggleDoorAhead;
+    SDL_SCANCODE_SPACE:  OpenDoorAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
   end;
 end;
 
 procedure ExploreMouseMotion(xrel, yrel: longint);
 begin
-  RotatePlayer(xrel * MOUSE_YAW);
-  AddPitch(-yrel * MOUSE_PITCH);
+  if rmbHeld then
+    AddLook(xrel * MOUSE_YAW, -yrel * MOUSE_PITCH)
+  else begin
+    cursorX := cursorX + xrel;
+    cursorY := cursorY + yrel;
+    if cursorX < 6 then cursorX := 6;
+    if cursorX > FBW - 6 then cursorX := FBW - 6;
+    if cursorY < 6 then cursorY := 6;
+    if cursorY > FBH - 6 then cursorY := FBH - 6;
+  end;
+end;
+
+procedure ExploreMouseButton(down: boolean; button: longint);
+begin
+  if button = SDL_BUTTON_RIGHT then
+    rmbHeld := down
+  else if (button = SDL_BUTTON_LEFT) and down then
+    ExploreInteract;
 end;
 
 procedure CheckPortal;
 {** On stepping onto a new tile, follow a portal if one is there. }
 var
-  cx, cy: longint;
   target, marker: string;
 begin
-  cx := trunc(Cam.posX);
-  cy := trunc(Cam.posY);
-  if (cx = lastTX) and (cy = lastTY) then
+  if (TileX = lastTX) and (TileY = lastTY) then
     exit;
-  lastTX := cx;
-  lastTY := cy;
-  if PortalAt(cx, cy, target, marker) then
+  lastTX := TileX;
+  lastTY := TileY;
+  if PortalAt(TileX, TileY, target, marker) then
     LoadMapByName(target, marker);
 end;
 
 procedure ExploreUpdate(dt: double);
-var
-  fwd, strafe: double;
 begin
-  fwd := 0;
-  strafe := 0;
-  if KeyDown(SDL_SCANCODE_W) then fwd := fwd + 1;
-  if KeyDown(SDL_SCANCODE_S) then fwd := fwd - 1;
-  if KeyDown(SDL_SCANCODE_Q) then strafe := strafe - 1;
-  if KeyDown(SDL_SCANCODE_E) then strafe := strafe + 1;
-  { A/D strafe as well, a common crawler layout }
-  if KeyDown(SDL_SCANCODE_A) then strafe := strafe - 1;
-  if KeyDown(SDL_SCANCODE_D) then strafe := strafe + 1;
+  { One grid action per idle moment; the tween gates auto-repeat. }
+  if not MotionBusy then begin
+    if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP) then
+      RequestStep(1, 0)
+    else if KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN) then
+      RequestStep(-1, 0)
+    else if KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_A) then
+      RequestStep(0, -1)
+    else if KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_D) then
+      RequestStep(0, 1)
+    else if KeyDown(SDL_SCANCODE_LEFT) then
+      RequestTurn(-1)
+    else if KeyDown(SDL_SCANCODE_RIGHT) then
+      RequestTurn(1);
+  end;
 
-  if (fwd <> 0) or (strafe <> 0) then
-    MovePlayer(fwd * MOVE_SPEED * dt, strafe * MOVE_SPEED * dt);
-
-  { Arrow keys: up/down move, left/right turn, as in the DOS crawlers. }
-  if KeyDown(SDL_SCANCODE_UP) then
-    MovePlayer(MOVE_SPEED * dt, 0);
-  if KeyDown(SDL_SCANCODE_DOWN) then
-    MovePlayer(-MOVE_SPEED * dt, 0);
-  if KeyDown(SDL_SCANCODE_LEFT) then
-    RotatePlayer(-TURN_SPEED * dt);
-  if KeyDown(SDL_SCANCODE_RIGHT) then
-    RotatePlayer(TURN_SPEED * dt);
-
+  UpdateMotion(dt);
+  if not rmbHeld then
+    EaseLook(dt);
   CheckPortal;
+end;
+
+procedure DrawCursor;
+var
+  c: TColor;
+begin
+  c := RGB(240, 230, 160);
+  HLine(cursorX - 4, cursorY, 9, c);
+  VLine(cursorX, cursorY - 4, 9, c);
+  PutPixel(cursorX, cursorY, RGB(40, 30, 10));
 end;
 
 procedure ExploreRender(fps: longint);
 begin
   RenderView;
   DrawHud(showMap, fps);
+  DrawCursor;
 end;
 
 { ---- State machine entry points ---- }
@@ -187,6 +218,9 @@ begin
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
+  cursorX := FBW div 2;
+  cursorY := FBH div 2;
+  rmbHeld := false;
   State := gsExplore;
   GameInit := true;
 end;
@@ -206,6 +240,14 @@ begin
       SDL_MOUSEMOTION:
         case State of
           gsExplore: ExploreMouseMotion(ev.motion.xrel, ev.motion.yrel);
+        end;
+      SDL_MOUSEBUTTONDOWN:
+        case State of
+          gsExplore: ExploreMouseButton(true, ev.button.button);
+        end;
+      SDL_MOUSEBUTTONUP:
+        case State of
+          gsExplore: ExploreMouseButton(false, ev.button.button);
         end;
     end;
   end;

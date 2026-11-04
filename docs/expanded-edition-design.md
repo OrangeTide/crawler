@@ -92,6 +92,28 @@ look. We split facing from view.
 The renderer builds the effective direction and plane each frame from
 `faceDir` plus the tween and the yaw offset, so `raycast` does not change.
 
+### Mouse interaction (point and click)
+
+The DOS crawlers were point-and-click: you moved a cursor over the scene and
+clicked objects to look at them, use them, pick them up or attack. The engine
+keeps a virtual cursor driven by relative mouse motion, drawn over the view.
+
+- **Left click** interacts with whatever is under the cursor. A ray is cast
+  from the cursor's screen column into the world; the first thing it meets
+  decides the verb: a door opens or closes, an item is picked up, a container
+  opens, an NPC starts a conversation, and in combat an enemy is attacked. Out
+  of reach, the click just examines (prints a line of description text).
+- **Right button held** is free look: mouse motion swings the view (yaw and
+  pitch) instead of moving the cursor, and the view eases back to the facing
+  when released. So the cursor is for clicking and the right button is for
+  glancing around, and neither changes which way the party faces on the grid.
+- **The HUD is clickable** too: the minimap, the party portraits and, later,
+  inventory and spell slots respond to the same cursor.
+
+Keyboard still drives grid movement and the common actions, so the game is
+fully playable without the mouse. The cursor and click verbs are an addition,
+not a replacement.
+
 ## 4. Characters, classes, and party
 
 Up to four characters in the party, matching the AX&X worksheet layout. The

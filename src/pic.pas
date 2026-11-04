@@ -86,16 +86,16 @@ var
 
   procedure FlushLiteral(start, count: longint);
   var
-    k: longint;
+    k, chunk: longint;
   begin
     while count > 0 do begin
-      runLen := count;
-      if runLen > 128 then runLen := 128;
-      Emit(runLen - 1);               { 0..127 => copy n+1 literals }
-      for k := 0 to runLen - 1 do
+      chunk := count;
+      if chunk > 128 then chunk := 128;
+      Emit(chunk - 1);                { 0..127 => copy n+1 literals }
+      for k := 0 to chunk - 1 do
         Emit(src[start + k]);
-      start := start + runLen;
-      count := count - runLen;
+      start := start + chunk;
+      count := count - chunk;
     end;
   end;
 
