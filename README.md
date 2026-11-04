@@ -33,6 +33,8 @@ filtering, the same way the game presents it.
 - A title screen and character creation for a party of up to four, choosing
   from data-driven species, classes and backgrounds, with a quick-start option.
 - Items and monsters loaded from compiled tables, with per-class starting kits.
+- Turn-based combat on the AX&X rules: side initiative, range bands, attacks and
+  saves, brush-with-death, morale, guard and potion actions.
 
 ## Controls
 
@@ -84,6 +86,7 @@ make clean  # removes the build directory
 | `src/chartext.pas` | Parsers for the species/class/background tables. |
 | `src/monsters.pas` | Monster database and table codec. |
 | `src/montext.pas` | Parser for the monster table, used by the tool. |
+| `src/combat.pas` | Turn-based AX&X combat: initiative, bands, morale. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

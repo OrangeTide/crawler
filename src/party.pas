@@ -38,7 +38,10 @@ type
     hpMax, hp: smallint;
     equip: array[TEquipSlot] of TItemInst;
     pack: array of TItemInst;
-    alive: boolean;
+    alive: boolean;      { false only when slain }
+    downed: boolean;     { at 0 HP but not slain: unconscious }
+    guarding: boolean;   { parrying this round for +2 AC }
+    brushes: byte;       { brushes with death so far today }
   end;
 
 var
@@ -61,6 +64,8 @@ procedure GiveClassKit(var c: TCharacter);
 procedure NewParty;
 procedure AddPartyMember(const c: TCharacter);
 function PartyAlive: boolean;
+function PartyConscious: boolean;
+function FirstConscious: longint;
 
 implementation
 
@@ -168,6 +173,9 @@ begin
   c.hpMax := MaxHPDie(ClassDefs[classIdx].hitDie, c.abil[abCON], 1);
   c.hp := c.hpMax;
   c.alive := true;
+  c.downed := false;
+  c.guarding := false;
+  c.brushes := 0;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;
@@ -234,8 +242,25 @@ var
 begin
   PartyAlive := false;
   for i := 0 to High(Roster) do
-    if Roster[i].alive and (Roster[i].hp > 0) then begin
+    if Roster[i].alive then begin
       PartyAlive := true;
+      exit;
+    end;
+end;
+
+function PartyConscious: boolean;
+begin
+  PartyConscious := FirstConscious >= 0;
+end;
+
+function FirstConscious: longint;
+var
+  i: longint;
+begin
+  FirstConscious := -1;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) and (Roster[i].hp > 0) then begin
+      FirstConscious := i;
       exit;
     end;
 end;

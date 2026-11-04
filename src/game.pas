@@ -33,7 +33,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
-  rng, rules, items, chardata, party;
+  rng, rules, items, chardata, party, monsters, combat;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -50,6 +50,7 @@ var
   lastTX, lastTY: longint;
   cursorX, cursorY: longint;
   rmbHeld: boolean;
+  currentMapName: string;
 
   titleSel: longint;
   ccSlot: longint;
@@ -79,6 +80,7 @@ begin
   if not LoadMapData(md) then
     exit;
   PlaceAtMarker(marker);
+  currentMapName := name;
   lastTX := TileX;
   lastTY := TileY;
   LoadMapByName := true;
@@ -90,6 +92,8 @@ begin
 end;
 
 { ---- Exploration state ---- }
+
+procedure StartCombat(depth: longint); forward;
 
 procedure ExploreInteract;
 {** Left click: act on whatever tile the cursor points at. For now that
@@ -110,6 +114,7 @@ begin
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_SPACE:  OpenDoorAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
+    SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
   end;
 end;
 
@@ -135,8 +140,15 @@ begin
     ExploreInteract;
 end;
 
-procedure CheckPortal;
-{** On stepping onto a new tile, follow a portal if one is there. }
+procedure StartCombat(depth: longint);
+begin
+  StartRandomEncounter(depth);
+  State := gsCombat;
+end;
+
+procedure CheckTileEvents;
+{** On stepping onto a new tile: follow a portal, else roll for a
+  wandering monster (AX&X 1 in 6, thinned out per step so it paces). }
 var
   target, marker: string;
 begin
@@ -144,8 +156,14 @@ begin
     exit;
   lastTX := TileX;
   lastTY := TileY;
-  if PortalAt(TileX, TileY, target, marker) then
+  if PortalAt(TileX, TileY, target, marker) then begin
     LoadMapByName(target, marker);
+    exit;
+  end;
+  { Town is safe; elsewhere a small per-step chance of an encounter. }
+  if (currentMapName <> 'TOWN') and (Length(Roster) > 0) then
+    if Range(1, 18) = 1 then
+      StartCombat(1);
 end;
 
 procedure ExploreUpdate(dt: double);
@@ -167,7 +185,7 @@ begin
   end;
 
   UpdateMotion(dt);
-  CheckPortal;
+  CheckTileEvents;
 end;
 
 procedure DrawCursor;
@@ -392,6 +410,100 @@ begin
   end;
 end;
 
+{ ---- Combat state ---- }
+
+procedure EndCombat;
+begin
+  if Victory or Fled then
+    State := gsExplore
+  else
+    State := gsGameOver;
+end;
+
+const
+  BAND_LABEL: array[0 .. 2] of string = ('ENGAGED', 'NEAR', 'FAR');
+
+procedure CombatRender;
+var
+  i, y: longint;
+  c: TColor;
+  s: string;
+begin
+  ClearFB(RGB(10, 8, 12));
+  DrawText(12, 8, 'COMBAT', RGB(220, 160, 120));
+  DrawText(FBW - 120, 8, 'RANGE: ' + BAND_LABEL[Band], RGB(180, 180, 140));
+
+  { party }
+  y := 26;
+  for i := 0 to High(Roster) do begin
+    if (i = CurActor) and (not CombatOver) then
+      DrawText(8, y, '>', RGB(240, 230, 150));
+    if not Roster[i].alive then c := RGB(110, 60, 60)
+    else if Roster[i].downed then c := RGB(150, 110, 70)
+    else c := RGB(200, 210, 190);
+    s := Roster[i].name + ' ' + IntToStr(Roster[i].hp) + '/'
+      + IntToStr(Roster[i].hpMax);
+    if not Roster[i].alive then s := s + ' SLAIN'
+    else if Roster[i].downed then s := s + ' DOWN'
+    else if Roster[i].guarding then s := s + ' GUARD';
+    DrawText(16, y, s, c);
+    inc(y, 11);
+  end;
+
+  { foes }
+  y := 26;
+  for i := 0 to High(Foes) do begin
+    if not Foes[i].alive then continue;
+    if i = CurTarget then
+      DrawText(FBW - 128, y, '*', RGB(240, 120, 120));
+    DrawText(FBW - 120, y, MonDefs[Foes[i].def].name + ' '
+      + IntToStr(Foes[i].hp), RGB(210, 170, 160));
+    inc(y, 11);
+  end;
+
+  { log }
+  for i := 0 to LOG_LINES - 1 do
+    DrawText(12, FBH - 70 + i * 10, Log[i], RGB(160, 170, 150));
+
+  if CombatOver then
+    DrawCenter(FBH - 12, 'PRESS A KEY', RGB(230, 220, 150))
+  else
+    DrawText(12, FBH - 12,
+      'A ATTACK  G GUARD  F ADVANCE  R WITHDRAW  P POTION  TAB TARGET',
+      RGB(140, 150, 120));
+end;
+
+procedure CombatKeyDown(scancode: longint);
+begin
+  if CombatOver then begin
+    EndCombat;
+    exit;
+  end;
+  case scancode of
+    SDL_SCANCODE_A, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN: ActAttack;
+    SDL_SCANCODE_G: ActGuard;
+    SDL_SCANCODE_F: ActAdvance;
+    SDL_SCANCODE_R: ActWithdraw;
+    SDL_SCANCODE_P: ActPotion;
+    SDL_SCANCODE_TAB: NextTarget;
+  end;
+end;
+
+{ ---- Game over state ---- }
+
+procedure GameOverRender;
+begin
+  ClearFB(RGB(16, 6, 8));
+  DrawCenter(90, 'THE PARTY HAS FALLEN', RGB(220, 120, 110));
+  DrawCenter(110, 'PRESS A KEY', RGB(150, 130, 120));
+end;
+
+procedure GameOverKeyDown(scancode: longint);
+begin
+  titleSel := 0;
+  State := gsTitle;
+end;
+
 { ---- State machine entry points ---- }
 
 function FindPak: string;
@@ -461,6 +573,8 @@ begin
           gsTitle:    TitleKeyDown(ev.key.keysym.scancode);
           gsNewParty: CCKeyDown(ev.key.keysym.scancode);
           gsExplore:  ExploreKeyDown(ev.key.keysym.scancode);
+          gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
+          gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -491,6 +605,8 @@ begin
     gsTitle:    TitleRender;
     gsNewParty: CCRender;
     gsExplore:  ExploreRender(fps);
+    gsCombat:   CombatRender;
+    gsGameOver: GameOverRender;
   end;
 end;
 
