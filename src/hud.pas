@@ -18,7 +18,7 @@ procedure DrawFullMap;
 implementation
 
 uses
-  math, sysutils, gfx, world, party, gametime;
+  math, sysutils, gfx, world, party, gametime, mapfmt;
 
 function NormAngle(a: double): double;
 begin
@@ -88,6 +88,7 @@ var
   vis: byte;
   t: byte;
   dim: boolean;
+  pk: longint;
 begin
   TileColor := false;
   if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
@@ -95,8 +96,14 @@ begin
   if vis = VIS_UNSEEN then exit;
   dim := vis = VIS_REMEMBERED;
   t := TileAt(tx, ty);
-  if IsPortalTile(tx, ty) then
-    col := RGB(80, 200, 255)          { exits stand out on the map }
+  pk := PortalKind(tx, ty);
+  if pk >= 0 then begin                { exits stand out on the map }
+    case pk of
+      PK_DOWN, PK_CAVE, PK_SHAFT: col := RGB(240, 180, 80);
+      PK_UP: col := RGB(140, 224, 140);
+    else col := RGB(80, 200, 255);
+    end;
+  end
   else if t = TILE_DOOR then begin
     if DoorOpen[ty][tx] then col := RGB(60, 120, 50)
     else col := RGB(175, 125, 45);

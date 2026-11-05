@@ -30,12 +30,21 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 2;
+  MAP_VERSION = 3;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }
   LIGHT_MOONWELL = 1;       { admits moonlight, strongest at the full moon }
+
+  { Portal transition kinds, for the right icon and glow. }
+  PK_FLAT   = 0;            { a level transition, a gate or a cell edge }
+  PK_DOWN   = 1;            { stairs down }
+  PK_UP     = 2;            { stairs up }
+  PK_CAVE   = 3;            { a cave mouth, surface down to a dungeon }
+  PK_LADDER = 4;
+  PK_SHAFT  = 5;            { a drop down a shaft }
+  PK_DOOR   = 6;            { a door into an interior }
 
   DIR_N = 0;
   DIR_E = 1;
@@ -53,6 +62,7 @@ type
     x, y: word;
     target: string[12];   { target map lump name }
     marker: string[12];   { entry marker in the target }
+    kind: byte;           { PK_* transition kind }
   end;
 
   TDoorMeta = record
@@ -179,6 +189,8 @@ begin
     BU16(b, m.portals[i].y);
     BName(b, m.portals[i].target, 12);
     BName(b, m.portals[i].marker, 12);
+    BByte(b, m.portals[i].kind);
+    BByte(b, 0);
   end;
 
   BU16(b, Length(m.doors));
@@ -318,6 +330,8 @@ begin
     m.portals[i].y := RU16(r);
     m.portals[i].target := RName(r, 12);
     m.portals[i].marker := RName(r, 12);
+    m.portals[i].kind := RByte(r);
+    RByte(r);
   end;
 
   count := RU16(r);

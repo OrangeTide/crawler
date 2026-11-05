@@ -21,6 +21,8 @@ const
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
+function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
+function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
 
 implementation
 
@@ -240,6 +242,7 @@ begin
   m.portals[0].x := ex; m.portals[0].y := ey;
   m.portals[0].target := d.retMap;
   m.portals[0].marker := d.retMarker;
+  m.portals[0].kind := PK_UP;
 
   m.doors := nil;
   m.npcs := nil;
@@ -256,10 +259,11 @@ begin
   SetAt(g, x1, y1, 0);
 end;
 
-{ One edge of an overworld cell: fill in its gap, arrival marker and the
-  portal that leaves toward the neighbor, unless that neighbor is off the
-  world. Pinned neighbors are entered by their authored name and marker. }
-procedure EdgeLink(var m: TMapData; var g: TGrid;
+{ One edge of a cell on the given layer ('W' surface, 'S' the Depths):
+  fill in its gap, the arrival marker and the portal leaving toward the
+  neighbor, unless that neighbor is off the world. On the surface a pinned
+  neighbor is entered by its authored name and marker. }
+procedure EdgeLink(var m: TMapData; var g: TGrid; layer: char;
   ncx, ncy, gapX, gapY, edgeX, edgeY: longint;
   const arriveName: string; arriveDir: byte);
 var
@@ -284,11 +288,13 @@ begin
   SetLength(m.portals, np + 1);
   m.portals[np].x := gapX;
   m.portals[np].y := gapY;
-  if PinnedAt(ncx, ncy, pin, arr) then begin
+  m.portals[np].kind := PK_FLAT;
+  if (layer = 'W') and PinnedAt(ncx, ncy, pin, arr) then begin
     m.portals[np].target := pin;
     m.portals[np].marker := arr;
   end else begin
-    m.portals[np].target := CellName(ncx, ncy);
+    if layer = 'S' then m.portals[np].target := DepthsName(ncx, ncy)
+    else m.portals[np].target := CellName(ncx, ncy);
     case arriveName of   { leave by one edge, arrive at the opposite one }
       'edgeN': m.portals[np].marker := 'edgeS';
       'edgeS': m.portals[np].marker := 'edgeN';
@@ -304,7 +310,7 @@ const
 var
   r: TRng;
   g: TGrid;
-  i, j, n, bx, by, mx, my, biome, wallTile: longint;
+  i, j, n, bx, by, mx, my, biome, wallTile, np: longint;
   m: TMapData;
 begin
   gw := W; gh := H;
@@ -344,15 +350,170 @@ begin
   m.markers[0].name := 'start';
   m.markers[0].x := mx; m.markers[0].y := my; m.markers[0].dir := DIR_E;
 
-  EdgeLink(m, g, cx,     cy - 1, mx, 0,      mx, 1,      'edgeN', DIR_S);
-  EdgeLink(m, g, cx,     cy + 1, mx, gh - 1, mx, gh - 2, 'edgeS', DIR_N);
-  EdgeLink(m, g, cx - 1, cy,     0,  my,     1,  my,     'edgeW', DIR_E);
-  EdgeLink(m, g, cx + 1, cy,     gw - 1, my, gw - 2, my, 'edgeE', DIR_W);
+  EdgeLink(m, g, 'W', cx,     cy - 1, mx, 0,      mx, 1,      'edgeN', DIR_S);
+  EdgeLink(m, g, 'W', cx,     cy + 1, mx, gh - 1, mx, gh - 2, 'edgeS', DIR_N);
+  EdgeLink(m, g, 'W', cx - 1, cy,     0,  my,     1,  my,     'edgeW', DIR_E);
+  EdgeLink(m, g, 'W', cx + 1, cy,     gw - 1, my, gw - 2, my, 'edgeE', DIR_W);
+
+  { a cave mouth down into the dungeon beneath this cell, on some cells }
+  if HasDungeon(cx, cy) then begin
+    bx := mx + 4; by := my + 3;
+    if bx > gw - 2 then bx := gw - 2;
+    if by > gh - 2 then by := gh - 2;
+    CarveLine(g, mx, my, bx, by);
+    np := Length(m.portals);
+    SetLength(m.portals, np + 1);
+    m.portals[np].x := bx; m.portals[np].y := by;
+    m.portals[np].target := DungeonName(cx, cy, 1);
+    m.portals[np].marker := 'uparr';
+    m.portals[np].kind := PK_CAVE;
+  end;
 
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do m.walls[i] := g[i];
 
   GenerateOverworldCell := m;
+end;
+
+function FloorNeighbor(const g: TGrid; x, y: longint; out nx, ny: longint): boolean;
+begin
+  FloorNeighbor := true;
+  if (x + 1 < gw) and (At(g, x + 1, y) = 0) then begin nx := x + 1; ny := y; exit; end;
+  if (x - 1 >= 0) and (At(g, x - 1, y) = 0) then begin nx := x - 1; ny := y; exit; end;
+  if (y + 1 < gh) and (At(g, x, y + 1) = 0) then begin nx := x; ny := y + 1; exit; end;
+  if (y - 1 >= 0) and (At(g, x, y - 1) = 0) then begin nx := x; ny := y - 1; exit; end;
+  nx := x; ny := y; FloorNeighbor := false;
+end;
+
+function ThemeWall(theme: longint): longint;
+begin
+  case theme of
+    THEME_CRYPT, THEME_DESERTTOMB: ThemeWall := 1;   { brick and sandstone }
+    THEME_CAVE: ThemeWall := 3;                      { mossy cavern }
+  else
+    ThemeWall := 2;                                  { stone, basalt, flooded }
+  end;
+end;
+
+{ Place a stair: a portal at (sx,sy) and an arrival marker just beside it
+  so arriving does not instantly trigger the return trip. }
+procedure AddStair(var m: TMapData; const g: TGrid; sx, sy, kind: longint;
+  const target, marker, arriveName: string);
+var
+  nx, ny, np: longint;
+begin
+  if not FloorNeighbor(g, sx, sy, nx, ny) then begin nx := sx; ny := sy; end;
+  SetLength(m.markers, Length(m.markers) + 1);
+  m.markers[High(m.markers)].name := arriveName;
+  m.markers[High(m.markers)].x := nx;
+  m.markers[High(m.markers)].y := ny;
+  m.markers[High(m.markers)].dir := DIR_E;
+  np := Length(m.portals);
+  SetLength(m.portals, np + 1);
+  m.portals[np].x := sx; m.portals[np].y := sy;
+  m.portals[np].target := target;
+  m.portals[np].marker := marker;
+  m.portals[np].kind := kind;
+end;
+
+function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
+const
+  W = 28; H = 28;
+var
+  r: TRng;
+  g: TGrid;
+  m: TMapData;
+  i, theme, wallTile, usx, usy, dsx, dsy, reach: longint;
+  pin, arr, upTarget, upMarker, downTarget: string;
+begin
+  gw := W; gh := H;
+  SetLength(g, gw * gh);
+  RngSeed(r, seed);
+  theme := BiomeTheme(BiomeAt(cx, cy));
+  wallTile := ThemeWall(theme);
+
+  case theme of
+    THEME_CAVE, THEME_UNDERWATER: GenCave(g, r);
+  else
+    GenRooms(g, r, depth);
+  end;
+
+  if not FirstFloor(g, usx, usy) then begin
+    usx := gw div 2; usy := gh div 2;
+    SetAt(g, usx, usy, 0); SetAt(g, usx + 1, usy, 0);
+  end;
+  FloodFarthest(g, usx, usy, dsx, dsy, reach);
+
+  m.w := gw; m.h := gh;
+  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.markers := nil; m.portals := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+
+  { the way up: to the level above, or to the surface at depth 1 }
+  if depth <= 1 then begin
+    if PinnedAt(cx, cy, pin, arr) then begin upTarget := pin; upMarker := arr; end
+    else begin upTarget := CellName(cx, cy); upMarker := 'start'; end;
+  end else begin
+    upTarget := DungeonName(cx, cy, depth - 1);
+    upMarker := 'downarr';
+  end;
+  AddStair(m, g, usx, usy, PK_UP, upTarget, upMarker, 'uparr');
+
+  { the way down: deeper, or into the Sunless Depths at the threshold }
+  if depth >= SUNLESS_DEPTH then
+    downTarget := DepthsName(cx, cy)
+  else
+    downTarget := DungeonName(cx, cy, depth + 1);
+  AddStair(m, g, dsx, dsy, PK_DOWN, downTarget, 'uparr', 'downarr');
+
+  SetLength(m.walls, gw * gh);
+  for i := 0 to gw * gh - 1 do
+    if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
+
+  GenerateDungeonLevel := m;
+end;
+
+function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
+const
+  W = 28; H = 28;
+var
+  r: TRng;
+  g: TGrid;
+  m: TMapData;
+  i, mx, my: longint;
+begin
+  gw := W; gh := H;
+  mx := gw div 2; my := gh div 2;
+  SetLength(g, gw * gh);
+  RngSeed(r, seed);
+  GenCave(g, r);
+  Borders(g);
+  SetAt(g, mx, my, 0);
+
+  m.w := gw; m.h := gh;
+  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.markers := nil; m.portals := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+
+  { the way back up to the dungeon that opened into the Depths }
+  AddStair(m, g, mx, my, PK_UP, DungeonName(cx, cy, SUNLESS_DEPTH),
+    'downarr', 'uparr');
+
+  { the Depths span the world: each edge opens into the neighbor cavern }
+  CarveLine(g, mx, my, mx, 1);
+  CarveLine(g, mx, my, mx, gh - 2);
+  CarveLine(g, mx, my, 1, my);
+  CarveLine(g, mx, my, gw - 2, my);
+  EdgeLink(m, g, 'S', cx,     cy - 1, mx, 0,      mx, 1,      'edgeN', DIR_S);
+  EdgeLink(m, g, 'S', cx,     cy + 1, mx, gh - 1, mx, gh - 2, 'edgeS', DIR_N);
+  EdgeLink(m, g, 'S', cx - 1, cy,     0,  my,     1,  my,     'edgeW', DIR_E);
+  EdgeLink(m, g, 'S', cx + 1, cy,     gw - 1, my, gw - 2, my, 'edgeE', DIR_W);
+
+  SetLength(m.walls, gw * gh);
+  for i := 0 to gw * gh - 1 do
+    if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := 2;
+
+  GenerateDepthsCell := m;
 end;
 
 end.

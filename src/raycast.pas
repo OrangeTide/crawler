@@ -23,7 +23,9 @@ const
   { Fog: surfaces fully lit up to NEAR, fading to black at FAR tiles. }
   FOG_NEAR = 1.5;
   FOG_FAR  = 9.0;
-  PORTAL_GLOW = $FF50C8FF;   { cyan pad drawn on portal tiles }
+  PORTAL_GLOW = $FF50C8FF;   { cyan pad: a flat transition or gate }
+  DOWN_GLOW   = $FFFFB450;   { amber pad: stairs or a cave mouth down }
+  UP_GLOW     = $FF8CE08C;   { green pad: stairs up }
   SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
   MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
 
@@ -71,7 +73,8 @@ var
   texId: longint;
   fog: longint;
   cF, cC: TColor;
-  cxi, cyi, lk: longint;
+  cxi, cyi, lk, pk: longint;
+  gc: TColor;
 begin
   rayDirX0 := Cam.dirX - Cam.planeX;
   rayDirY0 := Cam.dirY - Cam.planeY;
@@ -109,8 +112,15 @@ begin
         cF := Shade(Tex[texId][ty * TEXW + tx], fog);
         cxi := trunc(floorX); cyi := trunc(floorY);
         { a glowing pad marks a portal; a shaft marks a sky or moon well }
-        if IsPortalTile(cxi, cyi) then
-          cF := MixColor(cF, Shade(PORTAL_GLOW, fog), 150)
+        if IsPortalTile(cxi, cyi) then begin
+          pk := PortalKind(cxi, cyi);
+          case pk of
+            PK_DOWN, PK_CAVE, PK_SHAFT: gc := DOWN_GLOW;
+            PK_UP: gc := UP_GLOW;
+          else gc := PORTAL_GLOW;
+          end;
+          cF := MixColor(cF, Shade(gc, fog), 150);
+        end
         else begin
           lk := LightTileKind(cxi, cyi);
           if lk = LIGHT_SKYLIGHT then

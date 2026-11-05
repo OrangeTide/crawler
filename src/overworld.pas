@@ -18,6 +18,7 @@ interface
 
 const
   OW_SIZE = 1024;          { cells per side }
+  SUNLESS_DEPTH = 30;      { a dungeon this deep breaks into the Depths }
 
   { Surface biome ids. BiomeAt returns one of these for every cell. }
   BIOME_OCEAN    = 0;   { sea travel, coastlines, sea cliffs }
@@ -57,6 +58,15 @@ function BiomeName(b: byte): string;
 function BiomeWallTile(b: byte): byte;    { 1 brick, 2 stone, 3 moss }
 function BiomeDensity(b: byte): longint;  { obstacle clusters per cell }
 function BiomeTheme(b: byte): byte;       { underground theme under a cell }
+
+{ Names of the generated layers beneath a cell. }
+function DungeonName(cx, cy, depth: longint): string;
+function ParseDungeonName(const s: string; out cx, cy, depth: longint): boolean;
+function DepthsName(cx, cy: longint): string;
+function ParseDepthsName(const s: string; out cx, cy: longint): boolean;
+
+{ Whether a surface cell has a dungeon entrance, derived from the seed. }
+function HasDungeon(cx, cy: longint): boolean;
 
 { Pinned authored cells. }
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;
@@ -254,6 +264,81 @@ begin
   else
     BiomeTheme := THEME_CAVE;
   end;
+end;
+
+{ Parse up to three underscore-separated non-negative integers from s. }
+function ParseNums(const s: string; out n0, n1, n2: longint; out count: longint): boolean;
+var
+  i, cur: longint;
+  started: boolean;
+  nums: array[0 .. 2] of longint;
+begin
+  ParseNums := false;
+  n0 := 0; n1 := 0; n2 := 0; count := 0;
+  cur := 0; started := false;
+  for i := 1 to Length(s) do begin
+    if s[i] = '_' then begin
+      if not started then exit;      { empty field }
+      if count >= 3 then exit;
+      nums[count] := cur; inc(count);
+      cur := 0; started := false;
+    end else if (s[i] >= '0') and (s[i] <= '9') then begin
+      cur := cur * 10 + (ord(s[i]) - ord('0'));
+      started := true;
+    end else
+      exit;                          { non-digit }
+  end;
+  if not started then exit;
+  if count >= 3 then exit;
+  nums[count] := cur; inc(count);
+  n0 := nums[0];
+  if count >= 2 then n1 := nums[1];
+  if count >= 3 then n2 := nums[2];
+  ParseNums := true;
+end;
+
+function DungeonName(cx, cy, depth: longint): string;
+begin
+  DungeonName := 'D' + IntToStr(cx) + '_' + IntToStr(cy) + '_' + IntToStr(depth);
+end;
+
+function ParseDungeonName(const s: string; out cx, cy, depth: longint): boolean;
+var
+  count: longint;
+begin
+  ParseDungeonName := false;
+  cx := 0; cy := 0; depth := 0;
+  if (Length(s) < 6) or (s[1] <> 'D') then exit;
+  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, depth, count) then exit;
+  if count <> 3 then exit;
+  ParseDungeonName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0)
+    and (cy < OW_SIZE) and (depth >= 1);
+end;
+
+function DepthsName(cx, cy: longint): string;
+begin
+  DepthsName := 'S' + IntToStr(cx) + '_' + IntToStr(cy);
+end;
+
+function ParseDepthsName(const s: string; out cx, cy: longint): boolean;
+var
+  dummy, count: longint;
+begin
+  ParseDepthsName := false;
+  cx := 0; cy := 0;
+  if (Length(s) < 4) or (s[1] <> 'S') then exit;
+  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, dummy, count) then exit;
+  if count <> 2 then exit;
+  ParseDepthsName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0) and (cy < OW_SIZE);
+end;
+
+function HasDungeon(cx, cy: longint): boolean;
+var
+  salt: longint;
+begin
+  { about one surface cell in three has a way down, pinned cells aside }
+  salt := $D0;
+  HasDungeon := (Hash2(cx, cy, salt) mod 3) = 0;
 end;
 
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;

@@ -50,6 +50,7 @@ var
   showMap: boolean;
   GamePak: TPak;
   lastTX, lastTY: longint;
+  CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
   cursorX, cursorY: longint;
   rmbHeld: boolean;
   dlgNpcName: string;
@@ -86,12 +87,13 @@ function LoadMapLump(const name: string): boolean;
 var
   blob: TByteArray;
   md: TMapData;
-  di, ver, cx, cy: longint;
+  di, ver, cx, cy, depth: longint;
   seed: longword;
   isDyn: boolean;
 begin
   LoadMapLump := false;
   ver := 0; seed := 0; isDyn := false;
+  CurDepth := 0;
   if PakGet(GamePak, name, blob) then begin
     if not DecodeMap(blob, md) then exit;
   end else if ParseCellName(name, cx, cy) then begin
@@ -101,6 +103,18 @@ begin
     ver := GEN_VERSION;
     seed := CellSeed(cx, cy, 0);
     md := GenerateOverworldCell(cx, cy, seed);
+  end else if ParseDungeonName(name, cx, cy, depth) then begin
+    isDyn := true;
+    ver := GEN_VERSION;
+    seed := CellSeed(cx, cy, depth);
+    md := GenerateDungeonLevel(cx, cy, depth, seed);
+    CurDepth := depth;
+  end else if ParseDepthsName(name, cx, cy) then begin
+    isDyn := true;
+    ver := GEN_VERSION;
+    seed := CellSeed(cx, cy, SUNLESS_DEPTH + 1);
+    md := GenerateDepthsCell(cx, cy, seed);
+    CurDepth := SUNLESS_DEPTH;
   end else begin
     di := DynIndex(name);
     if di < 0 then exit;
@@ -111,6 +125,7 @@ begin
       if seed = 0 then seed := 1;
     end;
     md := GenerateMap(DynMaps[di], ver, seed);
+    CurDepth := DynMaps[di].depth;
   end;
   if CurMapName <> '' then
     MapStateCapture(CurMapName);
@@ -365,10 +380,12 @@ begin
     State := gsGameOver;
     exit;
   end;
-  { Town is safe; elsewhere a small per-step chance of an encounter. }
+  { Town is safe; elsewhere a small per-step chance of an encounter,
+    scaled by how deep the party has descended. }
   if (CurMapName <> 'TOWN') and (Length(Roster) > 0) then
-    if Range(1, 18) = 1 then
-      StartCombat(1);
+    if Range(1, 18) = 1 then begin
+      if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
+    end;
 end;
 
 procedure ExploreUpdate(dt: double);

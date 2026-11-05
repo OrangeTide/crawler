@@ -148,6 +148,15 @@ begin
         po.y := StrToInt(tok[2]);
         po.target := tok[3];
         po.marker := tok[4];
+        po.kind := PK_FLAT;
+        if ntok >= 6 then begin
+          if tok[5] = 'down' then po.kind := PK_DOWN
+          else if tok[5] = 'up' then po.kind := PK_UP
+          else if tok[5] = 'cave' then po.kind := PK_CAVE
+          else if tok[5] = 'ladder' then po.kind := PK_LADDER
+          else if tok[5] = 'shaft' then po.kind := PK_SHAFT
+          else if tok[5] = 'door' then po.kind := PK_DOOR;
+        end;
         SetLength(m.portals, Length(m.portals) + 1);
         m.portals[High(m.portals)] := po;
       end else if tok[0] = 'door' then begin

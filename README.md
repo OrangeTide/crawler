@@ -51,6 +51,11 @@ filtering, the same way the game presents it.
   An Options screen on the title menu sets the master, music and effect volumes.
 - Resting recovers party health between fights, and traps on marked tiles test a
   Dodge save, deal damage and can poison the lead member until cured by rest.
+- Dungeons descend level by level beneath the overworld, reached through cave
+  mouths on the surface. Stairs stack consistently from a seed, deeper levels
+  are harder, and at thirty levels down a dungeon breaks into the Sunless
+  Depths, a world-spanning cavern. Cave mouths and stairs glow and show on the
+  maps, amber going down and green coming up.
 - A game clock drives a day-night cycle that lights and darkens outdoor maps,
   and a 29.53 day moon. The moon is tracked everywhere, so a full moon
   transforms characters cursed with lycanthropy even underground. Skylight and

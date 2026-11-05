@@ -47,7 +47,7 @@ var
   Map: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   DoorOpen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
   Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
-  PortalMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
+  PortalMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;  { 0 none, kind+1 }
   LightMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;  { 0 none, kind+1 }
   CurMapSurface: boolean;
   AmbientLight: longint;    { 0..256, applied to the view; 256 is full }
@@ -77,6 +77,7 @@ procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function IsPortalTile(mx, my: longint): boolean;
+function PortalKind(mx, my: longint): longint;     { -1 none, else PK_* }
 function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
@@ -175,7 +176,7 @@ begin
       Map[y][x] := 1;
       DoorOpen[y][x] := false;
       Seen[y][x] := VIS_UNSEEN;
-      PortalMask[y][x] := false;
+      PortalMask[y][x] := 0;
       LightMask[y][x] := 0;
     end;
   CurMapSurface := (m.flags and MAP_SURFACE) <> 0;
@@ -187,7 +188,7 @@ begin
     px := m.portals[x].x;
     py := m.portals[x].y;
     if (px < MapW) and (py < MapH) then
-      PortalMask[py][px] := true;
+      PortalMask[py][px] := m.portals[x].kind + 1;
   end;
   for x := 0 to High(m.lights) do begin
     px := m.lights[x].x;
@@ -203,7 +204,16 @@ begin
   if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
     IsPortalTile := false
   else
-    IsPortalTile := PortalMask[my][mx];
+    IsPortalTile := PortalMask[my][mx] <> 0;
+end;
+
+function PortalKind(mx, my: longint): longint;
+begin
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH)
+    or (PortalMask[my][mx] = 0) then
+    PortalKind := -1
+  else
+    PortalKind := PortalMask[my][mx] - 1;
 end;
 
 function LightTileKind(mx, my: longint): longint;
