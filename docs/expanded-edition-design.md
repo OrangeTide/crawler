@@ -826,3 +826,37 @@ Pascal). The design is held to their limits as it grows.
   for example with an LRU and fog stored as bitfields, and to load each table
   once. I will re-estimate main RAM when the overworld cell cache and the
   snapshot store go in, and warn when the projected resident set approaches 2 MB.
+
+## 24. Multiplayer and LAN play (future work)
+
+Not scheduled. Single player stays the primary design. This records the shape a
+co-op mode would take so nothing built now blocks it, and so it can be compiled
+out cleanly for the PlayStation 1.
+
+- **Compile-time optional.** Networking is behind a build flag and is absent
+  from the PS1 build, which has no standard networking path. This mirrors how
+  netchan drops its socket code on a platform that lacks sockets through a
+  single guard in the build, leaving the protocol core untouched.
+- **Borrow the netchan-v2 transport seam.** netchan-v2 is a reliable, multiplexed
+  channel protocol with a static memory model and a transport-agnostic address,
+  `nc_addr`, that the core copies and compares but never interprets. Each
+  transport is one backend file. A subset ported to Pascal, reliable and
+  unreliable channels plus that opaque address, gives the game one network core
+  that is the same on every target, with the platform differences isolated to a
+  backend.
+- **Transports per target.** A UDP backend on the Linux prototype and desktop
+  builds. An IPX backend on MS-DOS for classic LAN play, following the earlier
+  netchan-ipx experiment. The PS1 build links no backend at all.
+- **Server-authoritative, seed-light.** Follow the netchan demo model. A host
+  runs the simulation at a low tick rate. Each client opens a reliable channel
+  that carries a one-time welcome with its slot and the world seed, and an
+  unreliable channel that streams packed snapshots of moving state. Because this
+  game already rebuilds its maps and the whole overworld from the seed, the
+  terrain is never sent. A snapshot is only party and entity state, which keeps
+  the wire small and fits the tight targets.
+- **Beacon mode for LAN discovery.** A host broadcasts a small discovery beacon
+  on the local network, a UDP broadcast on desktop and an IPX broadcast on DOS,
+  carrying the game name, player count and the join address. Clients listen and
+  present the found games, or auto-join one, so LAN play needs no typed
+  addresses. An optional pre-shared key can secure a closed LAN game, which is
+  the netchan crypto backend's recommended posture and is desktop-only.
