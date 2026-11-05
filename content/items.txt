@@ -1,9 +1,10 @@
 # Item table. Fields: item ID KIND DMG AC SLOTS VALUE FLAGS "Name"
 # KIND: weapon armor shield potion light key treasure misc
-# FLAGS: 1 = two handed, 2 = ranged (bitwise)
+# FLAGS: 1 = two handed, 2 = ranged, 4 = silvered/blessed (strikes as holy)
 item DAGGER   weapon    4  0 1   2 0 "Dagger"
 item SWORD    weapon    6  0 1  10 0 "Short Sword"
 item MACE     weapon    6  0 1  10 0 "Mace"
+item SILVER   weapon    6  0 1  40 4 "Silvered Mace"
 item GREATAXE weapon   10  0 2  15 1 "Great Axe"
 item SPEAR    weapon    6  0 1   3 0 "Spear"
 item BOW      weapon    6  0 2  20 3 "Short Bow"

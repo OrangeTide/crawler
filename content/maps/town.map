@@ -23,7 +23,7 @@ portal 10 8 DUNGEON back
 portal 2 8 CAVE start
 portal 10 2 SEASIDE start
 portal 2 5 FOREST start
-portal 6 1 W512_511 edgeS
+portal 6 1 OUTSKIRTS fromtown
 portal 6 8 TAVERN entry door
 prop 2 3 BARREL
 prop 3 3 BARREL 45

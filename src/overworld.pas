@@ -117,13 +117,14 @@ const
     wilderness that borders the cluster links straight into them. Each
     name is an authored map (CAVE is a generated dynmap); each arrive
     marker exists on that map. }
-  Pinned: array[0 .. 5] of TPinned = (
-    (cx: 512; cy: 512; name: 'TOWN';     arrive: 'spawn'),
-    (cx: 511; cy: 512; name: 'FOREST';   arrive: 'start'),
-    (cx: 513; cy: 512; name: 'SEASIDE';  arrive: 'start'),
-    (cx: 512; cy: 513; name: 'DUNGEON';  arrive: 'start'),
-    (cx: 511; cy: 513; name: 'CAVE';     arrive: 'start'),
-    (cx: 513; cy: 513; name: 'INFERNAL'; arrive: 'start')
+  Pinned: array[0 .. 6] of TPinned = (
+    (cx: 512; cy: 512; name: 'TOWN';      arrive: 'spawn'),
+    (cx: 512; cy: 511; name: 'OUTSKIRTS'; arrive: 'spawn'),
+    (cx: 511; cy: 512; name: 'FOREST';    arrive: 'start'),
+    (cx: 513; cy: 512; name: 'SEASIDE';   arrive: 'start'),
+    (cx: 512; cy: 513; name: 'DUNGEON';   arrive: 'start'),
+    (cx: 511; cy: 513; name: 'CAVE';      arrive: 'start'),
+    (cx: 513; cy: 513; name: 'INFERNAL';  arrive: 'start')
   );
 
 { --- integer hashing and value noise --- }

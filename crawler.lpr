@@ -24,6 +24,7 @@ var
   prevTicks, nowTicks, lastFpsTick: UInt32;
   dt: double;
   fps, frameCount: longint;
+  argi: longint;
   argb: array[0 .. FBW * FBH - 1] of TColor;   { index->ARGB scratch for SDL }
 
 procedure Shutdown;
@@ -87,6 +88,13 @@ begin
   if not GameInit then begin
     Shutdown; halt(1);
   end;
+
+  { --combat / --battle: skip the title and open a test encounter }
+  for argi := 1 to ParamCount do
+    if (ParamStr(argi) = '--combat') or (ParamStr(argi) = '--battle') then begin
+      QuickBattle;
+      break;
+    end;
 
   prevTicks := SDL_GetTicks();
   lastFpsTick := prevTicks;

@@ -27,6 +27,7 @@ const
 
   IF_TWOHAND = 1;
   IF_RANGED  = 2;
+  IF_SILVER  = 4;   { a blessed or silvered weapon; strikes as holy }
 
   ITEMS_MAGIC = $4D455449;  { 'ITEM' little-endian }
 

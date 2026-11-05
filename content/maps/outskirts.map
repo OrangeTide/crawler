@@ -1,0 +1,31 @@
+# The outskirts: where a new party begins. A wooded clearing north of
+# town, with the mouth of the starter dungeon at the top and the road
+# south to the town gate.
+map OUTSKIRTS
+size 16 12
+tileset 0
+music 0
+surface
+walls
+2222222222222222
+2000000000000002
+2000003000300002
+2000000000000002
+2003000000000302
+2000000000000002
+2000000000000002
+2003000000000302
+2000000000000002
+2000000000000002
+2000000000000002
+2222222222222222
+end
+marker spawn 8 6 N
+marker fromcave 8 3 S
+marker fromtown 8 9 N
+portal 8 1 DUNGEON back cave
+portal 8 10 TOWN gate
+prop 7 1 DOORWAY 90
+prop 3 5 BARREL
+prop 12 8 BARREL 45
+prop 4 9 BARREL 120

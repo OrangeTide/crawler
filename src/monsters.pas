@@ -21,6 +21,20 @@ const
   MF_RANGED = 2;
   MF_LYCAN  = 4;   { a hit can pass on the lycanthropy curse }
 
+  { damage elements, as single-bit flags so weak/resist/immune can hold a
+    set of them while an attack carries exactly one }
+  EL_PHYS  = 1;
+  EL_FIRE  = 2;
+  EL_FROST = 4;
+  EL_SHOCK = 8;
+  EL_HOLY  = 16;
+
+  { status effects, likewise flags }
+  ST_POISON = 1;   { damage over time }
+  ST_STUN   = 2;   { lose the next turn }
+  ST_SLOW   = 4;   { slower in the turn order }
+  ST_BURN   = 8;   { fire damage over time }
+
 type
   TMonsterDef = record
     id: string[12];
@@ -30,11 +44,17 @@ type
     atkBonus: byte;   { to-hit bonus; AX&X monsters attack at +HD }
     dmgSides: byte;   { damage die sides }
     morale: byte;     { hold on a 1d6 of this or less; higher is braver }
-    speed: byte;      { range bands closed per move }
+    speed: byte;      { turn-order speed; higher acts sooner }
     xp: word;
     flags: byte;
     model: string[12]; { combat mesh id in the model registry, '' for none }
     areas: byte;       { bitmask of the areas this monster roams, 0 = none }
+    element: byte;     { EL_* the monster's own attack deals, 0 = physical }
+    weak: byte;        { EL_* set it takes extra damage from }
+    resist: byte;      { EL_* set it takes reduced damage from }
+    immune: byte;      { EL_* set it ignores }
+    inflict: byte;     { ST_* a hit from it may apply, 0 = none }
+    statusImm: byte;   { ST_* set it cannot suffer }
   end;
 
 var
@@ -86,6 +106,12 @@ begin
     PutB(a, n, defs[i].flags);
     PutName(a, n, defs[i].model, 12);
     PutB(a, n, defs[i].areas);
+    PutB(a, n, defs[i].element);
+    PutB(a, n, defs[i].weak);
+    PutB(a, n, defs[i].resist);
+    PutB(a, n, defs[i].immune);
+    PutB(a, n, defs[i].inflict);
+    PutB(a, n, defs[i].statusImm);
   end;
   SetLength(a, n);
   EncodeMonsters := a;
@@ -130,6 +156,12 @@ begin
     MonDefs[i].flags := blob[pos]; inc(pos);
     MonDefs[i].model := RName(blob, pos, 12);
     MonDefs[i].areas := blob[pos]; inc(pos);
+    MonDefs[i].element := blob[pos]; inc(pos);
+    MonDefs[i].weak := blob[pos]; inc(pos);
+    MonDefs[i].resist := blob[pos]; inc(pos);
+    MonDefs[i].immune := blob[pos]; inc(pos);
+    MonDefs[i].inflict := blob[pos]; inc(pos);
+    MonDefs[i].statusImm := blob[pos]; inc(pos);
   end;
   LoadMonsters := true;
 end;

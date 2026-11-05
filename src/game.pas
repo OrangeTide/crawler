@@ -29,6 +29,8 @@ function GameInit: boolean;
 procedure GameHandleEvents;
 procedure GameUpdate(dt: double);
 procedure GameRender(fps: longint);
+{ Jump a pregen party straight into a test encounter (menu / --combat). }
+procedure QuickBattle;
 
 implementation
 
@@ -54,6 +56,7 @@ var
   lastTX, lastTY: longint;
   CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
   CurAreaMask: byte;      { the encounter area of the loaded map, 0 = safe }
+  FromQuickBattle: boolean; { a test fight with no world; exit to the title }
   cursorX, cursorY: longint;
   rmbHeld: boolean;
   dlgNpcName: string;
@@ -99,7 +102,7 @@ const
   CMD_COUNT  = 5;
 
   CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
-    'ATTACK', 'CAST', 'ITEM', 'GUARD', 'FLEE');
+    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'FLEE');
 
 function SavePath: string;
 begin
@@ -613,12 +616,13 @@ begin
 end;
 
 procedure StartGame;
-{** Hand off from the menus to the starting town. }
+{** Hand off from the menus to the outskirts: the overworld clearing just
+   outside the starter dungeon, a short walk north of town. }
 begin
   FlagsReset;
   MapStateReset;
   CurMapName := '';
-  if not LoadMapByName('TOWN', 'spawn') then begin
+  if not LoadMapByName('OUTSKIRTS', 'spawn') then begin
     writeln(StdErr, 'game: could not load the starting map');
     QuitRequested := true;
     exit;
@@ -629,12 +633,12 @@ end;
 { ---- Title state ---- }
 
 const
-  TITLE_ITEMS = 5;
+  TITLE_ITEMS = 6;
 
 procedure TitleRender;
 const
   LABELS: array[0 .. TITLE_ITEMS - 1] of string = (
-    'CONTINUE', 'NEW GAME', 'QUICK START', 'OPTIONS', 'QUIT');
+    'CONTINUE', 'NEW GAME', 'QUICK START', 'QUICK BATTLE', 'OPTIONS', 'QUIT');
 var
   i, y: longint;
   c: TColor;
@@ -658,8 +662,8 @@ begin
   DrawCenter(FBH - 20, 'ARROWS SELECT   ENTER CONFIRM', RGB(90, 84, 70));
 end;
 
-procedure QuickStart;
-{** Make a ready-to-play party of four and dive in. }
+procedure BuildPregenParty;
+{** Roll a ready-to-play party of four: a fighter, thief, friar and wizard. }
 var
   i, sp: longint;
   a: TAbilityScores;
@@ -673,7 +677,25 @@ begin
     MakeCharacter(c, NAME_POOL[i], sp, ClassOr0(clsId[i]), 0, a);
     AddPartyMember(c);
   end;
+end;
+
+procedure QuickStart;
+{** Make a ready-to-play party of four and dive into the world. }
+begin
+  BuildPregenParty;
   StartGame;
+end;
+
+procedure QuickBattle;
+{** Skip the world and drop a pregen party into a test encounter. Set
+   FromQuickBattle so leaving the fight returns to the title, since no map
+   is loaded. Any area, a mid depth for a meaty mix of foes. }
+begin
+  BuildPregenParty;
+  CurMapName := 'QUICKBATTLE';
+  CurAreaMask := 0;
+  FromQuickBattle := true;
+  StartCombat(3);
 end;
 
 procedure CCRebuild; forward;
@@ -694,8 +716,9 @@ begin
     0: if SaveExists(SavePath) then ContinueGame;
     1: begin State := gsNewParty; NewParty; ccSlot := 0; CCBeginSlot; end;
     2: QuickStart;
-    3: begin optSel := 0; State := gsOptions; end;
-    4: QuitRequested := true;
+    3: QuickBattle;
+    4: begin optSel := 0; State := gsOptions; end;
+    5: QuitRequested := true;
   end;
 end;
 
@@ -809,7 +832,11 @@ end;
 
 procedure EndCombat;
 begin
-  if Victory or Fled then
+  if FromQuickBattle then begin
+    FromQuickBattle := false;
+    State := gsTitle;
+    titleSel := 0;
+  end else if Victory or Fled then
     State := gsExplore
   else
     State := gsGameOver;
@@ -981,12 +1008,24 @@ begin
         POPC_FOEDMG:   base := RGB(250, 240, 180);
         POPC_PARTYDMG: base := RGB(245, 95, 85);
         POPC_HEAL:     base := RGB(120, 230, 130);
-      else             base := RGB(180, 180, 180);
+        POPC_WEAK:     base := RGB(255, 170, 60);    { struck a weakness }
+        POPC_RESIST:   base := RGB(120, 170, 235);   { shrugged off }
+      else             base := RGB(180, 180, 180);   { miss or status tag }
       end;
       lit := 110 + round(146 * frac);
       yy := py - round((1.0 - frac) * 12);
       DrawText(px - Length(Pops[i].text) * 3, yy, Pops[i].text, Shade(base, lit));
     end;
+end;
+
+{ A compact badge of the active status effects on a combatant. }
+function StatusTag(const st: TStatus): string;
+begin
+  StatusTag := '';
+  if st.poison > 0 then StatusTag := StatusTag + 'P';
+  if st.burn > 0 then StatusTag := StatusTag + 'B';
+  if st.stun > 0 then StatusTag := StatusTag + 'T';
+  if st.slow > 0 then StatusTag := StatusTag + 'S';
 end;
 
 procedure CombatRender;
@@ -1045,6 +1084,10 @@ begin
       DrawText(cx - Length(s) * 3, cy - half - 8, s, RGB(215, 185, 175));
       DrawBar(cx - 16, cy + half + 1, 32, 3, Foes[i].hp, Foes[i].hpMax,
         RGB(200, 80, 70), RGB(50, 24, 24));
+      if i <= High(FoeStatus) then begin
+        s := StatusTag(FoeStatus[i]);
+        if s <> '' then DrawText(cx + 20, cy + half - 2, s, RGB(190, 120, 215));
+      end;
       DrawPops(0, i, cx, cy - half - 18);
       { the aim chevron sits to the left of the chosen foe }
       if (i = CurTarget) and (CombatPhase = CP_INPUT) and (cbMenu <> CB_ALLY) then
@@ -1079,6 +1122,10 @@ begin
       else if (i = CurActor) and (CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
       DrawText(x, ny, Copy(Roster[i].name, 1, 8), c);
+      if (i <= High(PartyStatus)) and Roster[i].alive and (not Roster[i].downed) then begin
+        s := StatusTag(PartyStatus[i]);
+        if s <> '' then DrawText(x + 50, ny, s, RGB(190, 120, 215));
+      end;
       if not Roster[i].alive then
         DrawText(x, ny + 9, 'SLAIN', RGB(190, 90, 90))
       else if Roster[i].downed then

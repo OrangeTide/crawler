@@ -247,7 +247,7 @@ begin
       PackAdd(c, 'WOODCRFT', 1);
     end;
     KIT_PRIEST: begin
-      SetEquip(c, eqMain, 'MACE');
+      SetEquip(c, eqMain, 'SILVER');
       SetEquip(c, eqOff, 'SHIELD');
       SetEquip(c, eqArmor, 'MARMOR');
       PackAdd(c, 'HOLYSYM', 1);
