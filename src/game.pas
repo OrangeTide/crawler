@@ -1641,7 +1641,7 @@ begin
   TimeReset;
   MoonOffsetDays := (WorldSeed mod 2953) / 100.0;  { seed the moon phase }
 
-  AudioInit;   { silent if it fails }
+  AudioInit(GamePak);   { silent if the device or libxmp is absent }
   volMaster := 80; volMusic := 55; volSfx := 90;
   SetAudioVolumes(volMaster, volMusic, volSfx);
   keys := PKeyArray(SDL_GetKeyboardState(nil));

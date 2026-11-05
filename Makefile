@@ -18,10 +18,16 @@ WORLD     = content/world.txt
 MODELNAMES = barrel doorway crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 \
              crea9 crea10 crea11 crea12 crea13 flesh1 flesh2
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
+# music tracks: each lump name paired with its module file. Files may be
+# absent; a missing track just stays silent.
+MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
+MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(WORLD) $(MAPS) $(MODELSRC)
+            $(WORLD) $(MAPS) $(MODELSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
+MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
+            $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
             world $(WORLD)
@@ -52,7 +58,7 @@ build/tools/meshshot: tools/meshshot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/meshshot tools/meshshot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(MUSICARGS)
 
 build:
 	mkdir -p build

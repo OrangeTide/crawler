@@ -3,17 +3,23 @@ unit audio;
 {** Software audio mixer with sound-effect and music channels.
 
   One SDL audio callback mixes several sound-effect channels and a music
-  channel into 16-bit stereo. Sound effects are short PCM buffers built
-  procedurally at startup, so no audio files ship. Music is a tiny
-  square-wave synth playing built-in note sequences, one track at a
-  time. This keeps the download small while still giving layered sound.
+  track into 16-bit stereo. Sound effects are short PCM buffers built
+  procedurally at startup, so no sound files ship for them. Music is a
+  tracker module (a sample bank plus a pattern sequence) rendered by
+  libxmp, one track at a time, read from the pak as a lump. This is the
+  sampled-sequence model the PlayStation SPU used, so the same module
+  files feed a VAB/SEQ bake on that target.
 
-  If the audio device will not open the game runs silently; every call
-  here is then a harmless no-op. }
+  Both halves are optional and independent. If the audio device will not
+  open the game runs silently. If libxmp is absent the sound effects
+  still play and only music is a no-op. Every call here is then harmless. }
 
 {$mode objfpc}{$H+}
 
 interface
+
+uses
+  pak;
 
 const
   SFX_SELECT = 0;
@@ -31,7 +37,7 @@ const
   MUS_DUNGEON = 3;
   MUS_COMBAT  = 4;
 
-function AudioInit: boolean;
+function AudioInit(const p: TPak): boolean;
 procedure AudioShutdown;
 procedure PlaySfx(id: longint);
 procedure PlayMusic(track: longint);
@@ -41,7 +47,7 @@ procedure SetAudioVolumes(master, music, sfx: longint);
 implementation
 
 uses
-  sdl2min;
+  sdl2min, xmpmin;
 
 const
   SR = 22050;         { sample rate }
@@ -63,13 +69,13 @@ var
 
   masterV, musicV, sfxV: longint;   { 0..100 }
 
-  { music synth }
+  { music replayer }
+  musPak: TPak;                     { lumps the module tracks live in }
+  xmpCtx: Txmp_context = nil;
+  haveMusic: boolean = false;       { libxmp present and a context is live }
+  musLoaded: boolean = false;       { a module is loaded in the context }
   musTrack: longint = MUS_NONE;
-  musSeq: array of shortint;        { semitone offsets from A4; -128 = rest }
-  musPos: longint;
-  musSampInNote: longint;
-  musPhase: double;
-  noteSamples: longint;
+  musBuf: array of smallint;        { scratch the callback renders a block into }
 
 { ---- SFX synthesis ---- }
 
@@ -131,46 +137,35 @@ begin
   MakeTone(sfxBuf[SFX_DOWN], 260, 200, 5000, true);
 end;
 
-{ ---- music sequences ---- }
+{ ---- music tracks ---- }
 
 const
-  R = -128;   { rest }
-
-  SEQ_TITLE: array[0 .. 7] of shortint = (0, 4, 7, 12, 7, 4, 0, R);
-  SEQ_TOWN: array[0 .. 7] of shortint = (0, 2, 4, 5, 4, 2, 0, R);
-  SEQ_DUNGEON: array[0 .. 7] of shortint = (-5, -5, -2, -5, -7, -5, R, R);
-  SEQ_COMBAT: array[0 .. 7] of shortint = (0, 0, 3, 0, 5, 3, 0, R);
-
-procedure SetSeq(const s: array of shortint);
-var i: longint;
-begin
-  SetLength(musSeq, Length(s));
-  for i := 0 to High(s) do musSeq[i] := s[i];
-  musPos := 0;
-  musSampInNote := 0;
-  musPhase := 0;
-end;
-
-function NoteFreq(semi: shortint): double;
-begin
-  NoteFreq := 220.0 * Exp(semi * 0.69314718 / 12.0);  { 2^(semi/12) from A3 }
-end;
+  { each track names its module lump in the pak; '' means no track }
+  MusLumps: array[MUS_NONE .. MUS_COMBAT] of string =
+    ('', 'MUS_TITLE', 'MUS_TOWN', 'MUS_DUNGEON', 'MUS_COMBAT');
 
 { ---- the mixer callback ---- }
 
 procedure AudioCallback(userdata: Pointer; stream: PUInt8; len: Int32); cdecl;
 var
-  frames, i, c, acc, mv, sv, mix: longint;
-  semi: shortint;
+  frames, i, c, acc, sv, mixL, mixR: longint;
+  musL, musR, musHave: longint;
   out16: PUInt8;
-  musv: longint;
-  freq: double;
 begin
   out16 := stream;
   frames := len div 4;   { S16 stereo }
+
+  { Render one block of the module into the scratch buffer. libxmp fills
+    it as interleaved S16 stereo and loops the module itself (loop = 0),
+    so there is never a gap or a click at the loop point. }
+  musHave := 0;
+  if (musTrack <> MUS_NONE) and musLoaded and (frames * 2 <= Length(musBuf)) then
+    if xmp_play_buffer(xmpCtx, @musBuf[0], frames * 4, 0) = 0 then
+      musHave := 1;
+
   for i := 0 to frames - 1 do begin
+    { sound effects mix to one centred value }
     acc := 0;
-    { sound effects }
     for c := 0 to NSFXCHAN - 1 do
       if sfxCh[c].active then begin
         if sfxCh[c].pos < Length(sfxBuf[sfxCh[c].id]) then begin
@@ -181,44 +176,36 @@ begin
       end;
     sv := (acc * sfxV) div 100;
 
-    { music }
-    musv := 0;
-    if (musTrack <> MUS_NONE) and (Length(musSeq) > 0) then begin
-      semi := musSeq[musPos];
-      if semi <> R then begin
-        freq := NoteFreq(semi);
-        musPhase := musPhase + freq / SR;
-        if (musPhase - trunc(musPhase)) < 0.5 then musv := 2600 else musv := -2600;
-      end;
-      inc(musSampInNote);
-      if musSampInNote >= noteSamples then begin
-        musSampInNote := 0;
-        musPos := (musPos + 1) mod Length(musSeq);
-      end;
+    { music keeps its own stereo image }
+    if musHave = 1 then begin
+      musL := (musBuf[i * 2]     * musicV) div 100;
+      musR := (musBuf[i * 2 + 1] * musicV) div 100;
+    end else begin
+      musL := 0; musR := 0;
     end;
-    mv := (musv * musicV) div 100;
 
-    mix := ((sv + mv) * masterV) div 100;
-    if mix > 32767 then mix := 32767;
-    if mix < -32768 then mix := -32768;
+    mixL := ((sv + musL) * masterV) div 100;
+    mixR := ((sv + musR) * masterV) div 100;
+    if mixL > 32767 then mixL := 32767 else if mixL < -32768 then mixL := -32768;
+    if mixR > 32767 then mixR := 32767 else if mixR < -32768 then mixR := -32768;
 
-    out16[i * 4]     := mix and $FF;
-    out16[i * 4 + 1] := (mix shr 8) and $FF;
-    out16[i * 4 + 2] := mix and $FF;
-    out16[i * 4 + 3] := (mix shr 8) and $FF;
+    out16[i * 4]     := mixL and $FF;
+    out16[i * 4 + 1] := (mixL shr 8) and $FF;
+    out16[i * 4 + 2] := mixR and $FF;
+    out16[i * 4 + 3] := (mixR shr 8) and $FF;
   end;
 end;
 
 { ---- public ---- }
 
-function AudioInit: boolean;
+function AudioInit(const p: TPak): boolean;
 var
   want, got: TSDL_AudioSpec;
   i: longint;
 begin
   AudioInit := false;
   masterV := 80; musicV := 55; sfxV := 90;
-  noteSamples := (SR * 18) div 100;   { ~0.18s per note }
+  musPak := p;
   BuildSfx;
   for i := 0 to NSFXCHAN - 1 do sfxCh[i].active := false;
 
@@ -239,6 +226,18 @@ begin
   if devId = 0 then
     exit;
   haveAudio := true;
+
+  { Music is optional on top of that: without libxmp the SFX still play.
+    Size the render scratch to the device block, two samples a frame. }
+  if LoadXmp then begin
+    xmpCtx := xmp_create_context;
+    if xmpCtx <> nil then begin
+      SetLength(musBuf, (got.samples + 64) * 2);
+      haveMusic := true;
+    end else
+      UnloadXmp;
+  end;
+
   SDL_PauseAudioDevice(devId, 0);   { start playing }
   AudioInit := true;
 end;
@@ -246,7 +245,18 @@ end;
 procedure AudioShutdown;
 begin
   if haveAudio then begin
-    SDL_PauseAudioDevice(devId, 1);
+    SDL_PauseAudioDevice(devId, 1);   { stop the callback before teardown }
+    if haveMusic then begin
+      if musLoaded then begin
+        xmp_end_player(xmpCtx);
+        xmp_release_module(xmpCtx);
+        musLoaded := false;
+      end;
+      xmp_free_context(xmpCtx);
+      xmpCtx := nil;
+      haveMusic := false;
+      UnloadXmp;
+    end;
     SDL_CloseAudioDevice(devId);
     haveAudio := false;
   end;
@@ -269,28 +279,49 @@ begin
   SDL_UnlockAudioDevice(devId);
 end;
 
+{ Swap the module behind the lock, so the callback never renders a
+  half-loaded context. Loading itself is not realtime safe, which is why
+  it happens here on the caller's thread and never in the callback. }
 procedure PlayMusic(track: longint);
+var
+  blob: TByteArray;
 begin
-  if not haveAudio then exit;
+  if not haveMusic then exit;
   if track = musTrack then exit;
   SDL_LockAudioDevice(devId);
-  musTrack := track;
-  case track of
-    MUS_TITLE:   SetSeq(SEQ_TITLE);
-    MUS_TOWN:    SetSeq(SEQ_TOWN);
-    MUS_DUNGEON: SetSeq(SEQ_DUNGEON);
-    MUS_COMBAT:  SetSeq(SEQ_COMBAT);
-  else
-    musTrack := MUS_NONE;
+
+  musTrack := MUS_NONE;   { stop mixing while the context changes }
+  if musLoaded then begin
+    xmp_end_player(xmpCtx);
+    xmp_release_module(xmpCtx);
+    musLoaded := false;
   end;
+
+  if (track >= Low(MusLumps)) and (track <= High(MusLumps))
+     and (MusLumps[track] <> '')
+     and PakGet(musPak, MusLumps[track], blob) and (Length(blob) > 0) then
+    if xmp_load_module_from_memory(xmpCtx, @blob[0], Length(blob)) = 0 then begin
+      { 0 = 16-bit signed stereo at the mixer rate }
+      if xmp_start_player(xmpCtx, SR, 0) = 0 then begin
+        musLoaded := true;
+        musTrack := track;
+      end else
+        xmp_release_module(xmpCtx);
+    end;
+
   SDL_UnlockAudioDevice(devId);
 end;
 
 procedure StopMusic;
 begin
-  if not haveAudio then exit;
+  if not haveMusic then exit;
   SDL_LockAudioDevice(devId);
   musTrack := MUS_NONE;
+  if musLoaded then begin
+    xmp_end_player(xmpCtx);
+    xmp_release_module(xmpCtx);
+    musLoaded := false;
+  end;
   SDL_UnlockAudioDevice(devId);
 end;
 

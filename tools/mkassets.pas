@@ -13,7 +13,7 @@ program mkassets;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
+  classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext,
   worldfmt, worldtext, meshfmt, models;
 
@@ -175,6 +175,31 @@ begin
       vram, ' B vram, ', ram, ' B ram) from ', objFn);
 end;
 
+procedure AddMusic(const lump, fn: string);
+{ Bundle a tracker module file verbatim as a lump. The module format is
+  not parsed here; libxmp identifies it at load time, so any of .xm, .it,
+  .s3m or .mod works. A missing file is not an error: that track just
+  stays silent until a module is dropped in. }
+var
+  fs: TFileStream;
+  blob: TByteArray;
+begin
+  if not FileExists(fn) then begin
+    writeln('  music ', lump, ' skipped (no ', fn, ')');
+    exit;
+  end;
+  fs := TFileStream.Create(fn, fmOpenRead or fmShareDenyWrite);
+  try
+    SetLength(blob, fs.Size);
+    if fs.Size > 0 then
+      fs.ReadBuffer(blob[0], fs.Size);
+  finally
+    fs.Free;
+  end;
+  PakWAdd(w, lump, blob);
+  writeln('  music ', lump, ' (', Length(blob), ' B) from ', fn);
+end;
+
 procedure AddWorld(const fn: string);
 var
   d: array[0 .. 63] of TDynMap;
@@ -228,6 +253,8 @@ begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'world' then begin
       AddWorld(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'music' then begin
+      AddMusic(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'model' then begin
       AddModel(ParamStr(i + 1), ParamStr(i + 2), ParamStr(i + 3)); inc(i, 4);
     end else begin
