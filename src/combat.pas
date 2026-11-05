@@ -100,7 +100,7 @@ procedure ActAttack;
 procedure ActGuard;
 procedure ActMove;
 procedure ActFlee;
-procedure ActPotion;
+procedure ActUseItem(slot, target: longint);
 procedure NextTarget;
 
 { ---- turn pacing ---- }
@@ -1130,55 +1130,39 @@ begin
   end;
 end;
 
-procedure ActPotion;
+{ Use a chosen consumable (pack slot) on a chosen ally. A revive item raises
+  a gravely wounded ally; any other potion restores a conscious one. The UI
+  gates the target, so an out-of-range or wrong-state pick is just ignored. }
+procedure ActUseItem(slot, target: longint);
 var
-  i, heal, pidx, ridx, who: longint;
+  def, heal: longint;
+  reviving: boolean;
 begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
+  if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
+  if Roster[CurActor].pack[slot].qty <= 0 then exit;
+  def := Roster[CurActor].pack[slot].def;
+  if (def < 0) or (def > High(ItemDefs)) then exit;
+  if ItemDefs[def].kind <> IK_POTION then exit;
+  if (target < 0) or (target > High(Roster)) or (not Roster[target].alive) then exit;
+  reviving := (ItemDefs[def].flags and IF_REVIVE) <> 0;
+  if reviving and (not Roster[target].downed) then exit;
+  if (not reviving) and Roster[target].downed then exit;
 
-  { a revive consumable takes priority when an ally lies gravely wounded }
-  who := -1;
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and Roster[i].downed then begin who := i; break; end;
-  if who >= 0 then
-    for i := 0 to High(Roster[CurActor].pack) do begin
-      ridx := Roster[CurActor].pack[i].def;
-      if (ridx >= 0) and (ridx <= High(ItemDefs))
-         and ((ItemDefs[ridx].flags and IF_REVIVE) <> 0)
-         and (Roster[CurActor].pack[i].qty > 0) then
-      begin
-        dec(Roster[CurActor].pack[i].qty);
-        heal := RngRoll(GameRng, 1, 8) + 2;
-        Roster[who].downed := false;
-        Roster[who].hp := heal;
-        if Roster[who].hp > Roster[who].hpMax then
-          Roster[who].hp := Roster[who].hpMax;
-        CombatLog(Roster[CurActor].name + ' uses ' + ItemDefs[ridx].name
-          + ' on ' + Roster[who].name + '.');
-        PushPop(1, who, POPC_HEAL, '+' + IntToStr(Roster[who].hp));
-        FlashAlly(who);
-        EndTurn;
-        exit;
-      end;
-    end;
-
-  pidx := ItemIndex('POTION');
-  for i := 0 to High(Roster[CurActor].pack) do
-    if (Roster[CurActor].pack[i].def = pidx) and (Roster[CurActor].pack[i].qty > 0) then
-    begin
-      dec(Roster[CurActor].pack[i].qty);
-      heal := RngRoll(GameRng, 1, 8) + 2;
-      Roster[CurActor].hp := Roster[CurActor].hp + heal;
-      if Roster[CurActor].hp > Roster[CurActor].hpMax then
-        Roster[CurActor].hp := Roster[CurActor].hpMax;
-      CombatLog(Roster[CurActor].name + ' drinks a potion (+'
-        + IntToStr(heal) + ').');
-      PushPop(1, CurActor, POPC_HEAL, '+' + IntToStr(heal));
-      FlashAlly(CurActor);
-      EndTurn;
-      exit;
-    end;
-  CombatLog('No potion to drink.');
+  dec(Roster[CurActor].pack[slot].qty);
+  heal := RngRoll(GameRng, 1, 8) + 2;
+  if reviving then begin
+    Roster[target].downed := false;
+    Roster[target].hp := heal;
+  end else
+    Roster[target].hp := Roster[target].hp + heal;
+  if Roster[target].hp > Roster[target].hpMax then
+    Roster[target].hp := Roster[target].hpMax;
+  CombatLog(Roster[CurActor].name + ' uses ' + ItemDefs[def].name
+    + ' on ' + Roster[target].name + ' (+' + IntToStr(heal) + ').');
+  PushPop(1, target, POPC_HEAL, '+' + IntToStr(heal));
+  FlashAlly(target);
+  EndTurn;
 end;
 
 procedure NextTarget;

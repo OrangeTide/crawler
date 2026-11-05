@@ -72,6 +72,8 @@ var
   spellSel: longint;      { highlighted spell }
   allySel: longint;       { highlighted ally, for a heal }
   pendingSpell: longint;  { spell chosen, awaiting a target, -1 none }
+  itemSel: longint;       { highlighted item, a pack slot }
+  pendingItem: longint;   { item chosen, awaiting a target, -1 none }
 
   titleSel: longint;
   ccSlot: longint;
@@ -91,7 +93,8 @@ const
   CB_COMMAND = 0;   { picking a command }
   CB_TARGET  = 1;   { picking an enemy }
   CB_SPELL   = 2;   { picking a spell }
-  CB_ALLY    = 3;   { picking an ally, for a heal }
+  CB_ALLY    = 3;   { picking an ally, for a heal or an item }
+  CB_ITEM    = 4;   { picking an item to use }
 
   { commands in the root menu }
   CMD_ATTACK = 0;
@@ -363,6 +366,8 @@ begin
   spellSel := 0;
   allySel := 0;
   pendingSpell := -1;
+  itemSel := 0;
+  pendingItem := -1;
   PlaySfx(SFX_FOE);
   State := gsCombat;
 end;
@@ -923,11 +928,37 @@ const
 { The FF-style command window at the lower left, one list per phase. The
   cursor moves vertically; target and ally picks drive a chevron out on
   the battlefield, so this box only names the current pick. }
+{ Whether pack slot of the acting character is a consumable it can use. }
+function CombatItemUsable(slot: longint): boolean;
+var def: longint;
+begin
+  CombatItemUsable := false;
+  if CurActor < 0 then exit;
+  if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
+  if Roster[CurActor].pack[slot].qty <= 0 then exit;
+  def := Roster[CurActor].pack[slot].def;
+  if (def < 0) or (def > High(ItemDefs)) then exit;
+  CombatItemUsable := ItemDefs[def].kind = IK_POTION;
+end;
+
+{ Whether the item in that pack slot raises a fallen ally (vs heals). }
+function CombatSlotRevives(slot: longint): boolean;
+var def: longint;
+begin
+  CombatSlotRevives := false;
+  if CurActor < 0 then exit;
+  if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
+  def := Roster[CurActor].pack[slot].def;
+  if (def < 0) or (def > High(ItemDefs)) then exit;
+  CombatSlotRevives := (ItemDefs[def].flags and IF_REVIVE) <> 0;
+end;
+
 procedure DrawCombatMenu;
 var
-  i, y, y0, bh: longint;
+  i, y, y0, bh, row: longint;
   sp: TSpell;
   c: TColor;
+  any: boolean;
 begin
   bh := FBH - CMDBOX_Y - 2;
   FillRectBlend(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(6, 8, 14), 235);
@@ -976,8 +1007,31 @@ begin
       DrawText(CMDBOX_X + 6, y0 + 42, 'ENT  OK', RGB(150, 150, 130));
       DrawText(CMDBOX_X + 6, y0 + 52, 'ESC  BACK', RGB(150, 150, 130));
     end;
+    CB_ITEM: begin
+      any := false;
+      row := 0;
+      for i := 0 to High(Roster[CurActor].pack) do
+        if CombatItemUsable(i) then begin
+          y := y0 + row * 11;
+          if i = itemSel then c := RGB(185, 215, 245)
+          else c := RGB(150, 160, 185);
+          if i = itemSel then DrawText(CMDBOX_X + 5, y, '>', c);
+          if Roster[CurActor].pack[i].qty > 1 then begin
+            DrawText(CMDBOX_X + 15, y,
+              Copy(ItemDefs[Roster[CurActor].pack[i].def].name, 1, 10), c);
+            DrawText(CMDBOX_X + CMDBOX_W - 16, y,
+              'x' + IntToStr(Roster[CurActor].pack[i].qty), c);
+          end else
+            DrawText(CMDBOX_X + 15, y,
+              Copy(ItemDefs[Roster[CurActor].pack[i].def].name, 1, 14), c);
+          inc(row);
+          any := true;
+        end;
+      if not any then DrawText(CMDBOX_X + 6, y0, 'NO ITEMS', RGB(150, 150, 130));
+    end;
     CB_ALLY: begin
-      DrawText(CMDBOX_X + 6, y0, 'HEAL', RGB(140, 220, 200));
+      if pendingItem >= 0 then DrawText(CMDBOX_X + 6, y0, 'USE', RGB(140, 220, 200))
+      else DrawText(CMDBOX_X + 6, y0, 'HEAL', RGB(140, 220, 200));
       DrawText(CMDBOX_X + 6, y0 + 12,
         Copy(Roster[allySel].name, 1, 12), RGB(140, 220, 200));
       DrawText(CMDBOX_X + 6, y0 + 32, 'UP/DN PICK', RGB(150, 150, 130));
@@ -1202,8 +1256,24 @@ begin
   until i = start;
 end;
 
-{ Step the ally cursor to the next living member. A heal may revive a
-  downed ally, so the downed count as valid targets. }
+{ Whether member i is a valid ally target for the pending action. A spell
+  heal may revive the downed, so they count. A pending revive item wants a
+  gravely wounded ally; any other item wants a conscious one. }
+function CombatAllyTargetable(i: longint): boolean;
+begin
+  CombatAllyTargetable := false;
+  if (i < 0) or (i > High(Roster)) then exit;
+  if not Roster[i].alive then exit;
+  if pendingItem >= 0 then begin
+    if CombatSlotRevives(pendingItem) then
+      CombatAllyTargetable := Roster[i].downed
+    else
+      CombatAllyTargetable := not Roster[i].downed;
+  end else
+    CombatAllyTargetable := true;
+end;
+
+{ Step the ally cursor to the next valid target for the pending action. }
 procedure CombatCycleAlly(dir: longint);
 var
   start, i, n: longint;
@@ -1215,7 +1285,24 @@ begin
   start := i;
   repeat
     i := ((i + dir) mod n + n) mod n;
-    if Roster[i].alive then begin allySel := i; exit; end;
+    if CombatAllyTargetable(i) then begin allySel := i; exit; end;
+  until i = start;
+end;
+
+{ Step the item cursor to the next usable consumable in the pack. }
+procedure CombatStepItem(dir: longint);
+var
+  start, i, n: longint;
+begin
+  if CurActor < 0 then exit;
+  n := Length(Roster[CurActor].pack);
+  if n = 0 then exit;
+  i := itemSel;
+  if (i < 0) or (i >= n) then i := 0;
+  start := i;
+  repeat
+    i := ((i + dir) mod n + n) mod n;
+    if CombatItemUsable(i) then begin itemSel := i; exit; end;
   until i = start;
 end;
 
@@ -1242,6 +1329,7 @@ begin
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
   pendingSpell := -1;
+  pendingItem := -1;
   if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
     CurTarget := FirstLivingFoe;
 end;
@@ -1272,7 +1360,17 @@ begin
         cbMenu := CB_SPELL; PlaySfx(SFX_SELECT);
       end;
     end;
-    CMD_ITEM:  begin ActPotion; PlaySfx(SFX_PICK); CombatToCommand; end;
+    CMD_ITEM: begin
+      itemSel := -1;
+      for i := 0 to High(Roster[CurActor].pack) do
+        if CombatItemUsable(i) then begin itemSel := i; break; end;
+      if itemSel < 0 then begin
+        CombatLog(Roster[CurActor].name + ' has no item to use.');
+        PlaySfx(SFX_DOWN);
+      end else begin
+        cbMenu := CB_ITEM; PlaySfx(SFX_SELECT);
+      end;
+    end;
     CMD_GUARD: begin ActGuard; PlaySfx(SFX_SELECT); CombatToCommand; end;
     CMD_MOVE:  begin ActMove; PlaySfx(SFX_SELECT); CombatToCommand; end;
     CMD_FLEE:  begin ActFlee; PlaySfx(SFX_SELECT); CombatToCommand; end;
@@ -1302,15 +1400,36 @@ begin
   end;
 end;
 
+procedure CombatConfirmItem;
+begin
+  if not CombatItemUsable(itemSel) then begin PlaySfx(SFX_DOWN); exit; end;
+  pendingItem := itemSel;
+  { start the ally cursor on a valid target under this item's filter }
+  allySel := CurActor;
+  if not CombatAllyTargetable(allySel) then CombatCycleAlly(1);
+  if not CombatAllyTargetable(allySel) then begin
+    { nothing this item can act on, e.g. a revive with no one down }
+    if CombatSlotRevives(itemSel) then
+      CombatLog('No fallen ally to revive.')
+    else
+      CombatLog('No one to use that on.');
+    pendingItem := -1; PlaySfx(SFX_DOWN); exit;
+  end;
+  cbMenu := CB_ALLY; PlaySfx(SFX_SELECT);
+end;
+
 procedure CombatBack;
 begin
   case cbMenu of
     CB_TARGET:
       if pendingSpell >= 0 then cbMenu := CB_SPELL else cbMenu := CB_COMMAND;
     CB_SPELL: cbMenu := CB_COMMAND;
-    CB_ALLY:  cbMenu := CB_SPELL;
+    CB_ITEM:  cbMenu := CB_COMMAND;
+    CB_ALLY:
+      if pendingItem >= 0 then cbMenu := CB_ITEM else cbMenu := CB_SPELL;
   end;
   if cbMenu <> CB_TARGET then pendingSpell := -1;
+  if cbMenu <> CB_ALLY then pendingItem := -1;
   PlaySfx(SFX_SELECT);
 end;
 
@@ -1355,12 +1474,23 @@ begin
         SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: CombatConfirmSpell;
         SDL_SCANCODE_ESCAPE: CombatBack;
       end;
+    CB_ITEM:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_W:   CombatStepItem(-1);
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_S: CombatStepItem(1);
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: CombatConfirmItem;
+        SDL_SCANCODE_ESCAPE: CombatBack;
+      end;
     CB_ALLY:
       case scancode of
         SDL_SCANCODE_UP, SDL_SCANCODE_LEFT:   CombatCycleAlly(-1);
         SDL_SCANCODE_DOWN, SDL_SCANCODE_RIGHT: CombatCycleAlly(1);
         SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
-          ActCast(pendingSpell, allySel); PlaySfx(SFX_SELECT);
+          if pendingItem >= 0 then
+            ActUseItem(pendingItem, allySel)
+          else
+            ActCast(pendingSpell, allySel);
+          PlaySfx(SFX_SELECT);
           CombatToCommand;
         end;
         SDL_SCANCODE_ESCAPE: CombatBack;
