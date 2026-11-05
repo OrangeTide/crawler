@@ -14,6 +14,7 @@ SPECIES   = content/species.txt
 CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 DIALOGS   = content/dialogs.txt
+SHOPS     = content/shops.txt
 WORLD     = content/world.txt
 MODELNAMES = barrel doorway crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 \
              crea9 crea10 crea11 crea12 crea13 flesh1 flesh2
@@ -23,14 +24,14 @@ MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(WORLD) $(MAPS) $(MODELSRC) $(MUSICSRC)
+            $(SHOPS) $(WORLD) $(MAPS) $(MODELSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
-            world $(WORLD)
+            shops $(SHOPS) world $(WORLD)
 
 .PHONY: all run clean tools meshtools test
 

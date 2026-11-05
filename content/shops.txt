@@ -1,0 +1,10 @@
+# Shop stock. A line names a shop id and the item ids it sells, in order.
+# Repeat a shop id to continue its stock across lines. Prices come from the
+# item table. A dialogue "shop ID" response opens the shop with that id.
+
+# The town trader (the tavern barkeep): arms, armour and general goods.
+shop GENERAL DAGGER SWORD MACE SILVER GREATAXE SPEAR BOW STAFF
+shop GENERAL LARMOR MARMOR HARMOR HIDE SHIELD TORCH
+
+# The temple apothecary: remedies and sacred gear.
+shop APOTHECARY POTION HOLLY HOLYSYM

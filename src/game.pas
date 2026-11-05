@@ -37,8 +37,8 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
   raster, meshfmt, hud, textures, rng, rules, items, chardata, party, monsters,
-  combat, flags, dialog, mapstate, save, worldfmt, mapgen, overworld, gametime,
-  audio;
+  combat, flags, dialog, shops, mapstate, save, worldfmt, mapgen, overworld,
+  gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -61,6 +61,7 @@ var
   rmbHeld: boolean;
   dlgNpcName: string;
   shopSel: longint;
+  shopStock: string;      { id of the shop currently open }
   saveMsg: string;
   saveMsgT: double;
   optSel: longint;
@@ -1548,6 +1549,7 @@ begin
   end;
   if DlgShopReq then begin
     shopSel := 0;
+    shopStock := DlgShopId;
     State := gsShop;
   end else if not DlgActive then
     State := gsExplore;
@@ -1574,25 +1576,25 @@ end;
 
 { ---- Shop state ---- }
 
+{ The number of items the open shop stocks, from its data list. }
 function BuyableCount: longint;
-var i, n: longint;
+var s: longint;
 begin
-  n := 0;
-  for i := 0 to High(ItemDefs) do
-    if (ItemDefs[i].value > 0) and (ItemDefs[i].kind <> IK_TREASURE) then inc(n);
-  BuyableCount := n;
+  BuyableCount := 0;
+  s := ShopIndex(shopStock);
+  if s < 0 then exit;
+  BuyableCount := Length(ShopDefs[s].items);
 end;
 
+{ The ItemDefs index of the idx-th item in the open shop's stock, or -1. }
 function NthBuyable(idx: longint): longint;
-var i, n: longint;
+var s: longint;
 begin
-  n := 0;
-  for i := 0 to High(ItemDefs) do
-    if (ItemDefs[i].value > 0) and (ItemDefs[i].kind <> IK_TREASURE) then begin
-      if n = idx then begin NthBuyable := i; exit; end;
-      inc(n);
-    end;
   NthBuyable := -1;
+  s := ShopIndex(shopStock);
+  if s < 0 then exit;
+  if (idx < 0) or (idx >= Length(ShopDefs[s].items)) then exit;
+  NthBuyable := ItemIndex(ShopDefs[s].items[idx]);
 end;
 
 procedure ShopRender;
@@ -1601,12 +1603,14 @@ var
   c: TColor;
 begin
   ClearFB(RGB(12, 10, 14));
-  DrawText(12, 8, 'TRADER', RGB(220, 200, 120));
+  if dlgNpcName <> '' then DrawText(12, 8, UpperCase(dlgNpcName), RGB(220, 200, 120))
+  else DrawText(12, 8, 'SHOP', RGB(220, 200, 120));
   DrawText(FBW - 120, 8, 'GOLD ' + IntToStr(PartyGold), RGB(220, 200, 120));
   cnt := BuyableCount;
   y := 26;
   for i := 0 to cnt - 1 do begin
     di := NthBuyable(i);
+    if di < 0 then continue;      { an item id the table does not know }
     if i = shopSel then begin
       c := RGB(240, 230, 150);
       DrawText(10, y, '>', c);
@@ -1815,6 +1819,7 @@ begin
     exit;
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
+  LoadShops(GamePak);     { optional; shop stock lists }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
   LoadModels(GamePak);    { optional; polygon-renderer props }
 

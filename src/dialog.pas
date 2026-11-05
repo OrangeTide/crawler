@@ -56,6 +56,7 @@ var
   DlgConv: longint;
   DlgNode: longint;
   DlgShopReq: boolean;    { set when a response opened a shop }
+  DlgShopId: string;      { the shop stock id that response named }
 
 function EncodeDialogs(const cs: array of TConversation): TByteArray;
 function LoadDialogs(const p: TPak): boolean;
@@ -248,7 +249,7 @@ begin
   r := Convs[DlgConv].nodes[DlgNode].resp[DlgVisible[i]];
   case r.action of
     DA_SETFLAG: FlagSet(r.arg);
-    DA_SHOP:    DlgShopReq := true;
+    DA_SHOP:    begin DlgShopReq := true; DlgShopId := r.arg; end;
     DA_END: begin DlgActive := false; exit; end;
   end;
   if r.action = DA_END then

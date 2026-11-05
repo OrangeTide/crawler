@@ -3,7 +3,7 @@ dialog BARKEEP
 node 0
 text "Welcome to the Prancing Pony, traveller. What will it be?"
 resp "Heard any rumors?" goto 1
-resp "Show me your wares." shop
+resp "Show me your wares." shop GENERAL
 resp "Nothing, thanks." end
 node 1
 text "They say the old crypt below the town stirs with restless dead."
@@ -33,3 +33,13 @@ node 0
 text "A shard of the old relic rests upon a cold altar, humming faintly."
 resp "Take the relic." setflag QUEST_RELIC
 resp "Step away." end
+
+dialog APOTHECARY
+node 0
+text "The temple tends the hurt and the fallen. Draughts, holy water, and the blessed holly, if you have coin."
+resp "Show me your remedies." shop APOTHECARY
+resp "What is the holly for?" goto 1
+resp "Not today." end
+node 1
+text "A sprig of blessed holly calls a gravely wounded soul back from the brink. Carry one into the deep."
+resp "Back." goto 0

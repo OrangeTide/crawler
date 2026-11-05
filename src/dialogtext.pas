@@ -6,7 +6,7 @@ unit dialogtext;
     node 0
     text "NPC line"
     resp "player line" goto 1
-    resp "player line" shop
+    resp "player line" shop STOCKID
     resp "player line" setflag QUEST_X
     resp "player line" end
 
@@ -95,8 +95,10 @@ begin
           r.action := DA_GOTO; r.gotoNode := StrToInt(tok[3]);
         end else if (n >= 3) and (tok[2] = 'end') then
           r.action := DA_END
-        else if (n >= 3) and (tok[2] = 'shop') then
-          r.action := DA_SHOP
+        else if (n >= 3) and (tok[2] = 'shop') then begin
+          r.action := DA_SHOP;
+          if (n >= 4) and (tok[3] <> 'needflag') then r.arg := tok[3];
+        end
         else if (n >= 4) and (tok[2] = 'setflag') then begin
           r.action := DA_SETFLAG; r.arg := tok[3];
         end else begin

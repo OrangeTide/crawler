@@ -14,7 +14,7 @@ program mkassets;
 
 uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
-  monsters, montext, chardata, chartext, dialog, dialogtext,
+  monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   worldfmt, worldtext, meshfmt, models;
 
 var
@@ -151,6 +151,22 @@ begin
   writeln('  dialogs (', n, ') from ', fn);
 end;
 
+procedure AddShops(const fn: string);
+var
+  cs: array[0 .. 31] of TShopDef;
+  dyn: array of TShopDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseShops(fn, cs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := cs[k];
+  PakWAdd(w, 'SHOP', EncodeShops(dyn));
+  writeln('  shops (', n, ') from ', fn);
+end;
+
 procedure AddModel(const name, objFn, ppmFn: string);
 var
   mesh: TMesh;
@@ -251,6 +267,8 @@ begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'shops' then begin
+      AddShops(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'world' then begin
       AddWorld(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'music' then begin
