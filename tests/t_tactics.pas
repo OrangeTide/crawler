@@ -12,7 +12,7 @@ var
   p: TPak;
   ab: TAbilityScores;
   i, skel, imp, rat, tries: longint;
-  gotPoison, gotStun: boolean;
+  gotPoison, gotStun, moved: boolean;
 
 { Stand up a single foe of the given definition at full health. }
 procedure OneFoe(def: longint);
@@ -113,6 +113,51 @@ begin
     if (PartyStatus[i].poison <> 0) or (PartyStatus[i].stun <> 0)
       or (PartyStatus[i].slow <> 0) or (PartyStatus[i].burn <> 0) then gotPoison := true;
   Check(not gotPoison, 'a new encounter starts with no status');
+
+  { ---- foe AI repositioning (MOVE) ---- }
+  RngSeed(GameRng, 20260);
+  SetLength(Foes, 2); SetLength(FoeStatus, 2);
+  for i := 0 to 1 do begin
+    Foes[i].def := rat; Foes[i].hp := 100; Foes[i].hpMax := 100;
+    Foes[i].alive := true;
+    FillChar(FoeStatus[i], SizeOf(FoeStatus[i]), 0);
+  end;
+
+  { a melee brute penned behind the line surges up to close }
+  Foes[0].rank := RANK_FRONT;
+  moved := false;
+  for i := 1 to 40 do begin
+    Foes[1].rank := RANK_BACK;
+    if EnemyMaybeMove(1, false) then begin
+      Check(Foes[1].rank = RANK_FRONT, 'melee brute surges to the front');
+      moved := true; break;
+    end;
+  end;
+  Check(moved, 'a penned melee foe eventually moves up');
+
+  { a melee foe already on the front line stays put }
+  Foes[0].rank := RANK_FRONT; Foes[1].rank := RANK_FRONT;
+  moved := false;
+  for i := 1 to 40 do if EnemyMaybeMove(1, false) then moved := true;
+  Check(not moved, 'a front-rank melee foe holds its place');
+
+  { a ranged caster caught in front slips back when it has cover }
+  Foes[0].rank := RANK_FRONT;
+  moved := false;
+  for i := 1 to 40 do begin
+    Foes[1].rank := RANK_FRONT;
+    if EnemyMaybeMove(1, true) then begin
+      Check(Foes[1].rank = RANK_BACK, 'exposed caster falls back');
+      moved := true; break;
+    end;
+  end;
+  Check(moved, 'a front-line caster with cover eventually retreats');
+
+  { a ranged caster with no cover stands its ground }
+  OneFoe(rat); Foes[0].rank := RANK_FRONT;
+  moved := false;
+  for i := 1 to 40 do if EnemyMaybeMove(0, true) then moved := true;
+  Check(not moved, 'a caster with no cover never retreats');
 
   TestSummary('tactics');
   halt(TestExit);

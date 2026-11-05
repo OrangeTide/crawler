@@ -165,6 +165,9 @@ function ElementMult(element, fi: longint): double;
 procedure DamageFoe(fi, baseAmount, element: longint);
 { Try to lay a status on a foe; immunity blocks it, a save resists it. }
 procedure AfflictFoe(fi, st, turns: longint);
+{ The foe AI's reposition choice: may flip foe fi's rank (melee closes to the
+  front, a ranged caster with cover falls back) and report the turn as spent. }
+function EnemyMaybeMove(fi: longint; ranged: boolean): boolean;
 
 function SpellCount: longint;
 function SpellInfo(i: longint): TSpell;
@@ -790,6 +793,43 @@ begin
   if n > 0 then EnemyPickTarget := MostWounded(pool, n);
 end;
 
+{ Is another living foe holding the front rank, so this one has cover? }
+function FoeHasCover(exclude: longint): boolean;
+var
+  i: longint;
+begin
+  FoeHasCover := false;
+  for i := 0 to High(Foes) do
+    if (i <> exclude) and Foes[i].alive and (Foes[i].rank = RANK_FRONT) then
+    begin
+      FoeHasCover := true; exit;
+    end;
+end;
+
+{ A foe may spend its turn repositioning. Melee brutes penned in the back
+  surge forward to close the distance; ranged casters caught in the front
+  line slip back behind the brutes when there is a front line to hide them.
+  Returns true if the turn was spent moving. }
+function EnemyMaybeMove(fi: longint; ranged: boolean): boolean;
+begin
+  EnemyMaybeMove := false;
+  if ranged then begin
+    if (Foes[fi].rank = RANK_FRONT) and FoeHasCover(fi) and (D(100) <= 70) then
+    begin
+      Foes[fi].rank := RANK_BACK;
+      CombatLog(MonDefs[Foes[fi].def].name + ' slips to the back.');
+      EnemyMaybeMove := true;
+    end;
+  end else begin
+    if (Foes[fi].rank <> FrontFoeRank) and (D(100) <= 75) then
+    begin
+      Foes[fi].rank := RANK_FRONT;
+      CombatLog(MonDefs[Foes[fi].def].name + ' surges to the front.');
+      EnemyMaybeMove := true;
+    end;
+  end;
+end;
+
 { Resolve the foe at the turn cursor: choose a target by role and swing,
   carrying the monster's element and any status its hit inflicts. }
 procedure ResolveEnemyTurn;
@@ -801,7 +841,9 @@ begin
   if (fi > High(Foes)) or (not Foes[fi].alive) then exit;
   if FirstConscious < 0 then exit;
   ranged := (MonDefs[Foes[fi].def].flags and MF_RANGED) <> 0;
-  { a back-rank melee foe is penned behind its own front line and holds }
+  { reposition first; a move spends the whole turn }
+  if EnemyMaybeMove(fi, ranged) then exit;
+  { a back-rank melee foe that stood its ground is penned and holds }
   if (not ranged) and (Foes[fi].rank <> FrontFoeRank) then exit;
 
   tgt := EnemyPickTarget(fi, ranged);
