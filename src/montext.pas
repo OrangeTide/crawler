@@ -27,7 +27,7 @@ unit montext;
 interface
 
 uses
-  monsters, overworld;
+  monsters, worldarea;
 
 function ParseMonsters(const fn: string; out defs: array of TMonsterDef;
   out count: longint; out err: string): boolean;

@@ -6,7 +6,7 @@ program t_encounters;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, overworld, encounters, testing;
+  sysutils, pak, worldarea, encounters, testing;
 
 { Total weight a table assigns to a monster id (0 if absent). }
 function WeightOf(tab: longint; const id: string): longint;

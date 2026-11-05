@@ -32,7 +32,7 @@ function ParseMapText(const fn: string; out m: TMapData;
 implementation
 
 uses
-  classes, sysutils, overworld;
+  classes, sysutils, worldarea;
 
 function DirCode(const s: string): byte;
 begin

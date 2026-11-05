@@ -30,7 +30,7 @@ function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
 implementation
 
 uses
-  gridgen, overworld;
+  gridgen, overworld, worldname;
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 var

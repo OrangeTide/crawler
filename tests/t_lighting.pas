@@ -6,7 +6,7 @@ program t_lighting;
 {$mode objfpc}{$H+}
 
 uses
-  overworld, mapfmt, mapgen, world, testing;
+  overworld, worldname, mapfmt, mapgen, world, testing;
 
 { Count lights of a kind and remember one position. }
 function CountKind(const m: TMapData; kind: longint; out lx, ly: longint): longint;

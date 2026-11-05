@@ -20,7 +20,7 @@ function ParseWorld(const fn: string; out d: array of TDynMap;
 implementation
 
 uses
-  classes, sysutils, overworld;
+  classes, sysutils, worldarea;
 
 function GenCode(const s: string): longint;
 begin

@@ -25,7 +25,7 @@ function ParseEncounters(const fn: string; out tables: array of TEncTable;
 implementation
 
 uses
-  classes, sysutils, overworld;
+  classes, sysutils, worldarea;
 
 procedure Split(const line: string; out tok: array of string; out n: longint);
 var

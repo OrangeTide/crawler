@@ -38,7 +38,7 @@ uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
   raster, meshfmt, hud, textures, rng, rules, items, chardata, party, monsters,
   combat, flags, dialog, shops, encounters, mapstate, save, worldfmt, mapgen,
-  overworld, gametime, audio;
+  overworld, worldname, worldarea, gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }

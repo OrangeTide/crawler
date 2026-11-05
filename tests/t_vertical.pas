@@ -6,7 +6,7 @@ program t_vertical;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, overworld, mapfmt, mapgen, testing;
+  sysutils, overworld, worldname, mapfmt, mapgen, testing;
 
 function Reaches(const m: TMapData; sx, sy, tx, ty: longint): boolean;
 var

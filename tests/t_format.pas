@@ -6,7 +6,7 @@ program t_format;
 {$mode objfpc}{$H+}
 
 uses
-  pak, pic, textures, mapfmt, overworld, testing;
+  pak, pic, textures, mapfmt, worldarea, testing;
 
 var
   p: TPak;

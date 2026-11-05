@@ -6,7 +6,7 @@ program t_overworld;
 {$mode objfpc}{$H+}
 
 uses
-  overworld, mapfmt, mapgen, testing;
+  overworld, worldname, mapfmt, mapgen, testing;
 
 { Flood from (sx,sy) over floor tiles; true if (tx,ty) is reached. }
 function Reaches(const m: TMapData; sx, sy, tx, ty: longint): boolean;

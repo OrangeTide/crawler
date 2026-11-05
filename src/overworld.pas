@@ -1,25 +1,28 @@
 unit overworld;
 
-{** The seeded overworld.
+{** The seeded overworld terrain.
 
   The world is a 1024x1024 grid of cells, one square kilometer each, one
   biome per cell. Nothing is stored. Every cell is derived on demand from
   the world seed and its coordinates, so the whole world costs only the
-  seed in the save. A cell is addressed by the synthesized map name
-  'W<cx>_<cy>', which the map loader recognizes and routes here.
+  seed in the save.
 
   A few authored zones are pinned to fixed cells. When the party would
   enter a pinned cell, the loader uses the authored map instead of a
-  generated one, and neighbor cells link back to it by name. }
+  generated one, and neighbor cells link back to it by name.
+
+  Map names and encounter-area names live in worldname and worldarea; this
+  unit is the noise, biomes, pinned cells and the biome/theme to area
+  mapping. }
 
 {$mode objfpc}{$H+}
 
 interface
 
-const
-  OW_SIZE = 1024;          { cells per side }
-  SUNLESS_DEPTH = 30;      { a dungeon this deep breaks into the Depths }
+uses
+  worldarea;
 
+const
   { Surface biome ids. BiomeAt returns one of these for every cell. }
   BIOME_OCEAN    = 0;   { sea travel, coastlines, sea cliffs }
   BIOME_COAST    = 1;   { beaches and cliffs at the ocean edge }
@@ -34,32 +37,16 @@ const
   BIOME_COUNT    = 10;
 
   { Underground themes, used to flavor the dungeon levels beneath a
-    surface cell (vertical space, build-order step 16). BiomeAt never
-    returns these; BiomeTheme maps a surface biome to one. }
+    surface cell. BiomeAt never returns these; BiomeTheme maps a surface
+    biome to one. }
   THEME_CAVE       = 0;
   THEME_CRYPT      = 1;
   THEME_DESERTTOMB = 2;   { dusty tomb beneath the desert }
   THEME_UNDERWATER = 3;   { ocean floor and shipwrecks beneath the sea }
   THEME_BASALT     = 4;   { lava tubes beneath basalt and volcanic cells }
 
-  { Encounter areas. A monster lists the areas it roams as a bitmask; a
-    loaded map resolves to one area, so only its monsters spawn and only
-    their models need to sit in the cache at once. Eight areas fit a byte. }
-  AREA_FOREST   = $01;
-  AREA_COAST    = $02;
-  AREA_DESERT   = $04;
-  AREA_FROZEN   = $08;
-  AREA_VOLCANIC = $10;
-  AREA_CRYPT    = $20;
-  AREA_CAVE     = $40;
-  AREA_INFERNAL = $80;
-
 var
   WorldSeed: longword = $1A2B3C4D;   { later loaded from the save }
-
-{ Names and parsing of overworld cell map names. }
-function CellName(cx, cy: longint): string;
-function ParseCellName(const s: string; out cx, cy: longint): boolean;
 
 { Deterministic per-cell seed for terrain generation. }
 function CellSeed(cx, cy, depth: longint): longword;
@@ -71,16 +58,6 @@ function BiomeWallTile(b: byte): byte;    { 1 brick, 2 stone, 3 moss }
 function BiomeDensity(b: byte): longint;  { obstacle clusters per cell }
 function BiomeTheme(b: byte): byte;       { underground theme under a cell }
 
-{ Names of the generated layers beneath a cell. }
-function DungeonName(cx, cy, depth: longint): string;
-function ParseDungeonName(const s: string; out cx, cy, depth: longint): boolean;
-function DepthsName(cx, cy: longint): string;
-function ParseDepthsName(const s: string; out cx, cy: longint): boolean;
-
-{ Names of the building interiors reached from a surface cell. }
-function InteriorName(cx, cy, idx: longint): string;
-function ParseInteriorName(const s: string; out cx, cy, idx: longint): boolean;
-
 { Whether a surface cell has a dungeon entrance, derived from the seed. }
 function HasDungeon(cx, cy: longint): boolean;
 
@@ -91,19 +68,14 @@ function HasBuilding(cx, cy: longint): boolean;
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;
 function PinnedCellOf(const name: string; out cx, cy: longint): boolean;
 
-{ Encounter area mapping. The area mask a surface biome or an underground
-  theme belongs to, the mask of one area named in a monster table, and a
-  short label for a mask. }
+{ The encounter area a surface biome or an underground theme belongs to. }
 function BiomeArea(b: byte): byte;
 function ThemeArea(t: byte): byte;
-function AreaMaskByName(const name: string): byte;
-function ParseAreaList(const s: string): byte;
-function AreaName(mask: byte): string;
 
 implementation
 
 uses
-  sysutils, math;
+  math;
 
 type
   TPinned = record
@@ -174,35 +146,6 @@ begin
   a := v00 + (v10 - v00) * tx;
   b := v01 + (v11 - v01) * tx;
   ValNoise := a + (b - a) * ty;
-end;
-
-function CellName(cx, cy: longint): string;
-begin
-  CellName := 'W' + IntToStr(cx) + '_' + IntToStr(cy);
-end;
-
-function ParseCellName(const s: string; out cx, cy: longint): boolean;
-var
-  i, us: longint;
-  a, b: string;
-begin
-  ParseCellName := false;
-  cx := 0; cy := 0;
-  if (Length(s) < 4) or (s[1] <> 'W') then exit;
-  us := 0;
-  for i := 2 to Length(s) do begin
-    if s[i] = '_' then begin
-      if us <> 0 then exit;   { more than one underscore }
-      us := i;
-    end else if (s[i] < '0') or (s[i] > '9') then
-      exit;                   { non-digit }
-  end;
-  if (us < 3) or (us = Length(s)) then exit;
-  a := Copy(s, 2, us - 2);
-  b := Copy(s, us + 1, Length(s) - us);
-  cx := StrToInt(a);
-  cy := StrToInt(b);
-  ParseCellName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0) and (cy < OW_SIZE);
 end;
 
 function CellSeed(cx, cy, depth: longint): longword;
@@ -305,93 +248,8 @@ begin
   end;
 end;
 
-{ Parse up to three underscore-separated non-negative integers from s. }
-function ParseNums(const s: string; out n0, n1, n2: longint; out count: longint): boolean;
-var
-  i, cur: longint;
-  started: boolean;
-  nums: array[0 .. 2] of longint;
-begin
-  ParseNums := false;
-  n0 := 0; n1 := 0; n2 := 0; count := 0;
-  cur := 0; started := false;
-  for i := 1 to Length(s) do begin
-    if s[i] = '_' then begin
-      if not started then exit;      { empty field }
-      if count >= 3 then exit;
-      nums[count] := cur; inc(count);
-      cur := 0; started := false;
-    end else if (s[i] >= '0') and (s[i] <= '9') then begin
-      cur := cur * 10 + (ord(s[i]) - ord('0'));
-      started := true;
-    end else
-      exit;                          { non-digit }
-  end;
-  if not started then exit;
-  if count >= 3 then exit;
-  nums[count] := cur; inc(count);
-  n0 := nums[0];
-  if count >= 2 then n1 := nums[1];
-  if count >= 3 then n2 := nums[2];
-  ParseNums := true;
-end;
-
-function DungeonName(cx, cy, depth: longint): string;
-begin
-  DungeonName := 'D' + IntToStr(cx) + '_' + IntToStr(cy) + '_' + IntToStr(depth);
-end;
-
-function ParseDungeonName(const s: string; out cx, cy, depth: longint): boolean;
-var
-  count: longint;
-begin
-  ParseDungeonName := false;
-  cx := 0; cy := 0; depth := 0;
-  if (Length(s) < 6) or (s[1] <> 'D') then exit;
-  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, depth, count) then exit;
-  if count <> 3 then exit;
-  ParseDungeonName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0)
-    and (cy < OW_SIZE) and (depth >= 1);
-end;
-
-function DepthsName(cx, cy: longint): string;
-begin
-  DepthsName := 'S' + IntToStr(cx) + '_' + IntToStr(cy);
-end;
-
-function ParseDepthsName(const s: string; out cx, cy: longint): boolean;
-var
-  dummy, count: longint;
-begin
-  ParseDepthsName := false;
-  cx := 0; cy := 0;
-  if (Length(s) < 4) or (s[1] <> 'S') then exit;
-  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, dummy, count) then exit;
-  if count <> 2 then exit;
-  ParseDepthsName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0) and (cy < OW_SIZE);
-end;
-
-function InteriorName(cx, cy, idx: longint): string;
-begin
-  InteriorName := 'I' + IntToStr(cx) + '_' + IntToStr(cy) + '_' + IntToStr(idx);
-end;
-
-function ParseInteriorName(const s: string; out cx, cy, idx: longint): boolean;
-var
-  count: longint;
-begin
-  ParseInteriorName := false;
-  cx := 0; cy := 0; idx := 0;
-  if (Length(s) < 6) or (s[1] <> 'I') then exit;
-  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, idx, count) then exit;
-  if count <> 3 then exit;
-  ParseInteriorName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0)
-    and (cy < OW_SIZE) and (idx >= 0);
-end;
-
 function HasDungeon(cx, cy: longint): boolean;
-var
-  salt: longint;
+var salt: longint;
 begin
   { about one surface cell in three has a way down, pinned cells aside }
   salt := $D0;
@@ -399,8 +257,7 @@ begin
 end;
 
 function HasBuilding(cx, cy: longint): boolean;
-var
-  salt: longint;
+var salt: longint;
 begin
   { about one surface cell in four has a building you can enter }
   salt := $B1;
@@ -460,56 +317,6 @@ begin
     THEME_BASALT:     ThemeArea := AREA_INFERNAL;
   else
     ThemeArea := AREA_CAVE;
-  end;
-end;
-
-function AreaMaskByName(const name: string): byte;
-var s: string;
-begin
-  s := LowerCase(name);
-  if s = 'forest' then AreaMaskByName := AREA_FOREST
-  else if s = 'coast' then AreaMaskByName := AREA_COAST
-  else if s = 'desert' then AreaMaskByName := AREA_DESERT
-  else if s = 'frozen' then AreaMaskByName := AREA_FROZEN
-  else if s = 'volcanic' then AreaMaskByName := AREA_VOLCANIC
-  else if s = 'crypt' then AreaMaskByName := AREA_CRYPT
-  else if s = 'cave' then AreaMaskByName := AREA_CAVE
-  else if s = 'infernal' then AreaMaskByName := AREA_INFERNAL
-  else AreaMaskByName := 0;
-end;
-
-{ Parse a '+'-separated list of area names, such as 'forest+cave', into a
-  combined mask. }
-function ParseAreaList(const s: string): byte;
-var
-  mask: byte;
-  i, start: longint;
-  tok: string;
-begin
-  mask := 0;
-  start := 1;
-  for i := 1 to Length(s) + 1 do
-    if (i > Length(s)) or (s[i] = '+') or (s[i] = ',') then begin
-      tok := Trim(Copy(s, start, i - start));
-      if tok <> '' then mask := mask or AreaMaskByName(tok);
-      start := i + 1;
-    end;
-  ParseAreaList := mask;
-end;
-
-function AreaName(mask: byte): string;
-begin
-  case mask of
-    AREA_FOREST:   AreaName := 'wilds';
-    AREA_COAST:    AreaName := 'coast';
-    AREA_DESERT:   AreaName := 'desert';
-    AREA_FROZEN:   AreaName := 'frozen';
-    AREA_VOLCANIC: AreaName := 'volcanic';
-    AREA_CRYPT:    AreaName := 'crypt';
-    AREA_CAVE:     AreaName := 'cave';
-    AREA_INFERNAL: AreaName := 'infernal';
-  else
-    AreaName := 'mixed';
   end;
 end;
 
