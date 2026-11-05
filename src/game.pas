@@ -16,15 +16,6 @@ unit game;
 
 interface
 
-type
-  TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
-                gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
-                gsGameOver, gsVictory, gsOptions);
-
-var
-  State: TGameState;
-  QuitRequested: boolean;
-
 function GameInit: boolean;
 procedure GameHandleEvents;
 procedure GameUpdate(dt: double);
@@ -38,36 +29,13 @@ uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
   raster, meshfmt, hud, textures, rng, rules, items, chardata, party, monsters,
   combat, flags, dialog, shops, encounters, mapstate, save, worldfmt, mapgen,
-  overworld, worldname, worldarea, gametime, audio;
+  overworld, worldname, worldarea, gamestate, uihelp, worldload, gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
   MOUSE_PITCH  = 0.7;     { pixels per mouse unit, free look }
 
-type
-  TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
-  PKeyArray = ^TKeyArray;
-
 var
-  keys: PKeyArray;
-  showMap: boolean;
-  UsePoly: boolean;       { toggle the polygon renderer against the raycaster }
-  GamePak: TPak;
-  lastTX, lastTY: longint;
-  CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
-  CurAreaMask: byte;      { the encounter area of the loaded map, 0 = safe }
-  CurEncTable: longint;   { the encounter table that area points at, 0 = none }
-  FromQuickBattle: boolean; { a test fight with no world; exit to the title }
-  cursorX, cursorY: longint;
-  rmbHeld: boolean;
-  dlgNpcName: string;
-  shopSel: longint;
-  shopStock: string;      { id of the shop currently open }
-  saveMsg: string;
-  saveMsgT: double;
-  optSel: longint;
-  volMaster, volMusic, volSfx: longint;
-
   { combat command UI: a FF-style command then target flow }
   cbMenu: longint;        { CB_* phase }
   cmdSel: longint;        { highlighted command }
@@ -77,7 +45,6 @@ var
   itemSel: longint;       { highlighted item, a pack slot }
   pendingItem: longint;   { item chosen, awaiting a target, -1 none }
 
-  titleSel: longint;
   ccSlot: longint;
   ccSpecies: longint;
   ccClass: longint;
@@ -87,10 +54,6 @@ var
   ccPreview: TCharacter;
 
 const
-  NAME_POOL: array[0 .. 11] of string[12] = (
-    'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
-    'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
-
   { combat command UI phases }
   CB_COMMAND = 0;   { picking a command }
   CB_TARGET  = 1;   { picking an enemy }
@@ -109,151 +72,6 @@ const
 
   CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
     'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'MOVE', 'FLEE');
-
-function SavePath: string;
-begin
-  SavePath := ExtractFilePath(ParamStr(0)) + 'save1.sav';
-end;
-
-procedure GateAreaModels(tableNum: longint);
-{** The per-area model cache gate. Load exactly the models the current
-  map's props and this area's encounter monsters need, then check them
-  against the VRAM budget so a level never asks for more than it can hold. }
-var
-  names: array of string;
-  i, mi: longint;
-
-  procedure Add(const nm: string);
-  var j: longint;
-  begin
-    if nm = '' then exit;
-    for j := 0 to High(names) do
-      if names[j] = nm then exit;
-    SetLength(names, Length(names) + 1);
-    names[High(names)] := nm;
-  end;
-
-begin
-  names := nil;
-  for i := 0 to High(CurMap.props) do Add(CurMap.props[i].name);
-  if (tableNum >= 0) and (tableNum <= High(EncTables)) then
-    for i := 0 to High(EncTables[tableNum].entries) do begin
-      mi := MonIndex(EncTables[tableNum].entries[i].mon);
-      if mi >= 0 then Add(MonDefs[mi].model);
-    end;
-  LoadModelSet(GamePak, names);
-  if not ModelSetFitsVram(names) then begin
-    saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(CurAreaMask);
-    saveMsgT := 2.0;
-  end;
-end;
-
-function LoadMapLump(const name: string): boolean;
-{** Bring a map into the world. A static map is decoded from its pak
-  lump; a dynamic map is generated from its stored or a fresh seed. The
-  map being left is captured, and the one entered has its fog and doors
-  restored. }
-var
-  blob: TByteArray;
-  md: TMapData;
-  di, ver, cx, cy, depth, pcx, pcy: longint;
-  seed: longword;
-  isDyn: boolean;
-begin
-  LoadMapLump := false;
-  ver := 0; seed := 0; isDyn := false;
-  CurDepth := 0;
-  if PakGet(GamePak, name, blob) then begin
-    if not DecodeMap(blob, md) then exit;
-  end else if ParseCellName(name, cx, cy) then begin
-    { an overworld cell: terrain is fixed by the world seed, so the
-      per-cell seed is derived, not stored or random. Fog still persists. }
-    isDyn := true;
-    ver := GEN_VERSION;
-    seed := CellSeed(cx, cy, 0);
-    md := GenerateOverworldCell(cx, cy, seed);
-    md.area := BiomeArea(BiomeAt(cx, cy));
-  end else if ParseDungeonName(name, cx, cy, depth) then begin
-    isDyn := true;
-    ver := GEN_VERSION;
-    seed := CellSeed(cx, cy, depth);
-    md := GenerateDungeonLevel(cx, cy, depth, seed);
-    md.area := ThemeArea(BiomeTheme(BiomeAt(cx, cy)));
-    CurDepth := depth;
-  end else if ParseDepthsName(name, cx, cy) then begin
-    isDyn := true;
-    ver := GEN_VERSION;
-    seed := CellSeed(cx, cy, SUNLESS_DEPTH + 1);
-    md := GenerateDepthsCell(cx, cy, seed);
-    md.area := AREA_INFERNAL;
-    CurDepth := SUNLESS_DEPTH;
-  end else if ParseInteriorName(name, cx, cy, depth) then begin
-    { a building interior standing on cell (cx,cy); depth holds the
-      building index. Derived from the cell seed, so it is stable. }
-    isDyn := true;
-    ver := GEN_VERSION;
-    seed := CellSeed(cx, cy, 0);
-    md := GenerateInterior(cx, cy, depth, seed);
-    md.area := 0;   { interiors are safe }
-  end else begin
-    di := DynIndex(name);
-    if di < 0 then exit;
-    isDyn := true;
-    if not MapStateGetSeed(name, ver, seed) then begin
-      ver := GEN_VERSION;
-      seed := RngNext(GameRng);
-      if seed = 0 then seed := 1;
-    end;
-    md := GenerateMap(DynMaps[di], ver, seed);
-    md.area := DynMaps[di].area;   { the manifest declares its area }
-    CurDepth := DynMaps[di].depth;
-  end;
-  { a pinned authored zone leaves back to the wilderness that reaches it,
-    not only to the town hub. Derived from the map, so it stays stable. }
-  if PinnedCellOf(name, pcx, pcy) then
-    AddWildernessExit(md, pcx, pcy);
-  if CurMapName <> '' then
-    MapStateCapture(CurMapName);
-  if not LoadMapData(md) then exit;
-  CurMapName := name;
-  CurAreaMask := md.area;   { authored maps carry it in the lump, generated
-                             maps get it set above: no name list in code }
-  CurEncTable := EncTableOf(CurAreaMask);
-  GateAreaModels(CurEncTable);   { cache only what this area draws }
-  if isDyn then
-    MapStateSetDynamic(name, ver, seed);
-  MapStateRestore(name);     { bring back fog and doors if visited before }
-  LoadMapLump := true;
-end;
-
-function LoadMapByName(const name, marker: string): boolean;
-{** Load a map and place the party at a named marker. }
-begin
-  LoadMapByName := false;
-  if not LoadMapLump(name) then exit;
-  PlaceAtMarker(marker);
-  lastTX := TileX;
-  lastTY := TileY;
-  LoadMapByName := true;
-end;
-
-function ContinueGame: boolean;
-{** Load the save, then reload its map at the saved position. }
-begin
-  ContinueGame := false;
-  if not LoadGame(SavePath) then exit;
-  CurMapName := '';          { do not capture a stale resident map }
-  if not LoadMapLump(LoadedMapName) then exit;
-  PlaceAt(LoadedTX, LoadedTY, LoadedFace);
-  lastTX := TileX;
-  lastTY := TileY;
-  ContinueGame := true;
-end;
-
-function KeyDown(scancode: longint): boolean; inline;
-begin
-  KeyDown := keys^[scancode] <> 0;
-end;
 
 { ---- Exploration state ---- }
 
@@ -560,45 +378,6 @@ begin
   DrawCursor;
 end;
 
-{ ---- Shared UI helpers ---- }
-
-procedure DrawCenter(y: longint; const s: string; c: TColor);
-begin
-  DrawText((FBW - Length(s) * 6) div 2, y, s, c);
-end;
-
-procedure DrawWrapped(x, y, widthChars: longint; const s: string; c: TColor);
-{** Draw text word-wrapped to widthChars columns, 10px line pitch. }
-var
-  words: array[0 .. 63] of string;
-  nw, i, start, len, ln: longint;
-  line, w: string;
-begin
-  { split into words }
-  nw := 0; start := 1; len := Length(s);
-  for i := 1 to len + 1 do
-    if (i > len) or (s[i] = ' ') then begin
-      if (i > start) and (nw <= High(words)) then begin
-        words[nw] := Copy(s, start, i - start);
-        inc(nw);
-      end;
-      start := i + 1;
-    end;
-  line := ''; ln := 0;
-  for i := 0 to nw - 1 do begin
-    w := words[i];
-    if (line <> '') and (Length(line) + 1 + Length(w) > widthChars) then begin
-      DrawText(x, y + ln * 10, line, c);
-      inc(ln);
-      line := w;
-    end else if line = '' then
-      line := w
-    else
-      line := line + ' ' + w;
-  end;
-  if line <> '' then
-    DrawText(x, y + ln * 10, line, c);
-end;
 
 function ClassOr0(const id: string): longint;
 begin
@@ -610,21 +389,6 @@ function SpeciesOr0(const id: string): longint;
 begin
   SpeciesOr0 := SpeciesIndex(id);
   if SpeciesOr0 < 0 then SpeciesOr0 := 0;
-end;
-
-procedure StartGame;
-{** Hand off from the menus to the outskirts: the overworld clearing just
-   outside the starter dungeon, a short walk north of town. }
-begin
-  FlagsReset;
-  MapStateReset;
-  CurMapName := '';
-  if not LoadMapByName('OUTSKIRTS', 'spawn') then begin
-    writeln(StdErr, 'game: could not load the starting map');
-    QuitRequested := true;
-    exit;
-  end;
-  State := gsExplore;
 end;
 
 { ---- Title state ---- }

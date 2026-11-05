@@ -11,7 +11,7 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sdl2min, gfx, audio, game;
+  math, sdl2min, gfx, audio, gamestate, game;
 
 const
   SCALE   = 4;
