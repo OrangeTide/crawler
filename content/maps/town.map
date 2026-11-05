@@ -19,16 +19,17 @@ end
 marker gate 2 2 E
 marker spawn 6 5 N
 marker tavdoor 6 7 N
+marker templedoor 9 5 W
 portal 10 8 DUNGEON back
 portal 2 8 CAVE start
 portal 10 2 SEASIDE start
 portal 2 5 FOREST start
 portal 6 1 OUTSKIRTS fromtown
 portal 6 8 TAVERN entry door
+portal 10 5 TEMPLE entry door
 prop 2 3 BARREL
 prop 3 3 BARREL 45
 prop 9 6 BARREL
 prop 4 7 BARREL 120
 prop 9 3 DOORWAY 90
 npc 8 3 ELDER Elder
-npc 4 3 APOTHECARY Apothecary

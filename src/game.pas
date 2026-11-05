@@ -487,9 +487,9 @@ begin
     State := gsGameOver;
     exit;
   end;
-  { Town is safe; elsewhere a small per-step chance of an encounter,
-    scaled by how deep the party has descended. }
-  if (CurMapName <> 'TOWN') and (Length(Roster) > 0) then
+  { Safe areas (town and interiors, area 0) never spawn foes; elsewhere a
+    small per-step chance, scaled by how deep the party has descended. }
+  if (CurAreaMask <> 0) and (Length(Roster) > 0) then
     if Range(1, 18) = 1 then begin
       if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
     end;
