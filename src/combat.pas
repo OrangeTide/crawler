@@ -97,6 +97,7 @@ function FrontPartyRank: longint;
 function FoeReachable(actor, foe: longint): boolean;
 procedure ActAttack;
 procedure ActGuard;
+procedure ActMove;
 procedure ActFlee;
 procedure ActPotion;
 procedure NextTarget;
@@ -895,6 +896,20 @@ begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   Roster[CurActor].guarding := true;
   CombatLog(Roster[CurActor].name + ' braces to defend.');
+  EndTurn;
+end;
+
+procedure ActMove;
+begin
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
+  { step between the front line and the back; this spends the turn }
+  if Roster[CurActor].rank = RANK_FRONT then begin
+    Roster[CurActor].rank := RANK_BACK;
+    CombatLog(Roster[CurActor].name + ' falls back.');
+  end else begin
+    Roster[CurActor].rank := RANK_FRONT;
+    CombatLog(Roster[CurActor].name + ' steps up to the front.');
+  end;
   EndTurn;
 end;
 

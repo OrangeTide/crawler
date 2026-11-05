@@ -98,11 +98,12 @@ const
   CMD_CAST   = 1;
   CMD_ITEM   = 2;
   CMD_GUARD  = 3;
-  CMD_FLEE   = 4;
-  CMD_COUNT  = 5;
+  CMD_MOVE   = 4;
+  CMD_FLEE   = 5;
+  CMD_COUNT  = 6;
 
   CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
-    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'FLEE');
+    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'MOVE', 'FLEE');
 
 function SavePath: string;
 begin
@@ -1272,6 +1273,7 @@ begin
     end;
     CMD_ITEM:  begin ActPotion; PlaySfx(SFX_PICK); CombatToCommand; end;
     CMD_GUARD: begin ActGuard; PlaySfx(SFX_SELECT); CombatToCommand; end;
+    CMD_MOVE:  begin ActMove; PlaySfx(SFX_SELECT); CombatToCommand; end;
     CMD_FLEE:  begin ActFlee; PlaySfx(SFX_SELECT); CombatToCommand; end;
   end;
 end;
