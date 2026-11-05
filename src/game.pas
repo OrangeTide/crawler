@@ -1012,6 +1012,9 @@ begin
         DrawText(cx - half - 10, cy - 3, '>', RGB(245, 225, 120));
       inc(col);
     end;
+    { a dim tag in the left margin names the rank's depth }
+    if rk = RANK_BACK then s := 'BACK' else s := 'FRONT';
+    DrawText(3, cy - 3, s, RGB(96, 88, 72));
   end;
 
   { --- party, in depth ranks: front rank forward near the clash, back
@@ -1052,6 +1055,11 @@ begin
           RGB(70, 170, 70), RGB(40, 20, 20));
       end;
       inc(col);
+    end;
+    { a dim tag at the right names the rank, when a short rank leaves room }
+    if living <= 2 then begin
+      if rk = RANK_FRONT then s := 'FRONT' else s := 'BACK';
+      DrawText(FBW - 44, ny + 5, s, RGB(96, 92, 76));
     end;
   end;
 
