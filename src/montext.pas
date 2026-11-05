@@ -2,9 +2,10 @@ unit montext;
 
 {** Parser for the text monster table, used by the asset tool.
 
-  mon ID HD AC ATK DMG MORALE SPEED XP FLAGS "Name"
-  FLAGS: 1 = undead, 2 = ranged (bitwise). Blank lines and lines
-  starting with '#' are ignored. }
+  mon ID HD AC ATK DMG MORALE SPEED XP FLAGS [MODEL] "Name"
+  FLAGS: 1 = undead, 2 = ranged (bitwise). MODEL is an optional combat
+  mesh id, drawn from the model registry; omit it for a glyph. Blank
+  lines and lines starting with '#' are ignored. }
 
 {$mode objfpc}{$H+}
 
@@ -66,6 +67,7 @@ begin
       d.speed := StrToInt(parts[7]);
       d.xp := StrToInt(parts[8]);
       if parts.Count >= 10 then d.flags := StrToInt(parts[9]) else d.flags := 0;
+      if parts.Count >= 11 then d.model := parts[10] else d.model := '';
       defs[count] := d; inc(count);
     end;
   finally

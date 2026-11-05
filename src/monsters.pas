@@ -33,6 +33,7 @@ type
     speed: byte;      { range bands closed per move }
     xp: word;
     flags: byte;
+    model: string[12]; { combat mesh id in the model registry, '' for none }
   end;
 
 var
@@ -82,6 +83,7 @@ begin
     PutB(a, n, defs[i].xp and $FF);
     PutB(a, n, (defs[i].xp shr 8) and $FF);
     PutB(a, n, defs[i].flags);
+    PutName(a, n, defs[i].model, 12);
   end;
   SetLength(a, n);
   EncodeMonsters := a;
@@ -124,6 +126,7 @@ begin
     MonDefs[i].speed := blob[pos]; inc(pos);
     MonDefs[i].xp := blob[pos] or (blob[pos + 1] shl 8); inc(pos, 2);
     MonDefs[i].flags := blob[pos]; inc(pos);
+    MonDefs[i].model := RName(blob, pos, 12);
   end;
   LoadMonsters := true;
 end;

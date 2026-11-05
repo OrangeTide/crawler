@@ -928,7 +928,7 @@ begin
           RGB(240, 220, 120));
         DrawText(cx - 2, cy - half - 12, '*', RGB(240, 220, 120));
       end;
-      mi := FindModel('CREA' + IntToStr(1 + Foes[i].def mod 3));
+      mi := FindModel(MonDefs[Foes[i].def].model);
       if mi >= 0 then
         DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW, half)
       else
