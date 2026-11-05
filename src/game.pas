@@ -37,8 +37,8 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
   raster, meshfmt, hud, textures, rng, rules, items, chardata, party, monsters,
-  combat, flags, dialog, shops, mapstate, save, worldfmt, mapgen, overworld,
-  gametime, audio;
+  combat, flags, dialog, shops, encounters, mapstate, save, worldfmt, mapgen,
+  overworld, gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -56,6 +56,7 @@ var
   lastTX, lastTY: longint;
   CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
   CurAreaMask: byte;      { the encounter area of the loaded map, 0 = safe }
+  CurEncTable: longint;   { the encounter table that area points at, 0 = none }
   FromQuickBattle: boolean; { a test fight with no world; exit to the title }
   cursorX, cursorY: longint;
   rmbHeld: boolean;
@@ -134,13 +135,13 @@ begin
   else AreaOf := 0;   { interiors, dynmaps: no wild encounters }
 end;
 
-procedure GateAreaModels(areaMask: byte);
+procedure GateAreaModels(tableNum: longint);
 {** The per-area model cache gate. Load exactly the models the current
-  map's props and this area's monsters need, then check them against the
-  VRAM budget so a level never asks for more than the console can hold. }
+  map's props and this area's encounter monsters need, then check them
+  against the VRAM budget so a level never asks for more than it can hold. }
 var
   names: array of string;
-  i: longint;
+  i, mi: longint;
 
   procedure Add(const nm: string);
   var j: longint;
@@ -155,12 +156,14 @@ var
 begin
   names := nil;
   for i := 0 to High(CurMap.props) do Add(CurMap.props[i].name);
-  if areaMask <> 0 then
-    for i := 0 to High(MonDefs) do
-      if (MonDefs[i].areas and areaMask) <> 0 then Add(MonDefs[i].model);
+  if (tableNum >= 0) and (tableNum <= High(EncTables)) then
+    for i := 0 to High(EncTables[tableNum].entries) do begin
+      mi := MonIndex(EncTables[tableNum].entries[i].mon);
+      if mi >= 0 then Add(MonDefs[mi].model);
+    end;
   LoadModelSet(GamePak, names);
   if not ModelSetFitsVram(names) then begin
-    saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(areaMask);
+    saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(CurAreaMask);
     saveMsgT := 2.0;
   end;
 end;
@@ -229,7 +232,8 @@ begin
   if not LoadMapData(md) then exit;
   CurMapName := name;
   CurAreaMask := AreaOf(name);
-  GateAreaModels(CurAreaMask);   { cache only what this area draws }
+  CurEncTable := EncTableOf(CurAreaMask);
+  GateAreaModels(CurEncTable);   { cache only what this area draws }
   if isDyn then
     MapStateSetDynamic(name, ver, seed);
   MapStateRestore(name);     { bring back fog and doors if visited before }
@@ -361,7 +365,7 @@ end;
 
 procedure StartCombat(depth: longint);
 begin
-  StartRandomEncounter(depth, CurAreaMask);
+  StartRandomEncounter(depth, CurEncTable);
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
   spellSel := 0;
@@ -487,9 +491,9 @@ begin
     State := gsGameOver;
     exit;
   end;
-  { Safe areas (town and interiors, area 0) never spawn foes; elsewhere a
-    small per-step chance, scaled by how deep the party has descended. }
-  if (CurAreaMask <> 0) and (Length(Roster) > 0) then
+  { Safe areas (those whose table is empty, like town and interiors) never
+    spawn foes; elsewhere a small per-step chance, scaled by depth. }
+  if (not EncTableEmpty(CurEncTable)) and (Length(Roster) > 0) then
     if Range(1, 18) = 1 then begin
       if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
     end;
@@ -701,6 +705,8 @@ begin
   BuildPregenParty;
   CurMapName := 'QUICKBATTLE';
   CurAreaMask := 0;
+  CurEncTable := 0;   { table 0 is empty, so StartRandomEncounter falls back
+                        to the whole bestiary for a test fight }
   FromQuickBattle := true;
   StartCombat(3);
 end;
@@ -1820,6 +1826,7 @@ begin
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadShops(GamePak);     { optional; shop stock lists }
+  LoadEncounters(GamePak); { optional; per-area encounter tables }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
   LoadModels(GamePak);    { optional; polygon-renderer props }
 

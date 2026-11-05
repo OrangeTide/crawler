@@ -15,7 +15,7 @@ program mkassets;
 uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
-  worldfmt, worldtext, meshfmt, models;
+  encounters, enctext, worldfmt, worldtext, meshfmt, models;
 
 var
   w: TPakWriter;
@@ -167,6 +167,23 @@ begin
   writeln('  shops (', n, ') from ', fn);
 end;
 
+procedure AddEncounters(const fn: string);
+var
+  tables: array[0 .. 63] of TEncTable;
+  dyn: array of TEncTable;
+  areaMap: array[0 .. 255] of byte;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseEncounters(fn, tables, n, areaMap, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := tables[k];
+  PakWAdd(w, 'ENCT', EncodeEncounters(dyn, areaMap));
+  writeln('  encounters (', n, ' tables) from ', fn);
+end;
+
 procedure AddModel(const name, objFn, ppmFn: string);
 var
   mesh: TMesh;
@@ -269,6 +286,8 @@ begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'shops' then begin
       AddShops(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'encounters' then begin
+      AddEncounters(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'world' then begin
       AddWorld(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'music' then begin

@@ -1,0 +1,80 @@
+# Encounter tables. Each area points at a table number; a table is a
+# weighted list of monster ids. Table 0 is left empty, so safe areas (the
+# town and interiors, which resolve to area 0) spawn nothing.
+#
+#   area NAME N   assign an area to table N
+#   table N       begin filling table N
+#   mon ID W      add monster ID with weight W to the current table
+#
+# Areas: forest coast desert frozen volcanic crypt cave infernal.
+
+area forest   1
+area coast    2
+area desert   3
+area frozen   4
+area volcanic 5
+area crypt    6
+area cave     7
+area infernal 8
+
+# 1: woodland and open country
+table 1
+mon RAT 4
+mon BAT 3
+mon GOBLIN 3
+mon ORC 2
+mon SPIDER 2
+mon WOLF 2
+mon BANDIT 2
+mon ACOLYTE 1
+
+# 2: the shore
+table 2
+mon CRAB 4
+mon BANDIT 3
+mon RAT 2
+mon ACOLYTE 1
+
+# 3: the desert road
+table 3
+mon BANDIT 4
+mon CULTIST 2
+mon SPIDER 2
+
+# 4: the frozen reaches
+table 4
+mon WOLF 4
+mon BAT 2
+mon WEREWOLF 1
+
+# 5: volcanic wastes
+table 5
+mon IMP 4
+mon CULTIST 2
+
+# 6: the crypt
+table 6
+mon SKELETON 4
+mon ZOMBIE 3
+mon SPIDER 2
+mon GHOUL 2
+mon OOZE 2
+mon CULTIST 1
+mon ACOLYTE 1
+
+# 7: caves
+table 7
+mon RAT 4
+mon BAT 3
+mon KOBOLD 3
+mon GOBLIN 2
+mon ORC 2
+mon SPIDER 2
+mon OOZE 1
+
+# 8: the infernal depths
+table 8
+mon ZOMBIE 3
+mon IMP 3
+mon CULTIST 2
+mon WEREWOLF 1

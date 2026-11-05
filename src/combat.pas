@@ -25,7 +25,7 @@ unit combat;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata;
+  sysutils, rng, rules, items, monsters, party, chardata, encounters;
 
 const
   MAX_FOES = 6;
@@ -83,9 +83,10 @@ var
   XPGained: longint;
   GoldGained: longint;
 
-{ Start a fight at a dungeon depth. areaMask limits the roster to the
-  monsters that roam that area; 0 draws from every monster. }
-procedure StartRandomEncounter(depth: longint; areaMask: byte);
+{ Start a fight at a dungeon depth. tableNum selects the weighted encounter
+  table to draw foes from; an empty or unknown table draws from every
+  monster, so forced fights (quick battle, tests) still find foes. }
+procedure StartRandomEncounter(depth: longint; tableNum: longint);
 procedure CombatLog(const s: string);
 function LivingFoes: longint;
 function FirstLivingFoe: longint;
@@ -691,9 +692,9 @@ end;
 
 { ---- setup ---- }
 
-procedure StartRandomEncounter(depth: longint; areaMask: byte);
+procedure StartRandomEncounter(depth: longint; tableNum: longint);
 var
-  pick, count, i, front, npool: longint;
+  pick, count, i, front, npool, e, mi, wrep: longint;
   pool: array of longint;
 begin
   SetLength(Foes, 0);
@@ -709,16 +710,22 @@ begin
     CombatOver := true; Victory := true; exit;
   end;
 
-  { the encounter table for this area: monsters whose range covers it.
-    An unset mask, or an area no monster covers, falls back to the lot. }
-  SetLength(pool, Length(MonDefs));
+  { draw the pool from the area's encounter table, each monster repeated by
+    its weight. An empty or unknown table falls back to the whole bestiary,
+    so forced fights (quick battle, tests) still find foes. }
+  SetLength(pool, 0);
   npool := 0;
-  if areaMask <> 0 then
-    for i := 0 to High(MonDefs) do
-      if (MonDefs[i].areas and areaMask) <> 0 then begin
-        pool[npool] := i; inc(npool);
-      end;
+  if (tableNum >= 0) and (tableNum <= High(EncTables)) then
+    for e := 0 to High(EncTables[tableNum].entries) do begin
+      mi := MonIndex(EncTables[tableNum].entries[e].mon);
+      if mi >= 0 then
+        for wrep := 1 to EncTables[tableNum].entries[e].weight do begin
+          SetLength(pool, npool + 1);
+          pool[npool] := mi; inc(npool);
+        end;
+    end;
   if npool = 0 then begin
+    SetLength(pool, Length(MonDefs));
     for i := 0 to High(MonDefs) do pool[i] := i;
     npool := Length(MonDefs);
   end;
