@@ -3,6 +3,7 @@ map SEASIDE
 size 16 12
 tileset 0
 music 0
+area coast
 surface
 walls
 2222222222222222

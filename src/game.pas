@@ -115,26 +115,6 @@ begin
   SavePath := ExtractFilePath(ParamStr(0)) + 'save1.sav';
 end;
 
-function AreaOf(const name: string): byte;
-{** The encounter area of a map, from its name. Pinned zones carry their
-  own theme; overworld cells take their surface biome's area, generated
-  dungeons their underground theme's. Interiors and the town are safe. }
-var
-  cx, cy, depth: longint;
-begin
-  if name = 'TOWN' then AreaOf := 0
-  else if name = 'FOREST' then AreaOf := AREA_FOREST
-  else if name = 'SEASIDE' then AreaOf := AREA_COAST
-  else if name = 'DUNGEON' then AreaOf := AREA_CRYPT
-  else if name = 'CAVE' then AreaOf := AREA_CAVE
-  else if name = 'INFERNAL' then AreaOf := AREA_INFERNAL
-  else if ParseCellName(name, cx, cy) then AreaOf := BiomeArea(BiomeAt(cx, cy))
-  else if ParseDungeonName(name, cx, cy, depth) then
-    AreaOf := ThemeArea(BiomeTheme(BiomeAt(cx, cy)))
-  else if ParseDepthsName(name, cx, cy) then AreaOf := AREA_INFERNAL
-  else AreaOf := 0;   { interiors, dynmaps: no wild encounters }
-end;
-
 procedure GateAreaModels(tableNum: longint);
 {** The per-area model cache gate. Load exactly the models the current
   map's props and this area's encounter monsters need, then check them
@@ -192,17 +172,20 @@ begin
     ver := GEN_VERSION;
     seed := CellSeed(cx, cy, 0);
     md := GenerateOverworldCell(cx, cy, seed);
+    md.area := BiomeArea(BiomeAt(cx, cy));
   end else if ParseDungeonName(name, cx, cy, depth) then begin
     isDyn := true;
     ver := GEN_VERSION;
     seed := CellSeed(cx, cy, depth);
     md := GenerateDungeonLevel(cx, cy, depth, seed);
+    md.area := ThemeArea(BiomeTheme(BiomeAt(cx, cy)));
     CurDepth := depth;
   end else if ParseDepthsName(name, cx, cy) then begin
     isDyn := true;
     ver := GEN_VERSION;
     seed := CellSeed(cx, cy, SUNLESS_DEPTH + 1);
     md := GenerateDepthsCell(cx, cy, seed);
+    md.area := AREA_INFERNAL;
     CurDepth := SUNLESS_DEPTH;
   end else if ParseInteriorName(name, cx, cy, depth) then begin
     { a building interior standing on cell (cx,cy); depth holds the
@@ -211,6 +194,7 @@ begin
     ver := GEN_VERSION;
     seed := CellSeed(cx, cy, 0);
     md := GenerateInterior(cx, cy, depth, seed);
+    md.area := 0;   { interiors are safe }
   end else begin
     di := DynIndex(name);
     if di < 0 then exit;
@@ -221,6 +205,7 @@ begin
       if seed = 0 then seed := 1;
     end;
     md := GenerateMap(DynMaps[di], ver, seed);
+    md.area := DynMaps[di].area;   { the manifest declares its area }
     CurDepth := DynMaps[di].depth;
   end;
   { a pinned authored zone leaves back to the wilderness that reaches it,
@@ -231,7 +216,8 @@ begin
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;
   CurMapName := name;
-  CurAreaMask := AreaOf(name);
+  CurAreaMask := md.area;   { authored maps carry it in the lump, generated
+                             maps get it set above: no name list in code }
   CurEncTable := EncTableOf(CurAreaMask);
   GateAreaModels(CurEncTable);   { cache only what this area draws }
   if isDyn then

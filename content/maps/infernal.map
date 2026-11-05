@@ -3,6 +3,7 @@ map INFERNAL
 size 18 14
 tileset 0
 music 0
+area infernal
 walls
 111111111111111111
 100000000000000001

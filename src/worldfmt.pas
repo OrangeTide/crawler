@@ -27,6 +27,7 @@ type
     gen: byte;
     w, h: byte;
     depth: byte;
+    area: byte;           { encounter area, 0 = safe }
     retMap: string[12];
     retMarker: string[12];
   end;
@@ -66,6 +67,7 @@ begin
     PutB(a, n, d[i].w);
     PutB(a, n, d[i].h);
     PutB(a, n, d[i].depth);
+    PutB(a, n, d[i].area);
     PutName(a, n, d[i].retMap);
     PutName(a, n, d[i].retMarker);
   end;
@@ -99,6 +101,7 @@ begin
     DynMaps[i].w := blob[pos]; inc(pos);
     DynMaps[i].h := blob[pos]; inc(pos);
     DynMaps[i].depth := blob[pos]; inc(pos);
+    DynMaps[i].area := blob[pos]; inc(pos);
     DynMaps[i].retMap := RName(blob, pos);
     DynMaps[i].retMarker := RName(blob, pos);
   end;

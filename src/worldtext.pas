@@ -2,8 +2,10 @@ unit worldtext;
 
 {** Parser for the dynamic-map manifest, used by the asset tool.
 
-    dynmap NAME GEN W H DEPTH RETMAP RETMARKER
-  GEN is rooms, cave or maze. Blank lines and '#' comments ignored. }
+    dynmap NAME GEN W H DEPTH RETMAP RETMARKER [AREA]
+  GEN is rooms, cave or maze. AREA is an optional encounter area name
+  (forest, cave, crypt, ...); omitted, the map is safe. Blank lines and
+  '#' comments ignored. }
 
 {$mode objfpc}{$H+}
 
@@ -18,7 +20,7 @@ function ParseWorld(const fn: string; out d: array of TDynMap;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, overworld;
 
 function GenCode(const s: string): longint;
 begin
@@ -59,6 +61,14 @@ begin
       d[count].depth := StrToInt(parts[5]);
       d[count].retMap := parts[6];
       d[count].retMarker := parts[7];
+      if parts.Count >= 9 then begin
+        d[count].area := AreaMaskByName(parts[8]);
+        if d[count].area = 0 then begin
+          err := 'line ' + IntToStr(li + 1) + ': unknown area ' + parts[8];
+          exit;
+        end;
+      end else
+        d[count].area := 0;
       inc(count);
     end;
   finally

@@ -4,6 +4,7 @@ map DUNGEON
 size 24 24
 tileset 0
 music 0
+area crypt
 walls
 111111111111111111111111
 100000000002220000000001

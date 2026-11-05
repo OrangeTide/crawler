@@ -15,7 +15,7 @@ unit mapfmt;
     tileset  u8
     music    u8
     flags    u8
-    reserved u8
+    area     u8
     walls    w*h bytes
     markerCount u16, markers [ name 12, x u16, y u16, dir u8, pad u8 ]
     portalCount u16, portals [ x u16, y u16, target 12, marker 12 ]
@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 4;
+  MAP_VERSION = 5;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -107,7 +107,7 @@ type
 
   TMapData = record
     w, h: longint;
-    tileset, music, flags: byte;
+    tileset, music, flags, area: byte;
     walls: array of byte;                 { w*h, row major }
     markers: array of TMarker;
     portals: array of TPortal;
@@ -188,7 +188,7 @@ begin
   BByte(b, m.tileset);
   BByte(b, m.music);
   BByte(b, m.flags);
-  BByte(b, 0);
+  BByte(b, m.area);
   for i := 0 to m.w * m.h - 1 do
     BByte(b, m.walls[i]);
 
@@ -333,7 +333,7 @@ begin
   m.tileset := RByte(r);
   m.music := RByte(r);
   m.flags := RByte(r);
-  RByte(r);  { reserved }
+  m.area := RByte(r);
   if (m.w <= 0) or (m.h <= 0) then exit;
 
   SetLength(m.walls, m.w * m.h);

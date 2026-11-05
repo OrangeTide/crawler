@@ -6,7 +6,7 @@ program t_format;
 {$mode objfpc}{$H+}
 
 uses
-  pak, pic, textures, mapfmt, testing;
+  pak, pic, textures, mapfmt, overworld, testing;
 
 var
   p: TPak;
@@ -22,6 +22,7 @@ begin
 
   Check(PakGet(p, 'TOWN', blob) and DecodeMap(blob, m), 'decode TOWN');
   Check((m.flags and MAP_SURFACE) <> 0, 'TOWN is a surface map');
+  Check(m.area = 0, 'TOWN is a safe area');
   Check(Length(m.portals) >= 5, 'TOWN has its gates');
   doors := 0;
   for i := 0 to High(m.portals) do
@@ -45,12 +46,16 @@ begin
 
   Check(PakGet(p, 'DUNGEON', blob) and DecodeMap(blob, m), 'decode DUNGEON');
   Check((m.flags and MAP_SURFACE) = 0, 'DUNGEON is underground');
+  Check(m.area = AREA_CRYPT, 'DUNGEON carries its crypt area from the lump');
   Check(Length(m.traps) >= 2, 'DUNGEON keeps its traps');
   moonwells := 0;
   for i := 0 to High(m.lights) do
     if m.lights[i].kind = LIGHT_MOONWELL then inc(moonwells);
   Check(moonwells >= 1, 'DUNGEON has the moonwell');
   Check(Length(m.portals) >= 1, 'DUNGEON has portals');
+
+  Check(PakGet(p, 'FOREST', blob) and DecodeMap(blob, m), 'decode FOREST');
+  Check(m.area = AREA_FOREST, 'FOREST carries its forest area from the lump');
 
   TestSummary('format');
   halt(TestExit);

@@ -32,7 +32,7 @@ function ParseMapText(const fn: string; out m: TMapData;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, overworld;
 
 function DirCode(const s: string): byte;
 begin
@@ -80,7 +80,7 @@ begin
   ParseMapText := false;
   errmsg := '';
   name := '';
-  m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
+  m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   inWalls := false;
@@ -186,6 +186,13 @@ begin
         m.traps[High(m.traps)] := tr;
       end else if tok[0] = 'surface' then
         m.flags := m.flags or MAP_SURFACE
+      else if tok[0] = 'area' then begin
+        if ntok < 2 then begin errmsg := 'area needs a name'; exit; end;
+        m.area := AreaMaskByName(tok[1]);
+        if m.area = 0 then begin
+          errmsg := 'unknown area: ' + tok[1]; exit;
+        end;
+      end
       else if (tok[0] = 'skylight') or (tok[0] = 'moonwell')
         or (tok[0] = 'biolume') or (tok[0] = 'gasvent') or (tok[0] = 'brazier')
         or (tok[0] = 'torch') or (tok[0] = 'bonfire') then begin
