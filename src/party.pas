@@ -13,7 +13,7 @@ unit party;
 interface
 
 uses
-  rng, rules, items, chardata;
+  rng, rules, items, chardata, dice;
 
 const
   MAX_PARTY = 4;
@@ -300,10 +300,15 @@ begin
 end;
 
 procedure AddPartyMember(const c: TCharacter);
+var g: longint;
 begin
   if Length(Roster) >= MAX_PARTY then exit;
   SetLength(Roster, Length(Roster) + 1);
   Roster[High(Roster)] := c;
+  { the member brings the purse their background rolls up }
+  if (c.background >= 0) and (c.background <= High(BackgroundDefs)) then
+    if EvalDice(GameRng, BackgroundDefs[c.background].gold, g) then
+      PartyGold := PartyGold + g;
 end;
 
 function PartyAlive: boolean;

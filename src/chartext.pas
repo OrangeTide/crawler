@@ -187,6 +187,7 @@ begin
       d.id := tok[1];
       d.name := tok[2];
       d.skill := tok[3];
+      if n >= 5 then d.gold := tok[4] else d.gold := '';
       if count > High(defs) then begin err := 'too many backgrounds'; exit; end;
       defs[count] := d; inc(count);
     end;

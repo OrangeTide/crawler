@@ -58,6 +58,7 @@ type
     id: string[12];
     name: string[20];
     skill: string[16];
+    gold: string[16];    { starting-coin dice expression, e.g. 10*3d6 }
   end;
 
 var
@@ -141,6 +142,7 @@ begin
     PutName(a, n, defs[i].id, 12);
     PutName(a, n, defs[i].name, 20);
     PutName(a, n, defs[i].skill, 16);
+    PutName(a, n, defs[i].gold, 16);
   end;
   SetLength(a, n);
   EncodeBackgrounds := a;
@@ -217,6 +219,7 @@ begin
     BackgroundDefs[i].id := RName(blob, pos, 12);
     BackgroundDefs[i].name := RName(blob, pos, 20);
     BackgroundDefs[i].skill := RName(blob, pos, 16);
+    BackgroundDefs[i].gold := RName(blob, pos, 16);
   end;
   LoadBackgrounds := true;
 end;

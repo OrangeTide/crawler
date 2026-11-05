@@ -1,22 +1,24 @@
-# Background table. bg ID "Name" "skill or situation it helps"
+# Background table. bg ID "Name" "skill or situation it helps" GOLD
 # The benefit is a +2 to related checks; complications are in the design doc.
-bg SMITH     "Apprentice Smith"       "metalwork"
-bg MERCHANT  "Failed Merchant"        "appraise goods"
-bg HEALER    "Healer's Assistant"     "stabilize wounds"
-bg SERF      "Runaway Serf"           "rural survival"
-bg SOLDIER   "Disgraced Soldier"      "military lore"
-bg PEDDLER   "Itinerant Peddler"      "bargaining"
-bg ACOLYTE   "Temple Acolyte"         "religious lore"
-bg GRAVEDIG  "Grave-Digger"           "tombs and burials"
-bg NOBLE     "Disowned Noble"         "heraldry and court"
-bg ERRAND    "Errand-Runner"          "spell components"
-bg GALLEY    "Ship's Galley Hand"     "seamanship"
-bg POACHER   "Former Poacher"         "snares and trails"
-bg ACTOR     "Failed Actor"           "impersonation"
-bg SERVANT   "Courtier's Servant"     "household routines"
-bg LOOKOUT   "Bandit's Lookout"       "spot ambushes"
-bg REEVE     "Reeve's Deputy"         "local law"
-bg ARTISAN   "Failed Guild Artisan"   "assess craft"
-bg PILGRIM   "Pilgrim"                "roads and shrines"
-bg SMUGGLER  "Former Smuggler"        "concealment"
-bg CAMP      "Camp Follower"          "camp supplies"
+# GOLD is a dice expression for the starting coin this past life brings to
+# the party purse, e.g. 10*3d6, 2d6+5, or a plain number.
+bg SMITH     "Apprentice Smith"       "metalwork"            5*2d6
+bg MERCHANT  "Failed Merchant"        "appraise goods"      10*3d6
+bg HEALER    "Healer's Assistant"     "stabilize wounds"     6*2d6
+bg SERF      "Runaway Serf"           "rural survival"       3d6
+bg SOLDIER   "Disgraced Soldier"      "military lore"        10*2d6
+bg PEDDLER   "Itinerant Peddler"      "bargaining"           8*3d6
+bg ACOLYTE   "Temple Acolyte"         "religious lore"       5*2d6+10
+bg GRAVEDIG  "Grave-Digger"           "tombs and burials"    4d6+8
+bg NOBLE     "Disowned Noble"         "heraldry and court"  20*4d6
+bg ERRAND    "Errand-Runner"          "spell components"     6*2d6
+bg GALLEY    "Ship's Galley Hand"     "seamanship"           2d6*3
+bg POACHER   "Former Poacher"         "snares and trails"    5*2d6
+bg ACTOR     "Failed Actor"           "impersonation"        4d6+5
+bg SERVANT   "Courtier's Servant"     "household routines"   6*2d6
+bg LOOKOUT   "Bandit's Lookout"       "spot ambushes"        8*2d6
+bg REEVE     "Reeve's Deputy"         "local law"            7*2d6
+bg ARTISAN   "Failed Guild Artisan"   "assess craft"         8*2d6
+bg PILGRIM   "Pilgrim"                "roads and shrines"    2d6+5
+bg SMUGGLER  "Former Smuggler"        "concealment"          9*2d6
+bg CAMP      "Camp Follower"          "camp supplies"        4d6+6
