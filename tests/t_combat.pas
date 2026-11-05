@@ -11,7 +11,7 @@ uses
 var
   p: TPak;
   ab: TAbilityScores;
-  i, enc, rounds, maxRounds, wins, losses: longint;
+  i, enc, rounds, maxRounds, wins, losses, who: longint;
   allTerminate: boolean;
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -37,7 +37,11 @@ begin
     rounds := 0;
     while (not CombatOver) and (rounds < 4000) do begin
       if CurActor < 0 then break;      { would be a stall, caught below }
+      who := CurActor;
       ActAttack;
+      { a back-rank melee actor has no reach and ActAttack does not spend
+        the turn; guard instead so the round advances }
+      if (not CombatOver) and (CurActor = who) then ActGuard;
       inc(rounds);
     end;
     if rounds > maxRounds then maxRounds := rounds;

@@ -19,12 +19,11 @@ uses
   sysutils, rng, rules, items, monsters, party;
 
 const
-  BAND_ENGAGED = 0;
-  BAND_NEAR    = 1;
-  BAND_FAR     = 2;
-
   MAX_FOES = 6;
   LOG_LINES = 5;
+
+  RANK_FRONT = 0;
+  RANK_BACK  = 1;
 
 type
   TFoe = record
@@ -32,11 +31,11 @@ type
     hp: smallint;
     hpMax: smallint;
     alive: boolean;
+    rank: byte;              { 0 front, 1 back }
   end;
 
 var
   Foes: array of TFoe;
-  Band: longint;
   CombatOver: boolean;
   Victory: boolean;
   Fled: boolean;
@@ -49,10 +48,14 @@ var
 procedure StartRandomEncounter(depth: longint);
 procedure CombatLog(const s: string);
 function LivingFoes: longint;
+{ The frontmost living rank on each side; melee can only reach it. }
+function FrontFoeRank: longint;
+function FrontPartyRank: longint;
+{ Whether the actor could strike this foe with its current weapon. }
+function FoeReachable(actor, foe: longint): boolean;
 procedure ActAttack;
 procedure ActGuard;
-procedure ActAdvance;
-procedure ActWithdraw;
+procedure ActFlee;
 procedure ActPotion;
 procedure NextTarget;
 
@@ -60,7 +63,6 @@ implementation
 
 var
   enemyActed: boolean;
-  bandMoved: boolean;        { foe group spent this round closing }
 
 { ---- logging ---- }
 
@@ -92,6 +94,44 @@ begin
   FirstLivingFoe := -1;
   for i := 0 to High(Foes) do
     if Foes[i].alive then begin FirstLivingFoe := i; exit; end;
+end;
+
+{ The frontmost living foe rank: 0 if any front foe lives, else 1. }
+function FrontFoeRank: longint;
+var i: longint;
+begin
+  for i := 0 to High(Foes) do
+    if Foes[i].alive and (Foes[i].rank = RANK_FRONT) then begin
+      FrontFoeRank := RANK_FRONT; exit;
+    end;
+  FrontFoeRank := RANK_BACK;
+end;
+
+{ The frontmost conscious party rank. }
+function FrontPartyRank: longint;
+var i: longint;
+begin
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) and (Roster[i].rank = RANK_FRONT) then begin
+      FrontPartyRank := RANK_FRONT; exit;
+    end;
+  FrontPartyRank := RANK_BACK;
+end;
+
+function WeaponRanged(const c: TCharacter): boolean; forward;
+
+{ Whether actor can strike foe: ranged weapons reach any rank, melee only
+  the frontmost living enemy rank, and only from the party front line. }
+function FoeReachable(actor, foe: longint): boolean;
+begin
+  FoeReachable := false;
+  if (foe < 0) or (foe > High(Foes)) or (not Foes[foe].alive) then exit;
+  if WeaponRanged(Roster[actor]) then begin
+    FoeReachable := true;           { arrows and bolts reach the back rank }
+    exit;
+  end;
+  if Roster[actor].rank <> RANK_FRONT then exit;   { no melee from the back }
+  FoeReachable := Foes[foe].rank = FrontFoeRank;
 end;
 
 function NextLivingActor(from: longint): longint;
@@ -136,7 +176,7 @@ end;
 
 procedure StartRandomEncounter(depth: longint);
 var
-  pick, count, i: longint;
+  pick, count, i, front: longint;
 begin
   SetLength(Foes, 0);
   CombatOver := false;
@@ -152,6 +192,7 @@ begin
   count := 1 + Range(0, 2) + (depth div 3);
   if count > MAX_FOES then count := MAX_FOES;
   SetLength(Foes, count);
+  front := 0;
   for i := 0 to count - 1 do begin
     pick := Range(0, High(MonDefs));
     Foes[i].def := pick;
@@ -159,10 +200,20 @@ begin
     if Foes[i].hp < 1 then Foes[i].hp := 1;
     Foes[i].hpMax := Foes[i].hp;
     Foes[i].alive := true;
+    { ranged monsters hang back; melee forms a front line, up to three }
+    if ((MonDefs[pick].flags and MF_RANGED) <> 0) or (front >= 3) then
+      Foes[i].rank := RANK_BACK
+    else begin
+      Foes[i].rank := RANK_FRONT; inc(front);
+    end;
   end;
-  Band := BAND_NEAR;
-  CombatLog('A hostile band closes in.');
+  if front = 0 then Foes[0].rank := RANK_FRONT;   { someone must be reachable }
 
+  { give casters a small pool of spell points for the fight }
+  for i := 0 to High(Roster) do
+    Roster[i].sp := CharSpellPoints(Roster[i]);
+
+  CombatLog('Foes close in: ' + IntToStr(count) + ' of them.');
   NewRound;
 end;
 
@@ -171,7 +222,6 @@ var
   pInit, fInit: longint;
 begin
   enemyActed := false;
-  bandMoved := false;
   pInit := D(6);
   fInit := D(6);
   CurTarget := FirstLivingFoe;
@@ -228,8 +278,12 @@ var
   roll, atk, dmg, die: longint;
 begin
   melee := not WeaponRanged(Roster[actor]);
-  if melee and (Band <> BAND_ENGAGED) then begin
-    CombatLog(Roster[actor].name + ' has no reach; advance first.');
+  if melee and (Roster[actor].rank <> RANK_FRONT) then begin
+    CombatLog(Roster[actor].name + ' has no reach from the back rank.');
+    exit;
+  end;
+  if melee and (Foes[foe].rank <> FrontFoeRank) then begin
+    CombatLog(Roster[actor].name + ' cannot reach the back rank.');
     exit;
   end;
   die := CharWeaponDie(Roster[actor]);
@@ -266,30 +320,40 @@ begin
   end;
 end;
 
+{ A random conscious member the enemy may strike: melee foes are held to
+  the party front rank, ranged foes may hit anyone. }
+function PickPartyTarget(anyRank: boolean): longint;
+var
+  pool: array[0 .. 31] of longint;
+  n, i, fr: longint;
+begin
+  PickPartyTarget := -1;
+  n := 0; fr := FrontPartyRank;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) and (Roster[i].hp > 0)
+      and (anyRank or (Roster[i].rank = fr)) and (n <= High(pool)) then begin
+      pool[n] := i; inc(n);
+    end;
+  if n > 0 then PickPartyTarget := pool[Range(0, n - 1)];
+end;
+
 procedure ProcessEnemyPhase;
 var
   i, tgt, roll, dmg, effAC: longint;
   total: longint;
+  ranged: boolean;
 begin
   if LivingFoes = 0 then exit;
-
-  { If not engaged, the group closes one band instead of attacking. }
-  if Band <> BAND_ENGAGED then begin
-    dec(Band);
-    bandMoved := true;
-    CombatLog('The enemy advances.');
-    exit;
-  end;
 
   total := Length(Foes);
   for i := 0 to High(Foes) do begin
     if not Foes[i].alive then continue;
-    tgt := FirstConscious;
+    if FirstConscious < 0 then break;
+    ranged := (MonDefs[Foes[i].def].flags and MF_RANGED) <> 0;
+    { a back-rank melee foe cannot reach until the front rank falls }
+    if (not ranged) and (Foes[i].rank <> FrontFoeRank) then continue;
+    tgt := PickPartyTarget(ranged);
     if tgt < 0 then break;
-    { pick a random conscious member }
-    repeat
-      tgt := Range(0, High(Roster));
-    until Roster[tgt].alive and (not Roster[tgt].downed) and (Roster[tgt].hp > 0);
     roll := D(20);
     effAC := CharAC(Roster[tgt]);
     if Roster[tgt].guarding then effAC := effAC + 2;   { parry }
@@ -340,14 +404,27 @@ end;
 
 { ---- player actions ---- }
 
+{ First foe the actor can actually strike, or -1. }
+function FirstReachable(actor: longint): longint;
+var i: longint;
+begin
+  FirstReachable := -1;
+  for i := 0 to High(Foes) do
+    if FoeReachable(actor, i) then begin FirstReachable := i; exit; end;
+end;
+
 procedure ActAttack;
 begin
   if CombatOver or (CurActor < 0) then exit;
-  if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
-    CurTarget := FirstLivingFoe;
-  if CurTarget < 0 then exit;
+  if not FoeReachable(CurActor, CurTarget) then
+    CurTarget := FirstReachable(CurActor);
+  if CurTarget < 0 then begin
+    CombatLog(Roster[CurActor].name + ' has no target in reach.');
+    exit;   { the turn is not spent; pick another action or retarget }
+  end;
   ResolvePartyAttack(CurActor, CurTarget);
-  if not Foes[CurTarget].alive then CurTarget := FirstLivingFoe;
+  if (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
+    CurTarget := FirstLivingFoe;
   CheckEnd;
   AdvancePartyActor;
 end;
@@ -360,30 +437,19 @@ begin
   AdvancePartyActor;
 end;
 
-procedure ActAdvance;
+procedure ActFlee;
 begin
   if CombatOver or (CurActor < 0) then exit;
-  if Band > BAND_ENGAGED then begin
-    dec(Band);
-    CombatLog(Roster[CurActor].name + ' leads the advance.');
-  end else
-    CombatLog('Already engaged.');
-  AdvancePartyActor;
-end;
-
-procedure ActWithdraw;
-begin
-  if CombatOver or (CurActor < 0) then exit;
-  if Band < BAND_FAR then begin
-    inc(Band);
-    CombatLog(Roster[CurActor].name + ' pulls the party back.');
-    AdvancePartyActor;
-  end else begin
-    { already far: a full withdraw ends the fight }
+  { a scramble to break off: succeeds on better than a coin toss, else the
+    turn is lost and the enemy gets their swing }
+  if D(6) >= 3 then begin
     CombatOver := true;
     Victory := false;
     Fled := true;
-    CombatLog('The party withdraws from the fight.');
+    CombatLog('The party breaks off and flees.');
+  end else begin
+    CombatLog(Roster[CurActor].name + ' fails to break away.');
+    AdvancePartyActor;
   end;
 end;
 
@@ -414,12 +480,13 @@ procedure NextTarget;
 var
   start, i: longint;
 begin
-  if LivingFoes = 0 then exit;
+  if (LivingFoes = 0) or (CurActor < 0) then exit;
   start := CurTarget;
+  if start < 0 then start := 0;
   i := start;
   repeat
     i := (i + 1) mod Length(Foes);
-    if Foes[i].alive then begin CurTarget := i; exit; end;
+    if FoeReachable(CurActor, i) then begin CurTarget := i; exit; end;
   until i = start;
 end;
 

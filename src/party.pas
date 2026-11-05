@@ -45,6 +45,8 @@ type
     poison: byte;        { remaining poison ticks }
     lycan: boolean;      { cursed with lycanthropy }
     wereform: boolean;   { transformed now, set by the full moon }
+    rank: byte;          { 0 front line, 1 back line, for combat reach }
+    sp: smallint;        { spell points available this fight }
   end;
 
 var
@@ -57,6 +59,8 @@ procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 
 function CharAC(const c: TCharacter): longint;
 function CharAttack(const c: TCharacter; melee: boolean): longint;
+function CharTrack(const c: TCharacter): longint;
+function CharSpellPoints(const c: TCharacter): longint;
 function CharWeaponDie(const c: TCharacter): longint;
 
 procedure RollAbilities(out a: TAbilityScores);
@@ -147,6 +151,24 @@ begin
   CharAttack := ab;
 end;
 
+function CharTrack(const c: TCharacter): longint;
+begin
+  CharTrack := ClassDefs[c.klass].track;
+end;
+
+function CharSpellPoints(const c: TCharacter): longint;
+var
+  t, m: longint;
+begin
+  t := ClassDefs[c.klass].track;
+  if (t = TRK_MAGE) or (t = TRK_PRIEST) then begin
+    m := AbilMod(c.abil[TAbility(ClassDefs[c.klass].prime)]);
+    if m < 0 then m := 0;
+    CharSpellPoints := 2 + c.level + m;
+  end else
+    CharSpellPoints := 0;
+end;
+
 procedure RollAbilities(out a: TAbilityScores);
 var
   ab: TAbility;
@@ -189,6 +211,13 @@ begin
   c.poison := 0;
   c.lycan := false;
   c.wereform := false;
+  { casters hang back by default, melee classes take the front line }
+  if (ClassDefs[classIdx].track = TRK_MAGE)
+    or (ClassDefs[classIdx].track = TRK_PRIEST) then
+    c.rank := 1
+  else
+    c.rank := 0;
+  c.sp := 0;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;

@@ -733,9 +733,6 @@ begin
 end;
 
 const
-  BAND_LABEL: array[0 .. 2] of string = ('ENGAGED', 'NEAR', 'FAR');
-
-const
   FOE_PAL: array[0 .. 5] of TColor = (
     TColor($FFB05545), TColor($FF6E9E57), TColor($FF5A86B0),
     TColor($FF9A6FB0), TColor($FF7FA0A0), TColor($FFB0923C));
@@ -772,10 +769,10 @@ begin
 end;
 
 { Frame a creature mesh into a combat slot centered on (cx,cy). }
-procedure DrawFoeModel(const mesh: TMesh; cx, cy: longint; myaw: double);
+procedure DrawFoeModel(const mesh: TMesh; cx, cy: longint; myaw: double;
+  halfpx: longint);
 const
   FOCALC = (FBW / 2) / 0.66;
-  HALFPX = 22;              { on-screen half-height of a foe }
 var
   i: longint;
   mnx, mny, mnz, mxx, mxy, mxz, h, radius, d: double;
@@ -800,7 +797,8 @@ begin
   radius := radius * 0.5;
   if radius < 0.001 then radius := 1;
 
-  d := radius * FOCALC / HALFPX;
+  if halfpx < 1 then halfpx := 1;
+  d := radius * FOCALC / halfpx;
   mc.x := -d; mc.y := 0; mc.z := h / 2; mc.yaw := 0; mc.pitch := 0;
   RasterCX := cx; RasterCY := cy;
   RenderMeshAt(mesh, mc, 0, 0, 0, 1.0, myaw, 236);
@@ -810,7 +808,7 @@ procedure CombatRender;
 const
   FOE_YAW = 0.6;
 var
-  i, n, living, slot, cx, cy, y, x, mi: longint;
+  i, n, living, slot, cx, cy, y, x, mi, rk, half: longint;
   c, body: TColor;
   s: string;
 begin
@@ -823,35 +821,41 @@ begin
   FillRect(0, 0, FBW, 14, RGB(30, 12, 12));
   FrameRect(0, 0, FBW, 14, RGB(90, 40, 30));
   DrawText(8, 3, 'COMBAT', RGB(230, 170, 120));
-  DrawText(FBW - 104, 3, 'RANGE ' + BAND_LABEL[Band], RGB(190, 180, 140));
+  DrawText(FBW - 96, 3, IntToStr(LivingFoes) + ' FOES', RGB(190, 180, 140));
 
   { foes across the upper band, each a glyph with a name and HP bar }
-  living := 0;
-  for i := 0 to High(Foes) do if Foes[i].alive then inc(living);
-  if living < 1 then living := 1;
-  slot := FBW div living;
-  n := 0;
+  { foes in two ranks: the back rank sits higher and smaller, the front
+    rank lower and larger, so reachable targets read at a glance }
   RasterBeginFrame;     { clear depth before the foe models }
-  for i := 0 to High(Foes) do begin
-    if not Foes[i].alive then continue;
-    cx := slot * n + slot div 2;
-    cy := 66;
-    body := FOE_PAL[Foes[i].def mod 6];
-    if (i = CurTarget) and (not CombatOver) then begin
-      FrameRect(cx - 21, cy - 23, 42, 50, RGB(240, 220, 120));
-      DrawText(cx - 2, cy - 33, '*', RGB(240, 220, 120));
+  for rk := RANK_BACK downto RANK_FRONT do begin
+    living := 0;
+    for i := 0 to High(Foes) do
+      if Foes[i].alive and (Foes[i].rank = rk) then inc(living);
+    if living < 1 then continue;
+    slot := FBW div living;
+    if rk = RANK_BACK then begin cy := 44; half := 15; end
+    else begin cy := 90; half := 22; end;
+    n := 0;
+    for i := 0 to High(Foes) do begin
+      if (not Foes[i].alive) or (Foes[i].rank <> rk) then continue;
+      cx := slot * n + slot div 2;
+      body := FOE_PAL[Foes[i].def mod 6];
+      if (i = CurTarget) and (not CombatOver) then begin
+        FrameRect(cx - half - 2, cy - half - 2, 2 * half + 4, 2 * half + 9,
+          RGB(240, 220, 120));
+        DrawText(cx - 2, cy - half - 12, '*', RGB(240, 220, 120));
+      end;
+      mi := FindModel('CREA' + IntToStr(1 + Foes[i].def mod 3));
+      if mi >= 0 then
+        DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW, half)
+      else
+        DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
+      s := MonDefs[Foes[i].def].name;
+      DrawText(cx - Length(s) * 3, cy - half - 2, s, RGB(215, 185, 175));
+      DrawBar(cx - 16, cy + half, 32, 3, Foes[i].hp, Foes[i].hpMax,
+        RGB(200, 80, 70), RGB(50, 24, 24));
+      inc(n);
     end;
-    { a creature model if one is registered, else the glyph }
-    mi := FindModel('CREA' + IntToStr(1 + Foes[i].def mod 3));
-    if mi >= 0 then
-      DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW)
-    else
-      DrawFoeGlyph(cx, cy, 30, 30, body);
-    s := MonDefs[Foes[i].def].name;
-    DrawText(cx - Length(s) * 3, cy - 22, s, RGB(215, 185, 175));
-    DrawBar(cx - 16, cy + 20, 32, 4, Foes[i].hp, Foes[i].hpMax,
-      RGB(200, 80, 70), RGB(50, 24, 24));
-    inc(n);
   end;
 
   { message log panel }
@@ -890,7 +894,7 @@ begin
     else s := 'DEFEAT - PRESS A KEY';
     DrawCenter(232, s, RGB(235, 220, 150));
   end else
-    DrawCenter(232, 'A ATK  G GUARD  F ADV  R FLEE  P POTION  TAB TARGET',
+    DrawCenter(232, 'A ATK  G GUARD  R FLEE  P POTION  TAB TARGET',
       RGB(150, 160, 120));
 end;
 
@@ -905,8 +909,7 @@ begin
       ActAttack; PlaySfx(SFX_HIT);
     end;
     SDL_SCANCODE_G: begin ActGuard; PlaySfx(SFX_SELECT); end;
-    SDL_SCANCODE_F: begin ActAdvance; PlaySfx(SFX_SELECT); end;
-    SDL_SCANCODE_R: begin ActWithdraw; PlaySfx(SFX_SELECT); end;
+    SDL_SCANCODE_R: begin ActFlee; PlaySfx(SFX_SELECT); end;
     SDL_SCANCODE_P: begin ActPotion; PlaySfx(SFX_PICK); end;
     SDL_SCANCODE_TAB: NextTarget;
   end;
