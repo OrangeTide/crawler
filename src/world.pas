@@ -48,6 +48,11 @@ var
   DoorOpen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
   Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   PortalMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
+  LightMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;  { 0 none, kind+1 }
+  CurMapSurface: boolean;
+  AmbientLight: longint;    { 0..256, applied to the view; 256 is full }
+  SkyLightLevel: longint;   { 0..256, how strongly skylight tiles glow now }
+  MoonLightLevel: longint;  { 0..256, how strongly moonwell tiles glow now }
   MapW, MapH: longint;
   CurMap: TMapData;
   CurMapName: string;
@@ -72,6 +77,7 @@ procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function IsPortalTile(mx, my: longint): boolean;
+function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
 procedure ForwardDelta(out dx, dy: longint);
@@ -170,7 +176,10 @@ begin
       DoorOpen[y][x] := false;
       Seen[y][x] := VIS_UNSEEN;
       PortalMask[y][x] := false;
+      LightMask[y][x] := 0;
     end;
+  CurMapSurface := (m.flags and MAP_SURFACE) <> 0;
+  AmbientLight := 256;
   for y := 0 to MapH - 1 do
     for x := 0 to MapW - 1 do
       Map[y][x] := m.walls[y * MapW + x];
@@ -179,6 +188,12 @@ begin
     py := m.portals[x].y;
     if (px < MapW) and (py < MapH) then
       PortalMask[py][px] := true;
+  end;
+  for x := 0 to High(m.lights) do begin
+    px := m.lights[x].x;
+    py := m.lights[x].y;
+    if (px < MapW) and (py < MapH) then
+      LightMask[py][px] := m.lights[x].kind + 1;
   end;
   LoadMapData := true;
 end;
@@ -189,6 +204,15 @@ begin
     IsPortalTile := false
   else
     IsPortalTile := PortalMask[my][mx];
+end;
+
+function LightTileKind(mx, my: longint): longint;
+begin
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH)
+    or (LightMask[my][mx] = 0) then
+    LightTileKind := -1
+  else
+    LightTileKind := LightMask[my][mx] - 1;
 end;
 
 procedure PlaceAtMarker(const name: string);

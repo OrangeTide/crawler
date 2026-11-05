@@ -335,9 +335,9 @@ begin
   CarveLine(g, mx, my, gw - 2, my);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.tileset := 0; m.music := 0; m.flags := MAP_SURFACE;
   m.markers := nil; m.portals := nil;
-  m.doors := nil; m.npcs := nil; m.traps := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
 
   { centre spawn, used on first entry from a pinned zone's gate }
   SetLength(m.markers, 1);

@@ -30,7 +30,12 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 1;
+  MAP_VERSION = 2;
+
+  MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
+
+  LIGHT_SKYLIGHT = 0;       { admits sunlight by day }
+  LIGHT_MOONWELL = 1;       { admits moonlight, strongest at the full moon }
 
   DIR_N = 0;
   DIR_E = 1;
@@ -68,6 +73,11 @@ type
     dc: byte;       { Dodge save target }
   end;
 
+  TLightTile = record
+    x, y: word;
+    kind: byte;     { LIGHT_SKYLIGHT or LIGHT_MOONWELL }
+  end;
+
   TMapData = record
     w, h: longint;
     tileset, music, flags: byte;
@@ -77,6 +87,7 @@ type
     doors: array of TDoorMeta;
     npcs: array of TNpc;
     traps: array of TTrap;
+    lights: array of TLightTile;
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -187,6 +198,14 @@ begin
     BName(b, m.npcs[i].name, 12);
   end;
 
+  BU16(b, Length(m.lights));
+  for i := 0 to High(m.lights) do begin
+    BU16(b, m.lights[i].x);
+    BU16(b, m.lights[i].y);
+    BByte(b, m.lights[i].kind);
+    BByte(b, 0);
+  end;
+
   BU16(b, Length(m.traps));
   for i := 0 to High(m.traps) do begin
     BU16(b, m.traps[i].x);
@@ -266,7 +285,7 @@ begin
   DecodeMap := false;
   m.w := 0; m.h := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil; m.traps := nil;
+  m.npcs := nil; m.traps := nil; m.lights := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -318,6 +337,15 @@ begin
     m.npcs[i].y := RU16(r);
     m.npcs[i].dialog := RName(r, 12);
     m.npcs[i].name := RName(r, 12);
+  end;
+
+  count := RU16(r);
+  SetLength(m.lights, count);
+  for i := 0 to count - 1 do begin
+    m.lights[i].x := RU16(r);
+    m.lights[i].y := RU16(r);
+    m.lights[i].kind := RByte(r);
+    RByte(r);
   end;
 
   count := RU16(r);

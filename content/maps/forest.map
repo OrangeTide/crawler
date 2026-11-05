@@ -3,6 +3,7 @@ map FOREST
 size 16 14
 tileset 0
 music 0
+surface
 walls
 3333333333333333
 3000000000000003

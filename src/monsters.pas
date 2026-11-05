@@ -19,6 +19,7 @@ const
 
   MF_UNDEAD = 1;
   MF_RANGED = 2;
+  MF_LYCAN  = 4;   { a hit can pass on the lycanthropy curse }
 
 type
   TMonsterDef = record

@@ -301,6 +301,15 @@ begin
       CombatLog(MonDefs[Foes[i].def].name + ' hits ' + Roster[tgt].name
         + ' for ' + IntToStr(dmg) + '.');
       HurtMember(tgt, dmg);
+      { a lycanthrope's wound can pass on the curse, on a failed save }
+      if ((MonDefs[Foes[i].def].flags and MF_LYCAN) <> 0)
+        and Roster[tgt].alive and (not Roster[tgt].lycan)
+        and (not SaveThrow(GameRng, AbilMod(Roster[tgt].abil[abCON]),
+                           Roster[tgt].level, 13)) then
+      begin
+        Roster[tgt].lycan := true;
+        CombatLog(Roster[tgt].name + ' is marked by the curse!');
+      end;
     end else
       CombatLog(MonDefs[Foes[i].def].name + ' misses ' + Roster[tgt].name + '.');
     if FirstConscious < 0 then break;

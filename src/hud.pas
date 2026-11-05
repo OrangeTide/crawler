@@ -18,7 +18,7 @@ procedure DrawFullMap;
 implementation
 
 uses
-  math, gfx, world, party;
+  math, sysutils, gfx, world, party, gametime;
 
 function NormAngle(a: double): double;
 begin
@@ -167,6 +167,7 @@ end;
 procedure DrawHud(showMap: boolean; fps: longint);
 var
   s: string;
+  mc: TColor;
 begin
   DrawBorder;
   DrawCompass;
@@ -174,6 +175,10 @@ begin
   if showMap then
     DrawMiniMap;
   DrawPartyStrip;
+  { clock and moon readout, top left }
+  DrawText(10, 9, 'D' + IntToStr(DayNumber) + ' ' + TimeString, RGB(175, 185, 150));
+  if IsFullMoon then mc := RGB(245, 240, 205) else mc := RGB(130, 140, 160);
+  DrawText(10, 19, MoonPhaseName, mc);
   Str(fps, s);
   DrawText(12, FBH - 34, 'FPS ' + s, RGB(120, 150, 120));
 end;

@@ -3,6 +3,7 @@ map TOWN
 size 12 10
 tileset 0
 music 0
+surface
 walls
 222222222222
 200000000002

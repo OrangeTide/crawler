@@ -51,6 +51,11 @@ filtering, the same way the game presents it.
   An Options screen on the title menu sets the master, music and effect volumes.
 - Resting recovers party health between fights, and traps on marked tiles test a
   Dodge save, deal damage and can poison the lead member until cured by rest.
+- A game clock drives a day-night cycle that lights and darkens outdoor maps,
+  and a 29.53 day moon. The moon is tracked everywhere, so a full moon
+  transforms characters cursed with lycanthropy even underground. Skylight and
+  moonwell tiles admit sun or moonlight into dark places for light puzzles. The
+  clock and moon show on the HUD and are saved.
 - Six connected zones: a town hub, a seaside, a forest, a crypt, dynamic caves
   and mazes, and an infernal depth, with a short relic quest that ends the game
   when the shard is returned to the town elder.

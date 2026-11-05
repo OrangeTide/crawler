@@ -43,6 +43,8 @@ type
     guarding: boolean;   { parrying this round for +2 AC }
     brushes: byte;       { brushes with death so far today }
     poison: byte;        { remaining poison ticks }
+    lycan: boolean;      { cursed with lycanthropy }
+    wereform: boolean;   { transformed now, set by the full moon }
   end;
 
 var
@@ -114,12 +116,16 @@ begin
 end;
 
 function CharWeaponDie(const c: TCharacter): longint;
+var
+  d: longint;
 begin
   if (c.equip[eqMain].def >= 0) and
      (ItemDefs[c.equip[eqMain].def].dmgSides > 0) then
-    CharWeaponDie := ItemDefs[c.equip[eqMain].def].dmgSides
+    d := ItemDefs[c.equip[eqMain].def].dmgSides
   else
-    CharWeaponDie := 2;   { unarmed: 1d2 }
+    d := 2;   { unarmed: 1d2 }
+  if c.wereform and (d < 8) then d := 8;   { savage claws, 1d8 }
+  CharWeaponDie := d;
 end;
 
 function WeaponIsRanged(const c: TCharacter): boolean;
@@ -137,6 +143,7 @@ begin
     ab := ab + AbilMod(c.abil[abSTR])
   else
     ab := ab + AbilMod(c.abil[abDEX]);
+  if c.wereform then ab := ab + 2;   { the were-beast strikes hard }
   CharAttack := ab;
 end;
 
@@ -180,6 +187,8 @@ begin
   c.guarding := false;
   c.brushes := 0;
   c.poison := 0;
+  c.lycan := false;
+  c.wereform := false;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;

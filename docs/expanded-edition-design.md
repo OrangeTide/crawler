@@ -659,33 +659,37 @@ ends with `pakc`, so `make` produces both the binary and `game.pak`.
 
 ## 19. Suggested build order
 
-The systems depend on each other, so a sane sequence is:
+The systems depend on each other, so a sane sequence is. Each milestone is a
+version, starting at 0.1.0, with a minor bump per milestone. A version tags the
+milestone, so the build order is the plan rather than the exact order of work.
 
-1. Refactor to the module layout and the `game` state machine, no behavior change.
-2. PAK, PIC, `texcache`: move the existing procedural textures to files.
-3. Map format and multi-map world with portals, still one hardcoded-then-loaded map.
-4. Turn-based grid movement with free look.
-5. Party, attributes, classes, items, inventory, character creation, title screen.
-6. Combat with the AX&X core loop, then the tactical options.
-7. Fog of war, reduced HUD, fullscreen map.
-8. Dialog, shops, the town hub, quests and journal.
-9. Save and load, including per-map fog and diffs.
-10. Roguelike generation and the dynamic-map save path.
-11. Audio mixer, SFX, module music.
-12. Build out the six zones and the critical path.
-13. Rest, traps, status effects, options, and the remaining section 16 items.
-14. Fixed-point math layer and a renderer backend seam, validated on Linux
+1. **0.1.0** Refactor to the module layout and the `game` state machine, no behavior change.
+2. **0.2.0** PAK, PIC, `texcache`: move the existing procedural textures to files.
+3. **0.3.0** Map format and multi-map world with portals, still one hardcoded-then-loaded map.
+4. **0.4.0** Turn-based grid movement with free look.
+5. **0.5.0** Party, attributes, classes, items, inventory, character creation, title screen.
+6. **0.6.0** Combat with the AX&X core loop, then the tactical options.
+7. **0.7.0** Fog of war, reduced HUD, fullscreen map.
+8. **0.8.0** Dialog, shops, the town hub, quests and journal.
+9. **0.9.0** Save and load, including per-map fog and diffs.
+10. **0.10.0** Roguelike generation and the dynamic-map save path.
+11. **0.11.0** Audio mixer, SFX, module music.
+12. **0.12.0** Build out the six zones and the critical path.
+13. **0.13.0** Rest, traps, status effects, options, and the remaining section 16 items.
+14. **0.14.0** Fixed-point math layer and a renderer backend seam, validated on Linux
     against the existing float path (section 23). De-risks the DOS and PS1
     targets without changing gameplay.
-15. The seeded overworld: the biome grid, per-cell local map generation, edge
+15. **0.15.0** The seeded overworld: the biome grid, per-cell local map generation, edge
     transitions, and the authored zones pinned to fixed cells (section 20).
-16. Vertical space: depth-keyed maps, stair, ladder, shaft and interior
+16. **0.16.0** Vertical space: depth-keyed maps, stair, ladder, shaft and interior
     transitions, and consistent dungeon stacking (section 21).
-17. Time: the clock, outdoor day-night lighting, moon phase, lycanthropy, and
+17. **0.17.0** Time: the clock, outdoor day-night lighting, moon phase, lycanthropy, and
     the skylight and moonwell puzzle tiles (section 22).
 
-Each step leaves the game runnable, which keeps the project honest. Steps 1
-through 13 are done. Steps 14 through 17 are the current expansion.
+Each step leaves the game runnable, which keeps the project honest. Milestones
+0.1.0 through 0.13.0 and 0.15.0 (the overworld) are done. 0.14.0 (fixed-point)
+is deferred, since the prototype keeps floats for now. 0.17.0 (time and moon) is
+in progress, and 0.16.0 (vertical space) follows it.
 
 ## 20. The overworld: a seeded world of biomes
 
@@ -759,6 +763,21 @@ surface plane.
 - **Surface flag.** Each map is flagged surface or underground. The flag drives
   lighting, torch-only underground, and whether the sky and its day-night light
   are visible (section 22).
+- **The Sunless Depths.** Dungeons are scattered across the world, and a few run
+  deep. At 30 levels down a dungeon breaks into the Sunless Depths, a world
+  spanning cavern and the underground civilization that lives in it, in the
+  spirit of the Underdark. Reaching depth 30 under any deep dungeon is a doorway
+  into the same connected underworld, so the Depths are a second world layer
+  beneath the surface, not a single dungeon.
+- **Depth as challenge.** A dungeon level maps to a challenge level that scales
+  monster hit dice, numbers, and rewards, so descending is the difficulty dial.
+  Level one near the surface is a match for a beginning party, and depth 30 and
+  the Depths are endgame. The party is rated against a level by a war-band
+  calculation rather than by its highest member. Each member contributes a power
+  from its level, the powers sum, and the total converts back to one effective
+  level, so four level-3s rate above a lone level-3 and below a lone level-6.
+  That effective level is the dungeon depth the party can take at roughly even
+  odds, which is what the generator and the wandering tables read.
 
 ## 22. Time: day-night cycle and the moon
 
@@ -808,6 +827,18 @@ Pascal). The design is held to their limits as it grows.
   On PS1 the GPU owns the frame in VRAM and walls are drawn as textured quads,
   not raycast per pixel into main RAM. So the renderer sits behind a thin seam,
   and the Linux software rasterizer is just one backend.
+- **One indexed color format across all three.** The canonical framebuffer is
+  8-bit paletted, one byte per pixel, which is how DOS and PS1 era games were
+  made and what both targets want. A single well-chosen palette with ordered
+  ramps lets the shading the renderer already does, fog and the day-night
+  ambient, become an index shift along a ramp or a lookup table, with limited
+  mixing, instead of per-channel math. One byte per pixel also halves and more
+  the framebuffer. On the Linux, Windows and SDL port the indexed buffer is
+  expanded to true color for display by a palette lookup, which is a one line
+  shader in SDL3 and reachable in SDL2 through a GLES path or a small CPU
+  lookup. The current ARGB software path stays usable as a fallback, but the
+  indexed format is the one the targets share, so it supersedes treating the
+  32-bit buffer as canonical.
 - **Textures live in VRAM on target.** A 64x64 ARGB texture is 16 KB in the
   prototype. On DOS and PS1 textures are paletted, 8-bit or 4-bit, and on PS1
   they sit in VRAM. Texture count presses on VRAM, not on the 2 MB main RAM.

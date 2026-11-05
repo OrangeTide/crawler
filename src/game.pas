@@ -35,7 +35,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
   rng, rules, items, chardata, party, monsters, combat, flags, dialog,
-  mapstate, save, worldfmt, mapgen, overworld, audio;
+  mapstate, save, worldfmt, mapgen, overworld, gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -262,6 +262,7 @@ begin
     exit;
   end;
   RestParty;
+  TimeAdvance(8 * 60);   { a long rest moves the clock by eight hours }
   PlaySfx(SFX_SELECT);
   saveMsg := 'THE PARTY RESTS AND RECOVERS';
   saveMsgT := 2.0;
@@ -312,6 +313,36 @@ begin
   saveMsgT := 2.0;
 end;
 
+procedure OpenAdjacentDoor(tx, ty: longint);
+{** Force a closed door tile open, used when a light well is lit. }
+begin
+  if (TileAt(tx, ty) = TILE_DOOR) and (ty >= 0) and (ty < MapH)
+    and (tx >= 0) and (tx < MapW) and (not DoorOpen[ty][tx]) then
+    ToggleDoor(tx, ty);
+end;
+
+procedure LightPuzzleCheck;
+{** A skylight lit by day, or a moonwell at the full moon by night, sets
+  a LIT flag for its tile and opens any door beside it. }
+var
+  lk: longint;
+  active: boolean;
+begin
+  lk := LightTileKind(TileX, TileY);
+  if lk < 0 then exit;
+  active := ((lk = LIGHT_SKYLIGHT) and (DaylightFactor >= 160))
+         or ((lk = LIGHT_MOONWELL) and IsFullMoon and IsNight);
+  if not active then exit;
+  FlagSet('LIT_' + CurMapName + '_' + IntToStr(TileX) + '_' + IntToStr(TileY));
+  OpenAdjacentDoor(TileX + 1, TileY);
+  OpenAdjacentDoor(TileX - 1, TileY);
+  OpenAdjacentDoor(TileX, TileY + 1);
+  OpenAdjacentDoor(TileX, TileY - 1);
+  if lk = LIGHT_MOONWELL then saveMsg := 'MOONLIGHT OPENS THE WAY'
+  else saveMsg := 'SUNLIGHT OPENS THE WAY';
+  saveMsgT := 2.0;
+end;
+
 procedure CheckTileEvents;
 {** On stepping onto a new tile: follow a portal, spring a trap, tick
   poison, then roll for a wandering monster (thinned out per step). }
@@ -322,12 +353,14 @@ begin
     exit;
   lastTX := TileX;
   lastTY := TileY;
+  TimeAdvance(3);   { a few minutes pass each tile }
   if PortalAt(TileX, TileY, target, marker) then begin
     LoadMapByName(target, marker);
     exit;
   end;
   PoisonTick;
   TrapCheck;
+  LightPuzzleCheck;
   if not PartyConscious then begin
     State := gsGameOver;
     exit;
@@ -371,8 +404,41 @@ begin
   PutPixel(cursorX, cursorY, RGB(40, 30, 10));
 end;
 
+procedure UpdateWorldLight;
+{** Feed the clock into the renderer: surface maps darken at night, and
+  light wells glow by the current sun and moon. }
+begin
+  if CurMapSurface then AmbientLight := OutdoorAmbient
+  else AmbientLight := 256;
+  SkyLightLevel := DaylightFactor;
+  MoonLightLevel := MoonlightFactor;
+end;
+
+procedure UpdateLycanthropy;
+{** The full moon transforms the cursed wherever they are, even deep
+  underground, and the change reverts when it wanes. }
+var
+  i: longint;
+  full, was: boolean;
+begin
+  full := IsFullMoon;
+  for i := 0 to High(Roster) do begin
+    if not Roster[i].lycan then begin
+      Roster[i].wereform := false;
+      continue;
+    end;
+    was := Roster[i].wereform;
+    Roster[i].wereform := full and Roster[i].alive;
+    if Roster[i].wereform and (not was) then
+      JournalAdd(Roster[i].name + ' transforms under the full moon!')
+    else if was and (not Roster[i].wereform) then
+      JournalAdd(Roster[i].name + ' returns to their own shape.');
+  end;
+end;
+
 procedure ExploreRender(fps: longint);
 begin
+  UpdateWorldLight;
   RenderView;
   DrawHud(showMap, fps);
   if saveMsgT > 0 then
@@ -1090,6 +1156,9 @@ begin
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
 
+  TimeReset;
+  MoonOffsetDays := (WorldSeed mod 2953) / 100.0;  { seed the moon phase }
+
   AudioInit;   { silent if it fails }
   volMaster := 80; volMusic := 55; volSfx := 90;
   SetAudioVolumes(volMaster, volMusic, volSfx);
@@ -1142,10 +1211,28 @@ begin
   end;
 end;
 
+procedure CombatAutoTurn;
+{** A transformed were-character has lost control: on its turn it simply
+  attacks, with no waiting for player input. }
+var
+  guard: longint;
+begin
+  guard := 0;
+  while (not CombatOver) and (CurActor >= 0) and (CurActor <= High(Roster))
+    and Roster[CurActor].wereform and Roster[CurActor].alive
+    and (not Roster[CurActor].downed) and (guard < 16) do begin
+    ActAttack;
+    PlaySfx(SFX_HIT);
+    inc(guard);
+  end;
+end;
+
 procedure GameUpdate(dt: double);
 begin
+  UpdateLycanthropy;   { the moon acts in every state }
   case State of
     gsExplore: ExploreUpdate(dt);
+    gsCombat:  CombatAutoTurn;
   end;
 end;
 

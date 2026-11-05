@@ -74,13 +74,14 @@ var
   dr: TDoorMeta;
   np: TNpc;
   tr: TTrap;
+  lt: TLightTile;
 begin
   ParseMapText := false;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil; m.traps := nil;
+  m.npcs := nil; m.traps := nil; m.lights := nil;
   inWalls := false;
   row := 0;
 
@@ -173,6 +174,16 @@ begin
         tr.dc := StrToInt(tok[4]);
         SetLength(m.traps, Length(m.traps) + 1);
         m.traps[High(m.traps)] := tr;
+      end else if tok[0] = 'surface' then
+        m.flags := m.flags or MAP_SURFACE
+      else if (tok[0] = 'skylight') or (tok[0] = 'moonwell') then begin
+        if ntok < 3 then begin errmsg := tok[0] + ' needs X Y'; exit; end;
+        lt.x := StrToInt(tok[1]);
+        lt.y := StrToInt(tok[2]);
+        if tok[0] = 'moonwell' then lt.kind := LIGHT_MOONWELL
+        else lt.kind := LIGHT_SKYLIGHT;
+        SetLength(m.lights, Length(m.lights) + 1);
+        m.lights[High(m.lights)] := lt;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;

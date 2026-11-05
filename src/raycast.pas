@@ -17,13 +17,15 @@ procedure RenderView;
 implementation
 
 uses
-  gfx, textures, world;
+  gfx, textures, world, mapfmt;
 
 const
   { Fog: surfaces fully lit up to NEAR, fading to black at FAR tiles. }
   FOG_NEAR = 1.5;
   FOG_FAR  = 9.0;
   PORTAL_GLOW = $FF50C8FF;   { cyan pad drawn on portal tiles }
+  SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
+  MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
 
 function FogFactor(dist: double): longint;
 {** Maps a distance to a 0..256 brightness scale for Shade. }
@@ -38,6 +40,8 @@ begin
     f := 1.0 - (dist - FOG_NEAR) / (FOG_FAR - FOG_NEAR);
     FogFactor := 32 + trunc(f * 224.0);
   end;
+  { outdoor day-night and the like scale the whole view }
+  FogFactor := FogFactor * AmbientLight shr 8;
 end;
 
 function WallTexId(tile: byte): longint;
@@ -67,6 +71,7 @@ var
   texId: longint;
   fog: longint;
   cF, cC: TColor;
+  cxi, cyi, lk: longint;
 begin
   rayDirX0 := Cam.dirX - Cam.planeX;
   rayDirY0 := Cam.dirY - Cam.planeY;
@@ -102,9 +107,17 @@ begin
       ty := trunc(floorY * TEXH) and (TEXH - 1);
       if isFloor then begin
         cF := Shade(Tex[texId][ty * TEXW + tx], fog);
-        { a glowing pad marks a portal tile so exits read in the scene }
-        if IsPortalTile(trunc(floorX), trunc(floorY)) then
-          cF := MixColor(cF, Shade(PORTAL_GLOW, fog), 150);
+        cxi := trunc(floorX); cyi := trunc(floorY);
+        { a glowing pad marks a portal; a shaft marks a sky or moon well }
+        if IsPortalTile(cxi, cyi) then
+          cF := MixColor(cF, Shade(PORTAL_GLOW, fog), 150)
+        else begin
+          lk := LightTileKind(cxi, cyi);
+          if lk = LIGHT_SKYLIGHT then
+            cF := MixColor(cF, Shade(SKY_GLOW, fog), 40 + (SkyLightLevel shr 1))
+          else if lk = LIGHT_MOONWELL then
+            cF := MixColor(cF, Shade(MOON_GLOW, fog), 40 + (MoonLightLevel shr 1));
+        end;
         FB[y * FBW + x] := cF;
       end else begin
         cC := Shade(Tex[texId][ty * TEXW + tx], fog);

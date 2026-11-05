@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 3;
+  SAVE_VERSION = 4;
 
 var
   LoadedMapName: string;
@@ -30,7 +30,7 @@ function SaveExists(const fn: string): boolean;
 implementation
 
 uses
-  classes, sysutils, rules, chardata;
+  classes, sysutils, rules, chardata, gametime;
 
 { ---- stream helpers ---- }
 
@@ -104,6 +104,7 @@ begin
   s.WriteByte(ord(c.guarding));
   s.WriteByte(c.brushes);
   s.WriteByte(c.poison);
+  s.WriteByte(ord(c.lycan));
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -123,6 +124,8 @@ begin
   RChar.guarding := s.ReadByte <> 0;
   RChar.brushes := s.ReadByte;
   RChar.poison := s.ReadByte;
+  RChar.lycan := s.ReadByte <> 0;
+  RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;
 
 function SaveGame(const fn: string): boolean;
@@ -156,6 +159,10 @@ begin
     { location }
     WStr(fs, CurMapName);
     WI32(fs, TileX); WI32(fs, TileY); WI32(fs, FaceDir);
+
+    { clock and moon }
+    WU32(fs, ClockMin);
+    WI32(fs, Round(MoonOffsetDays * 1000.0));
 
     { visited-map snapshots }
     WI32(fs, Length(Snapshots));
@@ -201,6 +208,9 @@ begin
 
     LoadedMapName := RStr(fs);
     LoadedTX := RI32(fs); LoadedTY := RI32(fs); LoadedFace := RI32(fs);
+
+    ClockMin := RU32(fs);
+    MoonOffsetDays := RI32(fs) / 1000.0;
 
     MapStateReset;
     n := RI32(fs);
