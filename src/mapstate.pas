@@ -21,6 +21,9 @@ type
     w, h: longint;
     seen: array of byte;      { w*h visibility states }
     doors: array of byte;     { w*h, 1 = open }
+    isDynamic: boolean;       { generated from a seed, not a pak lump }
+    version: longint;         { generator version it was made with }
+    seed: longword;           { the seed to regenerate it }
   end;
 
 var
@@ -30,6 +33,10 @@ procedure MapStateReset;
 procedure MapStateCapture(const name: string);
 function MapStateRestore(const name: string): boolean;
 function SnapshotIndex(const name: string): longint;
+function MapStateEnsure(const name: string): longint;
+function MapStateGetSeed(const name: string; out version: longint;
+  out seed: longword): boolean;
+procedure MapStateSetDynamic(const name: string; version: longint; seed: longword);
 
 implementation
 
@@ -47,17 +54,55 @@ begin
   SnapshotIndex := -1;
 end;
 
+function MapStateEnsure(const name: string): longint;
+{** Return the snapshot index for name, creating an empty one if needed. }
+begin
+  MapStateEnsure := SnapshotIndex(name);
+  if MapStateEnsure < 0 then begin
+    SetLength(Snapshots, Length(Snapshots) + 1);
+    MapStateEnsure := High(Snapshots);
+    Snapshots[MapStateEnsure].name := name;
+    Snapshots[MapStateEnsure].w := 0;
+    Snapshots[MapStateEnsure].h := 0;
+    Snapshots[MapStateEnsure].seen := nil;
+    Snapshots[MapStateEnsure].doors := nil;
+    Snapshots[MapStateEnsure].isDynamic := false;
+    Snapshots[MapStateEnsure].version := 0;
+    Snapshots[MapStateEnsure].seed := 0;
+  end;
+end;
+
+function MapStateGetSeed(const name: string; out version: longint;
+  out seed: longword): boolean;
+var
+  idx: longint;
+begin
+  MapStateGetSeed := false;
+  version := 0; seed := 0;
+  idx := SnapshotIndex(name);
+  if idx < 0 then exit;
+  if not Snapshots[idx].isDynamic then exit;
+  version := Snapshots[idx].version;
+  seed := Snapshots[idx].seed;
+  MapStateGetSeed := true;
+end;
+
+procedure MapStateSetDynamic(const name: string; version: longint; seed: longword);
+var
+  idx: longint;
+begin
+  idx := MapStateEnsure(name);
+  Snapshots[idx].isDynamic := true;
+  Snapshots[idx].version := version;
+  Snapshots[idx].seed := seed;
+end;
+
 procedure MapStateCapture(const name: string);
 var
   idx, x, y: longint;
 begin
   if name = '' then exit;
-  idx := SnapshotIndex(name);
-  if idx < 0 then begin
-    SetLength(Snapshots, Length(Snapshots) + 1);
-    idx := High(Snapshots);
-    Snapshots[idx].name := name;
-  end;
+  idx := MapStateEnsure(name);
   Snapshots[idx].w := MapW;
   Snapshots[idx].h := MapH;
   SetLength(Snapshots[idx].seen, MapW * MapH);

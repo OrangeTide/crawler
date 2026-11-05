@@ -18,5 +18,6 @@ end
 marker gate 2 2 E
 marker spawn 6 5 N
 portal 10 8 DUNGEON back
+portal 2 8 CAVE start
 npc 4 2 BARKEEP Barkeep
 npc 8 3 ELDER Elder

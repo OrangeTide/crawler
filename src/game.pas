@@ -34,7 +34,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
   rng, rules, items, chardata, party, monsters, combat, flags, dialog,
-  mapstate, save;
+  mapstate, save, worldfmt, mapgen;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -76,19 +76,38 @@ begin
 end;
 
 function LoadMapLump(const name: string): boolean;
-{** Decode a map lump into the world, capturing the map being left and
-  restoring any saved fog and doors for the one being entered. }
+{** Bring a map into the world. A static map is decoded from its pak
+  lump; a dynamic map is generated from its stored or a fresh seed. The
+  map being left is captured, and the one entered has its fog and doors
+  restored. }
 var
   blob: TByteArray;
   md: TMapData;
+  di, ver: longint;
+  seed: longword;
+  isDyn: boolean;
 begin
   LoadMapLump := false;
-  if not PakGet(GamePak, name, blob) then exit;
-  if not DecodeMap(blob, md) then exit;
+  ver := 0; seed := 0; isDyn := false;
+  if PakGet(GamePak, name, blob) then begin
+    if not DecodeMap(blob, md) then exit;
+  end else begin
+    di := DynIndex(name);
+    if di < 0 then exit;
+    isDyn := true;
+    if not MapStateGetSeed(name, ver, seed) then begin
+      ver := GEN_VERSION;
+      seed := RngNext(GameRng);
+      if seed = 0 then seed := 1;
+    end;
+    md := GenerateMap(DynMaps[di], ver, seed);
+  end;
   if CurMapName <> '' then
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;
   CurMapName := name;
+  if isDyn then
+    MapStateSetDynamic(name, ver, seed);
   MapStateRestore(name);     { bring back fog and doors if visited before }
   LoadMapLump := true;
 end;
@@ -836,6 +855,7 @@ begin
     exit;
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
+  LoadWorld(GamePak);     { optional; dynamic-map manifest }
 
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;

@@ -42,6 +42,9 @@ filtering, the same way the game presents it.
   game now starts in a town hub with a barkeep and an elder.
 - Save and load, including the party, gold, flags, journal, position and the
   explored fog of every visited map, from the title screen or F5 and F9.
+- Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The
+  version and seed are stored in the save, so a level regenerates identically
+  and its explored fog persists across visits.
 
 ## Controls
 
@@ -102,8 +105,11 @@ make clean  # removes the build directory
 | `src/flags.pas` | Story flags and the quest journal. |
 | `src/dialog.pas` | Conversation data, decoder and runtime. |
 | `src/dialogtext.pas` | Parser for the text conversation format. |
-| `src/mapstate.pas` | Per-map fog and door snapshots across visits. |
+| `src/mapstate.pas` | Per-map fog, door and seed snapshots across visits. |
 | `src/save.pas` | Save and load of the whole game to a file. |
+| `src/worldfmt.pas` | Dynamic-map manifest table and codec. |
+| `src/worldtext.pas` | Parser for the dynamic-map manifest. |
+| `src/mapgen.pas` | Seeded roguelike generators (rooms, cave, maze). |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

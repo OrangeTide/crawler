@@ -1,0 +1,6 @@
+# Dynamic (generated) maps.
+# dynmap NAME GEN W H DEPTH RETMAP RETMARKER
+# GEN: rooms cave maze. The exit portal returns to RETMAP at RETMARKER.
+dynmap CAVE     cave  36 36 3 TOWN    gate
+dynmap CATACOMB rooms 28 28 2 DUNGEON back
+dynmap MAZE     maze  25 25 4 DUNGEON back

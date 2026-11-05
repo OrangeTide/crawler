@@ -33,3 +33,5 @@ end
 marker start 2 1 E
 marker back 5 1 E
 portal 4 1 TOWN gate
+portal 11 7 CATACOMB start
+portal 13 7 MAZE start

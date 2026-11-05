@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 1;
+  SAVE_VERSION = 2;
 
 var
   LoadedMapName: string;
@@ -160,6 +160,9 @@ begin
     for i := 0 to High(Snapshots) do begin
       WStr(fs, Snapshots[i].name);
       WI32(fs, Snapshots[i].w); WI32(fs, Snapshots[i].h);
+      fs.WriteByte(ord(Snapshots[i].isDynamic));
+      WI32(fs, Snapshots[i].version);
+      WU32(fs, Snapshots[i].seed);
       for j := 0 to Snapshots[i].w * Snapshots[i].h - 1 do
         fs.WriteByte(Snapshots[i].seen[j]);
       for j := 0 to Snapshots[i].w * Snapshots[i].h - 1 do
@@ -203,6 +206,9 @@ begin
     for i := 0 to n - 1 do begin
       Snapshots[i].name := RStr(fs);
       Snapshots[i].w := RI32(fs); Snapshots[i].h := RI32(fs);
+      Snapshots[i].isDynamic := fs.ReadByte <> 0;
+      Snapshots[i].version := RI32(fs);
+      Snapshots[i].seed := RU32(fs);
       cells := Snapshots[i].w * Snapshots[i].h;
       SetLength(Snapshots[i].seen, cells);
       SetLength(Snapshots[i].doors, cells);

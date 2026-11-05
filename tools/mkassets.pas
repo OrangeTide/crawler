@@ -14,7 +14,8 @@ program mkassets;
 
 uses
   sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
-  monsters, montext, chardata, chartext, dialog, dialogtext;
+  monsters, montext, chardata, chartext, dialog, dialogtext,
+  worldfmt, worldtext;
 
 var
   w: TPakWriter;
@@ -149,6 +150,22 @@ begin
   writeln('  dialogs (', n, ') from ', fn);
 end;
 
+procedure AddWorld(const fn: string);
+var
+  d: array[0 .. 63] of TDynMap;
+  dyn: array of TDynMap;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseWorld(fn, d, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := d[k];
+  PakWAdd(w, 'WRLD', EncodeWorld(dyn));
+  writeln('  world (', n, ' dynamic maps) from ', fn);
+end;
+
 var
   i: longint;
 begin
@@ -182,6 +199,8 @@ begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'world' then begin
+      AddWorld(ParamStr(i + 1)); inc(i, 2);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);
