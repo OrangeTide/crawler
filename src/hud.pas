@@ -95,7 +95,9 @@ begin
   if vis = VIS_UNSEEN then exit;
   dim := vis = VIS_REMEMBERED;
   t := TileAt(tx, ty);
-  if t = TILE_DOOR then begin
+  if IsPortalTile(tx, ty) then
+    col := RGB(80, 200, 255)          { exits stand out on the map }
+  else if t = TILE_DOOR then begin
     if DoorOpen[ty][tx] then col := RGB(60, 120, 50)
     else col := RGB(175, 125, 45);
   end else if t = 0 then

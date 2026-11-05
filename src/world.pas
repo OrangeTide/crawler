@@ -47,6 +47,7 @@ var
   Map: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   DoorOpen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
   Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
+  PortalMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of boolean;
   MapW, MapH: longint;
   CurMap: TMapData;
   CurMapName: string;
@@ -70,6 +71,7 @@ procedure ToggleDoor(tx, ty: longint);
 procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
+function IsPortalTile(mx, my: longint): boolean;
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
 procedure ForwardDelta(out dx, dy: longint);
@@ -154,7 +156,7 @@ end;
 
 function LoadMapData(const m: TMapData): boolean;
 var
-  x, y: longint;
+  x, y, px, py: longint;
 begin
   LoadMapData := false;
   if (m.w <= 0) or (m.h <= 0) or (m.w > MAXMAP) or (m.h > MAXMAP) then
@@ -167,11 +169,26 @@ begin
       Map[y][x] := 1;
       DoorOpen[y][x] := false;
       Seen[y][x] := VIS_UNSEEN;
+      PortalMask[y][x] := false;
     end;
   for y := 0 to MapH - 1 do
     for x := 0 to MapW - 1 do
       Map[y][x] := m.walls[y * MapW + x];
+  for x := 0 to High(m.portals) do begin
+    px := m.portals[x].x;
+    py := m.portals[x].y;
+    if (px < MapW) and (py < MapH) then
+      PortalMask[py][px] := true;
+  end;
   LoadMapData := true;
+end;
+
+function IsPortalTile(mx, my: longint): boolean;
+begin
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
+    IsPortalTile := false
+  else
+    IsPortalTile := PortalMask[my][mx];
 end;
 
 procedure PlaceAtMarker(const name: string);

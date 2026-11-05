@@ -638,54 +638,120 @@ end;
 const
   BAND_LABEL: array[0 .. 2] of string = ('ENGAGED', 'NEAR', 'FAR');
 
+const
+  FOE_PAL: array[0 .. 5] of TColor = (
+    TColor($FFB05545), TColor($FF6E9E57), TColor($FF5A86B0),
+    TColor($FF9A6FB0), TColor($FF7FA0A0), TColor($FFB0923C));
+
+procedure DrawBar(x, y, w, h, cur, max: longint; fillc, backc: TColor);
+var
+  fw: longint;
+begin
+  FillRect(x, y, w, h, backc);
+  if max > 0 then begin
+    fw := (w * cur) div max;
+    if fw < 0 then fw := 0;
+    if fw > w then fw := w;
+    if (fw = 0) and (cur > 0) then fw := 1;
+    FillRect(x, y, fw, h, fillc);
+  end;
+  FrameRect(x, y, w, h, RGB(0, 0, 0));
+end;
+
+procedure DrawFoeGlyph(cx, cy, w, h: longint; body: TColor);
+var
+  hw, hh: longint;
+begin
+  hw := w div 2; hh := h div 2;
+  { a rounded blob from stacked rectangles }
+  FillRect(cx - hw + 2, cy - hh,     w - 4, h,     body);
+  FillRect(cx - hw,     cy - hh + 3, w,     h - 6, body);
+  FillRect(cx - hw + 3, cy + 2,      w - 6, hh - 3, Shade(body, 150));
+  { eyes }
+  FillRect(cx - hw + 6, cy - hh + 6, 4, 5, RGB(240, 240, 230));
+  FillRect(cx + hw - 10, cy - hh + 6, 4, 5, RGB(240, 240, 230));
+  PutPixel(cx - hw + 7, cy - hh + 8, RGB(20, 20, 20));
+  PutPixel(cx + hw - 9, cy - hh + 8, RGB(20, 20, 20));
+end;
+
 procedure CombatRender;
 var
-  i, y: longint;
-  c: TColor;
+  i, n, living, slot, cx, cy, y, x: longint;
+  c, body: TColor;
   s: string;
 begin
-  ClearFB(RGB(10, 8, 12));
-  DrawText(12, 8, 'COMBAT', RGB(220, 160, 120));
-  DrawText(FBW - 120, 8, 'RANGE: ' + BAND_LABEL[Band], RGB(180, 180, 140));
+  { backdrop: a dim vault over a lit floor with a horizon seam }
+  FillRect(0, 0, FBW, 116, RGB(20, 17, 26));
+  FillRect(0, 116, FBW, FBH - 116, RGB(40, 32, 27));
+  FillRect(0, 114, FBW, 2, RGB(62, 52, 46));
 
-  { party }
-  y := 26;
-  for i := 0 to High(Roster) do begin
-    if (i = CurActor) and (not CombatOver) then
-      DrawText(8, y, '>', RGB(240, 230, 150));
-    if not Roster[i].alive then c := RGB(110, 60, 60)
-    else if Roster[i].downed then c := RGB(150, 110, 70)
-    else c := RGB(200, 210, 190);
-    s := Roster[i].name + ' ' + IntToStr(Roster[i].hp) + '/'
-      + IntToStr(Roster[i].hpMax);
-    if not Roster[i].alive then s := s + ' SLAIN'
-    else if Roster[i].downed then s := s + ' DOWN'
-    else if Roster[i].guarding then s := s + ' GUARD';
-    DrawText(16, y, s, c);
-    inc(y, 11);
-  end;
+  { title bar }
+  FillRect(0, 0, FBW, 14, RGB(30, 12, 12));
+  FrameRect(0, 0, FBW, 14, RGB(90, 40, 30));
+  DrawText(8, 3, 'COMBAT', RGB(230, 170, 120));
+  DrawText(FBW - 104, 3, 'RANGE ' + BAND_LABEL[Band], RGB(190, 180, 140));
 
-  { foes }
-  y := 26;
+  { foes across the upper band, each a glyph with a name and HP bar }
+  living := 0;
+  for i := 0 to High(Foes) do if Foes[i].alive then inc(living);
+  if living < 1 then living := 1;
+  slot := FBW div living;
+  n := 0;
   for i := 0 to High(Foes) do begin
     if not Foes[i].alive then continue;
-    if i = CurTarget then
-      DrawText(FBW - 128, y, '*', RGB(240, 120, 120));
-    DrawText(FBW - 120, y, MonDefs[Foes[i].def].name + ' '
-      + IntToStr(Foes[i].hp), RGB(210, 170, 160));
-    inc(y, 11);
+    cx := slot * n + slot div 2;
+    cy := 66;
+    body := FOE_PAL[Foes[i].def mod 6];
+    if (i = CurTarget) and (not CombatOver) then begin
+      FrameRect(cx - 21, cy - 23, 42, 50, RGB(240, 220, 120));
+      DrawText(cx - 2, cy - 33, '*', RGB(240, 220, 120));
+    end;
+    DrawFoeGlyph(cx, cy, 30, 30, body);
+    s := MonDefs[Foes[i].def].name;
+    DrawText(cx - Length(s) * 3, cy - 22, s, RGB(215, 185, 175));
+    DrawBar(cx - 16, cy + 20, 32, 4, Foes[i].hp, Foes[i].hpMax,
+      RGB(200, 80, 70), RGB(50, 24, 24));
+    inc(n);
   end;
 
-  { log }
+  { message log panel }
+  FillRectBlend(6, 122, FBW - 12, 50, RGB(8, 8, 12), 210);
+  FrameRect(6, 122, FBW - 12, 50, RGB(60, 56, 48));
   for i := 0 to LOG_LINES - 1 do
-    DrawText(12, FBH - 70 + i * 10, Log[i], RGB(160, 170, 150));
+    DrawText(12, 126 + i * 9, Log[i], RGB(170, 180, 160));
 
-  if CombatOver then
-    DrawCenter(FBH - 12, 'PRESS A KEY', RGB(230, 220, 150))
-  else
-    DrawText(12, FBH - 12,
-      'A ATTACK  G GUARD  F ADVANCE  R WITHDRAW  P POTION  TAB TARGET',
-      RGB(140, 150, 120));
+  { party panel }
+  n := Length(Roster);
+  y := 182;
+  FillRectBlend(6, y - 4, FBW - 12, 48, RGB(14, 12, 18), 220);
+  FrameRect(6, y - 4, FBW - 12, 48, RGB(70, 64, 54));
+  if n < 1 then slot := FBW - 16 else slot := (FBW - 16) div n;
+  for i := 0 to n - 1 do begin
+    x := 12 + i * slot;
+    if (i = CurActor) and (not CombatOver) then
+      FrameRect(x - 4, y - 4, slot, 44, RGB(240, 230, 150));
+    if not Roster[i].alive then c := RGB(160, 80, 80)
+    else if Roster[i].downed then c := RGB(175, 135, 85)
+    else c := RGB(205, 210, 190);
+    DrawText(x, y, Copy(Roster[i].name, 1, 8), c);
+    DrawText(x, y + 10, IntToStr(Roster[i].hp) + '/'
+      + IntToStr(Roster[i].hpMax), RGB(170, 175, 160));
+    DrawBar(x, y + 20, slot - 12, 4, Roster[i].hp, Roster[i].hpMax,
+      RGB(70, 170, 70), RGB(40, 20, 20));
+    if not Roster[i].alive then DrawText(x, y + 27, 'SLAIN', RGB(190, 90, 90))
+    else if Roster[i].downed then DrawText(x, y + 27, 'DOWN', RGB(190, 140, 90))
+    else if Roster[i].guarding then DrawText(x, y + 27, 'GUARD', RGB(150, 170, 210));
+  end;
+
+  { status or command hints }
+  if CombatOver then begin
+    if Victory then s := 'VICTORY - PRESS A KEY'
+    else if Fled then s := 'YOU ESCAPED - PRESS A KEY'
+    else s := 'DEFEAT - PRESS A KEY';
+    DrawCenter(232, s, RGB(235, 220, 150));
+  end else
+    DrawCenter(232, 'A ATK  G GUARD  F ADV  R FLEE  P POTION  TAB TARGET',
+      RGB(150, 160, 120));
 end;
 
 procedure CombatKeyDown(scancode: longint);

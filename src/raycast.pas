@@ -23,6 +23,7 @@ const
   { Fog: surfaces fully lit up to NEAR, fading to black at FAR tiles. }
   FOG_NEAR = 1.5;
   FOG_FAR  = 9.0;
+  PORTAL_GLOW = $FF50C8FF;   { cyan pad drawn on portal tiles }
 
 function FogFactor(dist: double): longint;
 {** Maps a distance to a 0..256 brightness scale for Shade. }
@@ -99,15 +100,18 @@ begin
     for x := 0 to FBW - 1 do begin
       tx := trunc(floorX * TEXW) and (TEXW - 1);
       ty := trunc(floorY * TEXH) and (TEXH - 1);
-      floorX := floorX + stepX;
-      floorY := floorY + stepY;
       if isFloor then begin
         cF := Shade(Tex[texId][ty * TEXW + tx], fog);
+        { a glowing pad marks a portal tile so exits read in the scene }
+        if IsPortalTile(trunc(floorX), trunc(floorY)) then
+          cF := MixColor(cF, Shade(PORTAL_GLOW, fog), 150);
         FB[y * FBW + x] := cF;
       end else begin
         cC := Shade(Tex[texId][ty * TEXW + tx], fog);
         FB[y * FBW + x] := cC;
       end;
+      floorX := floorX + stepX;
+      floorY := floorY + stepY;
     end;
   end;
 end;

@@ -30,6 +30,7 @@ type
   TFoe = record
     def: longint;
     hp: smallint;
+    hpMax: smallint;
     alive: boolean;
   end;
 
@@ -156,6 +157,7 @@ begin
     Foes[i].def := pick;
     Foes[i].hp := RngRoll(GameRng, MonDefs[pick].hd, 8);
     if Foes[i].hp < 1 then Foes[i].hp := 1;
+    Foes[i].hpMax := Foes[i].hp;
     Foes[i].alive := true;
   end;
   Band := BAND_NEAR;

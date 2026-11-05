@@ -24,6 +24,7 @@ var
 
 function RGB(r, g, b: byte): TColor; inline;
 function Shade(c: TColor; f: longint): TColor; inline;
+function MixColor(a, b: TColor; t: longint): TColor; inline;
 procedure ClearFB(c: TColor);
 procedure PutPixel(x, y: longint; c: TColor); inline;
 procedure FillRect(x, y, w, h: longint; c: TColor);
@@ -53,6 +54,21 @@ begin
   g := ((c shr 8) and $FF) * f shr 8;
   b := (c and $FF) * f shr 8;
   Shade := TColor($FF000000) or (TColor(r) shl 16) or (TColor(g) shl 8) or TColor(b);
+end;
+
+function MixColor(a, b: TColor; t: longint): TColor;
+{** Blend b into a by t/256, opaque result. t is clamped to 0..256. }
+var
+  ar, ag, ab, br, bg, bb: longint;
+begin
+  if t < 0 then t := 0;
+  if t > 256 then t := 256;
+  ar := (a shr 16) and $FF; ag := (a shr 8) and $FF; ab := a and $FF;
+  br := (b shr 16) and $FF; bg := (b shr 8) and $FF; bb := b and $FF;
+  MixColor := TColor($FF000000)
+    or (TColor(ar + ((br - ar) * t shr 8)) shl 16)
+    or (TColor(ag + ((bg - ag) * t shr 8)) shl 8)
+    or TColor(ab + ((bb - ab) * t shr 8));
 end;
 
 procedure ClearFB(c: TColor);
