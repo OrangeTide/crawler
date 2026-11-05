@@ -11,7 +11,7 @@ uses
 var
   p: TPak;
   ab: TAbilityScores;
-  i, enc, rounds, maxRounds, wins, losses, who: longint;
+  i, enc, rounds, maxRounds, wins, losses: longint;
   allTerminate: boolean;
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -36,13 +36,15 @@ begin
     { rotate through the eight area masks so every per-area roster fights }
     StartRandomEncounter(1 + enc mod 8, 1 shl (enc mod 8));
     rounds := 0;
+    CombatSettle;   { the foe side may win initiative and open the fight }
     while (not CombatOver) and (rounds < 4000) do begin
+      if CombatBusy then begin CombatSettle; continue; end;
       if CurActor < 0 then break;      { would be a stall, caught below }
-      who := CurActor;
       ActAttack;
       { a back-rank melee actor has no reach and ActAttack does not spend
         the turn; guard instead so the round advances }
-      if (not CombatOver) and (CurActor = who) then ActGuard;
+      if (CombatPhase = CP_INPUT) and (not CombatOver) then ActGuard;
+      CombatSettle;   { run the beat and any foe turn to the next input }
       inc(rounds);
     end;
     if rounds > maxRounds then maxRounds := rounds;

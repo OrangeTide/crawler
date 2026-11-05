@@ -86,6 +86,28 @@ procedure ActFlee;
 procedure ActPotion;
 procedure NextTarget;
 
+{ ---- turn pacing ---- }
+const
+  CP_INPUT = 0;   { a party member awaits the player's command }
+  CP_BEAT  = 1;   { a short pause after an action resolves }
+  CP_ENEMY = 2;   { the foe side is acting, one at a time }
+  CP_DONE  = 3;   { combat has ended }
+
+var
+  CombatPhase: longint;
+
+{ Advance the combat clock; the game calls this each frame while fighting.
+  It paces the pause after an action and the foe side's turn. }
+procedure CombatUpdate(dt: double);
+
+{ True while combat resolves on its own (a beat or the foe turn), so the
+  game ignores input until the next party member is ready. }
+function CombatBusy: boolean;
+
+{ For headless tests: run the clock until a member is ready or the fight
+  ends, instead of ticking real frames. }
+procedure CombatSettle;
+
 { ---- abilities ---- }
 function SpellCount: longint;
 function SpellInfo(i: longint): TSpell;
@@ -100,7 +122,10 @@ var
 implementation
 
 var
-  enemyActed: boolean;
+  enemyActed: boolean;     { has the foe side swung this round }
+  enemyThenParty: boolean; { foes won initiative, so the party follows them }
+  enemyIdx: longint;       { scan cursor through the foes this phase }
+  CombatTimer: double;     { seconds left in the current beat }
 
 { ---- logging ---- }
 
@@ -184,30 +209,106 @@ begin
     end;
 end;
 
-procedure CheckEnd; forward;
-procedure ProcessEnemyPhase; forward;
-procedure NewRound; forward;
+const
+  BEAT_TIME  = 0.45;   { pause after an action before the next step }
+  ENEMY_STEP = 0.55;   { pause between one foe's swing and the next }
 
-procedure AdvancePartyActor;
-{** Move to the next conscious member, or hand off to the foe side. }
+procedure CheckEnd; forward;
+procedure NewRound; forward;
+procedure StartPartyTurn; forward;
+procedure BeginEnemyPhase(thenParty: boolean); forward;
+function StepEnemyPhase: boolean; forward;
+procedure MoraleCheck; forward;
+
+{ End the acting member's turn: resolve any ending, then hold a beat so
+  the result reads before the next step. }
+procedure EndPartyAction;
+begin
+  CheckEnd;
+  if CombatOver then begin CombatPhase := CP_DONE; exit; end;
+  CombatPhase := CP_BEAT;
+  CombatTimer := BEAT_TIME;
+end;
+
+{ After the beat: move to the next conscious member, or hand to the foe
+  side (or open the next round if the foes already swung this round). }
+procedure AdvanceAfterPartyAction;
 var
   nxt: longint;
 begin
-  if CombatOver then exit;
   nxt := NextLivingActor(CurActor + 1);
   if nxt >= 0 then begin
     CurActor := nxt;
-    Roster[CurActor].guarding := false;   { their guard covered the last round }
+    Roster[CurActor].guarding := false;
+    CombatPhase := CP_INPUT;
     exit;
   end;
-  { party side finished }
-  if not enemyActed then begin
-    ProcessEnemyPhase;
-    enemyActed := true;
+  if enemyActed then NewRound        { foes already swung this round }
+  else BeginEnemyPhase(false);       { party went first, foes now }
+end;
+
+procedure StartPartyTurn;
+begin
+  CurActor := FirstConscious;
+  if CurActor >= 0 then begin
+    Roster[CurActor].guarding := false;
+    CombatPhase := CP_INPUT;
+  end else begin
+    CheckEnd;
+    if not CombatOver then NewRound else CombatPhase := CP_DONE;
   end;
+end;
+
+procedure BeginEnemyPhase(thenParty: boolean);
+begin
+  enemyThenParty := thenParty;
+  enemyIdx := 0;
+  CombatPhase := CP_ENEMY;
+  CombatTimer := BEAT_TIME;
+end;
+
+{ Called once the foe side is spent: morale, end check, then control back
+  to the party or on to the next round. }
+procedure EndEnemyPhase;
+begin
+  if (LivingFoes > 0) and (LivingFoes <= Length(Foes) div 2) then MoraleCheck;
+  enemyActed := true;
   CheckEnd;
-  if not CombatOver then
-    NewRound;
+  if CombatOver then begin CombatPhase := CP_DONE; exit; end;
+  if enemyThenParty then StartPartyTurn   { foes went first; party acts now }
+  else NewRound;                          { foes went last; round over }
+end;
+
+function CombatBusy: boolean;
+begin
+  CombatBusy := (not CombatOver) and (CombatPhase <> CP_INPUT);
+end;
+
+procedure CombatUpdate(dt: double);
+begin
+  if CombatOver then begin CombatPhase := CP_DONE; exit; end;
+  if CombatTimer > 0 then begin
+    CombatTimer := CombatTimer - dt;
+    if CombatTimer > 0 then exit;
+    CombatTimer := 0;
+  end;
+  case CombatPhase of
+    CP_BEAT: AdvanceAfterPartyAction;
+    CP_ENEMY:
+      if StepEnemyPhase then CombatTimer := ENEMY_STEP
+      else EndEnemyPhase;
+  end;
+end;
+
+procedure CombatSettle;
+var
+  guard: longint;
+begin
+  guard := 0;
+  while CombatBusy and (guard < 100000) do begin
+    CombatUpdate(1.0);
+    inc(guard);
+  end;
 end;
 
 { ---- setup ---- }
@@ -280,15 +381,8 @@ begin
   pInit := D(6);
   fInit := D(6);
   CurTarget := FirstLivingFoe;
-  if fInit > pInit then begin
-    ProcessEnemyPhase;
-    enemyActed := true;
-    CheckEnd;
-    if CombatOver then exit;
-  end;
-  CurActor := FirstConscious;
-  if CurActor >= 0 then
-    Roster[CurActor].guarding := false;
+  if fInit > pInit then BeginEnemyPhase(true)   { foes win initiative }
+  else StartPartyTurn;
 end;
 
 { ---- resolution ---- }
@@ -392,23 +486,25 @@ begin
   if n > 0 then PickPartyTarget := pool[Range(0, n - 1)];
 end;
 
-procedure ProcessEnemyPhase;
+{ Resolve the next foe that can act, advancing the scan cursor. Returns
+  true when one acted (so the caller paces a beat), false when the foe
+  side is spent. A back-rank melee foe is skipped without burning a beat. }
+function StepEnemyPhase: boolean;
 var
   i, tgt, roll, dmg, effAC: longint;
-  total: longint;
   ranged: boolean;
 begin
-  if LivingFoes = 0 then exit;
-
-  total := Length(Foes);
-  for i := 0 to High(Foes) do begin
+  StepEnemyPhase := false;
+  while enemyIdx <= High(Foes) do begin
+    i := enemyIdx;
+    inc(enemyIdx);
     if not Foes[i].alive then continue;
-    if FirstConscious < 0 then break;
+    if FirstConscious < 0 then exit;      { nobody left to strike }
     ranged := (MonDefs[Foes[i].def].flags and MF_RANGED) <> 0;
     { a back-rank melee foe cannot reach until the front rank falls }
     if (not ranged) and (Foes[i].rank <> FrontFoeRank) then continue;
     tgt := PickPartyTarget(ranged);
-    if tgt < 0 then break;
+    if tgt < 0 then exit;
     roll := D(20);
     effAC := CharAC(Roster[tgt]);
     if Roster[tgt].guarding then effAC := effAC + 2;   { parry }
@@ -431,12 +527,9 @@ begin
       end;
     end else
       CombatLog(MonDefs[Foes[i].def].name + ' misses ' + Roster[tgt].name + '.');
-    if FirstConscious < 0 then break;
+    StepEnemyPhase := true;
+    exit;
   end;
-
-  { morale once the group is bloodied }
-  if (LivingFoes > 0) and (LivingFoes <= total div 2) then
-    MoraleCheck;
 end;
 
 procedure CheckEnd;
@@ -470,7 +563,7 @@ end;
 
 procedure ActAttack;
 begin
-  if CombatOver or (CurActor < 0) then exit;
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   if not FoeReachable(CurActor, CurTarget) then
     CurTarget := FirstReachable(CurActor);
   if CurTarget < 0 then begin
@@ -480,31 +573,31 @@ begin
   ResolvePartyAttack(CurActor, CurTarget);
   if (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
     CurTarget := FirstLivingFoe;
-  CheckEnd;
-  AdvancePartyActor;
+  EndPartyAction;
 end;
 
 procedure ActGuard;
 begin
-  if CombatOver or (CurActor < 0) then exit;
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   Roster[CurActor].guarding := true;
   CombatLog(Roster[CurActor].name + ' takes a guarded stance.');
-  AdvancePartyActor;
+  EndPartyAction;
 end;
 
 procedure ActFlee;
 begin
-  if CombatOver or (CurActor < 0) then exit;
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   { a scramble to break off: succeeds on better than a coin toss, else the
     turn is lost and the enemy gets their swing }
   if D(6) >= 3 then begin
     CombatOver := true;
     Victory := false;
     Fled := true;
+    CombatPhase := CP_DONE;
     CombatLog('The party breaks off and flees.');
   end else begin
     CombatLog(Roster[CurActor].name + ' fails to break away.');
-    AdvancePartyActor;
+    EndPartyAction;
   end;
 end;
 
@@ -513,7 +606,7 @@ var
   i, heal: longint;
   pidx: longint;
 begin
-  if CombatOver or (CurActor < 0) then exit;
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   pidx := ItemIndex('POTION');
   for i := 0 to High(Roster[CurActor].pack) do
     if (Roster[CurActor].pack[i].def = pidx) and (Roster[CurActor].pack[i].qty > 0) then
@@ -525,7 +618,7 @@ begin
         Roster[CurActor].hp := Roster[CurActor].hpMax;
       CombatLog(Roster[CurActor].name + ' drinks a potion (+'
         + IntToStr(heal) + ').');
-      AdvancePartyActor;
+      EndPartyAction;
       exit;
     end;
   CombatLog('No potion to drink.');
@@ -587,7 +680,7 @@ var
   sp: TSpell;
   amt, m, i, rk: longint;
 begin
-  if CombatOver or (CurActor < 0) then exit;
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   if not ActorCanCast(CurActor, spellIdx) then begin
     CombatLog(Roster[CurActor].name + ' cannot cast that.');
     exit;
@@ -600,14 +693,14 @@ begin
     TGT_ENEMY: begin
       if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
         target := FirstLivingFoe;
-      if target < 0 then begin AdvancePartyActor; exit; end;
+      if target < 0 then begin EndPartyAction; exit; end;
       CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
       DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m);
     end;
     TGT_ENEMY_RANK: begin
       if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
         target := FirstLivingFoe;
-      if target < 0 then begin AdvancePartyActor; exit; end;
+      if target < 0 then begin EndPartyAction; exit; end;
       rk := Foes[target].rank;
       CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
       for i := 0 to High(Foes) do
@@ -633,8 +726,7 @@ begin
     end;
   end;
 
-  CheckEnd;
-  AdvancePartyActor;
+  EndPartyAction;
 end;
 
 procedure NextTarget;

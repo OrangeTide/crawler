@@ -905,12 +905,18 @@ begin
   FillRectBlend(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(6, 8, 14), 235);
   FrameRect(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(150, 140, 90));
 
-  { the window belongs to the acting character, named across its head }
-  if CurActor >= 0 then
+  { the window belongs to the acting character, named across its head;
+    on a beat or the foe turn it stands by with no list }
+  if (CombatPhase = CP_INPUT) and (CurActor >= 0) then
     DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Roster[CurActor].name, 1, 12),
-      RGB(245, 230, 140));
+      RGB(245, 230, 140))
+  else if CombatPhase = CP_ENEMY then
+    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, 'FOE TURN', RGB(210, 150, 140))
+  else
+    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, '...', RGB(150, 150, 130));
   FillRect(CMDBOX_X + 4, CMDBOX_Y + 16, CMDBOX_W - 8, 1, RGB(90, 84, 56));
   y0 := CMDBOX_Y + 21;
+  if CombatPhase <> CP_INPUT then exit;   { no interactive list while busy }
 
   case cbMenu of
     CB_COMMAND:
@@ -1008,7 +1014,7 @@ begin
       DrawBar(cx - 16, cy + half + 1, 32, 3, Foes[i].hp, Foes[i].hpMax,
         RGB(200, 80, 70), RGB(50, 24, 24));
       { the aim chevron sits to the left of the chosen foe }
-      if (i = CurTarget) and (not CombatOver) and (cbMenu <> CB_ALLY) then
+      if (i = CurTarget) and (CombatPhase = CP_INPUT) and (cbMenu <> CB_ALLY) then
         DrawText(cx - half - 10, cy - 3, '>', RGB(245, 225, 120));
       inc(col);
     end;
@@ -1031,13 +1037,13 @@ begin
     for i := 0 to n - 1 do begin
       if Roster[i].rank <> rk then continue;
       x := 16 + col * slot;
-      if (i = CurActor) and (not CombatOver) then
+      if (i = CurActor) and (CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(245, 230, 140));
-      if (cbMenu = CB_ALLY) and (i = allySel) and (not CombatOver) then
+      if (cbMenu = CB_ALLY) and (i = allySel) and (CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(120, 220, 200));
       if not Roster[i].alive then c := RGB(160, 80, 80)
       else if Roster[i].downed then c := RGB(175, 135, 85)
-      else if (i = CurActor) and (not CombatOver) then c := RGB(245, 230, 140)
+      else if (i = CurActor) and (CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
       DrawText(x, ny, Copy(Roster[i].name, 1, 8), c);
       if not Roster[i].alive then
@@ -1228,7 +1234,7 @@ begin
     EndCombat;
     exit;
   end;
-  if CurActor < 0 then exit;
+  if CombatBusy or (CurActor < 0) then exit;   { a beat or the foe turn is running }
 
   case cbMenu of
     CB_COMMAND:
@@ -1651,19 +1657,19 @@ begin
   end;
 end;
 
-procedure CombatAutoTurn;
-{** A transformed were-character has lost control: on its turn it simply
-  attacks, with no waiting for player input. }
-var
-  guard: longint;
+procedure CombatAutoTurn(dt: double);
+{** Advance the combat clock, then, if the member now up has lost control
+  to the were-beast, take its turn for it. Pacing handles the rest. }
 begin
-  guard := 0;
-  while (not CombatOver) and (CurActor >= 0) and (CurActor <= High(Roster))
+  CombatUpdate(dt);
+  if (CombatPhase = CP_INPUT) and (not CombatOver)
+    and (CurActor >= 0) and (CurActor <= High(Roster))
     and Roster[CurActor].wereform and Roster[CurActor].alive
-    and (not Roster[CurActor].downed) and (guard < 16) do begin
+    and (not Roster[CurActor].downed) then begin
     ActAttack;
     PlaySfx(SFX_HIT);
-    inc(guard);
+    { back-rank with nothing in reach: guard so the turn still passes }
+    if (CombatPhase = CP_INPUT) and (not CombatOver) then ActGuard;
   end;
 end;
 
@@ -1672,7 +1678,7 @@ begin
   UpdateLycanthropy;   { the moon acts in every state }
   case State of
     gsExplore: ExploreUpdate(dt);
-    gsCombat:  CombatAutoTurn;
+    gsCombat:  CombatAutoTurn(dt);
   end;
 end;
 
