@@ -19,4 +19,9 @@ For a texture embedded in a GLB, extract it first:
     assimp extract SOURCE.glb tmp
     convert tmp_img0.png -resize 128x128\! -depth 8 NAME.ppm
 
+These OBJ sources keep their full detail. The baker runs a triangle
+budget pass when it builds the pak, clustering vertices to bring any
+heavy mesh down to the target ceiling for the PSX and DOS targets, so
+the sources stay high resolution while the shipped lumps stay small.
+
 The models are public domain (CC0); nothing here carries a license header.

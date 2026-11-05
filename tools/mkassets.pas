@@ -153,14 +153,21 @@ end;
 procedure AddModel(const name, objFn, ppmFn: string);
 var
   mesh: TMesh;
+  before, after: longint;
 begin
   if not LoadMeshObjPpm(objFn, ppmFn, mesh) then begin
     writeln(StdErr, 'mkassets: model ', name, ': cannot bake ', objFn, ' / ', ppmFn);
     halt(1);
   end;
+  before := Length(mesh.verts) div 3;
+  after := DecimateMesh(mesh, MESH_TRI_BUDGET);
   PakWAdd(w, UpperCase(name), EncodeMesh(mesh));
-  writeln('  model ', UpperCase(name), ' (', Length(mesh.verts) div 3, ' tris, ',
-    mesh.texW, 'x', mesh.texH, ') from ', objFn);
+  if after < before then
+    writeln('  model ', UpperCase(name), ' (', after, ' tris, cut from ',
+      before, ', ', mesh.texW, 'x', mesh.texH, ') from ', objFn)
+  else
+    writeln('  model ', UpperCase(name), ' (', after, ' tris, ',
+      mesh.texW, 'x', mesh.texH, ') from ', objFn);
 end;
 
 procedure AddWorld(const fn: string);

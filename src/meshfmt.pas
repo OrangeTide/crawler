@@ -25,6 +25,10 @@ const
   MESH_MAGIC   = $48534D43;   { 'CMSH' little-endian }
   MESH_VERSION = 1;
 
+  { default triangle ceiling for a baked model, sized for the PSX and
+    DOS targets; the baker reduces anything heavier to fit }
+  MESH_TRI_BUDGET = 600;
+
 type
   { pin this to pak's dynamic byte array; sysutils exposes a static
     TByteArray that would otherwise shadow it in the implementation }
@@ -47,6 +51,11 @@ function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
 { Offline baker: read an OBJ and a binary PPM, quantize the texture to
   the game palette (InitGfx must have run), and build the mesh. }
 function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
+
+{ Offline baker: reduce a mesh to at most maxTris triangles by clustering
+  vertices onto a spatial grid. A mesh already within budget is left as
+  is. Returns the triangle count after the pass. }
+function DecimateMesh(var m: TMesh; maxTris: longint): longint;
 
 implementation
 
@@ -255,6 +264,136 @@ begin
     m.verts[i].y := m.verts[i].y - cy;
     m.verts[i].z := m.verts[i].z - minz;
   end;
+end;
+
+{ Build a clustered copy of src at grid resolution g (cells across the
+  longest axis). Vertices in a cell collapse to their average; a triangle
+  whose corners land in fewer than three cells is dropped. Returns the
+  kept triangle count. }
+function ClusterAtRes(const src: TMesh; g: longint; out dst: TMesh): longint;
+var
+  nv, i, t, htSize, repCount, kept, w, c0, c1, c2: longint;
+  minx, miny, minz, maxx, maxy, maxz, ext, cell: single;
+  htKey, htRep, vrep: array of longint;
+  sx, sy, sz, su, sv: array of double;
+  pop: array of longint;
+
+  { The representative index for source vertex i, interning its cell. }
+  function CellRep(i: longint): longint;
+  var cx, cy, cz, kk, s: longint; h: longword;
+  begin
+    cx := Trunc((src.verts[i].x - minx) / cell);
+    cy := Trunc((src.verts[i].y - miny) / cell);
+    cz := Trunc((src.verts[i].z - minz) / cell);
+    if cx < 0 then cx := 0 else if cx > g then cx := g;
+    if cy < 0 then cy := 0 else if cy > g then cy := g;
+    if cz < 0 then cz := 0 else if cz > g then cz := g;
+    kk := cx + cy * (g + 2) + cz * (g + 2) * (g + 2);
+    h := longword(kk);
+    h := h xor (h shr 16); h := h * 2654435761; h := h xor (h shr 13);
+    s := longint(h and longword(htSize - 1));
+    while (htKey[s] <> -1) and (htKey[s] <> kk) do s := (s + 1) and (htSize - 1);
+    if htKey[s] = -1 then begin
+      htKey[s] := kk; htRep[s] := repCount;
+      sx[repCount] := 0; sy[repCount] := 0; sz[repCount] := 0;
+      su[repCount] := 0; sv[repCount] := 0; pop[repCount] := 0;
+      inc(repCount);
+    end;
+    CellRep := htRep[s];
+  end;
+
+  procedure PutRep(r: longint);
+  begin
+    dst.verts[w].x := sx[r] / pop[r];
+    dst.verts[w].y := sy[r] / pop[r];
+    dst.verts[w].z := sz[r] / pop[r];
+    dst.verts[w].u := su[r] / pop[r];
+    dst.verts[w].v := sv[r] / pop[r];
+    inc(w);
+  end;
+
+begin
+  nv := Length(src.verts);
+  minx := src.verts[0].x; maxx := minx; miny := src.verts[0].y; maxy := miny;
+  minz := src.verts[0].z; maxz := minz;
+  for i := 1 to nv - 1 do begin
+    if src.verts[i].x < minx then minx := src.verts[i].x
+    else if src.verts[i].x > maxx then maxx := src.verts[i].x;
+    if src.verts[i].y < miny then miny := src.verts[i].y
+    else if src.verts[i].y > maxy then maxy := src.verts[i].y;
+    if src.verts[i].z < minz then minz := src.verts[i].z
+    else if src.verts[i].z > maxz then maxz := src.verts[i].z;
+  end;
+  ext := maxx - minx;
+  if maxy - miny > ext then ext := maxy - miny;
+  if maxz - minz > ext then ext := maxz - minz;
+  if ext <= 0 then ext := 1;
+  cell := ext / g;
+  if cell <= 0 then cell := ext;
+
+  htSize := 1;
+  while htSize < nv * 2 do htSize := htSize * 2;
+  SetLength(htKey, htSize); SetLength(htRep, htSize);
+  for i := 0 to htSize - 1 do htKey[i] := -1;
+  SetLength(sx, nv); SetLength(sy, nv); SetLength(sz, nv);
+  SetLength(su, nv); SetLength(sv, nv); SetLength(pop, nv);
+  SetLength(vrep, nv);
+  repCount := 0;
+
+  for i := 0 to nv - 1 do begin
+    vrep[i] := CellRep(i);
+    sx[vrep[i]] := sx[vrep[i]] + src.verts[i].x;
+    sy[vrep[i]] := sy[vrep[i]] + src.verts[i].y;
+    sz[vrep[i]] := sz[vrep[i]] + src.verts[i].z;
+    su[vrep[i]] := su[vrep[i]] + src.verts[i].u;
+    sv[vrep[i]] := sv[vrep[i]] + src.verts[i].v;
+    inc(pop[vrep[i]]);
+  end;
+
+  kept := 0;
+  for t := 0 to (nv div 3) - 1 do begin
+    c0 := vrep[t * 3]; c1 := vrep[t * 3 + 1]; c2 := vrep[t * 3 + 2];
+    if (c0 <> c1) and (c1 <> c2) and (c0 <> c2) then inc(kept);
+  end;
+
+  dst.verts := nil;
+  SetLength(dst.verts, kept * 3);
+  dst.texW := src.texW; dst.texH := src.texH;
+  SetLength(dst.tex, Length(src.tex));
+  if Length(src.tex) > 0 then Move(src.tex[0], dst.tex[0], Length(src.tex));
+  w := 0;
+  for t := 0 to (nv div 3) - 1 do begin
+    c0 := vrep[t * 3]; c1 := vrep[t * 3 + 1]; c2 := vrep[t * 3 + 2];
+    if (c0 <> c1) and (c1 <> c2) and (c0 <> c2) then begin
+      PutRep(c0); PutRep(c1); PutRep(c2);
+    end;
+  end;
+  ClusterAtRes := kept;
+end;
+
+function DecimateMesh(var m: TMesh; maxTris: longint): longint;
+var
+  lo, hi, mid, bestG, cnt: longint;
+  tmp: TMesh;
+begin
+  DecimateMesh := Length(m.verts) div 3;
+  if maxTris < 1 then exit;
+  if (Length(m.verts) < 3) or (Length(m.verts) div 3 <= maxTris) then exit;
+
+  { the finest grid within budget preserves the most shape; the kept
+    count rises with resolution, so search for the largest g that fits }
+  lo := 2; hi := 128; bestG := 2;
+  while lo <= hi do begin
+    mid := (lo + hi) div 2;
+    cnt := ClusterAtRes(m, mid, tmp);
+    if cnt <= maxTris then begin bestG := mid; lo := mid + 1; end
+    else hi := mid - 1;
+  end;
+
+  ClusterAtRes(m, bestG, tmp);
+  m := tmp;
+  CenterMesh(m);   { averaging may lift the base; reseat it on z=0 }
+  DecimateMesh := Length(m.verts) div 3;
 end;
 
 function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
