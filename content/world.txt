@@ -3,5 +3,5 @@
 # GEN: rooms cave maze. The exit portal returns to RETMAP at RETMARKER.
 # AREA is the optional encounter area; omitted, the map spawns nothing.
 dynmap CAVE     cave  36 36 3 TOWN    gate cave
-dynmap CATACOMB rooms 28 28 2 DUNGEON back
-dynmap MAZE     maze  25 25 4 DUNGEON back
+dynmap CATACOMB rooms 28 28 2 DUNGEON back crypt
+dynmap MAZE     maze  25 25 4 DUNGEON back cave
