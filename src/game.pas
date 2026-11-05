@@ -34,7 +34,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
   rng, rules, items, chardata, party, monsters, combat, flags, dialog,
-  mapstate, save, worldfmt, mapgen;
+  mapstate, save, worldfmt, mapgen, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -166,8 +166,10 @@ begin
   if PickTile(camX, 1.8, tx, ty) then begin
     if NpcAt(tx, ty, dlg, nm) then
       StartDialog(dlg, nm)
-    else if TileAt(tx, ty) = TILE_DOOR then
+    else if TileAt(tx, ty) = TILE_DOOR then begin
       ToggleDoor(tx, ty);
+      PlaySfx(SFX_DOOR);
+    end;
   end;
 end;
 
@@ -180,8 +182,10 @@ begin
   ForwardDelta(dx, dy);
   if NpcAt(TileX + dx, TileY + dy, dlg, nm) then
     StartDialog(dlg, nm)
-  else
+  else begin
     OpenDoorAhead;
+    PlaySfx(SFX_DOOR);
+  end;
 end;
 
 procedure ExploreKeyDown(scancode: longint);
@@ -231,6 +235,7 @@ end;
 procedure StartCombat(depth: longint);
 begin
   StartRandomEncounter(depth);
+  PlaySfx(SFX_FOE);
   State := gsCombat;
 end;
 
@@ -439,7 +444,7 @@ begin
   case scancode of
     SDL_SCANCODE_UP:     titleSel := (titleSel + TITLE_ITEMS - 1) mod TITLE_ITEMS;
     SDL_SCANCODE_DOWN:   titleSel := (titleSel + 1) mod TITLE_ITEMS;
-    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: TitleSelect;
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin PlaySfx(SFX_SELECT); TitleSelect; end;
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
   end;
 end;
@@ -610,13 +615,16 @@ begin
     exit;
   end;
   case scancode of
-    SDL_SCANCODE_A, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN: ActAttack;
-    SDL_SCANCODE_G: ActGuard;
-    SDL_SCANCODE_F: ActAdvance;
-    SDL_SCANCODE_R: ActWithdraw;
-    SDL_SCANCODE_P: ActPotion;
+    SDL_SCANCODE_A, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN: begin
+      ActAttack; PlaySfx(SFX_HIT);
+    end;
+    SDL_SCANCODE_G: begin ActGuard; PlaySfx(SFX_SELECT); end;
+    SDL_SCANCODE_F: begin ActAdvance; PlaySfx(SFX_SELECT); end;
+    SDL_SCANCODE_R: begin ActWithdraw; PlaySfx(SFX_SELECT); end;
+    SDL_SCANCODE_P: begin ActPotion; PlaySfx(SFX_PICK); end;
     SDL_SCANCODE_TAB: NextTarget;
   end;
+  if CombatOver and (not Victory) and (not Fled) then PlaySfx(SFX_DOWN);
 end;
 
 { ---- Dialog state ---- }
@@ -745,6 +753,7 @@ begin
       begin
         PartyGold := PartyGold - ItemDefs[di].value;
         PackAdd(Roster[0], ItemDefs[di].id, 1);
+        PlaySfx(SFX_PICK);
       end;
     end;
     SDL_SCANCODE_ESCAPE: begin
@@ -857,6 +866,7 @@ begin
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
 
+  AudioInit;   { silent if it fails }
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
@@ -911,8 +921,21 @@ begin
   end;
 end;
 
+procedure UpdateMusic;
+begin
+  case State of
+    gsTitle, gsNewParty: PlayMusic(MUS_TITLE);
+    gsCombat:            PlayMusic(MUS_COMBAT);
+    gsGameOver:          StopMusic;
+  else
+    if CurMapName = 'TOWN' then PlayMusic(MUS_TOWN)
+    else PlayMusic(MUS_DUNGEON);
+  end;
+end;
+
 procedure GameRender(fps: longint);
 begin
+  UpdateMusic;
   case State of
     gsTitle:    TitleRender;
     gsNewParty: CCRender;

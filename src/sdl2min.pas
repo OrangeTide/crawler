@@ -15,7 +15,11 @@ interface
 const
   { ---- Init flags ---- }
   SDL_INIT_VIDEO  = $00000020;
+  SDL_INIT_AUDIO  = $00000010;
   SDL_INIT_EVENTS = $00004000;
+
+  { ---- Audio ---- }
+  AUDIO_S16LSB = $8010;
 
   { ---- Window ---- }
   SDL_WINDOWPOS_CENTERED = $2FFF0000;
@@ -124,8 +128,24 @@ type
 
   PUInt8 = ^UInt8;
 
+  TSDL_AudioSpec = record
+    freq: Int32;
+    format: UInt16;
+    channels: UInt8;
+    silence: UInt8;
+    samples: UInt16;
+    padding: UInt16;
+    size: UInt32;
+    callback: Pointer;
+    userdata: Pointer;
+  end;
+  PSDL_AudioSpec = ^TSDL_AudioSpec;
+
+  TSDL_AudioCallback = procedure(userdata: Pointer; stream: PUInt8; len: Int32); cdecl;
+
   { ---- Entry point signatures ---- }
   TSDL_InitFn        = function(flags: UInt32): Int32; cdecl;
+  TSDL_InitSubSystemFn = function(flags: UInt32): Int32; cdecl;
   TSDL_QuitFn        = procedure; cdecl;
   TSDL_GetErrorFn    = function: PChar; cdecl;
   TSDL_SetHintFn     = function(name, value: PChar): Int32; cdecl;
@@ -145,9 +165,16 @@ type
   TSDL_GetKeyboardStateFn = function(numkeys: Pointer): PUInt8; cdecl;
   TSDL_SetRelativeMouseModeFn = function(enabled: Int32): Int32; cdecl;
   TSDL_ShowCursorFn  = function(toggle: Int32): Int32; cdecl;
+  TSDL_OpenAudioDeviceFn = function(device: PChar; iscapture: Int32;
+    desired, obtained: PSDL_AudioSpec; allowed: Int32): UInt32; cdecl;
+  TSDL_PauseAudioDeviceFn = procedure(dev: UInt32; pause_on: Int32); cdecl;
+  TSDL_CloseAudioDeviceFn = procedure(dev: UInt32); cdecl;
+  TSDL_LockAudioDeviceFn = procedure(dev: UInt32); cdecl;
+  TSDL_UnlockAudioDeviceFn = procedure(dev: UInt32); cdecl;
 
 var
   SDL_Init: TSDL_InitFn;
+  SDL_InitSubSystem: TSDL_InitSubSystemFn;
   SDL_Quit: TSDL_QuitFn;
   SDL_GetError: TSDL_GetErrorFn;
   SDL_SetHint: TSDL_SetHintFn;
@@ -167,6 +194,11 @@ var
   SDL_GetKeyboardState: TSDL_GetKeyboardStateFn;
   SDL_SetRelativeMouseMode: TSDL_SetRelativeMouseModeFn;
   SDL_ShowCursor: TSDL_ShowCursorFn;
+  SDL_OpenAudioDevice: TSDL_OpenAudioDeviceFn;
+  SDL_PauseAudioDevice: TSDL_PauseAudioDeviceFn;
+  SDL_CloseAudioDevice: TSDL_CloseAudioDeviceFn;
+  SDL_LockAudioDevice: TSDL_LockAudioDeviceFn;
+  SDL_UnlockAudioDevice: TSDL_UnlockAudioDeviceFn;
 
 function LoadSDL2: boolean;
 procedure UnloadSDL2;
@@ -208,6 +240,7 @@ begin
   end;
 
   SDL_Init := TSDL_InitFn(Bind('SDL_Init'));
+  SDL_InitSubSystem := TSDL_InitSubSystemFn(Bind('SDL_InitSubSystem'));
   SDL_Quit := TSDL_QuitFn(Bind('SDL_Quit'));
   SDL_GetError := TSDL_GetErrorFn(Bind('SDL_GetError'));
   SDL_SetHint := TSDL_SetHintFn(Bind('SDL_SetHint'));
@@ -227,6 +260,11 @@ begin
   SDL_GetKeyboardState := TSDL_GetKeyboardStateFn(Bind('SDL_GetKeyboardState'));
   SDL_SetRelativeMouseMode := TSDL_SetRelativeMouseModeFn(Bind('SDL_SetRelativeMouseMode'));
   SDL_ShowCursor := TSDL_ShowCursorFn(Bind('SDL_ShowCursor'));
+  SDL_OpenAudioDevice := TSDL_OpenAudioDeviceFn(Bind('SDL_OpenAudioDevice'));
+  SDL_PauseAudioDevice := TSDL_PauseAudioDeviceFn(Bind('SDL_PauseAudioDevice'));
+  SDL_CloseAudioDevice := TSDL_CloseAudioDeviceFn(Bind('SDL_CloseAudioDevice'));
+  SDL_LockAudioDevice := TSDL_LockAudioDeviceFn(Bind('SDL_LockAudioDevice'));
+  SDL_UnlockAudioDevice := TSDL_UnlockAudioDeviceFn(Bind('SDL_UnlockAudioDevice'));
 
   LoadSDL2 := true;
 end;

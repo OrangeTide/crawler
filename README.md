@@ -45,6 +45,9 @@ filtering, the same way the game presents it.
 - Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The
   version and seed are stored in the save, so a level regenerates identically
   and its explored fog persists across visits.
+- A software audio mixer with sound-effect channels and a synth music channel.
+  Effects are generated at startup and music is a built-in sequence per zone,
+  so no audio files ship. The game runs silently if no sound device is present.
 
 ## Controls
 
@@ -110,6 +113,7 @@ make clean  # removes the build directory
 | `src/worldfmt.pas` | Dynamic-map manifest table and codec. |
 | `src/worldtext.pas` | Parser for the dynamic-map manifest. |
 | `src/mapgen.pas` | Seeded roguelike generators (rooms, cave, maze). |
+| `src/audio.pas` | Software mixer: procedural SFX and synth music channels. |
 | `src/texgen.pas` | Procedural texture generation, used by the asset tool. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art. |

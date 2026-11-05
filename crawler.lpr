@@ -11,7 +11,7 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sdl2min, gfx, game;
+  math, sdl2min, gfx, audio, game;
 
 const
   SCALE   = 4;
@@ -27,6 +27,7 @@ var
 
 procedure Shutdown;
 begin
+  AudioShutdown;
   if tex <> nil then SDL_DestroyTexture(tex);
   if ren <> nil then SDL_DestroyRenderer(ren);
   if win <> nil then SDL_DestroyWindow(win);
