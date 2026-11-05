@@ -17,12 +17,13 @@ procedure RenderView;
 implementation
 
 uses
-  gfx, textures, world, mapfmt;
+  gfx, textures, world, mapfmt, fixedpt;
 
 const
-  { Fog: surfaces fully lit up to NEAR, fading to black at FAR tiles. }
-  FOG_NEAR = 1.5;
-  FOG_FAR  = 9.0;
+  { Fog in fixed point: fully lit to NEAR (1.5), fading to FAR (9.0). }
+  FOG_NEAR_F = 1 * FONE + FONE div 2;        { 1.5 }
+  FOG_FAR_F  = 9 * FONE;                      { 9.0 }
+  FOG_SPAN_F = FOG_FAR_F - FOG_NEAR_F;
   PORTAL_GLOW = $FF50C8FF;   { cyan pad: a flat transition or gate }
   DOWN_GLOW   = $FFFFB450;   { amber pad: stairs or a cave mouth down }
   UP_GLOW     = $FF8CE08C;   { green pad: stairs up }
@@ -32,18 +33,18 @@ const
   GAS_GLOW    = $FF8CE0FF;   { a gas vent flame }
   FIRE_GLOW   = $FFFFA030;   { brazier, torch or bonfire }
 
-function FogFactor(dist: double): longint;
-{** Maps a distance to a 0..256 brightness scale for Shade. }
+function FogFactor(dist: TFix): longint;
+{** Maps a fixed-point distance to a 0..256 brightness scale for Shade. }
 var
-  f: double;
+  frac: TFix;
 begin
-  if dist <= FOG_NEAR then
+  if dist <= FOG_NEAR_F then
     FogFactor := 256
-  else if dist >= FOG_FAR then
+  else if dist >= FOG_FAR_F then
     FogFactor := 32          { never fully black, keep a hint of shape }
   else begin
-    f := 1.0 - (dist - FOG_NEAR) / (FOG_FAR - FOG_NEAR);
-    FogFactor := 32 + trunc(f * 224.0);
+    frac := FDiv(FOG_FAR_F - dist, FOG_SPAN_F);   { 0..1 fixed }
+    FogFactor := 32 + ((frac * 224) shr FBITS);
   end;
 end;
 
@@ -76,9 +77,9 @@ procedure DrawFloorCeiling;
   texture coordinate across the screen. }
 var
   y, x: longint;
-  rayDirX0, rayDirY0, rayDirX1, rayDirY1: double;
-  posZ, rowDistance: double;
-  floorX, floorY, stepX, stepY: double;
+  cfPosX, cfPosY, cfDirX, cfDirY, cfPlaneX, cfPlaneY: TFix;
+  rayDirX0, rayDirY0, dRayX, dRayY: TFix;
+  posZF, rowDistance, floorX, floorY, stepX, stepY: TFix;
   horizon, p: longint;
   isFloor: boolean;
   tx, ty: longint;
@@ -88,11 +89,14 @@ var
   cxi, cyi, lk, pk, shF: longint;
   gc: TColor;
 begin
-  rayDirX0 := Cam.dirX - Cam.planeX;
-  rayDirY0 := Cam.dirY - Cam.planeY;
-  rayDirX1 := Cam.dirX + Cam.planeX;
-  rayDirY1 := Cam.dirY + Cam.planeY;
-  posZ := 0.5 * FBH;
+  cfPosX := FixF(Cam.posX); cfPosY := FixF(Cam.posY);
+  cfDirX := FixF(Cam.dirX); cfDirY := FixF(Cam.dirY);
+  cfPlaneX := FixF(Cam.planeX); cfPlaneY := FixF(Cam.planeY);
+  rayDirX0 := cfDirX - cfPlaneX;
+  rayDirY0 := cfDirY - cfPlaneY;
+  dRayX := cfPlaneX * 2;     { (dir+plane) - (dir-plane) }
+  dRayY := cfPlaneY * 2;
+  posZF := FixI(FBH) div 2;
   horizon := FBH div 2 + trunc(Cam.pitch);
 
   for y := 0 to FBH - 1 do begin
@@ -104,12 +108,12 @@ begin
     if p <= 0 then
       continue;
 
-    rowDistance := posZ / p;
+    rowDistance := FDiv(posZF, FixI(p));
 
-    stepX := rowDistance * (rayDirX1 - rayDirX0) / FBW;
-    stepY := rowDistance * (rayDirY1 - rayDirY0) / FBW;
-    floorX := Cam.posX + rowDistance * rayDirX0;
-    floorY := Cam.posY + rowDistance * rayDirY0;
+    stepX := FDiv(FMul(rowDistance, dRayX), FixI(FBW));
+    stepY := FDiv(FMul(rowDistance, dRayY), FixI(FBW));
+    floorX := cfPosX + FMul(rowDistance, rayDirX0);
+    floorY := cfPosY + FMul(rowDistance, rayDirY0);
 
     fog := FogFactor(rowDistance);
     if isFloor then
@@ -118,9 +122,9 @@ begin
       texId := TEX_CEILING;
 
     for x := 0 to FBW - 1 do begin
-      tx := trunc(floorX * TEXW) and (TEXW - 1);
-      ty := trunc(floorY * TEXH) and (TEXH - 1);
-      cxi := trunc(floorX); cyi := trunc(floorY);
+      tx := FFloor(FMul(floorX, FixI(TEXW))) and (TEXW - 1);
+      ty := FFloor(FMul(floorY, FixI(TEXH))) and (TEXH - 1);
+      cxi := FFloor(floorX); cyi := FFloor(floorY);
       shF := LitFactor(fog, cxi, cyi);
       if isFloor then begin
         cF := Shade(Tex[texId][ty * TEXW + tx], shF);
@@ -159,50 +163,51 @@ end;
 procedure DrawWalls;
 var
   x: longint;
-  cameraX: double;
-  rayDirX, rayDirY: double;
+  cfPosX, cfPosY, cfDirX, cfDirY, cfPlaneX, cfPlaneY: TFix;
+  cameraX, rayDirX, rayDirY: TFix;
   mapX, mapY: longint;
-  sideDistX, sideDistY: double;
-  deltaDistX, deltaDistY: double;
-  perpWallDist: double;
+  sideDistX, sideDistY, deltaDistX, deltaDistY, perpWallDist: TFix;
   stepX, stepY: longint;
   hit, side: longint;
   tile: byte;
-  lineHeight, drawStart, drawEnd, horizon: longint;
-  wallX: double;
+  lineHeight, drawStart, drawEnd, horizon, tmp: longint;
+  wallX: TFix;
   texId, texX, texY, y: longint;
-  texStep, texPos: double;
+  texStep, texPos: TFix;
   fog: longint;
   c: TColor;
 begin
+  cfPosX := FixF(Cam.posX); cfPosY := FixF(Cam.posY);
+  cfDirX := FixF(Cam.dirX); cfDirY := FixF(Cam.dirY);
+  cfPlaneX := FixF(Cam.planeX); cfPlaneY := FixF(Cam.planeY);
   horizon := FBH div 2 + trunc(Cam.pitch);
 
   for x := 0 to FBW - 1 do begin
-    cameraX := 2.0 * x / FBW - 1.0;
-    rayDirX := Cam.dirX + Cam.planeX * cameraX;
-    rayDirY := Cam.dirY + Cam.planeY * cameraX;
+    cameraX := FixI(2 * x) div FBW - FONE;   { 2*x/FBW - 1 }
+    rayDirX := cfDirX + FMul(cfPlaneX, cameraX);
+    rayDirY := cfDirY + FMul(cfPlaneY, cameraX);
 
-    mapX := trunc(Cam.posX);
-    mapY := trunc(Cam.posY);
+    mapX := FFloor(cfPosX);
+    mapY := FFloor(cfPosY);
 
-    if rayDirX = 0 then deltaDistX := 1e30
-    else deltaDistX := abs(1.0 / rayDirX);
-    if rayDirY = 0 then deltaDistY := 1e30
-    else deltaDistY := abs(1.0 / rayDirY);
+    if rayDirX = 0 then deltaDistX := $7FFFFFFF
+    else deltaDistX := FDiv(FONE, FAbs(rayDirX));
+    if rayDirY = 0 then deltaDistY := $7FFFFFFF
+    else deltaDistY := FDiv(FONE, FAbs(rayDirY));
 
     if rayDirX < 0 then begin
       stepX := -1;
-      sideDistX := (Cam.posX - mapX) * deltaDistX;
+      sideDistX := FMul(cfPosX - FixI(mapX), deltaDistX);
     end else begin
       stepX := 1;
-      sideDistX := (mapX + 1.0 - Cam.posX) * deltaDistX;
+      sideDistX := FMul(FixI(mapX) + FONE - cfPosX, deltaDistX);
     end;
     if rayDirY < 0 then begin
       stepY := -1;
-      sideDistY := (Cam.posY - mapY) * deltaDistY;
+      sideDistY := FMul(cfPosY - FixI(mapY), deltaDistY);
     end else begin
       stepY := 1;
-      sideDistY := (mapY + 1.0 - Cam.posY) * deltaDistY;
+      sideDistY := FMul(FixI(mapY) + FONE - cfPosY, deltaDistY);
     end;
 
     { DDA: step through grid cells until a blocking tile is hit. }
@@ -229,22 +234,24 @@ begin
       perpWallDist := sideDistX - deltaDistX
     else
       perpWallDist := sideDistY - deltaDistY;
-    if perpWallDist < 0.0001 then
-      perpWallDist := 0.0001;
+    if perpWallDist < 8 then
+      perpWallDist := 8;   { ~0.0001, guards the divide }
 
-    lineHeight := trunc(FBH / perpWallDist);
+    { line height as a plain integer so a near wall cannot overflow fixed }
+    lineHeight := longint((int64(FBH) shl FBITS) div perpWallDist);
+    if lineHeight <= 0 then continue;
     drawStart := -lineHeight div 2 + horizon;
     drawEnd := lineHeight div 2 + horizon;
 
     { Where along the tile face the ray landed, for the texture column. }
     if side = 0 then
-      wallX := Cam.posY + perpWallDist * rayDirY
+      wallX := cfPosY + FMul(perpWallDist, rayDirY)
     else
-      wallX := Cam.posX + perpWallDist * rayDirX;
-    wallX := wallX - trunc(wallX);
+      wallX := cfPosX + FMul(perpWallDist, rayDirX);
+    wallX := FFrac(wallX);
 
     texId := WallTexId(tile);
-    texX := trunc(wallX * TEXW);
+    texX := FFloor(FMul(wallX, FixI(TEXW)));
     if (side = 0) and (rayDirX > 0) then texX := TEXW - texX - 1;
     if (side = 1) and (rayDirY < 0) then texX := TEXW - texX - 1;
     if texX < 0 then texX := 0;
@@ -256,18 +263,19 @@ begin
       fog := fog * 72 div 100;
     fog := LitFactor(fog, mapX, mapY);   { fold in scene and cast light }
 
-    texStep := TEXH / lineHeight;
-    texPos := (drawStart - horizon + lineHeight / 2) * texStep;
+    texStep := TFix((int64(TEXH) shl FBITS) div lineHeight);
+    tmp := (drawStart - horizon) + (lineHeight div 2);
+    texPos := TFix(int64(tmp) * int64(texStep));
 
     if drawStart < 0 then begin
-      texPos := texPos + texStep * (-drawStart);
+      texPos := texPos + TFix(int64(-drawStart) * int64(texStep));
       drawStart := 0;
     end;
     if drawEnd > FBH - 1 then
       drawEnd := FBH - 1;
 
     for y := drawStart to drawEnd do begin
-      texY := trunc(texPos) and (TEXH - 1);
+      texY := FFloor(texPos) and (TEXH - 1);
       texPos := texPos + texStep;
       c := Shade(Tex[texId][texY * TEXW + texX], fog);
       FB[y * FBW + x] := c;
