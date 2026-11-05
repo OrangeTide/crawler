@@ -16,7 +16,7 @@ unit combat;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party;
+  sysutils, rng, rules, items, monsters, party, chardata;
 
 const
   MAX_FOES = 6;
@@ -24,6 +24,28 @@ const
 
   RANK_FRONT = 0;
   RANK_BACK  = 1;
+
+  { ability targeting modes }
+  TGT_ENEMY      = 0;   { one enemy, any rank }
+  TGT_ENEMY_RANK = 1;   { every enemy in the target's rank }
+  TGT_ALLY       = 2;   { one ally, oneself included }
+  TGT_PARTY      = 3;   { the whole party, no pick }
+
+  { ability effects }
+  EF_DAMAGE = 0;
+  EF_HEAL   = 1;
+  EF_BLESS  = 2;
+
+type
+  TSpell = record
+    id: string[8];
+    name: string[14];
+    track: byte;        { TRK_MAGE or TRK_PRIEST }
+    cost: byte;         { spell points }
+    mode: byte;         { TGT_* }
+    effect: byte;       { EF_* }
+    dice, sides: byte;  { for damage or healing }
+  end;
 
 type
   TFoe = record
@@ -58,6 +80,17 @@ procedure ActGuard;
 procedure ActFlee;
 procedure ActPotion;
 procedure NextTarget;
+
+{ ---- abilities ---- }
+function SpellCount: longint;
+function SpellInfo(i: longint): TSpell;
+function ActorCanCast(actor, spellIdx: longint): boolean;
+{ Cast spellIdx from the current actor. target is a foe index for enemy
+  modes, an ally index for TGT_ALLY, and ignored for TGT_PARTY. }
+procedure ActCast(spellIdx, target: longint);
+
+var
+  PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
 
 implementation
 
@@ -182,6 +215,7 @@ begin
   CombatOver := false;
   Victory := false;
   Fled := false;
+  PartyBless := 0;
   XPGained := 0;
   GoldGained := 0;
   for i := 0 to LOG_LINES - 1 do Log[i] := '';
@@ -288,7 +322,7 @@ begin
   end;
   die := CharWeaponDie(Roster[actor]);
   roll := D(20);
-  atk := CharAttack(Roster[actor], melee);
+  atk := CharAttack(Roster[actor], melee) + PartyBless;
   if (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac)) then
   begin
     if roll = 20 then
@@ -474,6 +508,112 @@ begin
       exit;
     end;
   CombatLog('No potion to drink.');
+end;
+
+{ ---- abilities ---- }
+
+const
+  SpellTable: array[0 .. 3] of TSpell = (
+    (id: 'BOLT';  name: 'Arc Bolt'; track: TRK_MAGE;   cost: 1;
+     mode: TGT_ENEMY;      effect: EF_DAMAGE; dice: 2; sides: 6),
+    (id: 'BLAST'; name: 'Blast';    track: TRK_MAGE;   cost: 2;
+     mode: TGT_ENEMY_RANK; effect: EF_DAMAGE; dice: 2; sides: 6),
+    (id: 'MEND';  name: 'Mend';     track: TRK_PRIEST; cost: 1;
+     mode: TGT_ALLY;       effect: EF_HEAL;   dice: 2; sides: 8),
+    (id: 'BLESS'; name: 'Bless';    track: TRK_PRIEST; cost: 2;
+     mode: TGT_PARTY;      effect: EF_BLESS;  dice: 0; sides: 0)
+  );
+
+function SpellCount: longint;
+begin
+  SpellCount := Length(SpellTable);
+end;
+
+function SpellInfo(i: longint): TSpell;
+begin
+  SpellInfo := SpellTable[i];
+end;
+
+function ActorCanCast(actor, spellIdx: longint): boolean;
+begin
+  ActorCanCast := false;
+  if (spellIdx < 0) or (spellIdx >= Length(SpellTable)) then exit;
+  if (actor < 0) or (actor > High(Roster)) then exit;
+  if not (Roster[actor].alive and (not Roster[actor].downed)) then exit;
+  ActorCanCast := (CharTrack(Roster[actor]) = SpellTable[spellIdx].track)
+    and (Roster[actor].sp >= SpellTable[spellIdx].cost);
+end;
+
+{ The spell ability modifier: wits for mages, wisdom for priests. }
+function CasterMod(actor: longint): longint;
+begin
+  if CharTrack(Roster[actor]) = TRK_MAGE then
+    CasterMod := AbilMod(Roster[actor].abil[abINT])
+  else
+    CasterMod := AbilMod(Roster[actor].abil[abWIS]);
+end;
+
+procedure DamageFoe(fi, amount: longint);
+begin
+  if amount < 1 then amount := 1;
+  Foes[fi].hp := Foes[fi].hp - amount;
+  CombatLog(MonDefs[Foes[fi].def].name + ' takes ' + IntToStr(amount) + '.');
+  if Foes[fi].hp <= 0 then KillFoe(fi);
+end;
+
+procedure ActCast(spellIdx, target: longint);
+var
+  sp: TSpell;
+  amt, m, i, rk: longint;
+begin
+  if CombatOver or (CurActor < 0) then exit;
+  if not ActorCanCast(CurActor, spellIdx) then begin
+    CombatLog(Roster[CurActor].name + ' cannot cast that.');
+    exit;
+  end;
+  sp := SpellTable[spellIdx];
+  dec(Roster[CurActor].sp, sp.cost);
+  m := CasterMod(CurActor);
+
+  case sp.mode of
+    TGT_ENEMY: begin
+      if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
+        target := FirstLivingFoe;
+      if target < 0 then begin AdvancePartyActor; exit; end;
+      CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
+      DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m);
+    end;
+    TGT_ENEMY_RANK: begin
+      if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
+        target := FirstLivingFoe;
+      if target < 0 then begin AdvancePartyActor; exit; end;
+      rk := Foes[target].rank;
+      CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
+      for i := 0 to High(Foes) do
+        if Foes[i].alive and (Foes[i].rank = rk) then
+          DamageFoe(i, RngRoll(GameRng, sp.dice, sp.sides) + m);
+    end;
+    TGT_ALLY: begin
+      if (target < 0) or (target > High(Roster)) or (not Roster[target].alive) then
+        target := CurActor;
+      amt := RngRoll(GameRng, sp.dice, sp.sides) + m;
+      if amt < 1 then amt := 1;
+      if Roster[target].downed and Roster[target].alive then
+        Roster[target].downed := false;    { a mend brings them back to their feet }
+      Roster[target].hp := Roster[target].hp + amt;
+      if Roster[target].hp > Roster[target].hpMax then
+        Roster[target].hp := Roster[target].hpMax;
+      CombatLog(Roster[CurActor].name + ' mends ' + Roster[target].name
+        + ' (+' + IntToStr(amt) + ').');
+    end;
+    TGT_PARTY: begin
+      PartyBless := 1;
+      CombatLog(Roster[CurActor].name + ' blesses the party.');
+    end;
+  end;
+
+  CheckEnd;
+  AdvancePartyActor;
 end;
 
 procedure NextTarget;
