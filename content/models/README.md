@@ -5,6 +5,10 @@ Baked inputs for the polygon renderer. Each model is a Wavefront OBJ
 bakes these into CMSH lumps in the pak with the mesh baker, so the game
 build needs only the Pascal toolchain, not the model tools.
 
+The combat creature set is CREA1 through CREA13, one mesh per eldritch
+creature, plus FLESH1 and FLESH2 from the meats and flesh pack. Each
+monster in the table names its own mesh, so no two share a model.
+
 These are converted offline from CC0 source packs (postdev.itch.io) with:
 
     assimp export SOURCE.glb NAME.obj -tri
