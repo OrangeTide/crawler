@@ -87,7 +87,7 @@ function LoadMapLump(const name: string): boolean;
 var
   blob: TByteArray;
   md: TMapData;
-  di, ver, cx, cy, depth: longint;
+  di, ver, cx, cy, depth, pcx, pcy: longint;
   seed: longword;
   isDyn: boolean;
 begin
@@ -134,6 +134,10 @@ begin
     md := GenerateMap(DynMaps[di], ver, seed);
     CurDepth := DynMaps[di].depth;
   end;
+  { a pinned authored zone leaves back to the wilderness that reaches it,
+    not only to the town hub. Derived from the map, so it stays stable. }
+  if PinnedCellOf(name, pcx, pcy) then
+    AddWildernessExit(md, pcx, pcy);
   if CurMapName <> '' then
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;

@@ -156,6 +156,45 @@ begin
     Check(doors >= 1, 'interior has a door back out');
   end;
 
+  { the wilderness back door: a pinned zone that leaves only to the town
+    gains a reachable exit into a neighbor cell, and that cell links back }
+  m.w := 10; m.h := 8;
+  SetLength(m.walls, m.w * m.h);
+  for i := 0 to m.w * m.h - 1 do m.walls[i] := 0;
+  for x := 0 to m.w - 1 do begin m.walls[x] := 1; m.walls[(m.h - 1) * m.w + x] := 1; end;
+  for y := 0 to m.h - 1 do begin m.walls[y * m.w] := 1; m.walls[y * m.w + m.w - 1] := 1; end;
+  m.flags := 0;   { underground zone, like DUNGEON }
+  SetLength(m.markers, 1);
+  m.markers[0].name := 'start'; m.markers[0].x := 2; m.markers[0].y := 2;
+  m.markers[0].dir := DIR_E;
+  SetLength(m.portals, 1);
+  m.portals[0].x := 7; m.portals[0].y := 5;
+  m.portals[0].target := 'TOWN'; m.portals[0].marker := 'gate';
+  m.portals[0].kind := PK_UP;
+
+  { DUNGEON is pinned at 512,513; its open neighbor is the cell to the south }
+  Check(AddWildernessExit(m, 512, 513), 'pinned zone gains a wilderness exit');
+  entryX := -1; entryY := -1;   { reuse: the wilderness-exit portal tile }
+  nm := '';
+  for i := 0 to High(m.portals) do
+    if ParseCellName(m.portals[i].target, bx, by) then begin
+      nm := m.portals[i].target; entryX := m.portals[i].x; entryY := m.portals[i].y;
+      cx := bx; cy := by;
+    end;
+  Check(nm = CellName(512, 514), 'exit targets the south neighbor cell');
+  Check(Reaches(m, 2, 2, entryX, entryY), 'wilderness exit reachable from start');
+  Check(m.portals[0].target = 'TOWN', 'the town gate is still there');
+
+  { the neighbor cell links back into the zone at the matching edge }
+  m := GenerateOverworldCell(cx, cy, CellSeed(cx, cy, 0));
+  found := false; entryX := -1;
+  for i := 0 to High(m.portals) do
+    if m.portals[i].target = 'DUNGEON' then found := true;
+  for i := 0 to High(m.markers) do
+    if m.markers[i].name = 'edgeN' then entryX := m.markers[i].x;
+  Check(found, 'neighbor cell has a gap portal back to the zone');
+  Check(entryX >= 0, 'neighbor cell has the arrival marker');
+
   TestSummary('overworld');
   halt(TestExit);
 end.

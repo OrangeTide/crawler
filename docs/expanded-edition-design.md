@@ -728,7 +728,13 @@ generated from a seed.
   small table in the world manifest. When the party enters a pinned cell the
   engine loads the authored map instead of generating one. Town, seaside,
   forest, crypt, cave, and infernal sit at known coordinates, and generated
-  wilderness fills the space between them.
+  wilderness fills the space between them. The neighbor cells link inward to a
+  pinned zone's start marker. For the reverse, a zone that otherwise leaves only
+  to the town hub is given a back door on load: one portal, placed on a floor
+  tile reachable from the start, into the first open neighbor cell. The
+  placement is derived from the map, so it is the same every load and needs
+  nothing stored. This keeps a zone two-way with the wild without pinning
+  coordinates into the authored map files.
 - **Edges.** Walking off a local map edge moves to the neighbor cell and places
   the party at the matching opposite edge. Terrain near a shared edge is matched
   so the crossing stays passable.

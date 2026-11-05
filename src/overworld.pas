@@ -77,6 +77,7 @@ function HasBuilding(cx, cy: longint): boolean;
 
 { Pinned authored cells. }
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;
+function PinnedCellOf(const name: string; out cx, cy: longint): boolean;
 
 implementation
 
@@ -395,6 +396,20 @@ begin
       name := Pinned[i].name;
       arrive := Pinned[i].arrive;
       PinnedAt := true;
+      exit;
+    end;
+end;
+
+function PinnedCellOf(const name: string; out cx, cy: longint): boolean;
+var
+  i: longint;
+begin
+  PinnedCellOf := false;
+  cx := 0; cy := 0;
+  for i := 0 to High(Pinned) do
+    if Pinned[i].name = name then begin
+      cx := Pinned[i].cx; cy := Pinned[i].cy;
+      PinnedCellOf := true;
       exit;
     end;
 end;

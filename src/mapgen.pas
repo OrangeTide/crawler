@@ -22,6 +22,7 @@ const
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
 function GenerateInterior(cx, cy, idx: longint; seed: longword): TMapData;
+function AddWildernessExit(var m: TMapData; cx, cy: longint): boolean;
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
 
@@ -606,6 +607,103 @@ begin
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := 1;   { brick }
 
   GenerateInterior := m;
+end;
+
+{ True if some portal already sits on tile (x,y). }
+function PortalOnTile(const m: TMapData; x, y: longint): boolean;
+var i: longint;
+begin
+  PortalOnTile := false;
+  for i := 0 to High(m.portals) do
+    if (m.portals[i].x = x) and (m.portals[i].y = y) then begin
+      PortalOnTile := true; exit;
+    end;
+end;
+
+function AddWildernessExit(var m: TMapData; cx, cy: longint): boolean;
+{** Give a pinned zone a back door into the wilderness. The zone is
+  entered from the wilderness at its start marker (the neighbor cells
+  already link inward), but without this it can only be left toward the
+  town hub. This adds one portal, on a floor tile reachable from the
+  start, that leaves into the first open neighbor cell. Placement is
+  derived from the map, so it is the same every load and survives a
+  save. A zone that already leaves to a cell is left alone. }
+const
+  dx: array[0 .. 3] of longint = (0, 1, 0, -1);
+  dy: array[0 .. 3] of longint = (-1, 0, 1, 0);
+var
+  i, nx, ny, np, sx, sy, x, y, bx, by, best, head, tail, d, px, py: longint;
+  arriveMarker, pin, arr: string;
+  dumX, dumY, kind: longint;
+  haveNeighbor: boolean;
+  dist, qx, qy: array of longint;
+begin
+  AddWildernessExit := false;
+
+  { already two-way if any portal leaves to a generated cell }
+  for i := 0 to High(m.portals) do
+    if ParseCellName(m.portals[i].target, dumX, dumY) then exit;
+
+  { first in-world, non-pinned neighbor: south, east, west, then north }
+  haveNeighbor := false; nx := cx; ny := cy; arriveMarker := 'edgeN';
+  if (cy + 1 < OW_SIZE) and not PinnedAt(cx, cy + 1, pin, arr) then begin
+    nx := cx; ny := cy + 1; arriveMarker := 'edgeN'; haveNeighbor := true;
+  end else if (cx + 1 < OW_SIZE) and not PinnedAt(cx + 1, cy, pin, arr) then begin
+    nx := cx + 1; ny := cy; arriveMarker := 'edgeW'; haveNeighbor := true;
+  end else if (cx - 1 >= 0) and not PinnedAt(cx - 1, cy, pin, arr) then begin
+    nx := cx - 1; ny := cy; arriveMarker := 'edgeE'; haveNeighbor := true;
+  end else if (cy - 1 >= 0) and not PinnedAt(cx, cy - 1, pin, arr) then begin
+    nx := cx; ny := cy - 1; arriveMarker := 'edgeS'; haveNeighbor := true;
+  end;
+  if not haveNeighbor then exit;
+
+  { the tile the party enters on: the start or spawn marker }
+  sx := -1; sy := -1;
+  for i := 0 to High(m.markers) do
+    if (m.markers[i].name = 'start') or (m.markers[i].name = 'spawn') then begin
+      sx := m.markers[i].x; sy := m.markers[i].y; break;
+    end;
+  if sx < 0 then
+    for y := 0 to m.h - 1 do
+      for x := 0 to m.w - 1 do
+        if (sx < 0) and (m.walls[y * m.w + x] = 0) then begin sx := x; sy := y; end;
+  if sx < 0 then exit;
+
+  { flood the floor from the start; host the exit on the farthest reachable
+    tile that is open and does not already carry a portal }
+  SetLength(dist, m.w * m.h);
+  for i := 0 to m.w * m.h - 1 do dist[i] := -1;
+  SetLength(qx, m.w * m.h); SetLength(qy, m.w * m.h);
+  head := 0; tail := 0;
+  dist[sy * m.w + sx] := 0; qx[0] := sx; qy[0] := sy; inc(tail);
+  bx := -1; by := -1; best := -1;
+  while head < tail do begin
+    x := qx[head]; y := qy[head]; inc(head);
+    d := dist[y * m.w + x];
+    if (d > best) and not ((x = sx) and (y = sy)) and not PortalOnTile(m, x, y) then begin
+      best := d; bx := x; by := y;
+    end;
+    for i := 0 to 3 do begin
+      px := x + dx[i]; py := y + dy[i];
+      if (px < 0) or (px >= m.w) or (py < 0) or (py >= m.h) then continue;
+      if m.walls[py * m.w + px] <> 0 then continue;
+      if dist[py * m.w + px] >= 0 then continue;
+      dist[py * m.w + px] := d + 1;
+      qx[tail] := px; qy[tail] := py; inc(tail);
+    end;
+  end;
+  if bx < 0 then exit;
+
+  { an outdoor zone steps out flat; an underground one climbs to the surface }
+  if (m.flags and MAP_SURFACE) <> 0 then kind := PK_FLAT else kind := PK_UP;
+
+  np := Length(m.portals);
+  SetLength(m.portals, np + 1);
+  m.portals[np].x := bx; m.portals[np].y := by;
+  m.portals[np].target := CellName(nx, ny);
+  m.portals[np].marker := arriveMarker;
+  m.portals[np].kind := kind;
+  AddWildernessExit := true;
 end;
 
 end.
