@@ -174,6 +174,7 @@ function EnemyHarry(fi: longint): boolean;
 { Foe spellcasting: a mage's bolt at the party, a healer's mend on an ally. }
 function EnemyCastBolt(fi: longint): boolean;
 function EnemyCastHeal(fi: longint): boolean;
+function EnemyCastRevive(fi: longint): boolean;
 { Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
 procedure ResolvePartyAttack(actor, foe: longint);
 
@@ -209,6 +210,7 @@ const
   BURN_DMG   = 3;
   STATUS_DC  = 13;     { save target to shrug off an inflicted status }
   FOE_CAST_SP = 2;     { spell points a foe spends per spell }
+  FOE_REVIVE_SP = 3;   { spell points to raise a fallen ally }
 
 { ---- logging ---- }
 
@@ -935,6 +937,34 @@ begin
   EnemyCastHeal := true;
 end;
 
+{ A healer foe raises a fallen ally, back on its feet at half health. The
+  experience its fall granted is taken back, so a fresh kill still counts.
+  Returns false when no ally lies dead. Spends SP. }
+function EnemyCastRevive(fi: longint): boolean;
+var
+  i, best, amt: longint;
+begin
+  EnemyCastRevive := false;
+  if Foes[fi].sp < FOE_REVIVE_SP then exit;
+  best := -1;
+  for i := 0 to High(Foes) do
+    if not Foes[i].alive then begin best := i; break; end;
+  if best < 0 then exit;                  { no one to raise }
+  dec(Foes[fi].sp, FOE_REVIVE_SP);
+  Foes[best].alive := true;
+  amt := Foes[best].hpMax div 2;
+  if amt < 1 then amt := 1;
+  Foes[best].hp := amt;
+  XPGained := XPGained - MonDefs[Foes[best].def].xp;
+  if XPGained < 0 then XPGained := 0;
+  FillChar(FoeStatus[best], SizeOf(TStatus), 0);
+  CombatLog(MonDefs[Foes[fi].def].name + ' raises '
+    + MonDefs[Foes[best].def].name + '.');
+  PushPop(0, best, POPC_HEAL, 'RAISE');
+  FlashFoe(best);
+  EnemyCastRevive := true;
+end;
+
 { Resolve the foe at the turn cursor: choose a target by role and swing,
   carrying the monster's element and any status its hit inflicts. }
 procedure ResolveEnemyTurn;
@@ -950,7 +980,8 @@ begin
   isMage := (MonDefs[Foes[fi].def].flags and MF_MAGE) <> 0;
   isHealer := (MonDefs[Foes[fi].def].flags and MF_HEALER) <> 0;
 
-  { a healer tends a wounded ally before anything else }
+  { a healer raises a fallen ally first, then tends a wounded one }
+  if isHealer and EnemyCastRevive(fi) then exit;
   if isHealer and EnemyCastHeal(fi) then exit;
   { a mage usually conjures a bolt rather than closing or swinging }
   if isMage and (Foes[fi].sp >= FOE_CAST_SP) and (D(100) <= 70)
@@ -1101,9 +1132,36 @@ end;
 
 procedure ActPotion;
 var
-  i, heal, pidx: longint;
+  i, heal, pidx, ridx, who: longint;
 begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
+
+  { a revive consumable takes priority when an ally lies gravely wounded }
+  who := -1;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and Roster[i].downed then begin who := i; break; end;
+  if who >= 0 then
+    for i := 0 to High(Roster[CurActor].pack) do begin
+      ridx := Roster[CurActor].pack[i].def;
+      if (ridx >= 0) and (ridx <= High(ItemDefs))
+         and ((ItemDefs[ridx].flags and IF_REVIVE) <> 0)
+         and (Roster[CurActor].pack[i].qty > 0) then
+      begin
+        dec(Roster[CurActor].pack[i].qty);
+        heal := RngRoll(GameRng, 1, 8) + 2;
+        Roster[who].downed := false;
+        Roster[who].hp := heal;
+        if Roster[who].hp > Roster[who].hpMax then
+          Roster[who].hp := Roster[who].hpMax;
+        CombatLog(Roster[CurActor].name + ' uses ' + ItemDefs[ridx].name
+          + ' on ' + Roster[who].name + '.');
+        PushPop(1, who, POPC_HEAL, '+' + IntToStr(Roster[who].hp));
+        FlashAlly(who);
+        EndTurn;
+        exit;
+      end;
+    end;
+
   pidx := ItemIndex('POTION');
   for i := 0 to High(Roster[CurActor].pack) do
     if (Roster[CurActor].pack[i].def = pidx) and (Roster[CurActor].pack[i].qty > 0) then

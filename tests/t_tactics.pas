@@ -261,6 +261,29 @@ begin
   Foes[0].hp := Foes[0].hpMax; Foes[1].hp := Foes[1].hpMax;
   Check(not EnemyCastHeal(0), 'no mend when every ally is at full health');
 
+  { a healer raises a fallen ally and takes back the kill XP }
+  SetLength(Foes, 2); SetLength(FoeStatus, 2); SetLength(FoeFlash, 2);
+  Foes[0].def := acolyte; Foes[0].hp := 20; Foes[0].hpMax := 20;
+  Foes[0].alive := true; Foes[0].rank := RANK_BACK; Foes[0].sp := 6;
+  Foes[1].def := rat; Foes[1].hp := 0; Foes[1].hpMax := 30;
+  Foes[1].alive := false; Foes[1].rank := RANK_FRONT; Foes[1].sp := 0;
+  FillChar(FoeStatus[0], SizeOf(FoeStatus[0]), 0);
+  FillChar(FoeStatus[1], SizeOf(FoeStatus[1]), 0);
+  XPGained := 100;
+  RngSeed(GameRng, 2);
+  moved := EnemyCastRevive(0);
+  Check(moved, 'a healer raises a fallen ally');
+  Check(Foes[1].alive, 'the fallen ally is back on its feet');
+  Check(Foes[1].hp = Foes[1].hpMax div 2, 'it returns at half health');
+  Check(XPGained = 100 - MonDefs[rat].xp, 'reviving takes back the kill XP');
+  Check(Foes[0].sp < 6, 'the revival spends spell points');
+  Check(not EnemyCastRevive(0), 'no revival when no ally is dead');
+
+  { ---- revive item ---- }
+  Check(ItemIndex('HOLLY') >= 0, 'sprig of holly present');
+  Check((ItemDefs[ItemIndex('HOLLY')].flags and IF_REVIVE) <> 0,
+    'the sprig of holly is a revive item');
+
   TestSummary('tactics');
   halt(TestExit);
 end.

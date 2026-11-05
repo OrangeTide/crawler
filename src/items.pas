@@ -28,6 +28,7 @@ const
   IF_TWOHAND = 1;
   IF_RANGED  = 2;
   IF_SILVER  = 4;   { a blessed or silvered weapon; strikes as holy }
+  IF_REVIVE  = 8;   { a consumable that raises a gravely wounded ally }
 
   ITEMS_MAGIC = $4D455449;  { 'ITEM' little-endian }
 

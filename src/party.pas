@@ -251,6 +251,7 @@ begin
       SetEquip(c, eqOff, 'SHIELD');
       SetEquip(c, eqArmor, 'MARMOR');
       PackAdd(c, 'HOLYSYM', 1);
+      PackAdd(c, 'HOLLY', 1);
     end;
     KIT_THIEF: begin
       SetEquip(c, eqMain, 'DAGGER');

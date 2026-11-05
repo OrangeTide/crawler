@@ -1,6 +1,7 @@
 # Item table. Fields: item ID KIND DMG AC SLOTS VALUE FLAGS "Name"
 # KIND: weapon armor shield potion light key treasure misc
-# FLAGS: 1 = two handed, 2 = ranged, 4 = silvered/blessed (strikes as holy)
+# FLAGS: 1 = two handed, 2 = ranged, 4 = silvered/blessed (strikes as holy),
+#        8 = revive (raises a gravely wounded ally)
 item DAGGER   weapon    4  0 1   2 0 "Dagger"
 item SWORD    weapon    6  0 1  10 0 "Short Sword"
 item MACE     weapon    6  0 1  10 0 "Mace"
@@ -16,6 +17,7 @@ item HIDE     armor     0 11 1  15 0 "Hide Armor"
 item SHIELD   shield    0  1 1  10 0 "Shield"
 item TORCH    light     0  0 1   2 0 "Torch"
 item POTION   potion    0  0 1  25 0 "Healing Potion"
+item HOLLY    potion    0  0 1 150 8 "Sprig of Holly"
 item HOLYSYM  misc      0  0 1  25 0 "Holy Symbol"
 item SPELLBK  misc      0  0 1   0 0 "Spellbook"
 item THVTOOLS misc      0  0 1  25 0 "Thieves Tools"
