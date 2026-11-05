@@ -971,7 +971,8 @@ begin
   FillRect(0, 0, FBW, 14, RGB(30, 12, 12));
   FrameRect(0, 0, FBW, 14, RGB(90, 40, 30));
   DrawText(8, 3, 'COMBAT', RGB(230, 170, 120));
-  DrawText(FBW - 96, 3, IntToStr(LivingFoes) + ' FOES', RGB(190, 180, 140));
+  if LivingFoes = 1 then s := '1 FOE' else s := IntToStr(LivingFoes) + ' FOES';
+  DrawText(FBW - 96, 3, s, RGB(190, 180, 140));
 
   { --- foes, in depth ranks: back rank up and small, front rank nearer
     the clash and larger. Same rank spreads across columns. --- }
