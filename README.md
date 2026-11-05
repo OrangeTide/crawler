@@ -48,6 +48,9 @@ filtering, the same way the game presents it.
 - A software audio mixer with sound-effect channels and a synth music channel.
   Effects are generated at startup and music is a built-in sequence per zone,
   so no audio files ship. The game runs silently if no sound device is present.
+- Six connected zones: a town hub, a seaside, a forest, a crypt, dynamic caves
+  and mazes, and an infernal depth, with a short relic quest that ends the game
+  when the shard is returned to the town elder.
 
 ## Controls
 

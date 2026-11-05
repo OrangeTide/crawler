@@ -89,6 +89,7 @@ begin
         if curNode < 0 then begin err := 'resp before node'; exit; end;
         r.text := tok[1];
         r.arg := '';
+        r.condFlag := '';
         r.gotoNode := curNode;
         if (n >= 3) and (tok[2] = 'goto') then begin
           r.action := DA_GOTO; r.gotoNode := StrToInt(tok[3]);
@@ -102,6 +103,9 @@ begin
           err := 'line ' + IntToStr(li + 1) + ': bad response action';
           exit;
         end;
+        { optional trailing: needflag FLAG }
+        if (n >= 2) and (tok[n - 2] = 'needflag') then
+          r.condFlag := tok[n - 1];
         with cs[count - 1].nodes[curNode] do begin
           SetLength(resp, Length(resp) + 1);
           resp[High(resp)] := r;

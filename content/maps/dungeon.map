@@ -35,3 +35,5 @@ marker back 5 1 E
 portal 4 1 TOWN gate
 portal 11 7 CATACOMB start
 portal 13 7 MAZE start
+portal 20 1 INFERNAL start
+npc 22 22 SHRINE Shrine

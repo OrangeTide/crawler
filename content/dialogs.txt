@@ -18,8 +18,18 @@ dialog ELDER
 node 0
 text "You there. The town has need of brave sorts. Will you help us?"
 resp "What is wrong?" goto 1
+resp "I bear the relic you sought." goto 2 needflag QUEST_RELIC
 resp "Not now." end
 node 1
-text "Foul things crawl up from the deep. Drive them back and be rewarded."
-resp "I accept." setflag QUEST_MAIN
+text "Things crawl up from the deep. Find the lost relic in the crypt and bring it to me."
+resp "I accept the charge." setflag QUEST_MAIN
 resp "I must decline." goto 0
+node 2
+text "The relic! With this the deep can be sealed. You have saved us all."
+resp "It was my honour." setflag QUEST_WON
+
+dialog SHRINE
+node 0
+text "A shard of the old relic rests upon a cold altar, humming faintly."
+resp "Take the relic." setflag QUEST_RELIC
+resp "Step away." end

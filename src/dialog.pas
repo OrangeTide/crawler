@@ -35,6 +35,7 @@ type
     action: byte;
     gotoNode: longint;
     arg: string[12];
+    condFlag: string[12];   { shown only if this flag is set, or empty }
   end;
 
   TNode = record
@@ -116,6 +117,7 @@ begin
         PutB(a, n, cs[ci].nodes[ni].resp[ri].action);
         PutU16(a, n, word(cs[ci].nodes[ni].resp[ri].gotoNode));
         PutFixed(a, n, cs[ci].nodes[ni].resp[ri].arg, 12);
+        PutFixed(a, n, cs[ci].nodes[ni].resp[ri].condFlag, 12);
       end;
     end;
   end;
@@ -181,6 +183,7 @@ begin
         Convs[ci].nodes[ni].resp[ri].action := RB;
         Convs[ci].nodes[ni].resp[ri].gotoNode := smallint(RU16);
         Convs[ci].nodes[ni].resp[ri].arg := RFixed(12);
+        Convs[ci].nodes[ni].resp[ri].condFlag := RFixed(12);
       end;
     end;
   end;
@@ -189,6 +192,21 @@ end;
 
 var
   foundIdx: longint;
+  DlgVisible: array of longint;   { indices of responses shown at DlgNode }
+
+procedure RecomputeVisible;
+var
+  i: longint;
+begin
+  SetLength(DlgVisible, 0);
+  if not DlgActive then exit;
+  for i := 0 to High(Convs[DlgConv].nodes[DlgNode].resp) do
+    with Convs[DlgConv].nodes[DlgNode].resp[i] do
+      if (condFlag = '') or FlagHas(condFlag) then begin
+        SetLength(DlgVisible, Length(DlgVisible) + 1);
+        DlgVisible[High(DlgVisible)] := i;
+      end;
+end;
 
 function ConvIndex(const name: string): boolean;
 var i: longint;
@@ -209,17 +227,17 @@ begin
   DlgConv := foundIdx;
   DlgNode := 0;
   DlgActive := true;
+  RecomputeVisible;
 end;
 
 function DialogRespCount: longint;
 begin
-  if not DlgActive then DialogRespCount := 0
-  else DialogRespCount := Length(Convs[DlgConv].nodes[DlgNode].resp);
+  DialogRespCount := Length(DlgVisible);
 end;
 
 function DialogRespText(i: longint): string;
 begin
-  DialogRespText := Convs[DlgConv].nodes[DlgNode].resp[i].text;
+  DialogRespText := Convs[DlgConv].nodes[DlgNode].resp[DlgVisible[i]].text;
 end;
 
 procedure DialogChoose(i: longint);
@@ -227,7 +245,7 @@ var
   r: TResponse;
 begin
   if (not DlgActive) or (i < 0) or (i >= DialogRespCount) then exit;
-  r := Convs[DlgConv].nodes[DlgNode].resp[i];
+  r := Convs[DlgConv].nodes[DlgNode].resp[DlgVisible[i]];
   case r.action of
     DA_SETFLAG: FlagSet(r.arg);
     DA_SHOP:    DlgShopReq := true;
@@ -235,9 +253,10 @@ begin
   end;
   if r.action = DA_END then
     DlgActive := false
-  else if (r.gotoNode >= 0) and (r.gotoNode < Length(Convs[DlgConv].nodes)) then
-    DlgNode := r.gotoNode
-  else
+  else if (r.gotoNode >= 0) and (r.gotoNode < Length(Convs[DlgConv].nodes)) then begin
+    DlgNode := r.gotoNode;
+    RecomputeVisible;
+  end else
     DlgActive := false;
 end;
 

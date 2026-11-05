@@ -18,7 +18,8 @@ interface
 
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
-                gsDialog, gsShop, gsFullMap, gsInventory, gsMenu, gsGameOver);
+                gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
+                gsGameOver, gsVictory);
 
 var
   State: TGameState;
@@ -660,11 +661,19 @@ begin
     JournalAdd('Clear the crypt beneath the town for the reeve.');
     FlagSet('J_CRYPT');
   end;
+  if FlagHas('QUEST_RELIC') and (not FlagHas('J_RELIC')) then begin
+    JournalAdd('Recovered the relic shard. Return it to the elder.');
+    FlagSet('J_RELIC');
+  end;
 end;
 
 procedure DialogAfterChoice;
 begin
   SyncJournal;
+  if FlagHas('QUEST_WON') then begin
+    State := gsVictory;
+    exit;
+  end;
   if DlgShopReq then begin
     shopSel := 0;
     State := gsShop;
@@ -815,6 +824,22 @@ begin
   State := gsTitle;
 end;
 
+{ ---- Victory state ---- }
+
+procedure VictoryRender;
+begin
+  ClearFB(RGB(8, 14, 10));
+  DrawCenter(80, 'THE DEEP IS SEALED', RGB(230, 220, 140));
+  DrawCenter(96, 'THE TOWN IS SAVED', RGB(180, 200, 160));
+  DrawCenter(120, 'PRESS A KEY', RGB(140, 150, 120));
+end;
+
+procedure VictoryKeyDown(scancode: longint);
+begin
+  titleSel := 0;
+  State := gsTitle;
+end;
+
 { ---- State machine entry points ---- }
 
 function FindPak: string;
@@ -897,6 +922,7 @@ begin
           gsMenu:     JournalKeyDown(ev.key.keysym.scancode);
           gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
+          gsVictory:  VictoryKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -946,6 +972,7 @@ begin
     gsMenu:     JournalRender;
     gsCombat:   CombatRender;
     gsGameOver: GameOverRender;
+    gsVictory:  VictoryRender;
   end;
 end;
 
