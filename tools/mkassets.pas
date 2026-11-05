@@ -15,12 +15,13 @@ program mkassets;
 uses
   sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext,
-  worldfmt, worldtext, meshfmt;
+  worldfmt, worldtext, meshfmt, models;
 
 var
   w: TPakWriter;
   img: TImage;
   outPath: string;
+  modelVram, modelRam: longint;   { running VRAM and RAM totals across models }
 
 procedure AddTex(const name: string; genProc: longint);
 begin
@@ -153,7 +154,7 @@ end;
 procedure AddModel(const name, objFn, ppmFn: string);
 var
   mesh: TMesh;
-  before, after: longint;
+  before, after, vram, ram: longint;
 begin
   if not LoadMeshObjPpm(objFn, ppmFn, mesh) then begin
     writeln(StdErr, 'mkassets: model ', name, ': cannot bake ', objFn, ' / ', ppmFn);
@@ -162,12 +163,16 @@ begin
   before := Length(mesh.verts) div 3;
   after := DecimateMesh(mesh, MESH_TRI_BUDGET);
   PakWAdd(w, UpperCase(name), EncodeMesh(mesh));
+  vram := mesh.texW * mesh.texH;
+  ram := Length(mesh.verts) * MODEL_GEOM_VERT_BYTES;
+  modelVram := modelVram + vram;
+  modelRam := modelRam + ram;
   if after < before then
     writeln('  model ', UpperCase(name), ' (', after, ' tris, cut from ',
-      before, ', ', mesh.texW, 'x', mesh.texH, ') from ', objFn)
+      before, ', ', vram, ' B vram, ', ram, ' B ram) from ', objFn)
   else
     writeln('  model ', UpperCase(name), ' (', after, ' tris, ',
-      mesh.texW, 'x', mesh.texH, ') from ', objFn);
+      vram, ' B vram, ', ram, ' B ram) from ', objFn);
 end;
 
 procedure AddWorld(const fn: string);
@@ -197,6 +202,7 @@ begin
 
   PakWInit(w);
   InitGfx;   { the palette the model baker quantizes textures against }
+  modelVram := 0; modelRam := 0;
   AddTex('BRICK', 0);
   AddTex('STONE', 1);
   AddTex('MOSS',  2);
@@ -234,5 +240,9 @@ begin
     writeln(StdErr, 'mkassets: could not write ', outPath);
     halt(1);
   end;
+  if modelVram > 0 then
+    writeln('  models total: ', modelVram, ' B vram (all at once would need ',
+      (modelVram * 100) div MODEL_VRAM_BUDGET, '% of the ', MODEL_VRAM_BUDGET,
+      ' B budget), ', modelRam, ' B ram');
   writeln('mkassets: wrote ', outPath);
 end.

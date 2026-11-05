@@ -24,4 +24,10 @@ budget pass when it builds the pak, clustering vertices to bring any
 heavy mesh down to the target ceiling for the PSX and DOS targets, so
 the sources stay high resolution while the shipped lumps stay small.
 
+The baker also reports each model's VRAM cost, its texture footprint in
+an 8-bit page, since all textures share the one game palette and so one
+CLUT on the PSX. The model registry carries that cost, and a cache can
+sum the models an area needs and check them against MODEL_VRAM_BUDGET
+to stay within what the console can hold at once.
+
 The models are public domain (CC0); nothing here carries a license header.
