@@ -962,7 +962,14 @@ and, in combat, monsters. The party still walks the grid.
   already uses (section 23).
 
 Status: the renderer, the mesh format, and the bake pipeline exist and are
-proven on a textured prop rendered headless. Still to do: draw the tile grid as
-quads behind the existing renderer seam, instance props and doors onto tiles,
-put monster models in combat, then dial in the affine warp, vertex snap and
-dither, and port the hot path to fixed point.
+proven on textured props rendered headless (a barrel, a door, eldritch
+creatures). The tile grid now draws through the rasterizer as well:
+`polyrender.pas` walks the tiles near the camera and emits a floor and ceiling
+quad per open tile and a wall face toward every open neighbor, reusing the wall,
+floor and ceiling textures quantized to palette indices. A per-pixel depth
+buffer in the rasterizer resolves occlusion, so faces draw in any order. The
+game toggles between the raycaster and the polygon renderer with the P key, so
+the two can be compared directly; the raycaster is still the default. Still to
+do: instance props, doors and monster models onto the grid, draw the portal and
+light glows the raycaster shows, then dial in vertex snap and dither and port
+the hot path to fixed point.

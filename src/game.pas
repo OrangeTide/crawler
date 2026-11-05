@@ -33,7 +33,7 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
+  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, hud, textures,
   rng, rules, items, chardata, party, monsters, combat, flags, dialog,
   mapstate, save, worldfmt, mapgen, overworld, gametime, audio;
 
@@ -48,6 +48,7 @@ type
 var
   keys: PKeyArray;
   showMap: boolean;
+  UsePoly: boolean;       { toggle the polygon renderer against the raycaster }
   GamePak: TPak;
   lastTX, lastTY: longint;
   CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
@@ -231,6 +232,7 @@ begin
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_SPACE:  InteractAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
+    SDL_SCANCODE_P:      UsePoly := not UsePoly;   { A/B the renderers }
     SDL_SCANCODE_TAB:    State := gsFullMap;
     SDL_SCANCODE_J:      State := gsMenu;
     SDL_SCANCODE_R:      RestHere;
@@ -467,7 +469,7 @@ end;
 procedure ExploreRender(fps: longint);
 begin
   UpdateWorldLight;
-  RenderView;
+  if UsePoly then RenderViewPoly else RenderView;
   DrawHud(showMap, fps);
   if saveMsgT > 0 then
     DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));
@@ -873,7 +875,7 @@ procedure DialogRender;
 var
   i, py, n: longint;
 begin
-  RenderView;
+  if UsePoly then RenderViewPoly else RenderView;
   FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
   py := 118;
   FillRectBlend(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);

@@ -68,6 +68,7 @@ begin
   cam.pitch := -0.18;
 
   ClearFB(RGB(28, 24, 34));
+  RasterBeginFrame;
   { spin it for a three-quarter look }
   RenderMeshAt(m, cam, 0, 0, 0, 1.0, yaw, 256);
 
