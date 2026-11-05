@@ -887,55 +887,60 @@ begin
   RenderMeshAt(mesh, mc, 0, 0, 0, 1.0, myaw, 236);
 end;
 
-{ The command strip at the foot of the screen, one layout per phase. }
+const
+  CMDBOX_X = 6;
+  CMDBOX_W = 104;
+  CMDBOX_Y = 140;      { top of the bottom window band }
+
+{ The FF-style command window at the lower left, one list per phase. The
+  cursor moves vertically; target and ally picks drive a chevron out on
+  the battlefield, so this box only names the current pick. }
 procedure DrawCombatMenu;
 var
-  i, x, y, total: longint;
+  i, y, bh: longint;
   sp: TSpell;
-  s: string;
+  c: TColor;
 begin
-  y := 231;
+  bh := FBH - CMDBOX_Y - 2;
+  FillRectBlend(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(6, 8, 14), 235);
+  FrameRect(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(150, 140, 90));
   case cbMenu of
-    CB_COMMAND: begin
-      total := 0;
-      for i := 0 to CMD_COUNT - 1 do
-        total := total + (Length(CMD_NAME[i]) + 2) * 6;
-      x := (FBW - total) div 2;
+    CB_COMMAND:
       for i := 0 to CMD_COUNT - 1 do begin
-        if i = cmdSel then
-          DrawText(x, y, '>' + CMD_NAME[i], RGB(245, 230, 140))
-        else
-          DrawText(x + 6, y, CMD_NAME[i], RGB(150, 155, 130));
-        x := x + (Length(CMD_NAME[i]) + 2) * 6;
+        y := CMDBOX_Y + 6 + i * 11;
+        if i = cmdSel then begin
+          DrawText(CMDBOX_X + 5, y, '>', RGB(245, 230, 140));
+          DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(245, 230, 140));
+        end else
+          DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(170, 165, 140));
       end;
-    end;
-    CB_TARGET: begin
-      if (CurTarget >= 0) and (CurTarget <= High(Foes)) then
-        s := 'TARGET ' + MonDefs[Foes[CurTarget].def].name
-      else
-        s := 'TARGET none';
-      DrawCenter(y, s + '  UP/DN PICK  ENT OK  ESC BACK', RGB(235, 215, 130));
-    end;
-    CB_SPELL: begin
-      total := 0;
-      for i := 0 to SpellCount - 1 do
-        total := total + (Length(SpellInfo(i).name) + 5) * 6;
-      x := (FBW - total) div 2;
+    CB_SPELL:
       for i := 0 to SpellCount - 1 do begin
+        y := CMDBOX_Y + 6 + i * 11;
         sp := SpellInfo(i);
-        s := sp.name + '(' + IntToStr(sp.cost) + ')';
-        if i = spellSel then
-          DrawText(x, y, '>' + s, RGB(180, 210, 245))
-        else if ActorCanCast(CurActor, i) then
-          DrawText(x + 6, y, s, RGB(150, 160, 185))
-        else
-          DrawText(x + 6, y, s, RGB(90, 90, 105));
-        x := x + (Length(sp.name) + 5) * 6;
+        if i = spellSel then c := RGB(185, 215, 245)
+        else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
+        else c := RGB(95, 95, 110);
+        if i = spellSel then DrawText(CMDBOX_X + 5, y, '>', c);
+        DrawText(CMDBOX_X + 15, y, sp.name, c);
+        DrawText(CMDBOX_X + CMDBOX_W - 12, y, IntToStr(sp.cost), c);
       end;
+    CB_TARGET: begin
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 6, 'TARGET', RGB(240, 220, 130));
+      if (CurTarget >= 0) and (CurTarget <= High(Foes)) then
+        DrawText(CMDBOX_X + 6, CMDBOX_Y + 18,
+          Copy(MonDefs[Foes[CurTarget].def].name, 1, 15), RGB(240, 220, 130));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 42, 'UP/DN AIM', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 52, 'ENT  OK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 62, 'ESC  BACK', RGB(150, 150, 130));
     end;
     CB_ALLY: begin
-      s := 'HEAL ' + Copy(Roster[allySel].name, 1, 8);
-      DrawCenter(y, s + '  UP/DN PICK  ENT OK  ESC BACK', RGB(140, 220, 200));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 6, 'HEAL', RGB(140, 220, 200));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 18,
+        Copy(Roster[allySel].name, 1, 12), RGB(140, 220, 200));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 42, 'UP/DN PICK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 52, 'ENT  OK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, CMDBOX_Y + 62, 'ESC  BACK', RGB(150, 150, 130));
     end;
   end;
 end;
@@ -943,15 +948,24 @@ end;
 procedure CombatRender;
 const
   FOE_YAW = 0.6;
+  { the battlefield is one depth axis: foe ranks recede up and back, the
+    party ranks stand forward toward the viewer. Reach then reads off the
+    screen, a back-rank member is plainly behind the front line. }
+  FOE_BACK_Y  = 34;  FOE_BACK_H  = 11;
+  FOE_FRONT_Y = 70;  FOE_FRONT_H = 14;
+  PTY_FRONT_Y = 92;
+  PTY_BACK_Y  = 116;
+  PANEL_Y     = 140;
 var
-  i, n, living, slot, cx, cy, y, x, mi, rk, half: longint;
+  i, n, living, slot, cx, cy, x, mi, rk, half, col, ny: longint;
   c, body: TColor;
   s: string;
 begin
-  { backdrop: a dim vault over a lit floor with a horizon seam }
-  FillRect(0, 0, FBW, 116, RGB(20, 17, 26));
-  FillRect(0, 116, FBW, FBH - 116, RGB(40, 32, 27));
-  FillRect(0, 114, FBW, 2, RGB(62, 52, 46));
+  { backdrop: a dim vault receding behind the foes, a lit floor the party
+    stands on, a horizon seam where the two sides meet }
+  FillRect(0, 0, FBW, 88, RGB(20, 17, 26));
+  FillRect(0, 88, FBW, FBH - 88, RGB(40, 32, 27));
+  FillRect(0, 86, FBW, 2, RGB(62, 52, 46));
 
   { title bar }
   FillRect(0, 0, FBW, 14, RGB(30, 12, 12));
@@ -959,9 +973,8 @@ begin
   DrawText(8, 3, 'COMBAT', RGB(230, 170, 120));
   DrawText(FBW - 96, 3, IntToStr(LivingFoes) + ' FOES', RGB(190, 180, 140));
 
-  { foes across the upper band, each a glyph with a name and HP bar }
-  { foes in two ranks: the back rank sits higher and smaller, the front
-    rank lower and larger, so reachable targets read at a glance }
+  { --- foes, in depth ranks: back rank up and small, front rank nearer
+    the clash and larger. Same rank spreads across columns. --- }
   RasterBeginFrame;     { clear depth before the foe models }
   for rk := RANK_BACK downto RANK_FRONT do begin
     living := 0;
@@ -969,69 +982,85 @@ begin
       if Foes[i].alive and (Foes[i].rank = rk) then inc(living);
     if living < 1 then continue;
     slot := FBW div living;
-    if rk = RANK_BACK then begin cy := 44; half := 15; end
-    else begin cy := 90; half := 22; end;
-    n := 0;
+    if rk = RANK_BACK then begin cy := FOE_BACK_Y; half := FOE_BACK_H; end
+    else begin cy := FOE_FRONT_Y; half := FOE_FRONT_H; end;
+    col := 0;
     for i := 0 to High(Foes) do begin
       if (not Foes[i].alive) or (Foes[i].rank <> rk) then continue;
-      cx := slot * n + slot div 2;
+      cx := slot * col + slot div 2;
       body := FOE_PAL[Foes[i].def mod 6];
-      if (i = CurTarget) and (not CombatOver)
-        and (cbMenu <> CB_ALLY) then begin
-        FrameRect(cx - half - 2, cy - half - 2, 2 * half + 4, 2 * half + 9,
-          RGB(240, 220, 120));
-        DrawText(cx - 2, cy - half - 12, '*', RGB(240, 220, 120));
-      end;
       mi := FindModel(MonDefs[Foes[i].def].model);
       if mi >= 0 then
         DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW, half)
       else
         DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
       s := MonDefs[Foes[i].def].name;
-      DrawText(cx - Length(s) * 3, cy - half - 2, s, RGB(215, 185, 175));
-      DrawBar(cx - 16, cy + half, 32, 3, Foes[i].hp, Foes[i].hpMax,
+      DrawText(cx - Length(s) * 3, cy - half - 8, s, RGB(215, 185, 175));
+      DrawBar(cx - 16, cy + half + 1, 32, 3, Foes[i].hp, Foes[i].hpMax,
         RGB(200, 80, 70), RGB(50, 24, 24));
-      inc(n);
+      { the aim chevron sits to the left of the chosen foe }
+      if (i = CurTarget) and (not CombatOver) and (cbMenu <> CB_ALLY) then
+        DrawText(cx - half - 10, cy - 3, '>', RGB(245, 225, 120));
+      inc(col);
     end;
   end;
 
-  { message log panel }
-  FillRectBlend(6, 122, FBW - 12, 50, RGB(8, 8, 12), 210);
-  FrameRect(6, 122, FBW - 12, 50, RGB(60, 56, 48));
-  for i := 0 to LOG_LINES - 1 do
-    DrawText(12, 126 + i * 9, Log[i], RGB(170, 180, 160));
-
-  { party panel }
+  { --- party, in depth ranks: front rank forward near the clash, back
+    rank to the rear near the viewer. Same rank spreads across columns. --- }
   n := Length(Roster);
-  y := 182;
-  FillRectBlend(6, y - 4, FBW - 12, 48, RGB(14, 12, 18), 220);
-  FrameRect(6, y - 4, FBW - 12, 48, RGB(70, 64, 54));
-  if n < 1 then slot := FBW - 16 else slot := (FBW - 16) div n;
-  for i := 0 to n - 1 do begin
-    x := 12 + i * slot;
-    if (i = CurActor) and (not CombatOver) then
-      FrameRect(x - 4, y - 4, slot, 44, RGB(240, 230, 150));
-    if (cbMenu = CB_ALLY) and (i = allySel) and (not CombatOver) then
-      FrameRect(x - 2, y - 2, slot - 4, 40, RGB(120, 220, 200));
-    if not Roster[i].alive then c := RGB(160, 80, 80)
-    else if Roster[i].downed then c := RGB(175, 135, 85)
-    else c := RGB(205, 210, 190);
-    DrawText(x, y, Copy(Roster[i].name, 1, 8), c);
-    DrawText(x, y + 10, IntToStr(Roster[i].hp) + '/'
-      + IntToStr(Roster[i].hpMax), RGB(170, 175, 160));
-    DrawBar(x, y + 20, slot - 12, 4, Roster[i].hp, Roster[i].hpMax,
-      RGB(70, 170, 70), RGB(40, 20, 20));
-    if not Roster[i].alive then DrawText(x, y + 27, 'SLAIN', RGB(190, 90, 90))
-    else if Roster[i].downed then DrawText(x, y + 27, 'DOWN', RGB(190, 140, 90))
-    else if Roster[i].guarding then DrawText(x, y + 27, 'GUARD', RGB(150, 170, 210));
+  for rk := RANK_FRONT to RANK_BACK do begin
+    living := 0;
+    for i := 0 to n - 1 do if Roster[i].rank = rk then inc(living);
+    if living < 1 then continue;
+    if rk = RANK_FRONT then ny := PTY_FRONT_Y else ny := PTY_BACK_Y;
+    slot := (FBW - 24) div living;
+    if slot > 96 then slot := 96;
+    col := 0;
+    for i := 0 to n - 1 do begin
+      if Roster[i].rank <> rk then continue;
+      x := 16 + col * slot;
+      if (i = CurActor) and (not CombatOver) then
+        DrawText(x - 10, ny, '>', RGB(245, 230, 140));
+      if (cbMenu = CB_ALLY) and (i = allySel) and (not CombatOver) then
+        DrawText(x - 10, ny, '>', RGB(120, 220, 200));
+      if not Roster[i].alive then c := RGB(160, 80, 80)
+      else if Roster[i].downed then c := RGB(175, 135, 85)
+      else c := RGB(205, 210, 190);
+      DrawText(x, ny, Copy(Roster[i].name, 1, 8), c);
+      if not Roster[i].alive then
+        DrawText(x, ny + 9, 'SLAIN', RGB(190, 90, 90))
+      else if Roster[i].downed then
+        DrawText(x, ny + 9, 'DOWN', RGB(190, 140, 90))
+      else begin
+        DrawText(x, ny + 9, IntToStr(Roster[i].hp) + '/'
+          + IntToStr(Roster[i].hpMax), RGB(170, 175, 160));
+        if Roster[i].guarding then DrawText(x + slot - 24, ny, 'GRD', RGB(150, 170, 210));
+        if Roster[i].sp > 0 then
+          DrawText(x + slot - 28, ny + 9, 'sp' + IntToStr(Roster[i].sp),
+            RGB(150, 160, 205));
+        DrawBar(x, ny + 18, slot - 16, 3, Roster[i].hp, Roster[i].hpMax,
+          RGB(70, 170, 70), RGB(40, 20, 20));
+      end;
+      inc(col);
+    end;
   end;
 
-  { command strip: the FF-style menu for the current phase }
+  { --- bottom windows: the message box on the right, the command box on
+    the left (the command box is drawn by DrawCombatMenu) --- }
+  FillRectBlend(116, PANEL_Y, FBW - 122, FBH - PANEL_Y - 2, RGB(6, 8, 14), 235);
+  FrameRect(116, PANEL_Y, FBW - 122, FBH - PANEL_Y - 2, RGB(110, 110, 140));
+  for i := 0 to LOG_LINES - 1 do
+    DrawText(122, PANEL_Y + 6 + i * 10, Log[i], RGB(175, 185, 170));
+
   if CombatOver then begin
-    if Victory then s := 'VICTORY - PRESS A KEY'
-    else if Fled then s := 'YOU ESCAPED - PRESS A KEY'
-    else s := 'DEFEAT - PRESS A KEY';
-    DrawCenter(232, s, RGB(235, 220, 150));
+    FillRectBlend(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(6, 8, 14), 235);
+    FrameRect(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(150, 140, 90));
+    if Victory then s := 'VICTORY'
+    else if Fled then s := 'ESCAPED'
+    else s := 'DEFEAT';
+    DrawText(16, PANEL_Y + 14, s, RGB(235, 220, 150));
+    DrawText(16, PANEL_Y + 34, 'PRESS', RGB(170, 170, 150));
+    DrawText(16, PANEL_Y + 44, 'A KEY', RGB(170, 170, 150));
   end else
     DrawCombatMenu;
 end;
