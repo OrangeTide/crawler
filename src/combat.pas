@@ -70,6 +70,9 @@ var
 procedure StartRandomEncounter(depth: longint);
 procedure CombatLog(const s: string);
 function LivingFoes: longint;
+function FirstLivingFoe: longint;
+{ First foe the actor can actually strike, or -1. }
+function FirstReachable(actor: longint): longint;
 { The frontmost living rank on each side; melee can only reach it. }
 function FrontFoeRank: longint;
 function FrontPartyRank: longint;

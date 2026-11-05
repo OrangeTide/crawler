@@ -62,6 +62,13 @@ var
   optSel: longint;
   volMaster, volMusic, volSfx: longint;
 
+  { combat command UI: a FF-style command then target flow }
+  cbMenu: longint;        { CB_* phase }
+  cmdSel: longint;        { highlighted command }
+  spellSel: longint;      { highlighted spell }
+  allySel: longint;       { highlighted ally, for a heal }
+  pendingSpell: longint;  { spell chosen, awaiting a target, -1 none }
+
   titleSel: longint;
   ccSlot: longint;
   ccSpecies: longint;
@@ -75,6 +82,23 @@ const
   NAME_POOL: array[0 .. 11] of string[12] = (
     'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
     'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
+
+  { combat command UI phases }
+  CB_COMMAND = 0;   { picking a command }
+  CB_TARGET  = 1;   { picking an enemy }
+  CB_SPELL   = 2;   { picking a spell }
+  CB_ALLY    = 3;   { picking an ally, for a heal }
+
+  { commands in the root menu }
+  CMD_ATTACK = 0;
+  CMD_CAST   = 1;
+  CMD_ITEM   = 2;
+  CMD_GUARD  = 3;
+  CMD_FLEE   = 4;
+  CMD_COUNT  = 5;
+
+  CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
+    'ATTACK', 'CAST', 'ITEM', 'GUARD', 'FLEE');
 
 function SavePath: string;
 begin
@@ -276,6 +300,11 @@ end;
 procedure StartCombat(depth: longint);
 begin
   StartRandomEncounter(depth);
+  cbMenu := CB_COMMAND;
+  cmdSel := CMD_ATTACK;
+  spellSel := 0;
+  allySel := 0;
+  pendingSpell := -1;
   PlaySfx(SFX_FOE);
   State := gsCombat;
 end;
@@ -804,6 +833,59 @@ begin
   RenderMeshAt(mesh, mc, 0, 0, 0, 1.0, myaw, 236);
 end;
 
+{ The command strip at the foot of the screen, one layout per phase. }
+procedure DrawCombatMenu;
+var
+  i, x, y, total: longint;
+  sp: TSpell;
+  s: string;
+begin
+  y := 231;
+  case cbMenu of
+    CB_COMMAND: begin
+      total := 0;
+      for i := 0 to CMD_COUNT - 1 do
+        total := total + (Length(CMD_NAME[i]) + 2) * 6;
+      x := (FBW - total) div 2;
+      for i := 0 to CMD_COUNT - 1 do begin
+        if i = cmdSel then
+          DrawText(x, y, '>' + CMD_NAME[i], RGB(245, 230, 140))
+        else
+          DrawText(x + 6, y, CMD_NAME[i], RGB(150, 155, 130));
+        x := x + (Length(CMD_NAME[i]) + 2) * 6;
+      end;
+    end;
+    CB_TARGET: begin
+      if (CurTarget >= 0) and (CurTarget <= High(Foes)) then
+        s := 'TARGET ' + MonDefs[Foes[CurTarget].def].name
+      else
+        s := 'TARGET none';
+      DrawCenter(y, s + '  UP/DN PICK  ENT OK  ESC BACK', RGB(235, 215, 130));
+    end;
+    CB_SPELL: begin
+      total := 0;
+      for i := 0 to SpellCount - 1 do
+        total := total + (Length(SpellInfo(i).name) + 5) * 6;
+      x := (FBW - total) div 2;
+      for i := 0 to SpellCount - 1 do begin
+        sp := SpellInfo(i);
+        s := sp.name + '(' + IntToStr(sp.cost) + ')';
+        if i = spellSel then
+          DrawText(x, y, '>' + s, RGB(180, 210, 245))
+        else if ActorCanCast(CurActor, i) then
+          DrawText(x + 6, y, s, RGB(150, 160, 185))
+        else
+          DrawText(x + 6, y, s, RGB(90, 90, 105));
+        x := x + (Length(sp.name) + 5) * 6;
+      end;
+    end;
+    CB_ALLY: begin
+      s := 'HEAL ' + Copy(Roster[allySel].name, 1, 8);
+      DrawCenter(y, s + '  UP/DN PICK  ENT OK  ESC BACK', RGB(140, 220, 200));
+    end;
+  end;
+end;
+
 procedure CombatRender;
 const
   FOE_YAW = 0.6;
@@ -840,7 +922,8 @@ begin
       if (not Foes[i].alive) or (Foes[i].rank <> rk) then continue;
       cx := slot * n + slot div 2;
       body := FOE_PAL[Foes[i].def mod 6];
-      if (i = CurTarget) and (not CombatOver) then begin
+      if (i = CurTarget) and (not CombatOver)
+        and (cbMenu <> CB_ALLY) then begin
         FrameRect(cx - half - 2, cy - half - 2, 2 * half + 4, 2 * half + 9,
           RGB(240, 220, 120));
         DrawText(cx - 2, cy - half - 12, '*', RGB(240, 220, 120));
@@ -874,6 +957,8 @@ begin
     x := 12 + i * slot;
     if (i = CurActor) and (not CombatOver) then
       FrameRect(x - 4, y - 4, slot, 44, RGB(240, 230, 150));
+    if (cbMenu = CB_ALLY) and (i = allySel) and (not CombatOver) then
+      FrameRect(x - 2, y - 2, slot - 4, 40, RGB(120, 220, 200));
     if not Roster[i].alive then c := RGB(160, 80, 80)
     else if Roster[i].downed then c := RGB(175, 135, 85)
     else c := RGB(205, 210, 190);
@@ -887,15 +972,153 @@ begin
     else if Roster[i].guarding then DrawText(x, y + 27, 'GUARD', RGB(150, 170, 210));
   end;
 
-  { status or command hints }
+  { command strip: the FF-style menu for the current phase }
   if CombatOver then begin
     if Victory then s := 'VICTORY - PRESS A KEY'
     else if Fled then s := 'YOU ESCAPED - PRESS A KEY'
     else s := 'DEFEAT - PRESS A KEY';
     DrawCenter(232, s, RGB(235, 220, 150));
   end else
-    DrawCenter(232, 'A ATK  G GUARD  R FLEE  P POTION  TAB TARGET',
-      RGB(150, 160, 120));
+    DrawCombatMenu;
+end;
+
+{ Whether the actor could target this foe under the pending action: a
+  spell reaches any living foe, a melee or ranged attack follows reach. }
+function CombatCanTarget(foe: longint): boolean;
+begin
+  if (foe < 0) or (foe > High(Foes)) or (not Foes[foe].alive) then
+    CombatCanTarget := false
+  else if pendingSpell >= 0 then
+    CombatCanTarget := true
+  else
+    CombatCanTarget := FoeReachable(CurActor, foe);
+end;
+
+{ Step the enemy cursor to the next targetable foe in a direction. }
+procedure CombatCycleTarget(dir: longint);
+var
+  start, i, n: longint;
+begin
+  n := Length(Foes);
+  if n = 0 then exit;
+  i := CurTarget;
+  if (i < 0) or (i >= n) then i := 0;
+  start := i;
+  repeat
+    i := ((i + dir) mod n + n) mod n;
+    if CombatCanTarget(i) then begin CurTarget := i; exit; end;
+  until i = start;
+end;
+
+{ Step the ally cursor to the next living member. A heal may revive a
+  downed ally, so the downed count as valid targets. }
+procedure CombatCycleAlly(dir: longint);
+var
+  start, i, n: longint;
+begin
+  n := Length(Roster);
+  if n = 0 then exit;
+  i := allySel;
+  if (i < 0) or (i >= n) then i := 0;
+  start := i;
+  repeat
+    i := ((i + dir) mod n + n) mod n;
+    if Roster[i].alive then begin allySel := i; exit; end;
+  until i = start;
+end;
+
+{ Step the spell cursor to the next spell this actor can cast. }
+procedure CombatStepSpell(dir: longint);
+var
+  start, i, n: longint;
+begin
+  n := SpellCount;
+  if n = 0 then exit;
+  i := spellSel;
+  if (i < 0) or (i >= n) then i := 0;
+  start := i;
+  repeat
+    i := ((i + dir) mod n + n) mod n;
+    if ActorCanCast(CurActor, i) then begin spellSel := i; exit; end;
+  until i = start;
+end;
+
+{ Return to the command menu, clearing any pending choice and picking a
+  sane default target. Called at the top of each actor's turn. }
+procedure CombatToCommand;
+begin
+  cbMenu := CB_COMMAND;
+  cmdSel := CMD_ATTACK;
+  pendingSpell := -1;
+  if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
+    CurTarget := FirstLivingFoe;
+end;
+
+procedure CombatConfirmCommand;
+var
+  i: longint;
+begin
+  case cmdSel of
+    CMD_ATTACK: begin
+      pendingSpell := -1;
+      CurTarget := FirstReachable(CurActor);
+      if CurTarget < 0 then begin
+        CombatLog(Roster[CurActor].name + ' has no target in reach.');
+        PlaySfx(SFX_DOWN);
+      end else begin
+        cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
+      end;
+    end;
+    CMD_CAST: begin
+      spellSel := -1;
+      for i := 0 to SpellCount - 1 do
+        if ActorCanCast(CurActor, i) then begin spellSel := i; break; end;
+      if spellSel < 0 then begin
+        CombatLog(Roster[CurActor].name + ' has no spell to cast.');
+        PlaySfx(SFX_DOWN);
+      end else begin
+        cbMenu := CB_SPELL; PlaySfx(SFX_SELECT);
+      end;
+    end;
+    CMD_ITEM:  begin ActPotion; PlaySfx(SFX_PICK); CombatToCommand; end;
+    CMD_GUARD: begin ActGuard; PlaySfx(SFX_SELECT); CombatToCommand; end;
+    CMD_FLEE:  begin ActFlee; PlaySfx(SFX_SELECT); CombatToCommand; end;
+  end;
+end;
+
+procedure CombatConfirmSpell;
+var
+  sp: TSpell;
+begin
+  if not ActorCanCast(CurActor, spellSel) then begin PlaySfx(SFX_DOWN); exit; end;
+  sp := SpellInfo(spellSel);
+  pendingSpell := spellSel;
+  case sp.mode of
+    TGT_ENEMY, TGT_ENEMY_RANK: begin
+      CurTarget := FirstLivingFoe;
+      cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
+    end;
+    TGT_ALLY: begin
+      allySel := CurActor;
+      if not Roster[allySel].alive then CombatCycleAlly(1);
+      cbMenu := CB_ALLY; PlaySfx(SFX_SELECT);
+    end;
+    TGT_PARTY: begin
+      ActCast(pendingSpell, -1); PlaySfx(SFX_SELECT); CombatToCommand;
+    end;
+  end;
+end;
+
+procedure CombatBack;
+begin
+  case cbMenu of
+    CB_TARGET:
+      if pendingSpell >= 0 then cbMenu := CB_SPELL else cbMenu := CB_COMMAND;
+    CB_SPELL: cbMenu := CB_COMMAND;
+    CB_ALLY:  cbMenu := CB_SPELL;
+  end;
+  if cbMenu <> CB_TARGET then pendingSpell := -1;
+  PlaySfx(SFX_SELECT);
 end;
 
 procedure CombatKeyDown(scancode: longint);
@@ -904,15 +1127,53 @@ begin
     EndCombat;
     exit;
   end;
-  case scancode of
-    SDL_SCANCODE_A, SDL_SCANCODE_SPACE, SDL_SCANCODE_RETURN: begin
-      ActAttack; PlaySfx(SFX_HIT);
-    end;
-    SDL_SCANCODE_G: begin ActGuard; PlaySfx(SFX_SELECT); end;
-    SDL_SCANCODE_R: begin ActFlee; PlaySfx(SFX_SELECT); end;
-    SDL_SCANCODE_P: begin ActPotion; PlaySfx(SFX_PICK); end;
-    SDL_SCANCODE_TAB: NextTarget;
+  if CurActor < 0 then exit;
+
+  case cbMenu of
+    CB_COMMAND:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_W:
+          cmdSel := (cmdSel + CMD_COUNT - 1) mod CMD_COUNT;
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_S:
+          cmdSel := (cmdSel + 1) mod CMD_COUNT;
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE:
+          CombatConfirmCommand;
+      end;
+    CB_TARGET:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_LEFT, SDL_SCANCODE_TAB:
+          CombatCycleTarget(-1);
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_RIGHT:
+          CombatCycleTarget(1);
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
+          if pendingSpell >= 0 then begin
+            ActCast(pendingSpell, CurTarget); PlaySfx(SFX_HIT);
+          end else begin
+            ActAttack; PlaySfx(SFX_HIT);
+          end;
+          CombatToCommand;
+        end;
+        SDL_SCANCODE_ESCAPE: CombatBack;
+      end;
+    CB_SPELL:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_W:   CombatStepSpell(-1);
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_S: CombatStepSpell(1);
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: CombatConfirmSpell;
+        SDL_SCANCODE_ESCAPE: CombatBack;
+      end;
+    CB_ALLY:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_LEFT:   CombatCycleAlly(-1);
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_RIGHT: CombatCycleAlly(1);
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
+          ActCast(pendingSpell, allySel); PlaySfx(SFX_SELECT);
+          CombatToCommand;
+        end;
+        SDL_SCANCODE_ESCAPE: CombatBack;
+      end;
   end;
+
   if CombatOver and (not Victory) and (not Fled) then PlaySfx(SFX_DOWN);
 end;
 
