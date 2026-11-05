@@ -22,7 +22,7 @@ TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
             world $(WORLD)
 
-.PHONY: all run clean tools test
+.PHONY: all run clean tools meshtools test
 
 all: $(TARGET) $(PAK)
 
@@ -34,6 +34,18 @@ tools: $(MKASSETS)
 $(MKASSETS): tools/mkassets.pas src/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -o$(MKASSETS) tools/mkassets.pas
+
+# Mesh pipeline tools. mkmesh bakes an assimp OBJ plus a PPM texture into
+# a CMSH lump; meshshot renders a baked mesh to a PPM for inspection.
+meshtools: build/tools/mkmesh build/tools/meshshot
+
+build/tools/mkmesh: tools/mkmesh.pas src/*.pas | build
+	mkdir -p build/tools
+	$(FPC) $(TOOLFLAGS) -obuild/tools/mkmesh tools/mkmesh.pas
+
+build/tools/meshshot: tools/meshshot.pas src/*.pas | build
+	mkdir -p build/tools
+	$(FPC) $(TOOLFLAGS) -obuild/tools/meshshot tools/meshshot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
 	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS)

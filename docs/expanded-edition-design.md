@@ -688,6 +688,9 @@ milestone, so the build order is the plan rather than the exact order of work.
 18. **0.18.0** Interiors and the full pin table: all six authored zones pinned to
     cells around the town, generated building interiors reached by door-portals, and
     an authored town tavern (section 21).
+19. **0.19.0** (in progress) PSX-style polygon renderer: a fixed-function triangle
+    rasterizer that draws the existing tile grid as geometry and instances CC0 models
+    as props, doors and monsters, replacing the raycaster (section 25).
 
 Each step leaves the game runnable, which keeps the project honest. Milestones
 0.1.0 through 0.18.0 are done. 0.14.0 landed before the later features, so
@@ -917,3 +920,49 @@ out cleanly for the PlayStation 1.
   present the found games, or auto-join one, so LAN play needs no typed
   addresses. An optional pre-shared key can secure a closed LAN game, which is
   the netchan crypto backend's recommended posture and is desktop-only.
+
+## 25. The PSX-style polygon renderer (in progress)
+
+The raycaster was the right prototype on Linux, but the real targets are a
+polygon machine (PlayStation 1) and 32-bit DOS, and the art we have is low-poly
+PSX models. So the visual layer moves from the raycaster to a small
+fixed-function triangle rasterizer, the kind of renderer those machines ran.
+
+The grid stays. This is a change to how the world is drawn, not to what the
+world is. The tile grid, collision, portals, fog, the overworld generator,
+interiors, time, and the combat rules are all renderer-agnostic and carry over
+unchanged. Walls become extruded textured quads, floors and ceilings become
+quads, and the CC0 models are instanced onto tiles as props, doors, furniture
+and, in combat, monsters. The party still walks the grid.
+
+- **Renderer.** `raster.pas` transforms triangles into view space, projects
+  them, and fills them with affine (not perspective correct) texture mapping,
+  which is the classic PSX texture warp. There is no depth buffer: whole
+  triangles are sorted back to front and painted, the painter's approach the
+  PS1 ordering table also used. Backface culling drops the far side. The target
+  is the shared 8-bit framebuffer, so a texel is already a palette index. The
+  math is double precision for now and converts to fixed point later, the same
+  staged way the raycaster did.
+
+- **Mesh format.** `meshfmt.pas` defines a baked mesh: a flat list of triangles,
+  three corners each with a position and a texture coordinate, plus one paletted
+  texture. Corners are not shared, which keeps the renderer a simple loop and
+  suits small models. The on-disk lump is `CMSH`.
+
+- **Asset pipeline.** Source models are FBX and GLB with PNG textures.
+  `assimp` converts a model to a triangulated OBJ with UVs; ImageMagick resizes
+  the texture to a small PPM, which avoids a PNG decoder in Pascal; and the
+  `mkmesh` tool bakes the OBJ and PPM into a `CMSH` lump, quantizing the texture
+  to the game palette and centering the model on its base. `meshshot` renders a
+  baked mesh to a PPM for inspection. The models are CC0.
+
+- **Budget.** The PS1 has 2 MB main RAM and 1 MB VRAM. Geometry is cheap;
+  textures are the constraint. Models and textures are kept to a per-area working
+  set with shared small textures, the same cell-cache discipline the overworld
+  already uses (section 23).
+
+Status: the renderer, the mesh format, and the bake pipeline exist and are
+proven on a textured prop rendered headless. Still to do: draw the tile grid as
+quads behind the existing renderer seam, instance props and doors onto tiles,
+put monster models in combat, then dial in the affine warp, vertex snap and
+dither, and port the hot path to fixed point.
