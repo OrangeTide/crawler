@@ -64,6 +64,7 @@ type
     hpMax: smallint;
     alive: boolean;
     rank: byte;              { 0 front, 1 back }
+    sp: smallint;            { spell points, for caster and healer foes }
   end;
 
   { status timers for one combatant, in turns remaining }
@@ -170,6 +171,9 @@ procedure AfflictFoe(fi, st, turns: longint);
 function EnemyMaybeMove(fi: longint; ranged: boolean): boolean;
 { The foe AI's ranged disruption: a taunt or a thrown weapon. Spends the turn. }
 function EnemyHarry(fi: longint): boolean;
+{ Foe spellcasting: a mage's bolt at the party, a healer's mend on an ally. }
+function EnemyCastBolt(fi: longint): boolean;
+function EnemyCastHeal(fi: longint): boolean;
 { Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
 procedure ResolvePartyAttack(actor, foe: longint);
 
@@ -204,6 +208,7 @@ const
   POISON_DMG = 2;
   BURN_DMG   = 3;
   STATUS_DC  = 13;     { save target to shrug off an inflicted status }
+  FOE_CAST_SP = 2;     { spell points a foe spends per spell }
 
 { ---- logging ---- }
 
@@ -733,6 +738,11 @@ begin
     else begin
       Foes[i].rank := RANK_FRONT; inc(front);
     end;
+    { caster and healer foes carry a small pool of spell points }
+    if (MonDefs[pick].flags and (MF_MAGE or MF_HEALER)) <> 0 then
+      Foes[i].sp := 4 + depth
+    else
+      Foes[i].sp := 0;
   end;
   if front = 0 then Foes[0].rank := RANK_FRONT;   { someone must be reachable }
   FoesAtStart := count;
@@ -875,18 +885,76 @@ begin
   end;
 end;
 
+{ A mage foe conjures a bolt at the party, reaching past the front line for
+  the soft back row, and may leave the status its element implies. Spends SP. }
+function EnemyCastBolt(fi: longint): boolean;
+var
+  tgt, dmg: longint;
+begin
+  EnemyCastBolt := false;
+  if Foes[fi].sp < FOE_CAST_SP then exit;
+  tgt := EnemyPickTarget(fi, true);       { ranged reach, prefers the back }
+  if tgt < 0 then exit;
+  dec(Foes[fi].sp, FOE_CAST_SP);
+  dmg := RngRoll(GameRng, 1, 6) + MonDefs[Foes[fi].def].hd;
+  if dmg < 1 then dmg := 1;
+  CombatLog(MonDefs[Foes[fi].def].name + ' conjures a bolt at '
+    + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
+  PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
+  FlashAlly(tgt);
+  CombatSfxCue := CUE_HIT;
+  HurtMember(tgt, dmg);
+  if Roster[tgt].alive and (not Roster[tgt].downed)
+     and (MonDefs[Foes[fi].def].inflict <> 0) then
+    AfflictMember(tgt, MonDefs[Foes[fi].def].inflict, 3);
+  EnemyCastBolt := true;
+end;
+
+{ A healer foe mends its most wounded living ally. Returns false (so the foe
+  acts some other way) when no ally is hurt. Spends SP. }
+function EnemyCastHeal(fi: longint): boolean;
+var
+  i, best, amt: longint;
+begin
+  EnemyCastHeal := false;
+  if Foes[fi].sp < FOE_CAST_SP then exit;
+  best := -1;
+  for i := 0 to High(Foes) do
+    if Foes[i].alive and (Foes[i].hp < Foes[i].hpMax) then
+      if (best < 0) or (Foes[i].hp < Foes[best].hp) then best := i;
+  if best < 0 then exit;                  { nobody needs it }
+  dec(Foes[fi].sp, FOE_CAST_SP);
+  amt := RngRoll(GameRng, 1, 8) + MonDefs[Foes[fi].def].hd;
+  if amt < 1 then amt := 1;
+  Foes[best].hp := Foes[best].hp + amt;
+  if Foes[best].hp > Foes[best].hpMax then Foes[best].hp := Foes[best].hpMax;
+  CombatLog(MonDefs[Foes[fi].def].name + ' mends '
+    + MonDefs[Foes[best].def].name + ' (+' + IntToStr(amt) + ').');
+  PushPop(0, best, POPC_HEAL, '+' + IntToStr(amt));
+  FlashFoe(best);
+  EnemyCastHeal := true;
+end;
+
 { Resolve the foe at the turn cursor: choose a target by role and swing,
   carrying the monster's element and any status its hit inflicts. }
 procedure ResolveEnemyTurn;
 var
   fi, tgt, roll, dmg, effAC: longint;
-  ranged, hasHarry: boolean;
+  ranged, hasHarry, isMage, isHealer: boolean;
 begin
   fi := TurnQueue[TurnPos].idx;
   if (fi > High(Foes)) or (not Foes[fi].alive) then exit;
   if FirstConscious < 0 then exit;
   ranged := (MonDefs[Foes[fi].def].flags and MF_RANGED) <> 0;
   hasHarry := MonDefs[Foes[fi].def].harry <> HARRY_NONE;
+  isMage := (MonDefs[Foes[fi].def].flags and MF_MAGE) <> 0;
+  isHealer := (MonDefs[Foes[fi].def].flags and MF_HEALER) <> 0;
+
+  { a healer tends a wounded ally before anything else }
+  if isHealer and EnemyCastHeal(fi) then exit;
+  { a mage usually conjures a bolt rather than closing or swinging }
+  if isMage and (Foes[fi].sp >= FOE_CAST_SP) and (D(100) <= 70)
+     and EnemyCastBolt(fi) then exit;
 
   if ranged then begin
     { a caster slips back behind cover when it can }

@@ -12,7 +12,7 @@ var
   p: TPak;
   ab: TAbilityScores;
   i, skel, imp, rat, tries: longint;
-  gob, orc, hits0, hits1: longint;
+  gob, orc, hits0, hits1, cultist, acolyte: longint;
   gotPoison, gotStun, moved: boolean;
 
 { Stand up a single foe of the given definition at full health. }
@@ -220,6 +220,46 @@ begin
     if EnemyHarry(0) and (PartyStatus[0].offbal > 0) then gotStun := true;
   end;
   Check(gotStun, 'a taunt can throw a target off balance');
+
+  { ---- foe spellcasting ---- }
+  cultist := MonIndex('CULTIST');
+  acolyte := MonIndex('ACOLYTE');
+  Check((cultist >= 0) and (acolyte >= 0), 'caster monsters present');
+  Check((MonDefs[cultist].flags and MF_MAGE) <> 0, 'cultist is a mage');
+  Check((MonDefs[cultist].flags and MF_RANGED) <> 0, 'cultist hangs back');
+  Check((MonDefs[acolyte].flags and MF_HEALER) <> 0, 'acolyte is a healer');
+
+  { a mage conjures a bolt that wounds the party and spends spell points }
+  SetLength(Roster, 1);
+  RollAbilities(ab);
+  MakeCharacter(Roster[0], 'MAG', 0, 0, -1, ab);
+  Roster[0].rank := RANK_BACK;
+  SetLength(PartyStatus, 1);
+  FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+  OneFoe(cultist); Foes[0].rank := RANK_BACK; Foes[0].sp := 6;
+  RngSeed(GameRng, 3);
+  moved := EnemyCastBolt(0);
+  Check(moved, 'a mage casts its bolt');
+  Check(Roster[0].hp < Roster[0].hpMax, 'the bolt wounds the target');
+  Check(Foes[0].sp < 6, 'the bolt spends spell points');
+  Foes[0].sp := 1;
+  Check(not EnemyCastBolt(0), 'no bolt without spell points');
+
+  { a healer mends the most wounded living ally }
+  SetLength(Foes, 2); SetLength(FoeStatus, 2);
+  Foes[0].def := acolyte; Foes[0].hp := 20; Foes[0].hpMax := 20;
+  Foes[0].alive := true; Foes[0].rank := RANK_BACK; Foes[0].sp := 6;
+  Foes[1].def := rat; Foes[1].hp := 3; Foes[1].hpMax := 30;
+  Foes[1].alive := true; Foes[1].rank := RANK_FRONT; Foes[1].sp := 0;
+  FillChar(FoeStatus[0], SizeOf(FoeStatus[0]), 0);
+  FillChar(FoeStatus[1], SizeOf(FoeStatus[1]), 0);
+  RngSeed(GameRng, 8);
+  moved := EnemyCastHeal(0);
+  Check(moved, 'a healer mends when an ally is hurt');
+  Check(Foes[1].hp > 3, 'the wounded ally recovers');
+  Check(Foes[0].sp < 6, 'the mend spends spell points');
+  Foes[0].hp := Foes[0].hpMax; Foes[1].hp := Foes[1].hpMax;
+  Check(not EnemyCastHeal(0), 'no mend when every ally is at full health');
 
   TestSummary('tactics');
   halt(TestExit);

@@ -20,6 +20,8 @@ const
   MF_UNDEAD = 1;
   MF_RANGED = 2;
   MF_LYCAN  = 4;   { a hit can pass on the lycanthropy curse }
+  MF_MAGE   = 8;   { casts an offensive spell at the party }
+  MF_HEALER = 16;  { casts a mending on a wounded ally }
 
   { damage elements, as single-bit flags so weak/resist/immune can hold a
     set of them while an attack carries exactly one }

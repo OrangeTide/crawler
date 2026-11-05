@@ -2,7 +2,7 @@
 # mon ID HD AC ATK DMG MORALE SPEED XP FLAGS MODEL AREAS [tags] "Name"
 # ATK is the to-hit bonus, DMG the damage die, MORALE the 1d6 hold threshold.
 # SPEED drives turn order: higher acts sooner.
-# FLAGS: 1 = undead, 2 = ranged, 4 = lycanthrope.
+# FLAGS: 1 = undead, 2 = ranged, 4 = lycanthrope, 8 = mage, 16 = healer.
 # MODEL is the combat mesh id; omit it to fall back to a drawn glyph.
 # AREAS is a '+' list of the areas the monster roams: forest, coast,
 # desert, frozen, volcanic, crypt, cave, infernal. It drives both the
@@ -27,3 +27,5 @@ mon GHOUL    2 13 2 6 5 3  50 1 CREA11 crypt                inflict:stun "Ghoul"
 mon IMP      1 13 1 4 3 4  25 2 CREA12 volcanic+infernal    elem:fire immune:fire weak:frost inflict:burn "Imp"
 mon OOZE     2 10 2 6 4 1  50 0 FLESH2 cave+crypt           resist:phys weak:fire inflict:poison "Grey Ooze"
 mon WEREWOLF 4 14 4 8 8 4 180 4 CREA13 frozen+infernal      resist:phys weak:holy "Werewolf"
+mon CULTIST  2 12 2 4 3 3  60 10 CREA3 crypt+infernal+desert elem:fire inflict:burn "Cultist"
+mon ACOLYTE  2 12 2 3 4 3  60 18 CREA3 forest+coast+crypt    "Acolyte"
