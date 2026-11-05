@@ -108,6 +108,34 @@ function CombatBusy: boolean;
   ends, instead of ticking real frames. }
 procedure CombatSettle;
 
+{ ---- hit feedback ---- }
+const
+  POP_LIFE   = 0.9;    { seconds a floating number lives }
+  FLASH_LIFE = 0.22;   { seconds a struck target flashes }
+
+  POPC_FOEDMG   = 0;   { damage dealt to a foe }
+  POPC_PARTYDMG = 1;   { damage dealt to a party member }
+  POPC_HEAL     = 2;   { healing }
+  POPC_MISS     = 3;   { a whiff }
+
+  CUE_NONE = 0;
+  CUE_HIT  = 1;        { a foe swing landed; the game plays the sound }
+
+type
+  TPop = record
+    side: byte;        { 0 a foe, 1 a party member }
+    idx: longint;      { index into Foes or Roster }
+    text: string[7];
+    color: byte;       { POPC_* }
+    life: double;      { seconds remaining, counts down from POP_LIFE }
+  end;
+
+var
+  Pops: array of TPop;       { active floating numbers }
+  FoeFlash: array of double; { per-foe flash timer }
+  PartyFlash: array of double;
+  CombatSfxCue: longint;     { a sound the game should play this frame }
+
 { ---- abilities ---- }
 function SpellCount: longint;
 function SpellInfo(i: longint): TSpell;
@@ -136,6 +164,55 @@ begin
   for i := 0 to LOG_LINES - 2 do
     Log[i] := Log[i + 1];
   Log[LOG_LINES - 1] := s;
+end;
+
+{ ---- hit feedback ---- }
+
+procedure PushPop(side, idx, color: longint; const txt: string);
+var k: longint;
+begin
+  k := Length(Pops);
+  SetLength(Pops, k + 1);
+  Pops[k].side := side;
+  Pops[k].idx := idx;
+  Pops[k].text := Copy(txt, 1, 7);
+  Pops[k].color := color;
+  Pops[k].life := POP_LIFE;
+end;
+
+procedure FlashFoe(idx: longint);
+begin
+  if (idx >= 0) and (idx <= High(FoeFlash)) then FoeFlash[idx] := FLASH_LIFE;
+end;
+
+procedure FlashAlly(idx: longint);
+begin
+  if (idx >= 0) and (idx <= High(PartyFlash)) then PartyFlash[idx] := FLASH_LIFE;
+end;
+
+{ Age the flashes and floating numbers; drop the ones that expired. }
+procedure DecayFeedback(dt: double);
+var i, w: longint;
+begin
+  for i := 0 to High(FoeFlash) do
+    if FoeFlash[i] > 0 then begin
+      FoeFlash[i] := FoeFlash[i] - dt;
+      if FoeFlash[i] < 0 then FoeFlash[i] := 0;
+    end;
+  for i := 0 to High(PartyFlash) do
+    if PartyFlash[i] > 0 then begin
+      PartyFlash[i] := PartyFlash[i] - dt;
+      if PartyFlash[i] < 0 then PartyFlash[i] := 0;
+    end;
+  w := 0;
+  for i := 0 to High(Pops) do begin
+    Pops[i].life := Pops[i].life - dt;
+    if Pops[i].life > 0 then begin
+      if w <> i then Pops[w] := Pops[i];
+      inc(w);
+    end;
+  end;
+  SetLength(Pops, w);
 end;
 
 { ---- helpers ---- }
@@ -286,6 +363,7 @@ end;
 
 procedure CombatUpdate(dt: double);
 begin
+  DecayFeedback(dt);   { flashes and numbers fade in every phase }
   if CombatOver then begin CombatPhase := CP_DONE; exit; end;
   if CombatTimer > 0 then begin
     CombatTimer := CombatTimer - dt;
@@ -369,6 +447,12 @@ begin
   for i := 0 to High(Roster) do
     Roster[i].sp := CharSpellPoints(Roster[i]);
 
+  { clear hit feedback for the new fight }
+  SetLength(Pops, 0);
+  SetLength(FoeFlash, Length(Foes));
+  SetLength(PartyFlash, Length(Roster));
+  CombatSfxCue := CUE_NONE;
+
   CombatLog('Foes close in: ' + IntToStr(count) + ' of them.');
   NewRound;
 end;
@@ -449,10 +533,14 @@ begin
     Foes[foe].hp := Foes[foe].hp - dmg;
     CombatLog(Roster[actor].name + ' hits ' + MonDefs[Foes[foe].def].name
       + ' for ' + IntToStr(dmg) + '.');
+    PushPop(0, foe, POPC_FOEDMG, IntToStr(dmg));
+    FlashFoe(foe);
     if Foes[foe].hp <= 0 then
       KillFoe(foe);
-  end else
+  end else begin
     CombatLog(Roster[actor].name + ' misses.');
+    PushPop(0, foe, POPC_MISS, 'MISS');
+  end;
 end;
 
 procedure MoraleCheck;
@@ -515,6 +603,9 @@ begin
       if dmg < 1 then dmg := 1;
       CombatLog(MonDefs[Foes[i].def].name + ' hits ' + Roster[tgt].name
         + ' for ' + IntToStr(dmg) + '.');
+      PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
+      FlashAlly(tgt);
+      CombatSfxCue := CUE_HIT;
       HurtMember(tgt, dmg);
       { a lycanthrope's wound can pass on the curse, on a failed save }
       if ((MonDefs[Foes[i].def].flags and MF_LYCAN) <> 0)
@@ -525,8 +616,10 @@ begin
         Roster[tgt].lycan := true;
         CombatLog(Roster[tgt].name + ' is marked by the curse!');
       end;
-    end else
+    end else begin
       CombatLog(MonDefs[Foes[i].def].name + ' misses ' + Roster[tgt].name + '.');
+      PushPop(1, tgt, POPC_MISS, 'MISS');
+    end;
     StepEnemyPhase := true;
     exit;
   end;
@@ -672,6 +765,8 @@ begin
   if amount < 1 then amount := 1;
   Foes[fi].hp := Foes[fi].hp - amount;
   CombatLog(MonDefs[Foes[fi].def].name + ' takes ' + IntToStr(amount) + '.');
+  PushPop(0, fi, POPC_FOEDMG, IntToStr(amount));
+  FlashFoe(fi);
   if Foes[fi].hp <= 0 then KillFoe(fi);
 end;
 
@@ -719,6 +814,8 @@ begin
         Roster[target].hp := Roster[target].hpMax;
       CombatLog(Roster[CurActor].name + ' mends ' + Roster[target].name
         + ' (+' + IntToStr(amt) + ').');
+      PushPop(1, target, POPC_HEAL, '+' + IntToStr(amt));
+      FlashAlly(target);
     end;
     TGT_PARTY: begin
       PartyBless := 1;

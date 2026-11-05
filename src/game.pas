@@ -959,6 +959,36 @@ begin
   end;
 end;
 
+{ A white flash over a struck target, fading with its timer. }
+procedure DrawFlash(x, y, w, h: longint; t: double);
+begin
+  if t <= 0 then exit;
+  FillRectBlend(x, y, w, h, RGB(255, 245, 230), round(200 * (t / FLASH_LIFE)));
+end;
+
+{ Every active floating number for one target, rising and fading above
+  (px, py). side 0 is a foe, 1 a party member. }
+procedure DrawPops(side, idx, px, py: longint);
+var
+  i, yy, lit: longint;
+  frac: double;
+  base: TColor;
+begin
+  for i := 0 to High(Pops) do
+    if (Pops[i].side = side) and (Pops[i].idx = idx) then begin
+      frac := Pops[i].life / POP_LIFE;
+      case Pops[i].color of
+        POPC_FOEDMG:   base := RGB(250, 240, 180);
+        POPC_PARTYDMG: base := RGB(245, 95, 85);
+        POPC_HEAL:     base := RGB(120, 230, 130);
+      else             base := RGB(180, 180, 180);
+      end;
+      lit := 110 + round(146 * frac);
+      yy := py - round((1.0 - frac) * 12);
+      DrawText(px - Length(Pops[i].text) * 3, yy, Pops[i].text, Shade(base, lit));
+    end;
+end;
+
 procedure CombatRender;
 const
   FOE_YAW = 0.6;
@@ -1009,10 +1039,13 @@ begin
         DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW, half)
       else
         DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
+      if (i <= High(FoeFlash)) then
+        DrawFlash(cx - half, cy - half, 2 * half, 2 * half, FoeFlash[i]);
       s := MonDefs[Foes[i].def].name;
       DrawText(cx - Length(s) * 3, cy - half - 8, s, RGB(215, 185, 175));
       DrawBar(cx - 16, cy + half + 1, 32, 3, Foes[i].hp, Foes[i].hpMax,
         RGB(200, 80, 70), RGB(50, 24, 24));
+      DrawPops(0, i, cx, cy - half - 18);
       { the aim chevron sits to the left of the chosen foe }
       if (i = CurTarget) and (CombatPhase = CP_INPUT) and (cbMenu <> CB_ALLY) then
         DrawText(cx - half - 10, cy - 3, '>', RGB(245, 225, 120));
@@ -1060,6 +1093,9 @@ begin
         DrawBar(x, ny + 18, slot - 16, 3, Roster[i].hp, Roster[i].hpMax,
           RGB(70, 170, 70), RGB(40, 20, 20));
       end;
+      if (i <= High(PartyFlash)) then
+        DrawFlash(x - 2, ny - 2, slot - 6, 26, PartyFlash[i]);
+      DrawPops(1, i, x + 14, ny - 11);
       inc(col);
     end;
     { a dim tag at the right names the rank, when a short rank leaves room }
@@ -1662,6 +1698,8 @@ procedure CombatAutoTurn(dt: double);
   to the were-beast, take its turn for it. Pacing handles the rest. }
 begin
   CombatUpdate(dt);
+  if CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
+  CombatSfxCue := CUE_NONE;
   if (CombatPhase = CP_INPUT) and (not CombatOver)
     and (CurActor >= 0) and (CurActor <= High(Roster))
     and Roster[CurActor].wereform and Roster[CurActor].alive
