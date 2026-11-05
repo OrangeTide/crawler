@@ -34,6 +34,13 @@ const
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
+  { Tile semantics in the walls grid: 0 is open floor, a door tile holds
+    the door texture value, any other value is a solid wall. These live
+    here with the map format so non-render code (pathfinding, tools) can
+    read a grid without the texture or runtime units. }
+  TILE_EMPTY = 0;
+  TILE_DOOR  = 4;
+
   { Celestial light wells: their strength tracks the sky (section 22). }
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }
   LIGHT_MOONWELL = 1;       { admits moonlight, strongest at the full moon }

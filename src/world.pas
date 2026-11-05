@@ -22,8 +22,10 @@ uses
 const
   MAXMAP = 64;
 
-  TILE_EMPTY = 0;
-  TILE_DOOR  = TEX_DOOR;
+  { Tile semantics now live in mapfmt; keep the local names as aliases so
+    the rest of world.pas is unchanged. TILE_DOOR matches TEX_DOOR. }
+  TILE_EMPTY = mapfmt.TILE_EMPTY;
+  TILE_DOOR  = mapfmt.TILE_DOOR;
 
   STEP_DUR = 0.12;   { seconds per tile step }
   TURN_DUR = 0.12;   { seconds per 90 degree turn and view align }
