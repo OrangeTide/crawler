@@ -19,7 +19,7 @@ interface
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
                 gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
-                gsGameOver, gsVictory);
+                gsGameOver, gsVictory, gsOptions);
 
 var
   State: TGameState;
@@ -56,6 +56,8 @@ var
   shopSel: longint;
   saveMsg: string;
   saveMsgT: double;
+  optSel: longint;
+  volMaster, volMusic, volSfx: longint;
 
   titleSel: longint;
   ccSlot: longint;
@@ -145,6 +147,7 @@ end;
 { ---- Exploration state ---- }
 
 procedure StartCombat(depth: longint); forward;
+procedure RestHere; forward;
 
 procedure StartDialog(const dlgName, npcName: string);
 begin
@@ -197,6 +200,7 @@ begin
     SDL_SCANCODE_M:      showMap := not showMap;
     SDL_SCANCODE_TAB:    State := gsFullMap;
     SDL_SCANCODE_J:      State := gsMenu;
+    SDL_SCANCODE_R:      RestHere;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
     SDL_SCANCODE_F5: begin
       if SaveGame(SavePath) then saveMsg := 'GAME SAVED'
@@ -240,9 +244,70 @@ begin
   State := gsCombat;
 end;
 
+procedure RestHere;
+{** Camp to recover. Away from town a rest risks a wandering monster. }
+begin
+  if Length(Roster) = 0 then exit;
+  if (CurMapName <> 'TOWN') and (Range(1, 6) = 1) then begin
+    saveMsg := 'AMBUSHED WHILE RESTING!';
+    saveMsgT := 2.0;
+    StartCombat(2);
+    exit;
+  end;
+  RestParty;
+  PlaySfx(SFX_SELECT);
+  saveMsg := 'THE PARTY RESTS AND RECOVERS';
+  saveMsgT := 2.0;
+end;
+
+procedure PoisonTick;
+{** Each step, poisoned members lose a point until it clears. }
+var
+  i: longint;
+begin
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (Roster[i].poison > 0) then begin
+      dec(Roster[i].poison);
+      if Roster[i].hp > 1 then dec(Roster[i].hp);
+    end;
+end;
+
+procedure TrapCheck;
+{** A trap on the tile springs once; the lead member rolls a Dodge save,
+  and on a failure the party takes damage and the lead is poisoned. }
+var
+  dmg, dc, lead, i, hit: longint;
+  sprung: string;
+begin
+  if not TrapAt(TileX, TileY, dmg, dc) then exit;
+  sprung := 'TRAP_' + CurMapName + '_' + IntToStr(TileX) + '_' + IntToStr(TileY);
+  if FlagHas(sprung) then exit;
+  FlagSet(sprung);
+  lead := FirstConscious;
+  if lead < 0 then exit;
+  if SaveThrow(GameRng, AbilMod(Roster[lead].abil[abDEX]), Roster[lead].level, dc) then begin
+    saveMsg := 'YOU SPOT AND AVOID A TRAP';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) then begin
+      hit := D(dmg);
+      Roster[i].hp := Roster[i].hp - hit;
+      if Roster[i].hp <= 0 then begin
+        Roster[i].hp := 0;
+        Roster[i].downed := true;
+      end;
+    end;
+  Roster[lead].poison := Roster[lead].poison + 3;
+  PlaySfx(SFX_HIT);
+  saveMsg := 'A TRAP SPRINGS!';
+  saveMsgT := 2.0;
+end;
+
 procedure CheckTileEvents;
-{** On stepping onto a new tile: follow a portal, else roll for a
-  wandering monster (AX&X 1 in 6, thinned out per step so it paces). }
+{** On stepping onto a new tile: follow a portal, spring a trap, tick
+  poison, then roll for a wandering monster (thinned out per step). }
 var
   target, marker: string;
 begin
@@ -252,6 +317,12 @@ begin
   lastTY := TileY;
   if PortalAt(TileX, TileY, target, marker) then begin
     LoadMapByName(target, marker);
+    exit;
+  end;
+  PoisonTick;
+  TrapCheck;
+  if not PartyConscious then begin
+    State := gsGameOver;
     exit;
   end;
   { Town is safe; elsewhere a small per-step chance of an encounter. }
@@ -371,12 +442,12 @@ end;
 { ---- Title state ---- }
 
 const
-  TITLE_ITEMS = 4;
+  TITLE_ITEMS = 5;
 
 procedure TitleRender;
 const
   LABELS: array[0 .. TITLE_ITEMS - 1] of string = (
-    'CONTINUE', 'NEW GAME', 'QUICK START', 'QUIT');
+    'CONTINUE', 'NEW GAME', 'QUICK START', 'OPTIONS', 'QUIT');
 var
   i, y: longint;
   c: TColor;
@@ -436,7 +507,8 @@ begin
     0: if SaveExists(SavePath) then ContinueGame;
     1: begin State := gsNewParty; NewParty; ccSlot := 0; CCBeginSlot; end;
     2: QuickStart;
-    3: QuitRequested := true;
+    3: begin optSel := 0; State := gsOptions; end;
+    4: QuitRequested := true;
   end;
 end;
 
@@ -824,6 +896,60 @@ begin
   State := gsTitle;
 end;
 
+{ ---- Options state ---- }
+
+procedure OptionsRender;
+const
+  LABELS: array[0 .. 2] of string = ('MASTER', 'MUSIC', 'SFX');
+var
+  i, y, v: longint;
+  c: TColor;
+begin
+  ClearFB(RGB(12, 12, 16));
+  DrawCenter(20, 'OPTIONS', RGB(220, 200, 120));
+  y := 60;
+  for i := 0 to 2 do begin
+    if i = optSel then c := RGB(240, 230, 150) else c := RGB(160, 160, 140);
+    DrawText(60, y, LABELS[i], c);
+    case i of
+      0: v := volMaster;
+      1: v := volMusic;
+    else v := volSfx;
+    end;
+    FillRect(130, y, 102, 7, RGB(40, 40, 46));
+    FillRect(131, y + 1, v, 5, RGB(90, 160, 110));
+    DrawText(240, y, IntToStr(v), c);
+    inc(y, 20);
+  end;
+  DrawCenter(FBH - 20, 'ARROWS ADJUST   ESC BACK', RGB(130, 140, 110));
+end;
+
+procedure OptionsKeyDown(scancode: longint);
+var
+  delta: longint;
+begin
+  delta := 0;
+  case scancode of
+    SDL_SCANCODE_UP:   if optSel > 0 then dec(optSel);
+    SDL_SCANCODE_DOWN: if optSel < 2 then inc(optSel);
+    SDL_SCANCODE_LEFT:  delta := -10;
+    SDL_SCANCODE_RIGHT: delta := 10;
+    SDL_SCANCODE_ESCAPE: begin State := gsTitle; exit; end;
+  end;
+  if delta <> 0 then begin
+    case optSel of
+      0: volMaster := volMaster + delta;
+      1: volMusic := volMusic + delta;
+    else volSfx := volSfx + delta;
+    end;
+    if volMaster < 0 then volMaster := 0; if volMaster > 100 then volMaster := 100;
+    if volMusic < 0 then volMusic := 0;   if volMusic > 100 then volMusic := 100;
+    if volSfx < 0 then volSfx := 0;        if volSfx > 100 then volSfx := 100;
+    SetAudioVolumes(volMaster, volMusic, volSfx);
+    PlaySfx(SFX_SELECT);
+  end;
+end;
+
 { ---- Victory state ---- }
 
 procedure VictoryRender;
@@ -892,6 +1018,8 @@ begin
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
 
   AudioInit;   { silent if it fails }
+  volMaster := 80; volMusic := 55; volSfx := 90;
+  SetAudioVolumes(volMaster, volMusic, volSfx);
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
@@ -923,6 +1051,7 @@ begin
           gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
           gsVictory:  VictoryKeyDown(ev.key.keysym.scancode);
+          gsOptions:  OptionsKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -973,6 +1102,7 @@ begin
     gsCombat:   CombatRender;
     gsGameOver: GameOverRender;
     gsVictory:  VictoryRender;
+    gsOptions:  OptionsRender;
   end;
 end;
 

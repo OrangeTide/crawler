@@ -27,6 +27,7 @@ const
 function AbilMod(score: longint): longint;
 function AttackBonus(track: TTrack; level: longint): longint;
 function MaxHPDie(hitDie, conScore, level: longint): longint;
+function XPForNext(track: TTrack; curLevel: longint): longint;
 
 function Check(var r: TRng; abilMods, target: longint): boolean;
 function SaveThrow(var r: TRng; abilMods, level, target: longint): boolean;
@@ -73,6 +74,24 @@ begin
     hp := hp + (hitDie div 2 + 1) + conM;
   if hp < level then hp := level;
   MaxHPDie := hp;
+end;
+
+function XPForNext(track: TTrack; curLevel: longint): longint;
+{** Total XP needed to reach curLevel+1. Level 2 costs the track base;
+  each later level doubles the previous requirement (AX&X). }
+var
+  base, xp, i: longint;
+begin
+  case track of
+    trSpecialist: base := 1500;
+    trWarrior, trPriest: base := 2000;
+  else
+    base := 2500;
+  end;
+  xp := base;
+  for i := 2 to curLevel do
+    xp := xp * 2;
+  XPForNext := xp;
 end;
 
 function Check(var r: TRng; abilMods, target: longint): boolean;

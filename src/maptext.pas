@@ -73,13 +73,14 @@ var
   po: TPortal;
   dr: TDoorMeta;
   np: TNpc;
+  tr: TTrap;
 begin
   ParseMapText := false;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil;
+  m.npcs := nil; m.traps := nil;
   inWalls := false;
   row := 0;
 
@@ -164,6 +165,14 @@ begin
         np.name := tok[4];
         SetLength(m.npcs, Length(m.npcs) + 1);
         m.npcs[High(m.npcs)] := np;
+      end else if tok[0] = 'trap' then begin
+        if ntok < 5 then begin errmsg := 'trap needs X Y DMG DC'; exit; end;
+        tr.x := StrToInt(tok[1]);
+        tr.y := StrToInt(tok[2]);
+        tr.dmg := StrToInt(tok[3]);
+        tr.dc := StrToInt(tok[4]);
+        SetLength(m.traps, Length(m.traps) + 1);
+        m.traps[High(m.traps)] := tr;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;

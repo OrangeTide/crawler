@@ -71,6 +71,7 @@ procedure OpenDoorAhead;
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
+function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
 procedure ForwardDelta(out dx, dy: longint);
 procedure ComputeVisibility;
 
@@ -468,6 +469,21 @@ begin
       dialogName := CurMap.npcs[i].dialog;
       npcName := CurMap.npcs[i].name;
       NpcAt := true;
+      exit;
+    end;
+end;
+
+function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
+var
+  i: longint;
+begin
+  TrapAt := false;
+  dmg := 0; dc := 0;
+  for i := 0 to High(CurMap.traps) do
+    if (CurMap.traps[i].x = mx) and (CurMap.traps[i].y = my) then begin
+      dmg := CurMap.traps[i].dmg;
+      dc := CurMap.traps[i].dc;
+      TrapAt := true;
       exit;
     end;
 end;

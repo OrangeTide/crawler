@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 2;
+  SAVE_VERSION = 3;
 
 var
   LoadedMapName: string;
@@ -103,6 +103,7 @@ begin
   s.WriteByte(ord(c.downed));
   s.WriteByte(ord(c.guarding));
   s.WriteByte(c.brushes);
+  s.WriteByte(c.poison);
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -121,6 +122,7 @@ begin
   RChar.downed := s.ReadByte <> 0;
   RChar.guarding := s.ReadByte <> 0;
   RChar.brushes := s.ReadByte;
+  RChar.poison := s.ReadByte;
 end;
 
 function SaveGame(const fn: string): boolean;

@@ -48,6 +48,9 @@ filtering, the same way the game presents it.
 - A software audio mixer with sound-effect channels and a synth music channel.
   Effects are generated at startup and music is a built-in sequence per zone,
   so no audio files ship. The game runs silently if no sound device is present.
+  An Options screen on the title menu sets the master, music and effect volumes.
+- Resting recovers party health between fights, and traps on marked tiles test a
+  Dodge save, deal damage and can poison the lead member until cured by rest.
 - Six connected zones: a town hub, a seaside, a forest, a crypt, dynamic caves
   and mazes, and an infernal depth, with a short relic quest that ends the game
   when the shard is returned to the town elder.
@@ -66,6 +69,7 @@ filtering, the same way the game presents it.
 | M | Toggle the small minimap |
 | Tab | Open or close the fullscreen map |
 | J | Open or close the quest journal |
+| R | Rest to recover health, when no foe is near |
 | F5 / F9 | Save / load the game |
 | Space or click | Talk to an NPC ahead or under the cursor |
 | C | Force a test encounter (while a party exists) |

@@ -62,6 +62,12 @@ type
     name: string[12];
   end;
 
+  TTrap = record
+    x, y: word;
+    dmg: byte;      { damage die sides on a failed save }
+    dc: byte;       { Dodge save target }
+  end;
+
   TMapData = record
     w, h: longint;
     tileset, music, flags: byte;
@@ -70,6 +76,7 @@ type
     portals: array of TPortal;
     doors: array of TDoorMeta;
     npcs: array of TNpc;
+    traps: array of TTrap;
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -180,6 +187,14 @@ begin
     BName(b, m.npcs[i].name, 12);
   end;
 
+  BU16(b, Length(m.traps));
+  for i := 0 to High(m.traps) do begin
+    BU16(b, m.traps[i].x);
+    BU16(b, m.traps[i].y);
+    BByte(b, m.traps[i].dmg);
+    BByte(b, m.traps[i].dc);
+  end;
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -251,7 +266,7 @@ begin
   DecodeMap := false;
   m.w := 0; m.h := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil;
+  m.npcs := nil; m.traps := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -303,6 +318,15 @@ begin
     m.npcs[i].y := RU16(r);
     m.npcs[i].dialog := RName(r, 12);
     m.npcs[i].name := RName(r, 12);
+  end;
+
+  count := RU16(r);
+  SetLength(m.traps, count);
+  for i := 0 to count - 1 do begin
+    m.traps[i].x := RU16(r);
+    m.traps[i].y := RU16(r);
+    m.traps[i].dmg := RByte(r);
+    m.traps[i].dc := RByte(r);
   end;
 
   DecodeMap := r.ok;

@@ -42,6 +42,7 @@ type
     downed: boolean;     { at 0 HP but not slain: unconscious }
     guarding: boolean;   { parrying this round for +2 AC }
     brushes: byte;       { brushes with death so far today }
+    poison: byte;        { remaining poison ticks }
   end;
 
 var
@@ -61,6 +62,8 @@ procedure MakeCharacter(var c: TCharacter; const nm: string;
   speciesIdx, classIdx, bgIdx: longint; const a: TAbilityScores);
 procedure GiveClassKit(var c: TCharacter);
 
+procedure TryLevelUp(var c: TCharacter);
+procedure RestParty;
 procedure NewParty;
 procedure AddPartyMember(const c: TCharacter);
 function PartyAlive: boolean;
@@ -176,6 +179,7 @@ begin
   c.downed := false;
   c.guarding := false;
   c.brushes := 0;
+  c.poison := 0;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;
@@ -221,6 +225,33 @@ begin
     end;
   end;
   PackAdd(c, 'POTION', 1);
+end;
+
+procedure TryLevelUp(var c: TCharacter);
+var
+  track: TTrack;
+begin
+  if not c.alive then exit;
+  track := TTrack(ClassDefs[c.klass].track);
+  while c.xp >= XPForNext(track, c.level) do begin
+    inc(c.level);
+    c.hpMax := MaxHPDie(ClassDefs[c.klass].hitDie, c.abil[abCON], c.level);
+  end;
+end;
+
+procedure RestParty;
+var
+  i: longint;
+begin
+  for i := 0 to High(Roster) do
+    if Roster[i].alive then begin
+      TryLevelUp(Roster[i]);
+      Roster[i].hp := Roster[i].hpMax;
+      Roster[i].downed := false;
+      Roster[i].guarding := false;
+      Roster[i].brushes := 0;
+      Roster[i].poison := 0;
+    end;
 end;
 
 procedure NewParty;
