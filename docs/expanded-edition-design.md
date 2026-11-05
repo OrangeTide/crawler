@@ -807,6 +807,18 @@ Time is a single clock that everything else reads.
   follows the moon phase, so a beam can reach a glyph only at full moon and open
   a passage. These are tile flags read together with the clock, which is how the
   light puzzles work.
+- **Underground light sources.** Beyond the celestial wells, the underworld has
+  its own light. The base ambient underground is dim, so the dark reads and the
+  party's torch, the near-field distance light, matters. Natural light comes
+  from scattered bioluminescent growth and small gas vents. Artificial light
+  gathers where people do: braziers, wall torches and bonfires at settlements,
+  camps and the major tombs, which in the generator means lit landings at the
+  stairs, braziers in the tomb-themed levels, and a bonfire at the Sunless
+  Depths settlement. Each source is an emissive tile that both glows in the view
+  and casts a pool of light through a per-tile light map precomputed when the
+  map loads, with a radius and intensity by kind. A surface sample takes the
+  brighter of the torch and the scene light, so a source lights its surroundings
+  without washing out the torch-lit near field.
 
 ## 23. Target hardware: fixed-point and the 2 MB budget
 

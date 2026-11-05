@@ -49,6 +49,7 @@ var
   Seen: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;
   PortalMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;  { 0 none, kind+1 }
   LightMask: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of byte;  { 0 none, kind+1 }
+  TileLight: array[0 .. MAXMAP - 1, 0 .. MAXMAP - 1] of word;   { 0..256 cast glow }
   CurMapSurface: boolean;
   AmbientLight: longint;    { 0..256, applied to the view; 256 is full }
   SkyLightLevel: longint;   { 0..256, how strongly skylight tiles glow now }
@@ -79,6 +80,7 @@ function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function IsPortalTile(mx, my: longint): boolean;
 function PortalKind(mx, my: longint): longint;     { -1 none, else PK_* }
 function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
+function TileLightAt(mx, my: longint): longint;    { 0..256 cast light }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
 procedure ForwardDelta(out dx, dy: longint);
@@ -161,9 +163,23 @@ begin
   Cam.pitch := viewPitch;
 end;
 
+procedure LightParams(kind: longint; out intensity, radius: longint);
+begin
+  case kind of
+    LIGHT_BIOLUME: begin intensity := 70;  radius := 3; end;
+    LIGHT_GASVENT: begin intensity := 50;  radius := 2; end;
+    LIGHT_BRAZIER: begin intensity := 150; radius := 5; end;
+    LIGHT_TORCH:   begin intensity := 110; radius := 4; end;
+    LIGHT_BONFIRE: begin intensity := 210; radius := 7; end;
+  else
+    begin intensity := 0; radius := 0; end;
+  end;
+end;
+
 function LoadMapData(const m: TMapData): boolean;
 var
   x, y, px, py: longint;
+  k, sx, sy, inten, radius, ax, ay, d, contrib, sum: longint;
 begin
   LoadMapData := false;
   if (m.w <= 0) or (m.h <= 0) or (m.w > MAXMAP) or (m.h > MAXMAP) then
@@ -178,6 +194,7 @@ begin
       Seen[y][x] := VIS_UNSEEN;
       PortalMask[y][x] := 0;
       LightMask[y][x] := 0;
+      TileLight[y][x] := 0;
     end;
   CurMapSurface := (m.flags and MAP_SURFACE) <> 0;
   AmbientLight := 256;
@@ -195,6 +212,26 @@ begin
     py := m.lights[x].y;
     if (px < MapW) and (py < MapH) then
       LightMask[py][px] := m.lights[x].kind + 1;
+  end;
+  { cast a pool of light from every emissive source, with linear falloff }
+  for k := 0 to High(m.lights) do begin
+    if m.lights[k].kind < LIGHT_EMISSIVE then continue;
+    LightParams(m.lights[k].kind, inten, radius);
+    if radius <= 0 then continue;
+    sx := m.lights[k].x; sy := m.lights[k].y;
+    for y := sy - radius to sy + radius do begin
+      if (y < 0) or (y >= MapH) then continue;
+      for x := sx - radius to sx + radius do begin
+        if (x < 0) or (x >= MapW) then continue;
+        ax := Abs(x - sx); ay := Abs(y - sy);
+        if ax < ay then d := ay + (ax div 2) else d := ax + (ay div 2);
+        if d >= radius then continue;
+        contrib := inten * (radius - d) div radius;
+        sum := TileLight[y][x] + contrib;
+        if sum > 256 then sum := 256;
+        TileLight[y][x] := sum;
+      end;
+    end;
   end;
   LoadMapData := true;
 end;
@@ -223,6 +260,14 @@ begin
     LightTileKind := -1
   else
     LightTileKind := LightMask[my][mx] - 1;
+end;
+
+function TileLightAt(mx, my: longint): longint;
+begin
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
+    TileLightAt := 0
+  else
+    TileLightAt := TileLight[my][mx];
 end;
 
 procedure PlaceAtMarker(const name: string);

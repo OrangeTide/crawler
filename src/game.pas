@@ -426,7 +426,7 @@ procedure UpdateWorldLight;
   light wells glow by the current sun and moon. }
 begin
   if CurMapSurface then AmbientLight := OutdoorAmbient
-  else AmbientLight := 256;
+  else AmbientLight := 48;   { a dim underworld, lifted by fires and glow }
   SkyLightLevel := DaylightFactor;
   MoonLightLevel := MoonlightFactor;
 end;

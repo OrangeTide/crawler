@@ -185,11 +185,18 @@ begin
         m.traps[High(m.traps)] := tr;
       end else if tok[0] = 'surface' then
         m.flags := m.flags or MAP_SURFACE
-      else if (tok[0] = 'skylight') or (tok[0] = 'moonwell') then begin
+      else if (tok[0] = 'skylight') or (tok[0] = 'moonwell')
+        or (tok[0] = 'biolume') or (tok[0] = 'gasvent') or (tok[0] = 'brazier')
+        or (tok[0] = 'torch') or (tok[0] = 'bonfire') then begin
         if ntok < 3 then begin errmsg := tok[0] + ' needs X Y'; exit; end;
         lt.x := StrToInt(tok[1]);
         lt.y := StrToInt(tok[2]);
         if tok[0] = 'moonwell' then lt.kind := LIGHT_MOONWELL
+        else if tok[0] = 'biolume' then lt.kind := LIGHT_BIOLUME
+        else if tok[0] = 'gasvent' then lt.kind := LIGHT_GASVENT
+        else if tok[0] = 'brazier' then lt.kind := LIGHT_BRAZIER
+        else if tok[0] = 'torch' then lt.kind := LIGHT_TORCH
+        else if tok[0] = 'bonfire' then lt.kind := LIGHT_BONFIRE
         else lt.kind := LIGHT_SKYLIGHT;
         SetLength(m.lights, Length(m.lights) + 1);
         m.lights[High(m.lights)] := lt;

@@ -416,6 +416,27 @@ begin
   m.portals[np].kind := kind;
 end;
 
+procedure AddLight(var m: TMapData; x, y, kind: longint);
+begin
+  SetLength(m.lights, Length(m.lights) + 1);
+  m.lights[High(m.lights)].x := x;
+  m.lights[High(m.lights)].y := y;
+  m.lights[High(m.lights)].kind := kind;
+end;
+
+{ Scatter n lights of a kind on random floor tiles of the grid. }
+procedure ScatterLights(var m: TMapData; const g: TGrid; var r: TRng;
+  n, kind: longint);
+var
+  i, x, y: longint;
+begin
+  for i := 1 to n do begin
+    x := RngRange(r, 1, gw - 2);
+    y := RngRange(r, 1, gh - 2);
+    if At(g, x, y) = 0 then AddLight(m, x, y, kind);
+  end;
+end;
+
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 const
   W = 28; H = 28;
@@ -423,7 +444,7 @@ var
   r: TRng;
   g: TGrid;
   m: TMapData;
-  i, theme, wallTile, usx, usy, dsx, dsy, reach: longint;
+  i, theme, wallTile, usx, usy, dsx, dsy, reach, nx, ny: longint;
   pin, arr, upTarget, upMarker, downTarget: string;
 begin
   gw := W; gh := H;
@@ -466,6 +487,14 @@ begin
     downTarget := DungeonName(cx, cy, depth + 1);
   AddStair(m, g, dsx, dsy, PK_DOWN, downTarget, 'uparr', 'downarr');
 
+  { natural underground light: bioluminescence and small gas vents }
+  ScatterLights(m, g, r, 3 + RngRange(r, 0, 3), LIGHT_BIOLUME);
+  ScatterLights(m, g, r, 1 + RngRange(r, 0, 2), LIGHT_GASVENT);
+  { a torch-lit landing at the stairs up, a brazier if this is a tomb }
+  if FloorNeighbor(g, usx, usy, nx, ny) then AddLight(m, nx, ny, LIGHT_TORCH);
+  if (theme = THEME_CRYPT) or (theme = THEME_DESERTTOMB) then
+    if FloorNeighbor(g, dsx, dsy, nx, ny) then AddLight(m, nx, ny, LIGHT_BRAZIER);
+
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
@@ -480,7 +509,7 @@ var
   r: TRng;
   g: TGrid;
   m: TMapData;
-  i, mx, my: longint;
+  i, mx, my, nx, ny: longint;
 begin
   gw := W; gh := H;
   mx := gw div 2; my := gh div 2;
@@ -508,6 +537,11 @@ begin
   EdgeLink(m, g, 'S', cx,     cy + 1, mx, gh - 1, mx, gh - 2, 'edgeS', DIR_N);
   EdgeLink(m, g, 'S', cx - 1, cy,     0,  my,     1,  my,     'edgeW', DIR_E);
   EdgeLink(m, g, 'S', cx + 1, cy,     gw - 1, my, gw - 2, my, 'edgeE', DIR_W);
+
+  { a Depths settlement by the stair up: a bonfire with biolume beyond }
+  if FloorNeighbor(g, mx, my, nx, ny) then AddLight(m, nx, ny, LIGHT_BONFIRE);
+  ScatterLights(m, g, r, 6, LIGHT_BIOLUME);
+  ScatterLights(m, g, r, 3, LIGHT_GASVENT);
 
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do

@@ -28,6 +28,9 @@ const
   UP_GLOW     = $FF8CE08C;   { green pad: stairs up }
   SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
   MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
+  BIO_GLOW    = $FF50FFB4;   { bioluminescent growth }
+  GAS_GLOW    = $FF8CE0FF;   { a gas vent flame }
+  FIRE_GLOW   = $FFFFA030;   { brazier, torch or bonfire }
 
 function FogFactor(dist: double): longint;
 {** Maps a distance to a 0..256 brightness scale for Shade. }
@@ -42,8 +45,17 @@ begin
     f := 1.0 - (dist - FOG_NEAR) / (FOG_FAR - FOG_NEAR);
     FogFactor := 32 + trunc(f * 224.0);
   end;
-  { outdoor day-night and the like scale the whole view }
-  FogFactor := FogFactor * AmbientLight shr 8;
+end;
+
+{ Brightness on a surface: the brighter of the party torch (distance fog)
+  and the scene light at the tile (base ambient plus any cast light). }
+function LitFactor(torch, tileX, tileY: longint): longint;
+var
+  scene: longint;
+begin
+  scene := AmbientLight + TileLightAt(tileX, tileY);
+  if scene > 256 then scene := 256;
+  if torch > scene then LitFactor := torch else LitFactor := scene;
 end;
 
 function WallTexId(tile: byte): longint;
@@ -73,7 +85,7 @@ var
   texId: longint;
   fog: longint;
   cF, cC: TColor;
-  cxi, cyi, lk, pk: longint;
+  cxi, cyi, lk, pk, shF: longint;
   gc: TColor;
 begin
   rayDirX0 := Cam.dirX - Cam.planeX;
@@ -108,10 +120,11 @@ begin
     for x := 0 to FBW - 1 do begin
       tx := trunc(floorX * TEXW) and (TEXW - 1);
       ty := trunc(floorY * TEXH) and (TEXH - 1);
+      cxi := trunc(floorX); cyi := trunc(floorY);
+      shF := LitFactor(fog, cxi, cyi);
       if isFloor then begin
-        cF := Shade(Tex[texId][ty * TEXW + tx], fog);
-        cxi := trunc(floorX); cyi := trunc(floorY);
-        { a glowing pad marks a portal; a shaft marks a sky or moon well }
+        cF := Shade(Tex[texId][ty * TEXW + tx], shF);
+        { a glowing pad marks a portal, a light well or an emissive source }
         if IsPortalTile(cxi, cyi) then begin
           pk := PortalKind(cxi, cyi);
           case pk of
@@ -119,18 +132,22 @@ begin
             PK_UP: gc := UP_GLOW;
           else gc := PORTAL_GLOW;
           end;
-          cF := MixColor(cF, Shade(gc, fog), 150);
+          cF := MixColor(cF, Shade(gc, shF), 150);
         end
         else begin
           lk := LightTileKind(cxi, cyi);
-          if lk = LIGHT_SKYLIGHT then
-            cF := MixColor(cF, Shade(SKY_GLOW, fog), 40 + (SkyLightLevel shr 1))
-          else if lk = LIGHT_MOONWELL then
-            cF := MixColor(cF, Shade(MOON_GLOW, fog), 40 + (MoonLightLevel shr 1));
+          case lk of
+            LIGHT_SKYLIGHT: cF := MixColor(cF, Shade(SKY_GLOW, shF), 40 + (SkyLightLevel shr 1));
+            LIGHT_MOONWELL: cF := MixColor(cF, Shade(MOON_GLOW, shF), 40 + (MoonLightLevel shr 1));
+            LIGHT_BIOLUME:  cF := MixColor(cF, Shade(BIO_GLOW, shF), 120);
+            LIGHT_GASVENT:  cF := MixColor(cF, Shade(GAS_GLOW, shF), 90);
+            LIGHT_BRAZIER, LIGHT_TORCH, LIGHT_BONFIRE:
+              cF := MixColor(cF, Shade(FIRE_GLOW, shF), 170);
+          end;
         end;
         FB[y * FBW + x] := cF;
       end else begin
-        cC := Shade(Tex[texId][ty * TEXW + tx], fog);
+        cC := Shade(Tex[texId][ty * TEXW + tx], shF);
         FB[y * FBW + x] := cC;
       end;
       floorX := floorX + stepX;
@@ -237,6 +254,7 @@ begin
     { North/south faces a touch darker to read the grid in the gloom. }
     if side = 1 then
       fog := fog * 72 div 100;
+    fog := LitFactor(fog, mapX, mapY);   { fold in scene and cast light }
 
     texStep := TEXH / lineHeight;
     texPos := (drawStart - horizon + lineHeight / 2) * texStep;

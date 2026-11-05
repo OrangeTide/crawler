@@ -34,8 +34,19 @@ const
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
+  { Celestial light wells: their strength tracks the sky (section 22). }
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }
   LIGHT_MOONWELL = 1;       { admits moonlight, strongest at the full moon }
+
+  { Emissive sources: always on, and they cast a pool of light nearby.
+    LIGHT_EMISSIVE is the first emissive kind, so kinds at or above it are
+    the always-on lights and kinds below it are the celestial wells. }
+  LIGHT_EMISSIVE = 2;
+  LIGHT_BIOLUME  = 2;       { bioluminescent growth, natural cavern glow }
+  LIGHT_GASVENT  = 3;       { a small vent, a faint flame }
+  LIGHT_BRAZIER  = 4;       { a tended brazier at a camp or tomb }
+  LIGHT_TORCH    = 5;       { a wall torch }
+  LIGHT_BONFIRE  = 6;       { a large fire at a settlement }
 
   { Portal transition kinds, for the right icon and glow. }
   PK_FLAT   = 0;            { a level transition, a gate or a cell edge }
