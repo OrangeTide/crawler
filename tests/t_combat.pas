@@ -33,7 +33,8 @@ begin
     end;
     PartyGold := 50;
 
-    StartRandomEncounter(1 + enc mod 8);
+    { rotate through the eight area masks so every per-area roster fights }
+    StartRandomEncounter(1 + enc mod 8, 1 shl (enc mod 8));
     rounds := 0;
     while (not CombatOver) and (rounds < 4000) do begin
       if CurActor < 0 then break;      { would be a stall, caught below }

@@ -67,7 +67,9 @@ var
   XPGained: longint;
   GoldGained: longint;
 
-procedure StartRandomEncounter(depth: longint);
+{ Start a fight at a dungeon depth. areaMask limits the roster to the
+  monsters that roam that area; 0 draws from every monster. }
+procedure StartRandomEncounter(depth: longint; areaMask: byte);
 procedure CombatLog(const s: string);
 function LivingFoes: longint;
 function FirstLivingFoe: longint;
@@ -210,9 +212,10 @@ end;
 
 { ---- setup ---- }
 
-procedure StartRandomEncounter(depth: longint);
+procedure StartRandomEncounter(depth: longint; areaMask: byte);
 var
-  pick, count, i, front: longint;
+  pick, count, i, front, npool: longint;
+  pool: array of longint;
 begin
   SetLength(Foes, 0);
   CombatOver := false;
@@ -226,12 +229,27 @@ begin
   if Length(MonDefs) = 0 then begin
     CombatOver := true; Victory := true; exit;
   end;
+
+  { the encounter table for this area: monsters whose range covers it.
+    An unset mask, or an area no monster covers, falls back to the lot. }
+  SetLength(pool, Length(MonDefs));
+  npool := 0;
+  if areaMask <> 0 then
+    for i := 0 to High(MonDefs) do
+      if (MonDefs[i].areas and areaMask) <> 0 then begin
+        pool[npool] := i; inc(npool);
+      end;
+  if npool = 0 then begin
+    for i := 0 to High(MonDefs) do pool[i] := i;
+    npool := Length(MonDefs);
+  end;
+
   count := 1 + Range(0, 2) + (depth div 3);
   if count > MAX_FOES then count := MAX_FOES;
   SetLength(Foes, count);
   front := 0;
   for i := 0 to count - 1 do begin
-    pick := Range(0, High(MonDefs));
+    pick := pool[Range(0, npool - 1)];
     Foes[i].def := pick;
     Foes[i].hp := RngRoll(GameRng, MonDefs[pick].hd, 8);
     if Foes[i].hp < 1 then Foes[i].hp := 1;

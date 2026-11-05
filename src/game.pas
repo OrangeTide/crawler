@@ -53,6 +53,7 @@ var
   GamePak: TPak;
   lastTX, lastTY: longint;
   CurDepth: longint;      { 0 surface, else the dungeon depth, for scaling }
+  CurAreaMask: byte;      { the encounter area of the loaded map, 0 = safe }
   cursorX, cursorY: longint;
   rmbHeld: boolean;
   dlgNpcName: string;
@@ -103,6 +104,57 @@ const
 function SavePath: string;
 begin
   SavePath := ExtractFilePath(ParamStr(0)) + 'save1.sav';
+end;
+
+function AreaOf(const name: string): byte;
+{** The encounter area of a map, from its name. Pinned zones carry their
+  own theme; overworld cells take their surface biome's area, generated
+  dungeons their underground theme's. Interiors and the town are safe. }
+var
+  cx, cy, depth: longint;
+begin
+  if name = 'TOWN' then AreaOf := 0
+  else if name = 'FOREST' then AreaOf := AREA_FOREST
+  else if name = 'SEASIDE' then AreaOf := AREA_COAST
+  else if name = 'DUNGEON' then AreaOf := AREA_CRYPT
+  else if name = 'CAVE' then AreaOf := AREA_CAVE
+  else if name = 'INFERNAL' then AreaOf := AREA_INFERNAL
+  else if ParseCellName(name, cx, cy) then AreaOf := BiomeArea(BiomeAt(cx, cy))
+  else if ParseDungeonName(name, cx, cy, depth) then
+    AreaOf := ThemeArea(BiomeTheme(BiomeAt(cx, cy)))
+  else if ParseDepthsName(name, cx, cy) then AreaOf := AREA_INFERNAL
+  else AreaOf := 0;   { interiors, dynmaps: no wild encounters }
+end;
+
+procedure GateAreaModels(areaMask: byte);
+{** The per-area model cache gate. Load exactly the models the current
+  map's props and this area's monsters need, then check them against the
+  VRAM budget so a level never asks for more than the console can hold. }
+var
+  names: array of string;
+  i: longint;
+
+  procedure Add(const nm: string);
+  var j: longint;
+  begin
+    if nm = '' then exit;
+    for j := 0 to High(names) do
+      if names[j] = nm then exit;
+    SetLength(names, Length(names) + 1);
+    names[High(names)] := nm;
+  end;
+
+begin
+  names := nil;
+  for i := 0 to High(CurMap.props) do Add(CurMap.props[i].name);
+  if areaMask <> 0 then
+    for i := 0 to High(MonDefs) do
+      if (MonDefs[i].areas and areaMask) <> 0 then Add(MonDefs[i].model);
+  LoadModelSet(GamePak, names);
+  if not ModelSetFitsVram(names) then begin
+    saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(areaMask);
+    saveMsgT := 2.0;
+  end;
 end;
 
 function LoadMapLump(const name: string): boolean;
@@ -168,6 +220,8 @@ begin
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;
   CurMapName := name;
+  CurAreaMask := AreaOf(name);
+  GateAreaModels(CurAreaMask);   { cache only what this area draws }
   if isDyn then
     MapStateSetDynamic(name, ver, seed);
   MapStateRestore(name);     { bring back fog and doors if visited before }
@@ -299,7 +353,7 @@ end;
 
 procedure StartCombat(depth: longint);
 begin
-  StartRandomEncounter(depth);
+  StartRandomEncounter(depth, CurAreaMask);
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
   spellSel := 0;

@@ -42,6 +42,18 @@ const
   THEME_UNDERWATER = 3;   { ocean floor and shipwrecks beneath the sea }
   THEME_BASALT     = 4;   { lava tubes beneath basalt and volcanic cells }
 
+  { Encounter areas. A monster lists the areas it roams as a bitmask; a
+    loaded map resolves to one area, so only its monsters spawn and only
+    their models need to sit in the cache at once. Eight areas fit a byte. }
+  AREA_FOREST   = $01;
+  AREA_COAST    = $02;
+  AREA_DESERT   = $04;
+  AREA_FROZEN   = $08;
+  AREA_VOLCANIC = $10;
+  AREA_CRYPT    = $20;
+  AREA_CAVE     = $40;
+  AREA_INFERNAL = $80;
+
 var
   WorldSeed: longword = $1A2B3C4D;   { later loaded from the save }
 
@@ -78,6 +90,15 @@ function HasBuilding(cx, cy: longint): boolean;
 { Pinned authored cells. }
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;
 function PinnedCellOf(const name: string; out cx, cy: longint): boolean;
+
+{ Encounter area mapping. The area mask a surface biome or an underground
+  theme belongs to, the mask of one area named in a monster table, and a
+  short label for a mask. }
+function BiomeArea(b: byte): byte;
+function ThemeArea(t: byte): byte;
+function AreaMaskByName(const name: string): byte;
+function ParseAreaList(const s: string): byte;
+function AreaName(mask: byte): string;
 
 implementation
 
@@ -412,6 +433,83 @@ begin
       PinnedCellOf := true;
       exit;
     end;
+end;
+
+function BiomeArea(b: byte): byte;
+begin
+  case b of
+    BIOME_OCEAN, BIOME_COAST:            BiomeArea := AREA_COAST;
+    BIOME_ARBOREAL, BIOME_SWAMP,
+    BIOME_HILLS:                         BiomeArea := AREA_FOREST;
+    BIOME_MOUNT, BIOME_ARCTIC:           BiomeArea := AREA_FROZEN;
+    BIOME_DESERT:                        BiomeArea := AREA_DESERT;
+    BIOME_BASALT, BIOME_VOLCAN:          BiomeArea := AREA_VOLCANIC;
+  else
+    BiomeArea := AREA_FOREST;
+  end;
+end;
+
+function ThemeArea(t: byte): byte;
+begin
+  case t of
+    THEME_CAVE:       ThemeArea := AREA_CAVE;
+    THEME_CRYPT:      ThemeArea := AREA_CRYPT;
+    THEME_DESERTTOMB: ThemeArea := AREA_CRYPT;
+    THEME_UNDERWATER: ThemeArea := AREA_COAST;
+    THEME_BASALT:     ThemeArea := AREA_INFERNAL;
+  else
+    ThemeArea := AREA_CAVE;
+  end;
+end;
+
+function AreaMaskByName(const name: string): byte;
+var s: string;
+begin
+  s := LowerCase(name);
+  if s = 'forest' then AreaMaskByName := AREA_FOREST
+  else if s = 'coast' then AreaMaskByName := AREA_COAST
+  else if s = 'desert' then AreaMaskByName := AREA_DESERT
+  else if s = 'frozen' then AreaMaskByName := AREA_FROZEN
+  else if s = 'volcanic' then AreaMaskByName := AREA_VOLCANIC
+  else if s = 'crypt' then AreaMaskByName := AREA_CRYPT
+  else if s = 'cave' then AreaMaskByName := AREA_CAVE
+  else if s = 'infernal' then AreaMaskByName := AREA_INFERNAL
+  else AreaMaskByName := 0;
+end;
+
+{ Parse a '+'-separated list of area names, such as 'forest+cave', into a
+  combined mask. }
+function ParseAreaList(const s: string): byte;
+var
+  mask: byte;
+  i, start: longint;
+  tok: string;
+begin
+  mask := 0;
+  start := 1;
+  for i := 1 to Length(s) + 1 do
+    if (i > Length(s)) or (s[i] = '+') or (s[i] = ',') then begin
+      tok := Trim(Copy(s, start, i - start));
+      if tok <> '' then mask := mask or AreaMaskByName(tok);
+      start := i + 1;
+    end;
+  ParseAreaList := mask;
+end;
+
+function AreaName(mask: byte): string;
+begin
+  case mask of
+    AREA_FOREST:   AreaName := 'wilds';
+    AREA_COAST:    AreaName := 'coast';
+    AREA_DESERT:   AreaName := 'desert';
+    AREA_FROZEN:   AreaName := 'frozen';
+    AREA_VOLCANIC: AreaName := 'volcanic';
+    AREA_CRYPT:    AreaName := 'crypt';
+    AREA_CAVE:     AreaName := 'cave';
+    AREA_INFERNAL: AreaName := 'infernal';
+  else
+    AreaName := 'mixed';
+  end;
 end;
 
 end.

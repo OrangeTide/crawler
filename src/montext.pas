@@ -2,17 +2,19 @@ unit montext;
 
 {** Parser for the text monster table, used by the asset tool.
 
-  mon ID HD AC ATK DMG MORALE SPEED XP FLAGS [MODEL] "Name"
+  mon ID HD AC ATK DMG MORALE SPEED XP FLAGS [MODEL [AREAS]] "Name"
   FLAGS: 1 = undead, 2 = ranged (bitwise). MODEL is an optional combat
-  mesh id, drawn from the model registry; omit it for a glyph. Blank
-  lines and lines starting with '#' are ignored. }
+  mesh id, drawn from the model registry; omit it for a glyph. AREAS is
+  an optional '+'-separated list of the areas the monster roams, such as
+  forest+cave; omit it and the monster roams nowhere. Blank lines and
+  lines starting with '#' are ignored. }
 
 {$mode objfpc}{$H+}
 
 interface
 
 uses
-  monsters;
+  monsters, overworld;
 
 function ParseMonsters(const fn: string; out defs: array of TMonsterDef;
   out count: longint; out err: string): boolean;
@@ -68,6 +70,7 @@ begin
       d.xp := StrToInt(parts[8]);
       if parts.Count >= 10 then d.flags := StrToInt(parts[9]) else d.flags := 0;
       if parts.Count >= 11 then d.model := parts[10] else d.model := '';
+      if parts.Count >= 12 then d.areas := ParseAreaList(parts[11]) else d.areas := 0;
       defs[count] := d; inc(count);
     end;
   finally

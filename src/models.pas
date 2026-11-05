@@ -40,6 +40,11 @@ type
 { Load every known model from the pak. Missing ones are skipped, not fatal. }
 function LoadModels(const p: TPak): boolean;
 
+{ Load only the named models, freeing any others: the per-area cache gate.
+  A name not in the set is left unloaded, so FindModel returns -1 and the
+  caller falls back to a glyph. Returns true if any model loaded. }
+function LoadModelSet(const p: TPak; const names: array of string): boolean;
+
 { Index of a model by name, or -1. }
 function FindModel(const name: string): longint;
 
@@ -101,30 +106,53 @@ begin
   if maxz - minz < 0.0001 then MeshHeight := 1 else MeshHeight := maxz - minz;
 end;
 
-function LoadModels(const p: TPak): boolean;
+function InNameSet(const name: string; const names: array of string): boolean;
+var i: longint;
+begin
+  InNameSet := false;
+  for i := 0 to High(names) do
+    if names[i] = name then begin InNameSet := true; exit; end;
+end;
+
+function LoadModelSet(const p: TPak; const names: array of string): boolean;
 var
   i, n: longint;
   blob: TByteArray;
   m: TMesh;
 begin
-  SetLength(ModelReg, Length(ModelDefs));
+  if Length(ModelReg) <> Length(ModelDefs) then
+    SetLength(ModelReg, Length(ModelDefs));
   n := 0;
   for i := 0 to High(ModelDefs) do begin
     ModelReg[i].name := ModelDefs[i].name;
-    ModelReg[i].loaded := false;
-    ModelReg[i].scale := 1;
-    ModelReg[i].vramCost := 0;
-    ModelReg[i].ramCost := 0;
-    if PakGet(p, ModelDefs[i].name, blob) and DecodeMesh(blob, m) then begin
+    if InNameSet(ModelDefs[i].name, names)
+      and PakGet(p, ModelDefs[i].name, blob) and DecodeMesh(blob, m) then begin
       ModelReg[i].mesh := m;
       ModelReg[i].scale := ModelDefs[i].targetHeight / MeshHeight(m);
       ModelReg[i].vramCost := m.texW * m.texH;
       ModelReg[i].ramCost := Length(m.verts) * MODEL_GEOM_VERT_BYTES;
       ModelReg[i].loaded := true;
       inc(n);
+    end else begin
+      ModelReg[i].loaded := false;
+      ModelReg[i].scale := 1;
+      ModelReg[i].vramCost := 0;
+      ModelReg[i].ramCost := 0;
+      ModelReg[i].mesh.verts := nil;
+      ModelReg[i].mesh.tex := nil;
     end;
   end;
-  LoadModels := n > 0;
+  LoadModelSet := n > 0;
+end;
+
+function LoadModels(const p: TPak): boolean;
+var
+  names: array of string;
+  i: longint;
+begin
+  SetLength(names, Length(ModelDefs));
+  for i := 0 to High(ModelDefs) do names[i] := ModelDefs[i].name;
+  LoadModels := LoadModelSet(p, names);
 end;
 
 function ModelVramCost(const name: string): longint;

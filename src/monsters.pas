@@ -34,6 +34,7 @@ type
     xp: word;
     flags: byte;
     model: string[12]; { combat mesh id in the model registry, '' for none }
+    areas: byte;       { bitmask of the areas this monster roams, 0 = none }
   end;
 
 var
@@ -84,6 +85,7 @@ begin
     PutB(a, n, (defs[i].xp shr 8) and $FF);
     PutB(a, n, defs[i].flags);
     PutName(a, n, defs[i].model, 12);
+    PutB(a, n, defs[i].areas);
   end;
   SetLength(a, n);
   EncodeMonsters := a;
@@ -127,6 +129,7 @@ begin
     MonDefs[i].xp := blob[pos] or (blob[pos + 1] shl 8); inc(pos, 2);
     MonDefs[i].flags := blob[pos]; inc(pos);
     MonDefs[i].model := RName(blob, pos, 12);
+    MonDefs[i].areas := blob[pos]; inc(pos);
   end;
   LoadMonsters := true;
 end;
