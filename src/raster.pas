@@ -16,7 +16,7 @@ unit raster;
 interface
 
 uses
-  meshfmt;
+  meshfmt, gfx;
 
 type
   TMeshCam = record
@@ -24,6 +24,12 @@ type
     yaw: double;          { heading, 0 looks along +X }
     pitch: double;        { look up and down, radians }
   end;
+
+{ The screen point a view projects around. Defaults to the screen center;
+  combat sets it per foe to place each model in its own slot. }
+var
+  RasterCX: double = FBW / 2;
+  RasterCY: double = FBH / 2;
 
 { Clear the depth buffer; call once per frame before drawing. }
 procedure RasterBeginFrame;
@@ -42,9 +48,6 @@ procedure DrawTexQuad(const cam: TMeshCam;
   tex: PByte; tw, th: longint; light: double);
 
 implementation
-
-uses
-  gfx;
 
 const
   NEAR  = 0.05;
@@ -81,8 +84,8 @@ begin
   depth := fwd * cp + up * sp;
   vup := -fwd * sp + up * cp;
   if depth <= NEAR then exit;
-  c.sx := (FBW / 2) + (side / depth) * FOCAL;
-  c.sy := (FBH / 2) - (vup / depth) * FOCAL;
+  c.sx := RasterCX + (side / depth) * FOCAL;
+  c.sy := RasterCY - (vup / depth) * FOCAL;
   c.iz := 1.0 / depth;
   Project := true;
 end;

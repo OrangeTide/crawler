@@ -15,7 +15,7 @@ CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 DIALOGS   = content/dialogs.txt
 WORLD     = content/world.txt
-MODELNAMES = barrel door
+MODELNAMES = barrel door crea1 crea2 crea3
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(WORLD) $(MAPS) $(MODELSRC)

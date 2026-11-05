@@ -34,8 +34,9 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
-  hud, textures, rng, rules, items, chardata, party, monsters, combat, flags,
-  dialog, mapstate, save, worldfmt, mapgen, overworld, gametime, audio;
+  raster, meshfmt, hud, textures, rng, rules, items, chardata, party, monsters,
+  combat, flags, dialog, mapstate, save, worldfmt, mapgen, overworld, gametime,
+  audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -770,9 +771,46 @@ begin
   PutPixel(cx + hw - 9, cy - hh + 8, RGB(20, 20, 20));
 end;
 
-procedure CombatRender;
+{ Frame a creature mesh into a combat slot centered on (cx,cy). }
+procedure DrawFoeModel(const mesh: TMesh; cx, cy: longint; myaw: double);
+const
+  FOCALC = (FBW / 2) / 0.66;
+  HALFPX = 22;              { on-screen half-height of a foe }
 var
-  i, n, living, slot, cx, cy, y, x: longint;
+  i: longint;
+  mnx, mny, mnz, mxx, mxy, mxz, h, radius, d: double;
+  mc: TMeshCam;
+begin
+  if Length(mesh.verts) = 0 then exit;
+  mnx := mesh.verts[0].x; mxx := mnx;
+  mny := mesh.verts[0].y; mxy := mny;
+  mnz := mesh.verts[0].z; mxz := mnz;
+  for i := 1 to High(mesh.verts) do begin
+    if mesh.verts[i].x < mnx then mnx := mesh.verts[i].x;
+    if mesh.verts[i].x > mxx then mxx := mesh.verts[i].x;
+    if mesh.verts[i].y < mny then mny := mesh.verts[i].y;
+    if mesh.verts[i].y > mxy then mxy := mesh.verts[i].y;
+    if mesh.verts[i].z < mnz then mnz := mesh.verts[i].z;
+    if mesh.verts[i].z > mxz then mxz := mesh.verts[i].z;
+  end;
+  h := mxz - mnz;
+  radius := mxx - mnx;
+  if mxy - mny > radius then radius := mxy - mny;
+  if h > radius then radius := h;
+  radius := radius * 0.5;
+  if radius < 0.001 then radius := 1;
+
+  d := radius * FOCALC / HALFPX;
+  mc.x := -d; mc.y := 0; mc.z := h / 2; mc.yaw := 0; mc.pitch := 0;
+  RasterCX := cx; RasterCY := cy;
+  RenderMeshAt(mesh, mc, 0, 0, 0, 1.0, myaw, 236);
+end;
+
+procedure CombatRender;
+const
+  FOE_YAW = 0.6;
+var
+  i, n, living, slot, cx, cy, y, x, mi: longint;
   c, body: TColor;
   s: string;
 begin
@@ -793,6 +831,7 @@ begin
   if living < 1 then living := 1;
   slot := FBW div living;
   n := 0;
+  RasterBeginFrame;     { clear depth before the foe models }
   for i := 0 to High(Foes) do begin
     if not Foes[i].alive then continue;
     cx := slot * n + slot div 2;
@@ -802,7 +841,12 @@ begin
       FrameRect(cx - 21, cy - 23, 42, 50, RGB(240, 220, 120));
       DrawText(cx - 2, cy - 33, '*', RGB(240, 220, 120));
     end;
-    DrawFoeGlyph(cx, cy, 30, 30, body);
+    { a creature model if one is registered, else the glyph }
+    mi := FindModel('CREA' + IntToStr(1 + Foes[i].def mod 3));
+    if mi >= 0 then
+      DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW)
+    else
+      DrawFoeGlyph(cx, cy, 30, 30, body);
     s := MonDefs[Foes[i].def].name;
     DrawText(cx - Length(s) * 3, cy - 22, s, RGB(215, 185, 175));
     DrawBar(cx - 16, cy + 20, 32, 4, Foes[i].hp, Foes[i].hpMax,

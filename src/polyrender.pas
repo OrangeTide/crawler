@@ -100,6 +100,7 @@ var
   ftex: longint;
 begin
   if not gtReady then BuildGridTex;
+  RasterCX := FBW / 2; RasterCY := FBH / 2;
   RasterBeginFrame;
   ClearFB(RGB(6, 6, 10));
 

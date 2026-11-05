@@ -40,9 +40,12 @@ type
   end;
 
 const
-  ModelDefs: array[0 .. 1] of TModelDef = (
+  ModelDefs: array[0 .. 4] of TModelDef = (
     (name: 'BARREL'; targetHeight: 0.7),
-    (name: 'DOOR';   targetHeight: 1.7)
+    (name: 'DOOR';   targetHeight: 1.7),
+    (name: 'CREA1';  targetHeight: 1.2),
+    (name: 'CREA2';  targetHeight: 1.2),
+    (name: 'CREA3';  targetHeight: 1.2)
   );
 
 { The model's height in its own units, to derive a scale. }
