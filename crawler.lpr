@@ -24,6 +24,7 @@ var
   prevTicks, nowTicks, lastFpsTick: UInt32;
   dt: double;
   fps, frameCount: longint;
+  argb: array[0 .. FBW * FBH - 1] of TColor;   { index->ARGB scratch for SDL }
 
 procedure Shutdown;
 begin
@@ -81,6 +82,8 @@ begin
   SDL_SetRelativeMouseMode(1);
   SDL_ShowCursor(0);
 
+  InitGfx;   { build the palette and the inverse lookup before any drawing }
+
   if not GameInit then begin
     Shutdown; halt(1);
   end;
@@ -99,7 +102,8 @@ begin
     GameUpdate(dt);
     GameRender(fps);
 
-    SDL_UpdateTexture(tex, nil, @FB[0], FBW * 4);
+    PalExpand(@argb[0]);
+    SDL_UpdateTexture(tex, nil, @argb[0], FBW * 4);
     SDL_RenderClear(ren);
     SDL_RenderCopy(ren, tex, nil, nil);
     SDL_RenderPresent(ren);

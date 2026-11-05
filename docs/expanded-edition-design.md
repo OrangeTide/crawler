@@ -687,9 +687,11 @@ milestone, so the build order is the plan rather than the exact order of work.
     the skylight and moonwell puzzle tiles (section 22).
 
 Each step leaves the game runnable, which keeps the project honest. Milestones
-0.1.0 through 0.13.0, plus 0.15.0 (the overworld), 0.17.0 (time and moon), and
-0.16.0 (vertical space and the Sunless Depths), are done. 0.14.0 (fixed-point)
-is deferred, since the prototype keeps floats for now.
+0.1.0 through 0.17.0 are done. 0.14.0 landed last, after the later features, so
+the raycaster runs in fixed point and the framebuffer is 8-bit paletted, which
+is what the MS-DOS and PlayStation 1 targets need. The camera still uses a few
+floats per frame, and textures stay in true color on the prototype. Those are
+the next conversions when a target build starts.
 
 ## 20. The overworld: a seeded world of biomes
 

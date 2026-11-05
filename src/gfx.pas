@@ -16,11 +16,17 @@ const
   FBH = 240;
 
 type
-  TColor = UInt32;  { 0xAARRGGBB }
-  TFrameBuffer = array[0 .. FBW * FBH - 1] of TColor;
+  TColor = UInt32;  { 0xAARRGGBB, the logical color drawing code works in }
+  TFrameBuffer = array[0 .. FBW * FBH - 1] of byte;   { palette indices }
+  PColorArray = ^TColor;
 
 var
-  FB: TFrameBuffer;
+  FB: TFrameBuffer;                 { 1 byte per pixel, the shared target }
+  Palette: array[0 .. 255] of TColor;
+
+procedure InitGfx;                  { build the palette and inverse lookup }
+function Quantize(c: TColor): byte; inline;        { color to nearest index }
+procedure PalExpand(dst: PColorArray);             { indices to ARGB for SDL }
 
 function RGB(r, g, b: byte): TColor; inline;
 function Shade(c: TColor; f: longint): TColor; inline;
@@ -71,18 +77,95 @@ begin
     or TColor(ab + ((bb - ab) * t shr 8));
 end;
 
-procedure ClearFB(c: TColor);
+var
+  InvLUT: array[0 .. 32767] of byte;   { 5:5:5 color to nearest palette index }
+
+procedure BuildPalette;
+{** A 6x6x6 RGB cube, a fine grey ramp and a warm fire ramp. The cube
+  gives even coverage for quantizing arbitrary colors, the ramps keep
+  walls, fog and firelight smooth. }
+const
+  LVL: array[0 .. 5] of byte = (0, 51, 102, 153, 204, 255);
+var
+  r, g, b, i: longint;
+begin
+  i := 0;
+  for r := 0 to 5 do
+    for g := 0 to 5 do
+      for b := 0 to 5 do begin
+        Palette[i] := RGB(LVL[r], LVL[g], LVL[b]);
+        inc(i);
+      end;
+  { 216..239: a 24 step grey ramp }
+  for r := 0 to 23 do begin
+    b := 8 + r * 10;
+    if b > 255 then b := 255;
+    Palette[i] := RGB(b, b, b);
+    inc(i);
+  end;
+  { 240..255: a 16 step warm fire ramp }
+  for r := 0 to 15 do begin
+    Palette[i] := RGB(80 + r * 11, 20 + r * 9, r * 3);
+    inc(i);
+  end;
+end;
+
+procedure BuildInvLUT;
+var
+  idx, i, best, bd, d, dr, dg, db, r, g, b: longint;
+begin
+  for idx := 0 to 32767 do begin
+    r := ((idx shr 10) and 31) shl 3;
+    g := ((idx shr 5) and 31) shl 3;
+    b := (idx and 31) shl 3;
+    best := 0; bd := $7FFFFFFF;
+    for i := 0 to 255 do begin
+      dr := r - longint((Palette[i] shr 16) and $FF);
+      dg := g - longint((Palette[i] shr 8) and $FF);
+      db := b - longint(Palette[i] and $FF);
+      d := dr * dr + dg * dg + db * db;
+      if d < bd then begin bd := d; best := i; end;
+    end;
+    InvLUT[idx] := best;
+  end;
+end;
+
+procedure InitGfx;
+begin
+  BuildPalette;
+  BuildInvLUT;
+end;
+
+function Quantize(c: TColor): byte;
+begin
+  Quantize := InvLUT[(((c shr 19) and 31) shl 10)
+    or (((c shr 11) and 31) shl 5) or ((c shr 3) and 31)];
+end;
+
+procedure PalExpand(dst: PColorArray);
 var
   i: longint;
+  p: PColorArray;
 begin
-  for i := 0 to FBW * FBH - 1 do
-    FB[i] := c;
+  p := dst;
+  for i := 0 to FBW * FBH - 1 do begin
+    p^ := Palette[FB[i]];
+    inc(p);
+  end;
+end;
+
+procedure ClearFB(c: TColor);
+var
+  i: byte;
+begin
+  i := Quantize(c);
+  FillChar(FB, SizeOf(FB), i);
 end;
 
 procedure PutPixel(x, y: longint; c: TColor);
 begin
   if (x >= 0) and (x < FBW) and (y >= 0) and (y < FBH) then
-    FB[y * FBW + x] := c;
+    FB[y * FBW + x] := Quantize(c);
 end;
 
 procedure HLine(x, y, len: longint; c: TColor);
@@ -127,18 +210,18 @@ begin
   if (x < 0) or (x >= FBW) or (y < 0) or (y >= FBH) then exit;
   if alpha = 0 then exit;
   if alpha = 255 then begin
-    FB[y * FBW + x] := c;
+    FB[y * FBW + x] := Quantize(c);
     exit;
   end;
-  d := FB[y * FBW + x];
+  d := Palette[FB[y * FBW + x]];     { read back the current color }
   ia := 255 - alpha;
   sr := (c shr 16) and $FF; sg := (c shr 8) and $FF; sb := c and $FF;
   dr := (d shr 16) and $FF; dg := (d shr 8) and $FF; db := d and $FF;
   dr := (sr * alpha + dr * ia) div 255;
   dg := (sg * alpha + dg * ia) div 255;
   db := (sb * alpha + db * ia) div 255;
-  FB[y * FBW + x] := TColor($FF000000) or (TColor(dr) shl 16) or
-    (TColor(dg) shl 8) or TColor(db);
+  FB[y * FBW + x] := Quantize(TColor($FF000000) or (TColor(dr) shl 16) or
+    (TColor(dg) shl 8) or TColor(db));
 end;
 
 procedure FillRectBlend(x, y, w, h: longint; c: TColor; alpha: byte);

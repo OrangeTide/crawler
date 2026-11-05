@@ -149,10 +149,10 @@ begin
               cF := MixColor(cF, Shade(FIRE_GLOW, shF), 170);
           end;
         end;
-        FB[y * FBW + x] := cF;
+        FB[y * FBW + x] := Quantize(cF);
       end else begin
         cC := Shade(Tex[texId][ty * TEXW + tx], shF);
-        FB[y * FBW + x] := cC;
+        FB[y * FBW + x] := Quantize(cC);
       end;
       floorX := floorX + stepX;
       floorY := floorY + stepY;
@@ -278,7 +278,7 @@ begin
       texY := FFloor(texPos) and (TEXH - 1);
       texPos := texPos + texStep;
       c := Shade(Tex[texId][texY * TEXW + texX], fog);
-      FB[y * FBW + x] := c;
+      FB[y * FBW + x] := Quantize(c);
     end;
   end;
 end;
