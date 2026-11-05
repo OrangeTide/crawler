@@ -16,6 +16,9 @@ unit xmpmin;
 
 interface
 
+uses
+  ctypes;
+
 const
   { xmp_start_player format flags. 0 is the default: 16-bit signed,
     stereo, interleaved, which is what the mixer wants. }
@@ -28,8 +31,9 @@ type
 
   Txmp_create_context_fn = function: Txmp_context; cdecl;
   Txmp_free_context_fn   = procedure(c: Txmp_context); cdecl;
+  { size is C long, 64-bit on LP64 targets; clong tracks it per platform }
   Txmp_load_module_from_memory_fn =
-    function(c: Txmp_context; mem: Pointer; size: longint): longint; cdecl;
+    function(c: Txmp_context; mem: Pointer; size: clong): longint; cdecl;
   Txmp_release_module_fn = procedure(c: Txmp_context); cdecl;
   Txmp_start_player_fn   = function(c: Txmp_context; rate, format: longint): longint; cdecl;
   Txmp_end_player_fn     = procedure(c: Txmp_context); cdecl;

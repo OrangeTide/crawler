@@ -230,7 +230,7 @@ begin
   { Music is optional on top of that: without libxmp the SFX still play.
     Size the render scratch to the device block, two samples a frame. }
   if LoadXmp then begin
-    xmpCtx := xmp_create_context;
+    xmpCtx := xmp_create_context();
     if xmpCtx <> nil then begin
       SetLength(musBuf, (got.samples + 64) * 2);
       haveMusic := true;
