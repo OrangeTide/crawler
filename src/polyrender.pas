@@ -18,7 +18,7 @@ procedure RenderViewPoly;
 implementation
 
 uses
-  math, gfx, textures, world, mapfmt, raster;
+  math, gfx, textures, world, mapfmt, raster, models, meshfmt;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
@@ -67,6 +67,27 @@ begin
   if scene > 256 then scene := 256;
   TileLight := FogAt(dist);
   if scene > TileLight then TileLight := scene;
+end;
+
+{ Instance every placed prop near the camera as a model. }
+procedure DrawProps(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
+var
+  i, mi, ptx, pty: longint;
+  px, py, dist, fwd, yaw, light: double;
+begin
+  for i := 0 to High(CurMap.props) do begin
+    ptx := CurMap.props[i].x; pty := CurMap.props[i].y;
+    px := ptx + 0.5; py := pty + 0.5;
+    fwd := (px - ex) * cyaw + (py - ey) * syaw;
+    if fwd < -1.0 then continue;                 { behind the camera }
+    dist := sqrt(sqr(px - ex) + sqr(py - ey));
+    if dist > VIEW_R + 1 then continue;
+    mi := FindModel(CurMap.props[i].name);
+    if mi < 0 then continue;
+    yaw := CurMap.props[i].yaw / 256.0 * 2 * Pi;
+    light := TileLight(ptx, pty, dist);
+    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, 0, ModelReg[mi].scale, yaw, light);
+  end;
 end;
 
 procedure RenderViewPoly;
@@ -137,6 +158,8 @@ begin
           0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
       end;
     end;
+
+  DrawProps(mc, ex, ey, cyaw, syaw);
 end;
 
 end.

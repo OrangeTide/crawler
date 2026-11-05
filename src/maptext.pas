@@ -75,13 +75,14 @@ var
   np: TNpc;
   tr: TTrap;
   lt: TLightTile;
+  pr: TProp;
 begin
   ParseMapText := false;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   inWalls := false;
   row := 0;
 
@@ -200,6 +201,17 @@ begin
         else lt.kind := LIGHT_SKYLIGHT;
         SetLength(m.lights, Length(m.lights) + 1);
         m.lights[High(m.lights)] := lt;
+      end else if tok[0] = 'prop' then begin
+        if ntok < 4 then begin errmsg := 'prop needs X Y NAME [yawDeg]'; exit; end;
+        pr.x := StrToInt(tok[1]);
+        pr.y := StrToInt(tok[2]);
+        pr.name := UpperCase(tok[3]);
+        if ntok >= 5 then
+          pr.yaw := (StrToInt(tok[4]) * 256 div 360) and $FF
+        else
+          pr.yaw := 0;
+        SetLength(m.props, Length(m.props) + 1);
+        m.props[High(m.props)] := pr;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;

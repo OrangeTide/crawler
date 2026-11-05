@@ -15,7 +15,7 @@ program mkassets;
 uses
   sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext,
-  worldfmt, worldtext;
+  worldfmt, worldtext, meshfmt;
 
 var
   w: TPakWriter;
@@ -150,6 +150,19 @@ begin
   writeln('  dialogs (', n, ') from ', fn);
 end;
 
+procedure AddModel(const name, objFn, ppmFn: string);
+var
+  mesh: TMesh;
+begin
+  if not LoadMeshObjPpm(objFn, ppmFn, mesh) then begin
+    writeln(StdErr, 'mkassets: model ', name, ': cannot bake ', objFn, ' / ', ppmFn);
+    halt(1);
+  end;
+  PakWAdd(w, UpperCase(name), EncodeMesh(mesh));
+  writeln('  model ', UpperCase(name), ' (', Length(mesh.verts) div 3, ' tris, ',
+    mesh.texW, 'x', mesh.texH, ') from ', objFn);
+end;
+
 procedure AddWorld(const fn: string);
 var
   d: array[0 .. 63] of TDynMap;
@@ -176,6 +189,7 @@ begin
   outPath := ParamStr(1);
 
   PakWInit(w);
+  InitGfx;   { the palette the model baker quantizes textures against }
   AddTex('BRICK', 0);
   AddTex('STONE', 1);
   AddTex('MOSS',  2);
@@ -201,6 +215,8 @@ begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'world' then begin
       AddWorld(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'model' then begin
+      AddModel(ParamStr(i + 1), ParamStr(i + 2), ParamStr(i + 3)); inc(i, 4);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);

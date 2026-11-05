@@ -25,4 +25,9 @@ portal 10 2 SEASIDE start
 portal 2 5 FOREST start
 portal 6 1 W512_511 edgeS
 portal 6 8 TAVERN entry door
+prop 2 3 BARREL
+prop 3 3 BARREL 45
+prop 9 6 BARREL
+prop 4 7 BARREL 120
+prop 9 3 DOOR 90
 npc 8 3 ELDER Elder

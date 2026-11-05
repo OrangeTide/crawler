@@ -969,7 +969,18 @@ quad per open tile and a wall face toward every open neighbor, reusing the wall,
 floor and ceiling textures quantized to palette indices. A per-pixel depth
 buffer in the rasterizer resolves occlusion, so faces draw in any order. The
 game toggles between the raycaster and the polygon renderer with the P key, so
-the two can be compared directly; the raycaster is still the default. Still to
-do: instance props, doors and monster models onto the grid, draw the portal and
-light glows the raycaster shows, then dial in vertex snap and dither and port
-the hot path to fixed point.
+the two can be compared directly; the raycaster is still the default.
+
+Props are instanced on top of the grid. A map carries a list of props, each a
+model name, a tile and a heading, added with a `prop X Y NAME [yawDeg]`
+directive (map format version 4). Models are baked into the pak from an OBJ and
+a PPM under `content/models` by the same mesh baker, so the game build needs
+only the Pascal toolchain. `models.pas` loads them once and derives a display
+scale from a target height, and `polyrender` draws every prop near the camera
+through the mesh path, depth-buffered against the walls and floor. The town
+carries a few barrels and a door as the first dressing.
+
+Still to do: props do not block movement yet, and they draw only in the polygon
+renderer; put monster models in combat, draw the portal and light glows the
+raycaster shows, then dial in vertex snap and dither and port the hot path to
+fixed point.

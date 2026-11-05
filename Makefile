@@ -15,9 +15,12 @@ CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 DIALOGS   = content/dialogs.txt
 WORLD     = content/world.txt
+MODELNAMES = barrel door
+MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(WORLD) $(MAPS)
+            $(WORLD) $(MAPS) $(MODELSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
+MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
             world $(WORLD)
@@ -48,7 +51,7 @@ build/tools/meshshot: tools/meshshot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/meshshot tools/meshshot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS)
 
 build:
 	mkdir -p build

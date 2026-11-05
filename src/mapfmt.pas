@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 3;
+  MAP_VERSION = 4;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -99,6 +99,12 @@ type
     kind: byte;     { LIGHT_SKYLIGHT or LIGHT_MOONWELL }
   end;
 
+  TProp = record
+    x, y: word;
+    name: string[12];   { model lump name, e.g. BARREL }
+    yaw: byte;          { heading, 0..255 maps to a full turn }
+  end;
+
   TMapData = record
     w, h: longint;
     tileset, music, flags: byte;
@@ -109,6 +115,7 @@ type
     npcs: array of TNpc;
     traps: array of TTrap;
     lights: array of TLightTile;
+    props: array of TProp;
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -237,6 +244,15 @@ begin
     BByte(b, m.traps[i].dc);
   end;
 
+  BU16(b, Length(m.props));
+  for i := 0 to High(m.props) do begin
+    BU16(b, m.props[i].x);
+    BU16(b, m.props[i].y);
+    BName(b, m.props[i].name, 12);
+    BByte(b, m.props[i].yaw);
+    BByte(b, 0);
+  end;
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -308,7 +324,7 @@ begin
   DecodeMap := false;
   m.w := 0; m.h := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
-  m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -380,6 +396,16 @@ begin
     m.traps[i].y := RU16(r);
     m.traps[i].dmg := RByte(r);
     m.traps[i].dc := RByte(r);
+  end;
+
+  count := RU16(r);
+  SetLength(m.props, count);
+  for i := 0 to count - 1 do begin
+    m.props[i].x := RU16(r);
+    m.props[i].y := RU16(r);
+    m.props[i].name := RName(r, 12);
+    m.props[i].yaw := RByte(r);
+    RByte(r);
   end;
 
   DecodeMap := r.ok;

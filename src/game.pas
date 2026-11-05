@@ -33,9 +33,9 @@ procedure GameRender(fps: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, hud, textures,
-  rng, rules, items, chardata, party, monsters, combat, flags, dialog,
-  mapstate, save, worldfmt, mapgen, overworld, gametime, audio;
+  sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, polyrender, models,
+  hud, textures, rng, rules, items, chardata, party, monsters, combat, flags,
+  dialog, mapstate, save, worldfmt, mapgen, overworld, gametime, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -1185,6 +1185,7 @@ begin
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
+  LoadModels(GamePak);    { optional; polygon-renderer props }
 
   TimeReset;
   MoonOffsetDays := (WorldSeed mod 2953) / 100.0;  { seed the moon phase }

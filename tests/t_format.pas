@@ -12,7 +12,7 @@ var
   p: TPak;
   blob: TByteArray;
   m: TMapData;
-  i, moonwells, doors: longint;
+  i, moonwells, doors, props: longint;
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -27,6 +27,13 @@ begin
   for i := 0 to High(m.portals) do
     if m.portals[i].kind = PK_DOOR then inc(doors);
   Check(doors >= 1, 'TOWN has the tavern door');
+
+  { props survive encode and decode }
+  props := 0;
+  for i := 0 to High(m.props) do
+    if m.props[i].name = 'BARREL' then inc(props);
+  Check(Length(m.props) >= 1, 'TOWN carries props');
+  Check(props >= 1, 'TOWN has a barrel prop');
 
   Check(PakGet(p, 'TAVERN', blob) and DecodeMap(blob, m), 'decode TAVERN');
   Check((m.flags and MAP_SURFACE) = 0, 'TAVERN is an indoor map');

@@ -248,6 +248,7 @@ begin
 
   m.doors := nil;
   m.npcs := nil;
+  m.traps := nil; m.lights := nil; m.props := nil;
   GenerateMap := m;
 end;
 
@@ -345,7 +346,7 @@ begin
   m.w := gw; m.h := gh;
   m.tileset := 0; m.music := 0; m.flags := MAP_SURFACE;
   m.markers := nil; m.portals := nil;
-  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
   { centre spawn, used on first entry from a pinned zone's gate }
   SetLength(m.markers, 1);
@@ -490,7 +491,7 @@ begin
   m.w := gw; m.h := gh;
   m.tileset := 0; m.music := 0; m.flags := 0;
   m.markers := nil; m.portals := nil;
-  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
   { the way up: to the level above, or to the surface at depth 1 }
   if depth <= 1 then begin
@@ -544,7 +545,7 @@ begin
   m.w := gw; m.h := gh;
   m.tileset := 0; m.music := 0; m.flags := 0;
   m.markers := nil; m.portals := nil;
-  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
   { the way back up to the dungeon that opened into the Depths }
   AddStair(m, g, mx, my, PK_UP, DungeonName(cx, cy, SUNLESS_DEPTH),
@@ -593,7 +594,7 @@ begin
   m.w := gw; m.h := gh;
   m.tileset := 0; m.music := 0; m.flags := 0;   { indoors, lamp-lit, no sky }
   m.markers := nil; m.portals := nil;
-  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
   { the door back out to the surface cell this building stands on }
   AddStair(m, g, mx, gh - 2, PK_DOOR, CellName(cx, cy), 'door0', 'entry');
