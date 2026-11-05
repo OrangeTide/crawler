@@ -21,6 +21,7 @@ const
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
+function GenerateInterior(cx, cy, idx: longint; seed: longword): TMapData;
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
 
@@ -369,6 +370,26 @@ begin
     m.portals[np].kind := PK_CAVE;
   end;
 
+  { a building to enter, on some cells: a door-portal into its interior,
+    with a return marker beside it so stepping out does not re-enter }
+  if HasBuilding(cx, cy) then begin
+    bx := mx - 4; by := my + 3;
+    if bx < 1 then bx := 1;
+    if by > gh - 2 then by := gh - 2;
+    CarveLine(g, mx, my, bx, by);
+    np := Length(m.portals);
+    SetLength(m.portals, np + 1);
+    m.portals[np].x := bx; m.portals[np].y := by;
+    m.portals[np].target := InteriorName(cx, cy, 0);
+    m.portals[np].marker := 'entry';
+    m.portals[np].kind := PK_DOOR;
+    SetLength(m.markers, Length(m.markers) + 1);
+    m.markers[High(m.markers)].name := 'door0';
+    m.markers[High(m.markers)].x := bx;
+    m.markers[High(m.markers)].y := by - 1;
+    m.markers[High(m.markers)].dir := DIR_S;
+  end;
+
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do m.walls[i] := g[i];
 
@@ -548,6 +569,43 @@ begin
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := 2;
 
   GenerateDepthsCell := m;
+end;
+
+function GenerateInterior(cx, cy, idx: longint; seed: longword): TMapData;
+var
+  r: TRng;
+  g: TGrid;
+  m: TMapData;
+  i, mx: longint;
+begin
+  { idx distinguishes several buildings on one cell, so each gets a
+    different interior from the same cell seed }
+  RngSeed(r, seed xor (longword(idx + 1) * longword($9e3779b1)));
+  gw := 9 + RngRange(r, 0, 4) * 2;    { odd widths 9..17 }
+  gh := 7 + RngRange(r, 0, 2) * 2;    { odd heights 7..11 }
+  mx := gw div 2;
+  SetLength(g, gw * gh);
+
+  for i := 0 to gw * gh - 1 do g[i] := 0;   { one open room }
+  Borders(g);
+
+  m.w := gw; m.h := gh;
+  m.tileset := 0; m.music := 0; m.flags := 0;   { indoors, lamp-lit, no sky }
+  m.markers := nil; m.portals := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil;
+
+  { the door back out to the surface cell this building stands on }
+  AddStair(m, g, mx, gh - 2, PK_DOOR, CellName(cx, cy), 'door0', 'entry');
+
+  { a hearth so the room is not pitch dark }
+  AddLight(m, 1, 1, LIGHT_TORCH);
+  if gw >= 11 then AddLight(m, gw - 2, 1, LIGHT_TORCH);
+
+  SetLength(m.walls, gw * gh);
+  for i := 0 to gw * gh - 1 do
+    if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := 1;   { brick }
+
+  GenerateInterior := m;
 end;
 
 end.

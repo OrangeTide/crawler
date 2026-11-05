@@ -685,9 +685,12 @@ milestone, so the build order is the plan rather than the exact order of work.
     transitions, and consistent dungeon stacking (section 21).
 17. **0.17.0** Time: the clock, outdoor day-night lighting, moon phase, lycanthropy, and
     the skylight and moonwell puzzle tiles (section 22).
+18. **0.18.0** Interiors and the full pin table: all six authored zones pinned to
+    cells around the town, generated building interiors reached by door-portals, and
+    an authored town tavern (section 21).
 
 Each step leaves the game runnable, which keeps the project honest. Milestones
-0.1.0 through 0.17.0 are done. 0.14.0 landed last, after the later features, so
+0.1.0 through 0.18.0 are done. 0.14.0 landed before the later features, so
 the raycaster runs in fixed point and the framebuffer is 8-bit paletted, which
 is what the MS-DOS and PlayStation 1 targets need. The camera still uses a few
 floats per frame, and textures stay in true color on the prototype. Those are
@@ -758,10 +761,13 @@ surface plane.
   `(worldSeed, cx, cy, depth)`, so descending and climbing back is consistent.
   The generator pairs a stairs-down marker on depth N with a stairs-up marker on
   depth N+1 so the two levels connect at a fixed point.
-- **Interiors.** A building footprint on a surface map has a door-portal into an
-  interior map. Interiors are authored for town shops and generated for generic
-  houses from `(cell, buildingIndex, seed)`, with interior stairs for upper
-  floors.
+- **Interiors.** A building footprint on a surface map has a door-portal (kind
+  door) into an interior map. The town tavern is authored and holds the barkeep.
+  Generic houses are generated: a surface cell with `HasBuilding` set places a
+  door to the interior named `I<cx>_<cy>_<idx>`, and that interior is built from
+  the cell seed with a door back to the cell at its `door0` marker, so entering
+  and leaving are stable round trips. Interior stairs for upper floors are not
+  built yet.
 - **Surface flag.** Each map is flagged surface or underground. The flag drives
   lighting, torch-only underground, and whether the sky and its day-night light
   are visible (section 22).

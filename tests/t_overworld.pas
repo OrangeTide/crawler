@@ -46,10 +46,12 @@ begin
 end;
 
 var
-  cx, cy, i, startX, startY, allReach, distinct: longint;
+  cx, cy, i, startX, startY, allReach, distinct, idx: longint;
   m: TMapData;
   seenBiome: array[0 .. BIOME_COUNT - 1] of boolean;
-  x, y: longint;
+  x, y, bx, by, doors, entryX, entryY: longint;
+  nm, arr: string;
+  found: boolean;
 begin
   { name round trip and rejection }
   Check(CellName(300, 712) = 'W300_712', 'CellName format');
@@ -88,6 +90,71 @@ begin
     if Reaches(m, startX, startY, m.portals[i].x, m.portals[i].y) then
       inc(allReach);
   CheckEqI(allReach, Length(m.portals), 'all cell portals reachable');
+
+  { the authored zones are pinned around the town, each with its marker }
+  Check(PinnedAt(512, 512, nm, arr) and (nm = 'TOWN') and (arr = 'spawn'),
+    'TOWN pinned at the world centre');
+  Check(PinnedAt(511, 512, nm, arr) and (nm = 'FOREST'), 'FOREST pinned west');
+  Check(PinnedAt(513, 512, nm, arr) and (nm = 'SEASIDE'), 'SEASIDE pinned east');
+  Check(PinnedAt(512, 513, nm, arr) and (nm = 'DUNGEON'), 'DUNGEON pinned south');
+  Check(PinnedAt(511, 513, nm, arr) and (nm = 'CAVE'), 'CAVE pinned southwest');
+  Check(PinnedAt(513, 513, nm, arr) and (nm = 'INFERNAL'), 'INFERNAL pinned');
+  Check(not PinnedAt(700, 300, nm, arr), 'wilderness is not pinned');
+
+  { interior name round trip }
+  Check(InteriorName(40, 50, 2) = 'I40_50_2', 'InteriorName format');
+  Check(ParseInteriorName('I40_50_2', cx, cy, idx)
+    and (cx = 40) and (cy = 50) and (idx = 2), 'ParseInteriorName round trip');
+  Check(not ParseInteriorName('W1_2_3', cx, cy, idx), 'reject non-interior name');
+
+  { find a cell with a building and check its door leads to an interior }
+  found := false; bx := 0; by := 0;
+  y := 400;
+  while (y < 460) and (not found) do begin
+    x := 400;
+    while (x < 460) and (not found) do begin
+      if HasBuilding(x, y) then begin bx := x; by := y; found := true; end;
+      inc(x);
+    end;
+    inc(y);
+  end;
+  Check(found, 'some cell has a building');
+
+  if found then begin
+    m := GenerateOverworldCell(bx, by, CellSeed(bx, by, 0));
+    startX := m.w div 2; startY := m.h div 2;
+    doors := 0;
+    for i := 0 to High(m.portals) do
+      if m.portals[i].kind = PK_DOOR then begin
+        inc(doors);
+        Check(m.portals[i].target = InteriorName(bx, by, 0),
+          'cell door targets its interior');
+        Check(Reaches(m, startX, startY, m.portals[i].x, m.portals[i].y),
+          'cell door is reachable from the centre');
+      end;
+    Check(doors >= 1, 'building cell has a door-portal');
+
+    { the interior itself: a door back to the cell, reachable from entry }
+    m := GenerateInterior(bx, by, 0, CellSeed(bx, by, 0));
+    Check((m.flags and MAP_SURFACE) = 0, 'interior is indoors, not surface');
+    entryX := -1; entryY := -1;
+    for i := 0 to High(m.markers) do
+      if m.markers[i].name = 'entry' then begin
+        entryX := m.markers[i].x; entryY := m.markers[i].y;
+      end;
+    Check(entryX >= 0, 'interior has an entry marker');
+    doors := 0;
+    for i := 0 to High(m.portals) do
+      if m.portals[i].kind = PK_DOOR then begin
+        inc(doors);
+        Check(m.portals[i].target = CellName(bx, by),
+          'interior door returns to the cell');
+        if entryX >= 0 then
+          Check(Reaches(m, entryX, entryY, m.portals[i].x, m.portals[i].y),
+            'interior door reachable from entry');
+      end;
+    Check(doors >= 1, 'interior has a door back out');
+  end;
 
   TestSummary('overworld');
   halt(TestExit);

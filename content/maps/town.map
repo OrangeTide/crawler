@@ -18,10 +18,11 @@ walls
 end
 marker gate 2 2 E
 marker spawn 6 5 N
+marker tavdoor 6 7 N
 portal 10 8 DUNGEON back
 portal 2 8 CAVE start
 portal 10 2 SEASIDE start
 portal 2 5 FOREST start
 portal 6 1 W512_511 edgeS
-npc 4 2 BARKEEP Barkeep
+portal 6 8 TAVERN entry door
 npc 8 3 ELDER Elder

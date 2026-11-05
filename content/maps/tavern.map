@@ -1,0 +1,19 @@
+# The town tavern: a lamp-lit interior reached by the door in the square.
+map TAVERN
+size 8 7
+tileset 0
+music 0
+walls
+22222222
+20000002
+20000002
+20000002
+20000002
+20000002
+22222222
+end
+marker entry 4 4 N
+portal 4 5 TOWN tavdoor door
+torch 1 1
+torch 6 1
+npc 3 2 BARKEEP Barkeep

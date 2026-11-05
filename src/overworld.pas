@@ -65,8 +65,15 @@ function ParseDungeonName(const s: string; out cx, cy, depth: longint): boolean;
 function DepthsName(cx, cy: longint): string;
 function ParseDepthsName(const s: string; out cx, cy: longint): boolean;
 
+{ Names of the building interiors reached from a surface cell. }
+function InteriorName(cx, cy, idx: longint): string;
+function ParseInteriorName(const s: string; out cx, cy, idx: longint): boolean;
+
 { Whether a surface cell has a dungeon entrance, derived from the seed. }
 function HasDungeon(cx, cy: longint): boolean;
+
+{ Whether a surface cell has a building to enter, derived from the seed. }
+function HasBuilding(cx, cy: longint): boolean;
 
 { Pinned authored cells. }
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;
@@ -84,8 +91,17 @@ type
   end;
 
 const
-  Pinned: array[0 .. 0] of TPinned = (
-    (cx: 512; cy: 512; name: 'TOWN'; arrive: 'spawn')
+  { TOWN is the hub. The other authored zones cluster around it so the
+    wilderness that borders the cluster links straight into them. Each
+    name is an authored map (CAVE is a generated dynmap); each arrive
+    marker exists on that map. }
+  Pinned: array[0 .. 5] of TPinned = (
+    (cx: 512; cy: 512; name: 'TOWN';     arrive: 'spawn'),
+    (cx: 511; cy: 512; name: 'FOREST';   arrive: 'start'),
+    (cx: 513; cy: 512; name: 'SEASIDE';  arrive: 'start'),
+    (cx: 512; cy: 513; name: 'DUNGEON';  arrive: 'start'),
+    (cx: 511; cy: 513; name: 'CAVE';     arrive: 'start'),
+    (cx: 513; cy: 513; name: 'INFERNAL'; arrive: 'start')
   );
 
 { --- integer hashing and value noise --- }
@@ -332,6 +348,24 @@ begin
   ParseDepthsName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0) and (cy < OW_SIZE);
 end;
 
+function InteriorName(cx, cy, idx: longint): string;
+begin
+  InteriorName := 'I' + IntToStr(cx) + '_' + IntToStr(cy) + '_' + IntToStr(idx);
+end;
+
+function ParseInteriorName(const s: string; out cx, cy, idx: longint): boolean;
+var
+  count: longint;
+begin
+  ParseInteriorName := false;
+  cx := 0; cy := 0; idx := 0;
+  if (Length(s) < 6) or (s[1] <> 'I') then exit;
+  if not ParseNums(Copy(s, 2, Length(s) - 1), cx, cy, idx, count) then exit;
+  if count <> 3 then exit;
+  ParseInteriorName := (cx >= 0) and (cx < OW_SIZE) and (cy >= 0)
+    and (cy < OW_SIZE) and (idx >= 0);
+end;
+
 function HasDungeon(cx, cy: longint): boolean;
 var
   salt: longint;
@@ -339,6 +373,15 @@ begin
   { about one surface cell in three has a way down, pinned cells aside }
   salt := $D0;
   HasDungeon := (Hash2(cx, cy, salt) mod 3) = 0;
+end;
+
+function HasBuilding(cx, cy: longint): boolean;
+var
+  salt: longint;
+begin
+  { about one surface cell in four has a building you can enter }
+  salt := $B1;
+  HasBuilding := (Hash2(cx, cy, salt) mod 4) = 1;
 end;
 
 function PinnedAt(cx, cy: longint; out name, arrive: string): boolean;

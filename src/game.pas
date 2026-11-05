@@ -115,6 +115,13 @@ begin
     seed := CellSeed(cx, cy, SUNLESS_DEPTH + 1);
     md := GenerateDepthsCell(cx, cy, seed);
     CurDepth := SUNLESS_DEPTH;
+  end else if ParseInteriorName(name, cx, cy, depth) then begin
+    { a building interior standing on cell (cx,cy); depth holds the
+      building index. Derived from the cell seed, so it is stable. }
+    isDyn := true;
+    ver := GEN_VERSION;
+    seed := CellSeed(cx, cy, 0);
+    md := GenerateInterior(cx, cy, depth, seed);
   end else begin
     di := DynIndex(name);
     if di < 0 then exit;

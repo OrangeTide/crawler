@@ -27,6 +27,7 @@ const
   PORTAL_GLOW = $FF50C8FF;   { cyan pad: a flat transition or gate }
   DOWN_GLOW   = $FFFFB450;   { amber pad: stairs or a cave mouth down }
   UP_GLOW     = $FF8CE08C;   { green pad: stairs up }
+  DOOR_GLOW   = $FFC89650;   { warm wood threshold: a door into a building }
   SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
   MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
   BIO_GLOW    = $FF50FFB4;   { bioluminescent growth }
@@ -134,6 +135,7 @@ begin
           case pk of
             PK_DOWN, PK_CAVE, PK_SHAFT: gc := DOWN_GLOW;
             PK_UP: gc := UP_GLOW;
+            PK_DOOR: gc := DOOR_GLOW;
           else gc := PORTAL_GLOW;
           end;
           cF := MixColor(cF, Shade(gc, shF), 150);
