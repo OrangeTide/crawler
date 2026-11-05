@@ -23,6 +23,10 @@ which is released under CC0. We can embed and adapt its tables freely.
   to the runtime formats.
 - Deterministic where it matters. Dynamic maps are reproducible from a seed so a
   save only needs to store the seed plus the player's changes.
+- Linux and SDL2 are the prototype. The shipping targets are MS-DOS on 32-bit
+  i386 protected mode and the PlayStation 1, both without a usable FPU and the
+  PS1 with only 2 MB of main RAM. The design holds to those limits as it grows,
+  which means fixed-point math and a capped resident memory set (see section 23).
 
 ## 2. From demo to game: module layout
 
@@ -670,5 +674,147 @@ The systems depend on each other, so a sane sequence is:
 11. Audio mixer, SFX, module music.
 12. Build out the six zones and the critical path.
 13. Rest, traps, status effects, options, and the remaining section 16 items.
+14. Fixed-point math layer and a renderer backend seam, validated on Linux
+    against the existing float path (section 23). De-risks the DOS and PS1
+    targets without changing gameplay.
+15. The seeded overworld: the biome grid, per-cell local map generation, edge
+    transitions, and the authored zones pinned to fixed cells (section 20).
+16. Vertical space: depth-keyed maps, stair, ladder, shaft and interior
+    transitions, and consistent dungeon stacking (section 21).
+17. Time: the clock, outdoor day-night lighting, moon phase, lycanthropy, and
+    the skylight and moonwell puzzle tiles (section 22).
 
-Each step leaves the game runnable, which keeps the project honest.
+Each step leaves the game runnable, which keeps the project honest. Steps 1
+through 13 are done. Steps 14 through 17 are the current expansion.
+
+## 20. The overworld: a seeded world of biomes
+
+The six zones are set inside a far larger world that is never stored, only
+generated from a seed.
+
+- **The grid.** The world is a 1024x1024 grid of cells. Each cell is one square
+  kilometer and holds one biome. The whole grid is 1,048,576 cells, so storing
+  even one byte per cell would be a megabyte. Instead every cell is derived on
+  demand from `hash(worldSeed, cx, cy)`, and the world seed is the only thing in
+  the save.
+- **Biome derivation.** The cell hash seeds a small, cheap function that yields
+  elevation, moisture, and temperature from a few octaves of value noise over
+  the grid. Those three values map to a biome id: ocean, coast, grassland,
+  forest, hills, mountains, desert, swamp, tundra, and volcanic. The result is
+  deterministic, so the same coordinates always give the same biome.
+- **Local maps.** A biome cell is not the thing you walk on directly. Entering a
+  cell generates its detailed walk-around map from `(worldSeed, cx, cy, biome)`,
+  using the existing room, cave, and maze generators plus new open-terrain
+  generators for the outdoor biomes. The local map is the same scale the engine
+  already handles.
+- **Authored cells.** The hand-built zones are pinned to fixed coordinates in a
+  small table in the world manifest. When the party enters a pinned cell the
+  engine loads the authored map instead of generating one. Town, seaside,
+  forest, crypt, cave, and infernal sit at known coordinates, and generated
+  wilderness fills the space between them.
+- **Edges.** Walking off a local map edge moves to the neighbor cell and places
+  the party at the matching opposite edge. Terrain near a shared edge is matched
+  so the crossing stays passable.
+- **Persistence.** Generated cells are reproducible from the seed, so only
+  visited fog and player-made diffs are saved, keyed by `(cx, cy, depth)`. The
+  terrain itself is never stored. This is the same mechanism the dynamic maps
+  already use.
+- **Scale and travel.** A 1024 km world is far too large to cross tile by tile,
+  so travel has two modes. A coarse overworld mode moves one cell per step for
+  long journeys, and the detailed local mode is normal walking inside a cell.
+  The time system (section 22) advances faster in overworld mode.
+- **Memory.** The resident set is the current cell plus up to its four edge
+  neighbors for seamless crossings. This cell cache is the main lever on the
+  2 MB budget (section 23), so it is capped.
+
+## 21. Vertical space: stairs, ladders, interiors, and depth
+
+Maps gain a depth coordinate so the world has an up and a down, not just a
+surface plane.
+
+- **The key.** A map is addressed by `(cx, cy, depth)`. Surface is depth 0,
+  going down is positive depth (dungeon and cave levels), and building upper
+  floors are handled as interior maps rather than world depth.
+- **Transition kinds.** A transition tile carries a kind flag: stairs down,
+  stairs up, ladder, shaft or pit (a drop, possibly one way or needing a rope),
+  cave mouth (surface to underground), and door (into an interior). The flag
+  lets the minimap draw the right icon and lets each transition use its own
+  animation and sound.
+- **Dungeon stacking.** Each depth under a cell is generated from
+  `(worldSeed, cx, cy, depth)`, so descending and climbing back is consistent.
+  The generator pairs a stairs-down marker on depth N with a stairs-up marker on
+  depth N+1 so the two levels connect at a fixed point.
+- **Interiors.** A building footprint on a surface map has a door-portal into an
+  interior map. Interiors are authored for town shops and generated for generic
+  houses from `(cell, buildingIndex, seed)`, with interior stairs for upper
+  floors.
+- **Surface flag.** Each map is flagged surface or underground. The flag drives
+  lighting, torch-only underground, and whether the sky and its day-night light
+  are visible (section 22).
+
+## 22. Time: day-night cycle and the moon
+
+Time is a single clock that everything else reads.
+
+- **The clock.** A 32-bit count of minutes since an epoch, held in one save
+  field. A day is 1440 minutes. Actions advance it: a grid step or turn costs a
+  few minutes, resting costs hours, and overworld travel costs more per step.
+- **Day and night.** The hour is `(minutes mod 1440) / 60`. A daylight factor
+  follows a smooth curve, high at noon, zero at night, with dawn and dusk bands.
+  Outdoors it modulates ambient light, fog color, and the sky. Indoors and
+  underground ignore it and use torch light. Encounter tables can shift with the
+  hour, for example more predators and undead at night.
+- **The moon.** The synodic month is 29.53 days. The moon age is
+  `(totalDays + offset) mod 29.53`, and the phase buckets are new, waxing
+  crescent, first quarter, waxing gibbous, full, and the waning mirror. The full
+  moon is a narrow window around an age of about 14.77 days. Nothing extra is
+  stored, since the moon is derived from the clock.
+- **Lycanthropy.** An afflicted character carries a flag. During the full-moon
+  window the affliction triggers a transformation, with changed stats and lost
+  control. Because the moon is read from the global clock, this fires everywhere,
+  including underground. It is the one time-driven effect that ignores the
+  sky-visibility rule, matching the brief that the full moon always matters.
+- **Light underground.** Underground maps normally show no sun or moon and get
+  no day-night light. The exception is tiles flagged skylight or moonwell. A
+  skylight admits sunlight by day. A moonwell admits moonlight whose strength
+  follows the moon phase, so a beam can reach a glyph only at full moon and open
+  a passage. These are tile flags read together with the clock, which is how the
+  light puzzles work.
+
+## 23. Target hardware: fixed-point and the 2 MB budget
+
+Linux and SDL2 are the prototype and reference. The shipping targets are MS-DOS
+on 32-bit i386 in protected mode (FPC go32v2) and the PlayStation 1 (Kobold
+Pascal). The design is held to their limits as it grows.
+
+- **No FPU.** Neither target has a dependable floating-point unit. The i386 is
+  assumed to have no 387, and the PS1 R3000 has no FPU at all. The camera and
+  raycaster currently use `double`. The plan is a fixed-point unit, a signed
+  16.16 `Fixed` type with multiply, divide, and sine, cosine, and square-root
+  tables, and a conversion of the camera vectors, ray stepping, and texture
+  coordinate math. A compile switch on Linux keeps the float path so the
+  fixed-point output can be validated against it.
+- **The framebuffer is a prototype cost.** The 320x240 ARGB software buffer is
+  about 300 KB, but it exists only in the Linux build. On DOS, mode 13h is a
+  320x200 8-bit paletted buffer in VGA memory, about 64 KB and not in main RAM.
+  On PS1 the GPU owns the frame in VRAM and walls are drawn as textured quads,
+  not raycast per pixel into main RAM. So the renderer sits behind a thin seam,
+  and the Linux software rasterizer is just one backend.
+- **Textures live in VRAM on target.** A 64x64 ARGB texture is 16 KB in the
+  prototype. On DOS and PS1 textures are paletted, 8-bit or 4-bit, and on PS1
+  they sit in VRAM. Texture count presses on VRAM, not on the 2 MB main RAM.
+- **The 2 MB main RAM budget.** The PS1 has 2 MB of main RAM, the tightest of
+  the three, so everything is budgeted to it. DOS in 32-bit protected mode has
+  more headroom through DPMI, but holding to the PS1 limit keeps all three
+  honest. Main RAM holds code and the runtime, game state (party, inventory,
+  flags, journal), the resident cell and map cache, the loaded tables (items,
+  monsters, species, classes, dialogs), the fog and diff snapshots of visited
+  maps, and the audio sequence data. In the current prototype the non-framebuffer
+  data is well under 100 KB.
+- **What can blow the budget.** The risks are caching many cells or maps at
+  once, an unbounded visited-snapshot store spread across a huge world, and
+  large sprite or NPC banks. The rules are to cap the resident cell cache at the
+  current cell plus up to four neighbors, to page or bound the snapshot store,
+  for example with an LRU and fog stored as bitfields, and to load each table
+  once. I will re-estimate main RAM when the overworld cell cache and the
+  snapshot store go in, and warn when the projected resident set approaches 2 MB.
