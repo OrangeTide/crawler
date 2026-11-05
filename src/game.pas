@@ -897,17 +897,25 @@ const
   the battlefield, so this box only names the current pick. }
 procedure DrawCombatMenu;
 var
-  i, y, bh: longint;
+  i, y, y0, bh: longint;
   sp: TSpell;
   c: TColor;
 begin
   bh := FBH - CMDBOX_Y - 2;
   FillRectBlend(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(6, 8, 14), 235);
   FrameRect(CMDBOX_X, CMDBOX_Y, CMDBOX_W, bh, RGB(150, 140, 90));
+
+  { the window belongs to the acting character, named across its head }
+  if CurActor >= 0 then
+    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Roster[CurActor].name, 1, 12),
+      RGB(245, 230, 140));
+  FillRect(CMDBOX_X + 4, CMDBOX_Y + 16, CMDBOX_W - 8, 1, RGB(90, 84, 56));
+  y0 := CMDBOX_Y + 21;
+
   case cbMenu of
     CB_COMMAND:
       for i := 0 to CMD_COUNT - 1 do begin
-        y := CMDBOX_Y + 6 + i * 11;
+        y := y0 + i * 11;
         if i = cmdSel then begin
           DrawText(CMDBOX_X + 5, y, '>', RGB(245, 230, 140));
           DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(245, 230, 140));
@@ -916,7 +924,7 @@ begin
       end;
     CB_SPELL:
       for i := 0 to SpellCount - 1 do begin
-        y := CMDBOX_Y + 6 + i * 11;
+        y := y0 + i * 11;
         sp := SpellInfo(i);
         if i = spellSel then c := RGB(185, 215, 245)
         else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
@@ -926,21 +934,21 @@ begin
         DrawText(CMDBOX_X + CMDBOX_W - 12, y, IntToStr(sp.cost), c);
       end;
     CB_TARGET: begin
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 6, 'TARGET', RGB(240, 220, 130));
+      DrawText(CMDBOX_X + 6, y0, 'TARGET', RGB(240, 220, 130));
       if (CurTarget >= 0) and (CurTarget <= High(Foes)) then
-        DrawText(CMDBOX_X + 6, CMDBOX_Y + 18,
+        DrawText(CMDBOX_X + 6, y0 + 12,
           Copy(MonDefs[Foes[CurTarget].def].name, 1, 15), RGB(240, 220, 130));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 42, 'UP/DN AIM', RGB(150, 150, 130));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 52, 'ENT  OK', RGB(150, 150, 130));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 62, 'ESC  BACK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 32, 'UP/DN AIM', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 42, 'ENT  OK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 52, 'ESC  BACK', RGB(150, 150, 130));
     end;
     CB_ALLY: begin
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 6, 'HEAL', RGB(140, 220, 200));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 18,
+      DrawText(CMDBOX_X + 6, y0, 'HEAL', RGB(140, 220, 200));
+      DrawText(CMDBOX_X + 6, y0 + 12,
         Copy(Roster[allySel].name, 1, 12), RGB(140, 220, 200));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 42, 'UP/DN PICK', RGB(150, 150, 130));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 52, 'ENT  OK', RGB(150, 150, 130));
-      DrawText(CMDBOX_X + 6, CMDBOX_Y + 62, 'ESC  BACK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 32, 'UP/DN PICK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 42, 'ENT  OK', RGB(150, 150, 130));
+      DrawText(CMDBOX_X + 6, y0 + 52, 'ESC  BACK', RGB(150, 150, 130));
     end;
   end;
 end;
@@ -1026,6 +1034,7 @@ begin
         DrawText(x - 10, ny, '>', RGB(120, 220, 200));
       if not Roster[i].alive then c := RGB(160, 80, 80)
       else if Roster[i].downed then c := RGB(175, 135, 85)
+      else if (i = CurActor) and (not CombatOver) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
       DrawText(x, ny, Copy(Roster[i].name, 1, 8), c);
       if not Roster[i].alive then
