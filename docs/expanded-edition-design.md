@@ -699,9 +699,17 @@ generated from a seed.
   the save.
 - **Biome derivation.** The cell hash seeds a small, cheap function that yields
   elevation, moisture, and temperature from a few octaves of value noise over
-  the grid. Those three values map to a biome id: ocean, coast, grassland,
-  forest, hills, mountains, desert, swamp, tundra, and volcanic. The result is
-  deterministic, so the same coordinates always give the same biome.
+  the grid. Those three values map to a surface biome, deterministic so the
+  same coordinates always give the same biome. The surface biomes are ocean
+  (sea travel, coastlines, sea cliffs), coast, arboreal (rivers, forest, and
+  grassland), swamp, hills, mountains, desert (sand, oases, ruins), arctic
+  waste, basalt waste, and volcanic.
+- **Underground themes.** Descending under a cell gives a dungeon whose look
+  follows the surface above it, so the theme is a function of the biome rather
+  than a separate roll. Desert cells lead to dusty desert tombs, ocean and
+  coast cells to a flooded underwater floor with shipwrecks, volcanic and basalt
+  cells to lava tubes, forested and swamp cells to crypts, and the rest to
+  plain caves. These themes are used when vertical space lands in step 16.
 - **Local maps.** A biome cell is not the thing you walk on directly. Entering a
   cell generates its detailed walk-around map from `(worldSeed, cx, cy, biome)`,
   using the existing room, cave, and maze generators plus new open-terrain

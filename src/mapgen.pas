@@ -20,8 +20,12 @@ const
   GEN_VERSION = 1;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
+function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
 
 implementation
+
+uses
+  overworld;
 
 type
   TGrid = array of byte;   { 0 floor, 1 wall, w*h }
@@ -240,6 +244,115 @@ begin
   m.doors := nil;
   m.npcs := nil;
   GenerateMap := m;
+end;
+
+{ Carve a straight floor corridor between two points (inclusive), L-shaped. }
+procedure CarveLine(var g: TGrid; x0, y0, x1, y1: longint);
+var x, y: longint;
+begin
+  x := x0; y := y0;
+  while x <> x1 do begin SetAt(g, x, y, 0); if x < x1 then inc(x) else dec(x); end;
+  while y <> y1 do begin SetAt(g, x, y, 0); if y < y1 then inc(y) else dec(y); end;
+  SetAt(g, x1, y1, 0);
+end;
+
+{ One edge of an overworld cell: fill in its gap, arrival marker and the
+  portal that leaves toward the neighbor, unless that neighbor is off the
+  world. Pinned neighbors are entered by their authored name and marker. }
+procedure EdgeLink(var m: TMapData; var g: TGrid;
+  ncx, ncy, gapX, gapY, edgeX, edgeY: longint;
+  const arriveName: string; arriveDir: byte);
+var
+  pin, arr: string;
+  np: longint;
+begin
+  if (ncx < 0) or (ncx >= OW_SIZE) or (ncy < 0) or (ncy >= OW_SIZE) then
+    exit;   { world border: leave the wall solid, no exit }
+
+  SetAt(g, gapX, gapY, 0);
+  SetAt(g, edgeX, edgeY, 0);
+
+  { arrival marker, one tile inside the gap }
+  SetLength(m.markers, Length(m.markers) + 1);
+  m.markers[High(m.markers)].name := arriveName;
+  m.markers[High(m.markers)].x := edgeX;
+  m.markers[High(m.markers)].y := edgeY;
+  m.markers[High(m.markers)].dir := arriveDir;
+
+  { portal on the border gap tile, leaving to the neighbor }
+  np := Length(m.portals);
+  SetLength(m.portals, np + 1);
+  m.portals[np].x := gapX;
+  m.portals[np].y := gapY;
+  if PinnedAt(ncx, ncy, pin, arr) then begin
+    m.portals[np].target := pin;
+    m.portals[np].marker := arr;
+  end else begin
+    m.portals[np].target := CellName(ncx, ncy);
+    case arriveName of   { leave by one edge, arrive at the opposite one }
+      'edgeN': m.portals[np].marker := 'edgeS';
+      'edgeS': m.portals[np].marker := 'edgeN';
+      'edgeW': m.portals[np].marker := 'edgeE';
+    else       m.portals[np].marker := 'edgeW';
+    end;
+  end;
+end;
+
+function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
+const
+  W = 24; H = 24;
+var
+  r: TRng;
+  g: TGrid;
+  i, j, n, bx, by, mx, my, biome, wallTile: longint;
+  m: TMapData;
+begin
+  gw := W; gh := H;
+  mx := W div 2; my := H div 2;
+  SetLength(g, gw * gh);
+  RngSeed(r, seed);
+  biome := BiomeAt(cx, cy);
+  wallTile := BiomeWallTile(biome);
+
+  for i := 0 to gw * gh - 1 do g[i] := 0;   { open ground }
+  Borders(g);
+
+  { scattered obstacle clusters, density by biome }
+  n := BiomeDensity(biome);
+  for i := 1 to n do begin
+    bx := 2 + RngRange(r, 0, gw - 5);
+    by := 2 + RngRange(r, 0, gh - 5);
+    for j := 0 to RngRange(r, 1, 4) do
+      SetAt(g, Min(gw - 2, bx + RngRange(r, 0, 2)),
+               Min(gh - 2, by + RngRange(r, 0, 2)), wallTile);
+  end;
+
+  { keep the center and routes to every edge clear }
+  SetAt(g, mx, my, 0);
+  CarveLine(g, mx, my, mx, 1);
+  CarveLine(g, mx, my, mx, gh - 2);
+  CarveLine(g, mx, my, 1, my);
+  CarveLine(g, mx, my, gw - 2, my);
+
+  m.w := gw; m.h := gh;
+  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.markers := nil; m.portals := nil;
+  m.doors := nil; m.npcs := nil; m.traps := nil;
+
+  { centre spawn, used on first entry from a pinned zone's gate }
+  SetLength(m.markers, 1);
+  m.markers[0].name := 'start';
+  m.markers[0].x := mx; m.markers[0].y := my; m.markers[0].dir := DIR_E;
+
+  EdgeLink(m, g, cx,     cy - 1, mx, 0,      mx, 1,      'edgeN', DIR_S);
+  EdgeLink(m, g, cx,     cy + 1, mx, gh - 1, mx, gh - 2, 'edgeS', DIR_N);
+  EdgeLink(m, g, cx - 1, cy,     0,  my,     1,  my,     'edgeW', DIR_E);
+  EdgeLink(m, g, cx + 1, cy,     gw - 1, my, gw - 2, my, 'edgeE', DIR_W);
+
+  SetLength(m.walls, gw * gh);
+  for i := 0 to gw * gh - 1 do m.walls[i] := g[i];
+
+  GenerateOverworldCell := m;
 end;
 
 end.

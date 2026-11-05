@@ -35,7 +35,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, mapfmt, world, raycast, hud, textures,
   rng, rules, items, chardata, party, monsters, combat, flags, dialog,
-  mapstate, save, worldfmt, mapgen, audio;
+  mapstate, save, worldfmt, mapgen, overworld, audio;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -86,7 +86,7 @@ function LoadMapLump(const name: string): boolean;
 var
   blob: TByteArray;
   md: TMapData;
-  di, ver: longint;
+  di, ver, cx, cy: longint;
   seed: longword;
   isDyn: boolean;
 begin
@@ -94,6 +94,13 @@ begin
   ver := 0; seed := 0; isDyn := false;
   if PakGet(GamePak, name, blob) then begin
     if not DecodeMap(blob, md) then exit;
+  end else if ParseCellName(name, cx, cy) then begin
+    { an overworld cell: terrain is fixed by the world seed, so the
+      per-cell seed is derived, not stored or random. Fog still persists. }
+    isDyn := true;
+    ver := GEN_VERSION;
+    seed := CellSeed(cx, cy, 0);
+    md := GenerateOverworldCell(cx, cy, seed);
   end else begin
     di := DynIndex(name);
     if di < 0 then exit;
