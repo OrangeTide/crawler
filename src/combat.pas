@@ -68,7 +68,7 @@ type
 
   { status timers for one combatant, in turns remaining }
   TStatus = record
-    poison, stun, slow, burn: smallint;
+    poison, stun, slow, burn, offbal: smallint;
   end;
 
 var
@@ -168,6 +168,10 @@ procedure AfflictFoe(fi, st, turns: longint);
 { The foe AI's reposition choice: may flip foe fi's rank (melee closes to the
   front, a ranged caster with cover falls back) and report the turn as spent. }
 function EnemyMaybeMove(fi: longint; ranged: boolean): boolean;
+{ The foe AI's ranged disruption: a taunt or a thrown weapon. Spends the turn. }
+function EnemyHarry(fi: longint): boolean;
+{ Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
+procedure ResolvePartyAttack(actor, foe: longint);
 
 function SpellCount: longint;
 function SpellInfo(i: longint): TSpell;
@@ -364,6 +368,7 @@ begin
     ST_STUN:   StatusName := 'STUN';
     ST_SLOW:   StatusName := 'SLOW';
     ST_BURN:   StatusName := 'BURN';
+    ST_OFFBAL: StatusName := 'DAZED';
   else StatusName := '';
   end;
 end;
@@ -375,6 +380,7 @@ begin
     ST_STUN:   if turns > s.stun then s.stun := turns;
     ST_SLOW:   if turns > s.slow then s.slow := turns;
     ST_BURN:   if turns > s.burn then s.burn := turns;
+    ST_OFFBAL: if turns > s.offbal then s.offbal := turns;
   end;
 end;
 
@@ -587,6 +593,7 @@ begin
       DamageFoe(i, BURN_DMG, EL_FIRE); dec(FoeStatus[i].burn);
     end;
     if FoeStatus[i].slow > 0 then dec(FoeStatus[i].slow);
+    if FoeStatus[i].offbal > 0 then dec(FoeStatus[i].offbal);
     if not Foes[i].alive then begin StartOfTurnSpent := true; exit; end;
     if FoeStatus[i].stun > 0 then begin
       dec(FoeStatus[i].stun);
@@ -605,6 +612,7 @@ begin
       HurtMember(i, BURN_DMG); dec(PartyStatus[i].burn);
     end;
     if PartyStatus[i].slow > 0 then dec(PartyStatus[i].slow);
+    if PartyStatus[i].offbal > 0 then dec(PartyStatus[i].offbal);
     if (not Roster[i].alive) or Roster[i].downed then begin
       StartOfTurnSpent := true; exit;
     end;
@@ -830,21 +838,68 @@ begin
   end;
 end;
 
+{ A brute's ranged disruption: a taunt that throws a front-liner off
+  balance, or a lobbed weapon that chips the back line and rattles it.
+  Secondary to its melee, and the only reach it has while penned. }
+function EnemyHarry(fi: longint): boolean;
+var
+  tgt, dmg: longint;
+begin
+  EnemyHarry := false;
+  case MonDefs[Foes[fi].def].harry of
+    HARRY_TAUNT:
+      begin
+        tgt := EnemyPickTarget(fi, false);     { a front-line attacker }
+        if tgt < 0 then tgt := FirstConscious;
+        if tgt < 0 then exit;
+        CombatLog(MonDefs[Foes[fi].def].name + ' taunts ' + Roster[tgt].name + '.');
+        AfflictMember(tgt, ST_OFFBAL, 2);
+        EnemyHarry := true;
+      end;
+    HARRY_THROW:
+      begin
+        tgt := EnemyPickTarget(fi, true);      { lob at the soft back line }
+        if tgt < 0 then exit;
+        dmg := D(MonDefs[Foes[fi].def].dmgSides) div 2;
+        if dmg < 1 then dmg := 1;
+        CombatLog(MonDefs[Foes[fi].def].name + ' hurls a weapon at '
+          + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
+        PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
+        FlashAlly(tgt);
+        CombatSfxCue := CUE_HIT;
+        HurtMember(tgt, dmg);
+        if Roster[tgt].alive and (not Roster[tgt].downed) then
+          AfflictMember(tgt, ST_OFFBAL, 2);    { a solid throw rattles them }
+        EnemyHarry := true;
+      end;
+  end;
+end;
+
 { Resolve the foe at the turn cursor: choose a target by role and swing,
   carrying the monster's element and any status its hit inflicts. }
 procedure ResolveEnemyTurn;
 var
   fi, tgt, roll, dmg, effAC: longint;
-  ranged: boolean;
+  ranged, hasHarry: boolean;
 begin
   fi := TurnQueue[TurnPos].idx;
   if (fi > High(Foes)) or (not Foes[fi].alive) then exit;
   if FirstConscious < 0 then exit;
   ranged := (MonDefs[Foes[fi].def].flags and MF_RANGED) <> 0;
-  { reposition first; a move spends the whole turn }
-  if EnemyMaybeMove(fi, ranged) then exit;
-  { a back-rank melee foe that stood its ground is penned and holds }
-  if (not ranged) and (Foes[fi].rank <> FrontFoeRank) then exit;
+  hasHarry := MonDefs[Foes[fi].def].harry <> HARRY_NONE;
+
+  if ranged then begin
+    { a caster slips back behind cover when it can }
+    if EnemyMaybeMove(fi, true) then exit;
+  end else if Foes[fi].rank <> FrontFoeRank then begin
+    { out of melee reach: harass from range, surge up, or hold the line }
+    if hasHarry and (D(100) <= 45) and EnemyHarry(fi) then exit;
+    if EnemyMaybeMove(fi, false) then exit;
+    exit;   { penned and did neither: holds }
+  end else begin
+    { on the line: an occasional jeer or throw instead of a swing }
+    if hasHarry and (D(100) <= 25) and EnemyHarry(fi) then exit;
+  end;
 
   tgt := EnemyPickTarget(fi, ranged);
   if tgt < 0 then exit;
@@ -890,7 +945,7 @@ end;
 procedure ResolvePartyAttack(actor, foe: longint);
 var
   melee: boolean;
-  roll, atk, dmg, die: longint;
+  roll, roll2, atk, dmg, die: longint;
 begin
   melee := not WeaponRanged(Roster[actor]);
   if melee and (Roster[actor].rank <> RANK_FRONT) then begin
@@ -903,6 +958,10 @@ begin
   end;
   die := CharWeaponDie(Roster[actor]);
   roll := D(20);
+  if PartyStatus[actor].offbal > 0 then begin
+    roll2 := D(20);                       { off balance: roll at disadvantage }
+    if roll2 < roll then roll := roll2;
+  end;
   atk := CharAttack(Roster[actor], melee) + PartyBless;
   if (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac)) then
   begin

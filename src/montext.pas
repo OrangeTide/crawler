@@ -16,6 +16,7 @@ unit montext;
     immune:fire        elements it ignores
     inflict:poison     a status its hit may apply
     statusimm:poison   statuses it cannot suffer
+    harry:taunt        a ranged disruption trick (taunt or throw)
   Element names: phys fire frost shock holy. Status names: poison stun
   slow burn. Undead gain holy weakness and poison immunity by default.
 
@@ -144,6 +145,14 @@ begin
           else if key = 'immune' then d.immune := FlagList(val, true)
           else if key = 'inflict' then d.inflict := FlagList(val, false)
           else if key = 'statusimm' then d.statusImm := FlagList(val, false)
+          else if key = 'harry' then begin
+            if LowerCase(val) = 'taunt' then d.harry := HARRY_TAUNT
+            else if LowerCase(val) = 'throw' then d.harry := HARRY_THROW
+            else begin
+              err := 'line ' + IntToStr(li + 1) + ': bad harry ' + val;
+              exit;
+            end;
+          end
           else begin
             err := 'line ' + IntToStr(li + 1) + ': unknown tag ' + key;
             exit;

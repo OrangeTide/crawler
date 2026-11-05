@@ -12,6 +12,7 @@ var
   p: TPak;
   ab: TAbilityScores;
   i, skel, imp, rat, tries: longint;
+  gob, orc, hits0, hits1: longint;
   gotPoison, gotStun, moved: boolean;
 
 { Stand up a single foe of the given definition at full health. }
@@ -108,10 +109,12 @@ begin
   gotPoison := false;
   for i := 0 to High(FoeStatus) do
     if (FoeStatus[i].poison <> 0) or (FoeStatus[i].stun <> 0)
-      or (FoeStatus[i].slow <> 0) or (FoeStatus[i].burn <> 0) then gotPoison := true;
+      or (FoeStatus[i].slow <> 0) or (FoeStatus[i].burn <> 0)
+      or (FoeStatus[i].offbal <> 0) then gotPoison := true;
   for i := 0 to High(PartyStatus) do
     if (PartyStatus[i].poison <> 0) or (PartyStatus[i].stun <> 0)
-      or (PartyStatus[i].slow <> 0) or (PartyStatus[i].burn <> 0) then gotPoison := true;
+      or (PartyStatus[i].slow <> 0) or (PartyStatus[i].burn <> 0)
+      or (PartyStatus[i].offbal <> 0) then gotPoison := true;
   Check(not gotPoison, 'a new encounter starts with no status');
 
   { ---- foe AI repositioning (MOVE) ---- }
@@ -158,6 +161,65 @@ begin
   moved := false;
   for i := 1 to 40 do if EnemyMaybeMove(0, true) then moved := true;
   Check(not moved, 'a caster with no cover never retreats');
+
+  { ---- brute ranged tricks (taunt / throw) ---- }
+  gob := MonIndex('GOBLIN');
+  orc := MonIndex('ORC');
+  Check((gob >= 0) and (orc >= 0), 'harry test monsters present');
+  Check(MonDefs[gob].harry = HARRY_TAUNT, 'goblin is a taunter');
+  Check(MonDefs[orc].harry = HARRY_THROW, 'orc is a thrower');
+
+  { off balance makes a party member attack at disadvantage: fewer hits }
+  SetLength(Roster, 1);
+  RollAbilities(ab);
+  MakeCharacter(Roster[0], 'HIT', 0, 0, -1, ab);
+  Roster[0].rank := RANK_FRONT;
+  SetLength(PartyStatus, 1);
+  OneFoe(rat); Foes[0].rank := RANK_FRONT;
+  RngSeed(GameRng, 99);
+  hits0 := 0;
+  for i := 1 to 400 do begin
+    PartyStatus[0].offbal := 0;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits0);
+  end;
+  hits1 := 0;
+  for i := 1 to 400 do begin
+    PartyStatus[0].offbal := 1;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits1);
+  end;
+  Check(hits1 < hits0, 'off balance lowers the hit rate');
+
+  { a thrower chips the target and can rattle it }
+  SetLength(Roster, 1);
+  RollAbilities(ab);
+  MakeCharacter(Roster[0], 'TGT', 0, 0, -1, ab);
+  Roster[0].rank := RANK_BACK;
+  SetLength(PartyStatus, 1);
+  FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+  OneFoe(orc); Foes[0].rank := RANK_FRONT;
+  RngSeed(GameRng, 5);
+  moved := EnemyHarry(0);
+  Check(moved, 'a thrower takes its harry action');
+  Check(Roster[0].hp < Roster[0].hpMax, 'a thrown weapon chips the target');
+
+  { a taunt can leave a front-line target off balance }
+  SetLength(Roster, 1);
+  RollAbilities(ab);
+  MakeCharacter(Roster[0], 'JEE', 0, 0, -1, ab);
+  Roster[0].rank := RANK_FRONT;
+  SetLength(PartyStatus, 1);
+  OneFoe(gob); Foes[0].rank := RANK_FRONT;
+  RngSeed(GameRng, 12);
+  gotStun := false;
+  for i := 1 to 80 do begin
+    PartyStatus[0].offbal := 0;
+    if EnemyHarry(0) and (PartyStatus[0].offbal > 0) then gotStun := true;
+  end;
+  Check(gotStun, 'a taunt can throw a target off balance');
 
   TestSummary('tactics');
   halt(TestExit);

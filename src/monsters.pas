@@ -34,6 +34,12 @@ const
   ST_STUN   = 2;   { lose the next turn }
   ST_SLOW   = 4;   { slower in the turn order }
   ST_BURN   = 8;   { fire damage over time }
+  ST_OFFBAL = 16;  { off balance: the next attack is at disadvantage }
+
+  { a brute's secondary ranged trick, used to disrupt rather than to kill }
+  HARRY_NONE  = 0;
+  HARRY_TAUNT = 1;   { a jeer that throws a front-liner off balance }
+  HARRY_THROW = 2;   { a lobbed weapon: light damage to the back line }
 
 type
   TMonsterDef = record
@@ -55,6 +61,7 @@ type
     immune: byte;      { EL_* set it ignores }
     inflict: byte;     { ST_* a hit from it may apply, 0 = none }
     statusImm: byte;   { ST_* set it cannot suffer }
+    harry: byte;       { HARRY_* ranged disruption trick, 0 = none }
   end;
 
 var
@@ -112,6 +119,7 @@ begin
     PutB(a, n, defs[i].immune);
     PutB(a, n, defs[i].inflict);
     PutB(a, n, defs[i].statusImm);
+    PutB(a, n, defs[i].harry);
   end;
   SetLength(a, n);
   EncodeMonsters := a;
@@ -162,6 +170,7 @@ begin
     MonDefs[i].immune := blob[pos]; inc(pos);
     MonDefs[i].inflict := blob[pos]; inc(pos);
     MonDefs[i].statusImm := blob[pos]; inc(pos);
+    MonDefs[i].harry := blob[pos]; inc(pos);
   end;
   LoadMonsters := true;
 end;

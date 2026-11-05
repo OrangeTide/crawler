@@ -1027,6 +1027,7 @@ begin
   if st.burn > 0 then StatusTag := StatusTag + 'B';
   if st.stun > 0 then StatusTag := StatusTag + 'T';
   if st.slow > 0 then StatusTag := StatusTag + 'S';
+  if st.offbal > 0 then StatusTag := StatusTag + 'D';
 end;
 
 procedure CombatRender;
