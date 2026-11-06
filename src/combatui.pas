@@ -13,6 +13,7 @@ unit combatui;
 interface
 
 procedure StartCombat(depth: longint);
+procedure StartMonsterCombat(leadMon, depth: longint);
 procedure EndCombat;
 procedure CombatRender;
 procedure CombatKeyDown(scancode: longint);
@@ -718,9 +719,9 @@ begin
   if CombatOver and (not Victory) and (not Fled) then PlaySfx(SFX_DOWN);
 end;
 
-procedure StartCombat(depth: longint);
+procedure EnterCombat;
+{** Reset the combat menu and hand control to the fight. }
 begin
-  StartRandomEncounter(depth, CurEncTable);
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
   spellSel := 0;
@@ -730,6 +731,20 @@ begin
   pendingItem := -1;
   PlaySfx(SFX_FOE);
   State := gsCombat;
+end;
+
+procedure StartCombat(depth: longint);
+begin
+  StartRandomEncounter(depth, CurEncTable);
+  EnterCombat;
+end;
+
+procedure StartMonsterCombat(leadMon, depth: longint);
+{** Begin a fight led by a specific monster, for a roaming pursuer that has
+  caught the party. }
+begin
+  StartMonsterEncounter(leadMon, depth, CurEncTable);
+  EnterCombat;
 end;
 
 procedure CombatAutoTurn(dt: double);

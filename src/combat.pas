@@ -87,6 +87,9 @@ var
   table to draw foes from; an empty or unknown table draws from every
   monster, so forced fights (quick battle, tests) still find foes. }
 procedure StartRandomEncounter(depth: longint; tableNum: longint);
+{ Start a fight led by a specific monster, the rest drawn as usual. Used
+  when a roaming monster catches the party, so the hunter is in the fight. }
+procedure StartMonsterEncounter(leadMon, depth, tableNum: longint);
 procedure CombatLog(const s: string);
 function LivingFoes: longint;
 function FirstLivingFoe: longint;
@@ -692,7 +695,11 @@ end;
 
 { ---- setup ---- }
 
-procedure StartRandomEncounter(depth: longint; tableNum: longint);
+procedure BuildEncounter(depth, tableNum, leadMon: longint);
+{** Build a fight. When leadMon is a valid monster index the first foe is
+  that monster (a caught pursuer joins the fight it caused); otherwise all
+  foes are drawn from the area table. With leadMon = -1 the draw is
+  identical to a plain random encounter. }
 var
   pick, count, i, front, npool, e, mi, wrep: longint;
   pool: array of longint;
@@ -736,6 +743,10 @@ begin
   front := 0;
   for i := 0 to count - 1 do begin
     pick := pool[Range(0, npool - 1)];
+    { the lead foe is the pursuer when one is named; the draw above still
+      runs so a plain encounter (leadMon = -1) is bit-for-bit unchanged. }
+    if (i = 0) and (leadMon >= 0) and (leadMon <= High(MonDefs)) then
+      pick := leadMon;
     Foes[i].def := pick;
     Foes[i].hp := RngRoll(GameRng, MonDefs[pick].hd, 8);
     if Foes[i].hp < 1 then Foes[i].hp := 1;
@@ -772,6 +783,16 @@ begin
 
   CombatLog('Foes close in: ' + IntToStr(count) + ' of them.');
   NewRound;
+end;
+
+procedure StartRandomEncounter(depth: longint; tableNum: longint);
+begin
+  BuildEncounter(depth, tableNum, -1);
+end;
+
+procedure StartMonsterEncounter(leadMon, depth, tableNum: longint);
+begin
+  BuildEncounter(depth, tableNum, leadMon);
 end;
 
 { ---- the foe side's AI ---- }
