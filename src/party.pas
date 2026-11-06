@@ -17,6 +17,8 @@ uses
 
 const
   MAX_PARTY = 4;
+  BASE_CARRY = 16;   { bulk a character bears unburdened, before strength }
+  PER_STR    = 2;    { extra bulk borne per point of strength modifier }
 
 type
   TEquipSlot = (eqMain, eqOff, eqArmor, eqLight);
@@ -66,6 +68,11 @@ procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 
 function CharAC(const c: TCharacter): longint;
 function CharAttack(const c: TCharacter; melee: boolean): longint;
+{ Carried bulk, carrying capacity, and whether the load exceeds it. Bulk is
+  the item slots field summed over equipped and packed items. }
+function CharLoad(const c: TCharacter): longint;
+function CharCapacity(const c: TCharacter): longint;
+function CharEncumbered(const c: TCharacter): boolean;
 function CharTrack(const c: TCharacter): longint;
 function CharSpellPoints(const c: TCharacter): longint;
 function CharWeaponDie(const c: TCharacter): longint;
@@ -178,6 +185,31 @@ begin
      (ItemDefs[c.equip[eqOff].def].kind = IK_SHIELD) then
     ac := ac + ItemDefs[c.equip[eqOff].def].acVal;
   CharAC := ac;
+end;
+
+function CharLoad(const c: TCharacter): longint;
+var
+  total, i: longint;
+  sl: TEquipSlot;
+begin
+  total := 0;
+  for sl := eqMain to eqLight do
+    if c.equip[sl].def >= 0 then
+      total := total + ItemDefs[c.equip[sl].def].slots;
+  for i := 0 to High(c.pack) do
+    if c.pack[i].def >= 0 then
+      total := total + ItemDefs[c.pack[i].def].slots * c.pack[i].qty;
+  CharLoad := total;
+end;
+
+function CharCapacity(const c: TCharacter): longint;
+begin
+  CharCapacity := BASE_CARRY + AbilMod(c.abil[abSTR]) * PER_STR;
+end;
+
+function CharEncumbered(const c: TCharacter): boolean;
+begin
+  CharEncumbered := CharLoad(c) > CharCapacity(c);
 end;
 
 function CharWeaponDie(const c: TCharacter): longint;

@@ -220,6 +220,7 @@ const
   BURN_DMG   = 3;
   STATUS_DC  = 13;     { save target to shrug off an inflicted status }
   FEAR_ATK   = 3;      { to-hit penalty while afraid }
+  ENCUMBER_ATK = 2;    { to-hit penalty while carrying too much }
   DISEASE_DAYS = 2;    { rests a caught illness lingers before it breaks }
   FOE_CAST_SP = 2;     { spell points a foe spends per spell }
   FOE_REVIVE_SP = 3;   { spell points to raise a fallen ally }
@@ -1134,6 +1135,7 @@ begin
   end;
   atk := CharAttack(Roster[actor], melee) + PartyBless - PartyDark;
   if PartyStatus[actor].fear > 0 then dec(atk, FEAR_ATK);   { afraid: shaky aim }
+  if CharEncumbered(Roster[actor]) then dec(atk, ENCUMBER_ATK);  { overladen }
   if (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac)) then
   begin
     if roll = 20 then dmg := die

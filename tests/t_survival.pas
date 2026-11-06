@@ -11,6 +11,7 @@ uses
 var
   p: TPak;
   ab: TAbilityScores;
+  sl: TEquipSlot;
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -68,6 +69,34 @@ begin
 
   RestParty;
   CheckEqI(Roster[0].hp, 20, 'cured, the next rest heals in full');
+
+  { ---- encumbrance from carried bulk ---- }
+  RngSeed(GameRng, 3);
+  SetLength(Roster, 1);
+  RollAbilities(ab); MakeCharacter(Roster[0], 'C', 0, 0, -1, ab);
+  { strip the kit to a known, empty load }
+  for sl := eqMain to eqLight do Roster[0].equip[sl].def := -1;
+  SetLength(Roster[0].pack, 0);
+  CheckEqI(CharLoad(Roster[0]), 0, 'an empty character carries no bulk');
+
+  { plate (3 slots) + dagger (1) + four rations (1 each) + a potion (1) }
+  SetEquip(Roster[0], eqArmor, 'HARMOR');
+  SetEquip(Roster[0], eqMain, 'DAGGER');
+  PackAdd(Roster[0], 'RATION', 4);
+  PackAdd(Roster[0], 'POTION', 1);
+  CheckEqI(CharLoad(Roster[0]), 9, 'bulk sums over equipment and pack');
+
+  { capacity scales with strength }
+  Roster[0].abil[abSTR] := 10;   { +0 }
+  CheckEqI(CharCapacity(Roster[0]), 16, 'average strength bears the base load');
+  Check(not CharEncumbered(Roster[0]), 'a modest load is no burden');
+  Roster[0].abil[abSTR] := 16;   { +2 }
+  CheckEqI(CharCapacity(Roster[0]), 20, 'strength widens the capacity');
+
+  { pile on three suits of plate: now the load tips over capacity }
+  Roster[0].abil[abSTR] := 10;
+  PackAdd(Roster[0], 'HARMOR', 3);
+  Check(CharEncumbered(Roster[0]), 'too much carried gear is a burden');
 
   TestSummary('survival');
   halt(TestExit);

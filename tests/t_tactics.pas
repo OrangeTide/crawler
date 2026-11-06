@@ -14,6 +14,7 @@ var
   i, skel, imp, rat, tries: longint;
   gob, orc, hits0, hits1, cultist, acolyte: longint;
   gotPoison, gotStun, moved: boolean;
+  sl: TEquipSlot;
 
 { Stand up a single foe of the given definition at full health. }
 procedure OneFoe(def: longint);
@@ -323,6 +324,34 @@ begin
   end;
   Check(hits1 < hits0, 'fighting in the dark lowers the hit rate');
   PartyDark := 0;
+
+  { an overladen fighter swings at a penalty too }
+  for sl := eqMain to eqLight do Roster[0].equip[sl].def := -1;
+  SetEquip(Roster[0], eqMain, 'DAGGER');
+  SetLength(Roster[0].pack, 0);
+  Roster[0].abil[abSTR] := 10;
+  Check(not CharEncumbered(Roster[0]), 'the test fighter starts unburdened');
+  RngSeed(GameRng, 99);
+  hits0 := 0;
+  for i := 1 to 400 do begin
+    FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+    PartyDark := 0;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits0);
+  end;
+  PackAdd(Roster[0], 'HARMOR', 9);   { bulk well past capacity }
+  Check(CharEncumbered(Roster[0]), 'the piled-on gear overloads the fighter');
+  RngSeed(GameRng, 99);
+  hits1 := 0;
+  for i := 1 to 400 do begin
+    FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+    PartyDark := 0;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits1);
+  end;
+  Check(hits1 < hits0, 'an overladen fighter hits less often');
 
   { fear and paralysis can take hold of a foe, on a failed save }
   OneFoe(rat);
