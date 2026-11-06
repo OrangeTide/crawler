@@ -26,6 +26,13 @@ rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, instanced
 props, and monster meshes framed into combat slots all exist. The raycaster is
 still the default.
 
+The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
+navigation work: survival systems (light, food, status breadth), options and
+key rebinding with a settings file, the bestiary and item identification with
+map pins, and the full world-content milestone, the six themed zones and the
+relic quest that closes the critical path. That leaves 0.19.0 and 0.20.0 as the
+open milestones on the books.
+
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
 the game clock (`pursuit`). These opened a navigation and AI track that the
@@ -182,13 +189,23 @@ drops unidentified and is named by using it or paying the temple. Full-map
 pins (right-click to cycle) and auto-markers for discovered stairs, portals,
 and NPCs round out the map. A fuller quest log waits on 0.24.0's content.
 
-### 0.24.0 World content and the critical path (L)
+### 0.24.0 World content and the critical path (L) [done]
 
 Theme F, with hirelings from theme C folded in. Build out the six zones and
 thread the relic quest across the crypt, cave, and infernal zones to an ending,
 so the game concludes rather than stops. This is the largest milestone and the
 one that turns a systems demo into a game. It depends on the survival and AI
 systems being in place so the content can lean on them.
+
+Delivered: the six zones each carry authored landmarks, NPCs, lights, hazards,
+and an encounter table, and each wears its own tileset, one colour scheme over
+the shared patterns, so a generated map themes from its area. Placed caches and
+barrels hand gold and gear to a party that opens them once, the take tracked by
+a per-tile flag in the save. Worn gear carries an elemental resist mask: the
+dragonscale shield earned in the crypt halves the demon lord's fire and the
+infernal lava vents, with a combat-damage assertion pinning the halving. The
+three relic shards thread across the crypt, cave, and infernal zones to the
+Elder, whose victory screen gates on all three held, closing the critical path.
 
 ### Parallel track: the hardware push (theme E)
 
