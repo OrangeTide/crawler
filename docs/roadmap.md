@@ -82,10 +82,12 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### D. Reference, meta, and quality-of-life
 
-- [gap] Bestiary of discovered monsters and item identification screens. The
-  `identified` flag exists on item instances but drives no screen or mechanic.
-- [partial] Journal and quest expansion: the flag-backed journal logs a few set
-  quests; add map notes and pins and a fuller quest log.
+- [done] Bestiary of discovered monsters and item identification. A codex
+  tracks monsters met and item kinds known; a bestiary tab lists foes with
+  their weaknesses, and mystery loot hides its name until quaffed or named at
+  the temple.
+- [partial] Journal and quest expansion: map pins and auto-markers on the full
+  map are done. A fuller quest log waits on the quest content in 0.24.0.
 - [gap] A run timer or achievements for replay (low priority).
 
 ### E. Shipping targets (design sections 23 and 24)
@@ -156,11 +158,18 @@ and accessibility choices, and the core-action key table. The options screen
 edits them live; a key-bindings sub-screen rebinds the exploration keys with a
 press-a-key capture. Permadeath gates a temple revival service for the slain.
 
-### 0.23.0 Reference and meta screens (S)
+### 0.23.0 Reference and meta screens (S) [done]
 
 Theme D. The bestiary and item identification, and the journal notes and pins.
 These are reward and legibility features that pair with the content build-out,
 so they land just before it.
+
+Delivered: a codex unit, saved with the game, that records monsters met and
+item kinds identified. A bestiary tab on the journal screen lists foes with
+hit dice, armour, and weakness, with the unmet shown as ???. Mystery loot
+drops unidentified and is named by using it or paying the temple. Full-map
+pins (right-click to cycle) and auto-markers for discovered stairs, portals,
+and NPCs round out the map. A fuller quest log waits on 0.24.0's content.
 
 ### 0.24.0 World content and the critical path (L)
 
