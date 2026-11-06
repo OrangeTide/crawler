@@ -33,10 +33,12 @@ walls
 end
 marker start 2 1 E
 marker back 5 1 E
+marker grotto 3 22 E
 portal 4 1 TOWN gate
 portal 11 7 CATACOMB start
 portal 13 7 MAZE start
 portal 20 1 INFERNAL start
+portal 2 22 GROTTO start
 npc 22 22 SHRINE Shrine
 trap 7 7 6 12
 trap 16 7 8 13

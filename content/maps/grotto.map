@@ -1,0 +1,24 @@
+# The Crystal Grotto: a deep cave off the crypt where the second relic
+# shard sleeps in the living crystal.
+map GROTTO
+size 12 10
+tileset 0
+music 0
+area cave
+walls
+111111111111
+100000000001
+100011110001
+100010010001
+100010010001
+100000000001
+100011110001
+100000000001
+100000000001
+111111111111
+end
+marker start 1 8 E
+portal 1 1 DUNGEON grotto
+npc 6 5 GROTTO Shrine
+torch 10 1
+torch 10 8

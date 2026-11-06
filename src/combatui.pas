@@ -14,6 +14,7 @@ interface
 
 procedure StartCombat(depth: longint);
 procedure StartMonsterCombat(leadMon, depth: longint);
+procedure StartBossCombat(leadMon, depth: longint; const winFlag: string);
 procedure EndCombat;
 procedure CombatRender;
 procedure CombatKeyDown(scancode: longint);
@@ -23,7 +24,10 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raster, meshfmt, models, party, chardata, items,
-  monsters, combat, audio, gamestate, world, codex, rng;
+  monsters, combat, audio, gamestate, world, codex, rng, flags;
+
+var
+  BossRewardFlag: string;   { set a story flag when the current boss is beaten }
 
 const
   { combat command UI phases }
@@ -75,9 +79,18 @@ begin
   saveMsgT := 2.5;
 end;
 
+{ On beating a boss, raise the story flag the fight carried, then forget it so
+  an ordinary fight never trips it. }
+procedure AwardBoss;
+begin
+  if Victory and (BossRewardFlag <> '') then FlagSet(BossRewardFlag);
+  BossRewardFlag := '';
+end;
+
 procedure EndCombat;
 begin
   MaybeDropLoot;
+  AwardBoss;
   if FromQuickBattle then begin
     FromQuickBattle := false;
     State := gsTitle;
@@ -758,6 +771,7 @@ end;
 
 procedure StartCombat(depth: longint);
 begin
+  BossRewardFlag := '';
   StartRandomEncounter(depth, CurEncTable);
   EnterCombat;
 end;
@@ -766,6 +780,16 @@ procedure StartMonsterCombat(leadMon, depth: longint);
 {** Begin a fight led by a specific monster, for a roaming pursuer that has
   caught the party. }
 begin
+  BossRewardFlag := '';
+  StartMonsterEncounter(leadMon, depth, CurEncTable);
+  EnterCombat;
+end;
+
+procedure StartBossCombat(leadMon, depth: longint; const winFlag: string);
+{** Begin a scripted boss fight led by a named monster. Winning raises
+  winFlag, which the quest reads to grant a reward. }
+begin
+  BossRewardFlag := winFlag;
   StartMonsterEncounter(leadMon, depth, CurEncTable);
   EnterCombat;
 end;

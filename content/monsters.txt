@@ -30,3 +30,4 @@ mon OOZE     2 10 2 6 4 1  50 0 FLESH2 cave+crypt           resist:phys weak:fir
 mon WEREWOLF 4 14 4 8 8 4 180 4 CREA13 frozen+infernal      resist:phys weak:holy inflict:fear "Werewolf"
 mon CULTIST  2 12 2 4 3 3  60 10 CREA3 crypt+infernal+desert elem:fire inflict:burn "Cultist"
 mon ACOLYTE  2 12 2 3 4 3  60 18 CREA3 forest+coast+crypt    "Acolyte"
+mon DEMON    8 17 6 10 6 3 500 0 CREA13 infernal  elem:fire resist:fire weak:holy inflict:fear "Demon Lord"

@@ -15,7 +15,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
-  gamestate, party, settings;
+  gamestate, party, settings, combatui, monsters;
 
 procedure DialogRender;
 var
@@ -41,19 +41,34 @@ begin
 end;
 
 procedure SyncJournal;
-{** Turn freshly set quest flags into journal lines, once each. }
+{** Turn freshly set quest flags into journal lines, once each, and derive the
+  assembled-relic flag once all three shards are in hand. }
 begin
   if FlagHas('QUEST_MAIN') and (not FlagHas('J_MAIN')) then begin
-    JournalAdd('Aid the town against the things from the deep.');
+    JournalAdd('Gather the three relic shards: crypt, cave, and the infernal deep.');
     FlagSet('J_MAIN');
   end;
   if FlagHas('QUEST_CRYPT') and (not FlagHas('J_CRYPT')) then begin
     JournalAdd('Clear the crypt beneath the town for the reeve.');
     FlagSet('J_CRYPT');
   end;
-  if FlagHas('QUEST_RELIC') and (not FlagHas('J_RELIC')) then begin
-    JournalAdd('Recovered the relic shard. Return it to the elder.');
-    FlagSet('J_RELIC');
+  if FlagHas('SHARD_CRYPT') and (not FlagHas('J_SHARD_CRYPT')) then begin
+    JournalAdd('Took the crypt shard from its shrine.');
+    FlagSet('J_SHARD_CRYPT');
+  end;
+  if FlagHas('SHARD_CAVE') and (not FlagHas('J_SHARD_CAVE')) then begin
+    JournalAdd('Took the cave shard from the grotto.');
+    FlagSet('J_SHARD_CAVE');
+  end;
+  if FlagHas('SHARD_INFER') and (not FlagHas('J_SHARD_INFER')) then begin
+    JournalAdd('Tore the last shard from the demon lord.');
+    FlagSet('J_SHARD_INFER');
+  end;
+  { all three shards assembled: the relic is whole }
+  if FlagHas('SHARD_CRYPT') and FlagHas('SHARD_CAVE') and FlagHas('SHARD_INFER')
+    and (not FlagHas('QUEST_RELIC')) then begin
+    FlagSet('QUEST_RELIC');
+    JournalAdd('The relic is whole. Return it to the elder.');
   end;
 end;
 
@@ -85,6 +100,11 @@ begin
     else saveMsg := 'NOTHING UNKNOWN, OR NO COIN';
     saveMsgT := 2.5;
     exit;
+  end;
+  if DlgFightReq then begin
+    DlgFightReq := false;
+    StartBossCombat(MonIndex(DlgFightMon), CurDepth, DlgFightFlag);
+    exit;   { StartBossCombat sets the state to gsCombat }
   end;
   if DlgShopReq then begin
     shopSel := 0;

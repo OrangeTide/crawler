@@ -21,18 +21,30 @@ resp "What is wrong?" goto 1
 resp "I bear the relic you sought." goto 2 needflag QUEST_RELIC
 resp "Not now." end
 node 1
-text "Things crawl up from the deep. Find the lost relic in the crypt and bring it to me."
+text "The old relic broke into three shards, scattered to the crypt, the deep grotto, and the infernal below. Gather all three and the deep can be sealed."
 resp "I accept the charge." setflag QUEST_MAIN
 resp "I must decline." goto 0
 node 2
-text "The relic! With this the deep can be sealed. You have saved us all."
+text "All three shards, made whole! With this the deep is sealed. You have saved us all."
 resp "It was my honour." setflag QUEST_WON
 
 dialog SHRINE
 node 0
-text "A shard of the old relic rests upon a cold altar, humming faintly."
-resp "Take the relic." setflag QUEST_RELIC
+text "A shard of the old relic rests upon a cold altar in the crypt, humming faintly."
+resp "Take the crypt shard." setflag SHARD_CRYPT
 resp "Step away." end
+
+dialog GROTTO
+node 0
+text "Deep in the grotto a second shard is fused into the living crystal, cold and bright."
+resp "Prise the cave shard free." setflag SHARD_CAVE
+resp "Step away." end
+
+dialog DEMONLORD
+node 0
+text "A horned shape uncoils from the lava. 'The last shard is mine, mortal. Come and take it.'"
+resp "Face the demon lord." fight DEMON SHARD_INFER
+resp "Not yet." end
 
 dialog APOTHECARY
 node 0

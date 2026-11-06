@@ -89,6 +89,7 @@ begin
         if curNode < 0 then begin err := 'resp before node'; exit; end;
         r.text := tok[1];
         r.arg := '';
+        r.arg2 := '';
         r.condFlag := '';
         r.gotoNode := curNode;
         if (n >= 3) and (tok[2] = 'goto') then begin
@@ -105,6 +106,10 @@ begin
           r.action := DA_IDENTIFY
         else if (n >= 4) and (tok[2] = 'setflag') then begin
           r.action := DA_SETFLAG; r.arg := tok[3];
+        end
+        else if (n >= 5) and (tok[2] = 'fight') then begin
+          { fight MON WINFLAG: start a boss fight, set WINFLAG on a win }
+          r.action := DA_FIGHT; r.arg := tok[3]; r.arg2 := tok[4];
         end else begin
           err := 'line ' + IntToStr(li + 1) + ': bad response action';
           exit;

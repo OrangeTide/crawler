@@ -78,3 +78,4 @@ mon ZOMBIE 3
 mon IMP 3
 mon CULTIST 2
 mon WEREWOLF 1
+mon DEMON 1

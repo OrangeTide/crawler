@@ -30,6 +30,8 @@ const
   DA_SETFLAG = 3;
   DA_REVIVE  = 4;   { ask the temple to raise the party's slain }
   DA_IDENTIFY = 5;  { ask the temple to name the party's unknown goods }
+  DA_FIGHT    = 6;  { start a fixed boss fight; arg is the monster, arg2 the
+                      flag set on winning }
 
 type
   TResponse = record
@@ -38,6 +40,7 @@ type
     gotoNode: longint;
     arg: string[12];
     condFlag: string[12];   { shown only if this flag is set, or empty }
+    arg2: string[12];       { a second argument, e.g. the win flag of a fight }
   end;
 
   TNode = record
@@ -61,6 +64,9 @@ var
   DlgShopId: string;      { the shop stock id that response named }
   DlgReviveReq: boolean;  { set when a response asked for a temple revival }
   DlgIdentifyReq: boolean; { set when a response asked to identify goods }
+  DlgFightReq: boolean;   { set when a response started a boss fight }
+  DlgFightMon: string;    { the monster id of the boss to fight }
+  DlgFightFlag: string;   { the flag to set when that boss is beaten }
 
 function EncodeDialogs(const cs: array of TConversation): TByteArray;
 function LoadDialogs(const p: TPak): boolean;
@@ -123,6 +129,7 @@ begin
         PutU16(a, n, word(cs[ci].nodes[ni].resp[ri].gotoNode));
         PutFixed(a, n, cs[ci].nodes[ni].resp[ri].arg, 12);
         PutFixed(a, n, cs[ci].nodes[ni].resp[ri].condFlag, 12);
+        PutFixed(a, n, cs[ci].nodes[ni].resp[ri].arg2, 12);
       end;
     end;
   end;
@@ -189,6 +196,7 @@ begin
         Convs[ci].nodes[ni].resp[ri].gotoNode := smallint(RU16);
         Convs[ci].nodes[ni].resp[ri].arg := RFixed(12);
         Convs[ci].nodes[ni].resp[ri].condFlag := RFixed(12);
+        Convs[ci].nodes[ni].resp[ri].arg2 := RFixed(12);
       end;
     end;
   end;
@@ -227,6 +235,7 @@ begin
   DlgShopReq := false;
   DlgReviveReq := false;
   DlgIdentifyReq := false;
+  DlgFightReq := false;
   if not ConvIndex(name) then begin
     DlgActive := false;
     exit;
@@ -258,6 +267,13 @@ begin
     DA_SHOP:    begin DlgShopReq := true; DlgShopId := r.arg; end;
     DA_REVIVE:  DlgReviveReq := true;
     DA_IDENTIFY: DlgIdentifyReq := true;
+    DA_FIGHT: begin
+      DlgFightReq := true;
+      DlgFightMon := r.arg;
+      DlgFightFlag := r.arg2;
+      DlgActive := false;   { the talk ends and the fight begins }
+      exit;
+    end;
     DA_END: begin DlgActive := false; exit; end;
   end;
   if r.action = DA_END then

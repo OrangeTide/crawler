@@ -22,4 +22,5 @@ walls
 end
 marker start 2 1 E
 portal 16 1 DUNGEON back
+npc 8 7 DEMONLORD Altar
 trap 7 7 10 13
