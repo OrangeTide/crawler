@@ -206,8 +206,7 @@ function ContinueGame: boolean;
 {** Load the save, then reload its map at the saved position. }
 begin
   ContinueGame := false;
-  if not LoadGame(SavePath) then exit;
-  PursuitReset;              { hunters do not persist across a load }
+  if not LoadGame(SavePath) then exit;  { restores hunters too }
   CurMapName := '';          { do not capture a stale resident map }
   if not LoadMapLump(LoadedMapName) then exit;
   PlaceAt(LoadedTX, LoadedTY, LoadedFace);

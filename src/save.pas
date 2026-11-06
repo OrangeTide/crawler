@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 4;
+  SAVE_VERSION = 5;
 
 var
   LoadedMapName: string;
@@ -30,7 +30,7 @@ function SaveExists(const fn: string): boolean;
 implementation
 
 uses
-  classes, sysutils, rules, chardata, gametime;
+  classes, sysutils, rules, chardata, gametime, pursuit;
 
 { ---- stream helpers ---- }
 
@@ -177,6 +177,18 @@ begin
       for j := 0 to Snapshots[i].w * Snapshots[i].h - 1 do
         fs.WriteByte(Snapshots[i].doors[j]);
     end;
+
+    { roaming hunters, so a chase survives a save (active ones only) }
+    j := 0;
+    for i := 0 to High(Pursuers) do if Pursuers[i].active then inc(j);
+    WI32(fs, j);
+    for i := 0 to High(Pursuers) do
+      if Pursuers[i].active then begin
+        WI32(fs, Pursuers[i].mon);
+        WStr(fs, Pursuers[i].map);
+        WI32(fs, Pursuers[i].x);
+        WI32(fs, Pursuers[i].y);
+      end;
   finally
     fs.Free;
   end;
@@ -186,7 +198,8 @@ end;
 function LoadGame(const fn: string): boolean;
 var
   fs: TFileStream;
-  i, j, n, cells: longint;
+  i, j, n, cells, pmon, px, py: longint;
+  pmap: string;
 begin
   LoadGame := false;
   if not FileExists(fn) then exit;
@@ -226,6 +239,19 @@ begin
       SetLength(Snapshots[i].doors, cells);
       for j := 0 to cells - 1 do Snapshots[i].seen[j] := fs.ReadByte;
       for j := 0 to cells - 1 do Snapshots[i].doors[j] := fs.ReadByte;
+    end;
+
+    { roaming hunters: clear any live ones, then restore the saved chase.
+      read the fields in order into locals; argument evaluation order is
+      not defined, so they cannot be read inline in the call. }
+    PursuitReset;
+    n := RI32(fs);
+    for i := 0 to n - 1 do begin
+      pmon := RI32(fs);
+      pmap := RStr(fs);
+      px := RI32(fs);
+      py := RI32(fs);
+      AddPursuer(pmon, pmap, px, py);
     end;
   finally
     fs.Free;

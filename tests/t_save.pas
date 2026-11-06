@@ -7,7 +7,7 @@ program t_save;
 
 uses
   sysutils, pak, rng, rules, items, chardata, mapfmt, world, party, flags,
-  mapstate, gametime, save, testing;
+  mapstate, gametime, pursuit, save, testing;
 
 var
   p: TPak;
@@ -42,6 +42,11 @@ begin
   TimeReset;
   TimeAdvance(5000);     { clock now 6*60 + 5000 }
 
+  { two roaming hunters on the trail }
+  PursuitReset;
+  AddPursuer(3, 'TOWN', 4, 4);
+  AddPursuer(5, 'DUNGEON', 2, 1);
+
   fn := 'build/tests/save_rt.sav';
   Check(SaveGame(fn), 'save writes');
 
@@ -50,6 +55,7 @@ begin
   PartyGold := 0;
   FlagsReset;
   ClockMin := 0;
+  PursuitReset;          { drop the hunters so the load must restore them }
 
   Check(LoadGame(fn), 'load reads');
   CheckEqI(Length(Roster), 2, 'party size restored');
@@ -58,6 +64,12 @@ begin
   CheckEqI(PartyGold, 137, 'gold restored');
   Check(FlagHas('QUEST_X'), 'flag restored');
   CheckEqI(ClockMin, 6 * 60 + 5000, 'clock restored');
+  CheckEqI(ActivePursuerCount, 2, 'both hunters restored');
+  Check((Length(Pursuers) >= 2) and (Pursuers[0].mon = 3)
+    and (Pursuers[0].map = 'TOWN') and (Pursuers[0].x = 4) and (Pursuers[0].y = 4),
+    'first hunter restored intact');
+  Check((Length(Pursuers) >= 2) and (Pursuers[1].map = 'DUNGEON'),
+    'second hunter on its own map');
 
   TestSummary('save');
   halt(TestExit);
