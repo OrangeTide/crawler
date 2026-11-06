@@ -1,0 +1,100 @@
+# Tag-triggered release. Pushing a vX.Y.Z tag builds the game natively on each
+# desktop OS, packages the binary with the data pak, and publishes a GitHub
+# release with the archives attached. workflow_dispatch builds the same
+# artifacts for a dry run but does not publish (only a tag does).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x86_64
+            archive: tar
+          - os: windows-latest
+            name: windows-x86_64
+            archive: zip
+          - os: macos-14
+            name: macos-aarch64
+            archive: tar
+          - os: macos-13
+            name: macos-x86_64
+            archive: tar
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-fpc
+
+      - name: Build and test
+        run: make && make test
+
+      - name: Stage package
+        run: |
+          ver="${GITHUB_REF_NAME}"
+          pkg="crawler-${ver}-${{ matrix.name }}"
+          mkdir -p "dist/$pkg"
+          if [ -f build/crawler.exe ]; then cp build/crawler.exe "dist/$pkg/"; else cp build/crawler "dist/$pkg/"; fi
+          cp build/game.pak README.md "dist/$pkg/"
+          echo "pkg=$pkg" >> "$GITHUB_ENV"
+
+      - name: Archive (tar.gz)
+        if: matrix.archive == 'tar'
+        run: tar -C dist -czf "dist/${pkg}.tar.gz" "$pkg"
+
+      - name: Archive (zip)
+        if: matrix.archive == 'zip'
+        run: cd dist && 7z a "${pkg}.zip" "$pkg" >/dev/null
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
+          echo "Attaching:"; echo "$files"
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            $files
