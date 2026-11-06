@@ -9,6 +9,8 @@ unit miscui;
 interface
 
 procedure FullMapKeyDown(scancode: longint);
+procedure FullMapMouseMotion(xrel, yrel: longint);
+procedure FullMapMouseButton(button: longint);
 procedure JournalRender;
 procedure JournalKeyDown(scancode: longint);
 procedure GameOverRender;
@@ -21,13 +23,38 @@ procedure VictoryKeyDown(scancode: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate;
+  sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
+  exploreui;
 
 procedure FullMapKeyDown(scancode: longint);
 begin
   case scancode of
     SDL_SCANCODE_TAB, SDL_SCANCODE_ESCAPE, SDL_SCANCODE_M:
       State := gsExplore;
+  end;
+end;
+
+procedure FullMapMouseMotion(xrel, yrel: longint);
+{** Drift the shared cursor over the map, clamped to the screen. }
+begin
+  cursorX := cursorX + xrel;
+  cursorY := cursorY + yrel;
+  if cursorX < 0 then cursorX := 0;
+  if cursorX > FBW - 1 then cursorX := FBW - 1;
+  if cursorY < 0 then cursorY := 0;
+  if cursorY > FBH - 1 then cursorY := FBH - 1;
+end;
+
+procedure FullMapMouseButton(button: longint);
+{** Left click a tile to auto-travel there on the current map, then drop
+  back to the first-person view to walk it. }
+var
+  tx, ty: longint;
+begin
+  if button <> SDL_BUTTON_LEFT then exit;
+  if FullMapTileAt(cursorX, cursorY, tx, ty) then begin
+    StartAutoTravel(CurMapName, tx, ty);
+    State := gsExplore;
   end;
 end;
 

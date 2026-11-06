@@ -130,10 +130,12 @@ begin
       SDL_MOUSEMOTION:
         case State of
           gsExplore: ExploreMouseMotion(ev.motion.xrel, ev.motion.yrel);
+          gsFullMap: FullMapMouseMotion(ev.motion.xrel, ev.motion.yrel);
         end;
       SDL_MOUSEBUTTONDOWN:
         case State of
           gsExplore: ExploreMouseButton(true, ev.button.button);
+          gsFullMap: FullMapMouseButton(ev.button.button);
         end;
       SDL_MOUSEBUTTONUP:
         case State of

@@ -14,6 +14,7 @@ interface
 
 procedure DrawHud(showMap: boolean; fps: longint);
 procedure DrawFullMap;
+function FullMapTileAt(sx, sy: longint; out tx, ty: longint): boolean;
 
 implementation
 
@@ -190,6 +191,34 @@ begin
   DrawText(12, FBH - 34, 'FPS ' + s, RGB(120, 150, 120));
 end;
 
+procedure FullMapLayout(out cell, ox, oy: longint);
+{** The cell size and top-left origin the full map is drawn at, shared by
+  the renderer and the click-to-tile mapping so they cannot drift apart. }
+begin
+  cell := (FBW - 24) div MapW;
+  if (FBH - 40) div MapH < cell then cell := (FBH - 40) div MapH;
+  if cell < 2 then cell := 2;
+  if cell > 12 then cell := 12;
+  ox := (FBW - MapW * cell) div 2;
+  oy := (FBH - MapH * cell) div 2 + 6;
+end;
+
+function FullMapTileAt(sx, sy: longint; out tx, ty: longint): boolean;
+{** The map tile under a screen point on the full map, or false if the point
+  is off the grid. The inverse of the layout FullMapLayout fixes. }
+var
+  cell, ox, oy: longint;
+begin
+  FullMapTileAt := false;
+  tx := 0; ty := 0;
+  FullMapLayout(cell, ox, oy);
+  if (sx < ox) or (sy < oy) then exit;
+  tx := (sx - ox) div cell;
+  ty := (sy - oy) div cell;
+  if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
+  FullMapTileAt := true;
+end;
+
 procedure DrawFullMap;
 var
   cell, ox, oy, x, y: longint;
@@ -197,12 +226,7 @@ var
   fx, fy: longint;
 begin
   ClearFB(RGB(8, 8, 12));
-  cell := (FBW - 24) div MapW;
-  if (FBH - 40) div MapH < cell then cell := (FBH - 40) div MapH;
-  if cell < 2 then cell := 2;
-  if cell > 12 then cell := 12;
-  ox := (FBW - MapW * cell) div 2;
-  oy := (FBH - MapH * cell) div 2 + 6;
+  FullMapLayout(cell, ox, oy);
 
   DrawText(12, 8, 'MAP', RGB(220, 200, 120));
   DrawText(FBW - 120, 8, 'TAB OR ESC TO CLOSE', RGB(120, 120, 100));

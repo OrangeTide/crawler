@@ -17,19 +17,131 @@ procedure ExploreMouseButton(down: boolean; button: longint);
 procedure ExploreUpdate(dt: double);
 procedure ExploreRender(fps: longint);
 procedure UpdateLycanthropy;
+{ Walk the party to (dx,dy) on destMap, following a cross-map route. Fails
+  quietly (with a message) if no known route reaches it. }
+procedure StartAutoTravel(const destMap: string; dx, dy: longint);
+procedure CancelAutoTravel;
+function AutoTravelActive: boolean;
 
 implementation
 
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, encounters, audio, gamestate, worldload,
-  combatui, save;
+  combatui, save, pathfind, maproute;
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
   MOUSE_PITCH  = 0.7;     { pixels per mouse unit, free look }
 
 procedure RestHere; forward;
+
+{ ---- party auto-travel ---- }
+
+const
+  RECALL_MAP    = 'TOWN';   { the town is the fixed hub every zone links to }
+  RECALL_MARKER = 'gate';
+
+var
+  atActive: boolean;
+  atMap: string;
+  atX, atY: longint;
+
+function AutoTravelActive: boolean;
+begin
+  AutoTravelActive := atActive;
+end;
+
+procedure CancelAutoTravel;
+begin
+  if not atActive then exit;
+  atActive := false;
+  saveMsg := 'TRAVEL CANCELED';
+  saveMsgT := 1.5;
+end;
+
+procedure StartAutoTravel(const destMap: string; dx, dy: longint);
+var
+  wx, wy: longint;
+  atGoal: boolean;
+begin
+  atActive := false;
+  if Length(Roster) = 0 then exit;
+  if (destMap = CurMapName) and (dx = TileX) and (dy = TileY) then exit;
+  { a plan must exist from here before committing; the walk re-plans each
+    map, but refuse up front if the destination is not known-reachable. }
+  if not RouteNextHop(CurMap, CurMapName, TileX, TileY, destMap, dx, dy,
+       pmPlayerKnown, wx, wy, atGoal) then begin
+    saveMsg := 'NO KNOWN ROUTE';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  atMap := destMap; atX := dx; atY := dy;
+  atActive := true;
+  saveMsg := 'TRAVELING';
+  saveMsgT := 1.0;
+end;
+
+procedure RecallToTown;
+{** Auto-travel back to the town gate, a cross-map route through everywhere
+  the party has been. }
+var
+  tm: TMapData;
+  isDyn: boolean;
+  ver, depth, gx, gy: longint;
+  seed: longword;
+begin
+  if not SourceMap(RECALL_MAP, false, tm, isDyn, ver, seed, depth) then exit;
+  if not MarkerPos(tm, RECALL_MARKER, gx, gy) then exit;
+  StartAutoTravel(RECALL_MAP, gx, gy);
+end;
+
+procedure AutoTravelStep;
+{** One tile of the current route: re-plan the next waypoint on this map,
+  path to it, open a door in the way, and step. A portal on the way hands
+  off to the next map in CheckTileEvents, and the next call re-plans there. }
+var
+  wx, wy, nsteps, nx, ny: longint;
+  atGoal: boolean;
+  path: array[0 .. 2047] of TPathStep;
+begin
+  if (CurMapName = atMap) and (TileX = atX) and (TileY = atY) then begin
+    atActive := false;
+    saveMsg := 'ARRIVED';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  if not RouteNextHop(CurMap, CurMapName, TileX, TileY, atMap, atX, atY,
+       pmPlayerKnown, wx, wy, atGoal) then begin
+    atActive := false;
+    saveMsg := 'ROUTE LOST';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps) then begin
+    atActive := false;
+    saveMsg := 'ROUTE BLOCKED';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  if nsteps < 2 then begin
+    { already on the waypoint: the goal ends the trip, a portal tile should
+      have handed off already, so stop here rather than spin. }
+    atActive := false;
+    if atGoal then begin
+      saveMsg := 'ARRIVED';
+      saveMsgT := 2.0;
+    end;
+    exit;
+  end;
+  nx := path[1].x; ny := path[1].y;
+  if (nx >= 0) and (nx < MapW) and (ny >= 0) and (ny < MapH)
+     and (TileAt(nx, ny) = TILE_DOOR) and (not DoorOpen[ny][nx]) then begin
+    ToggleDoor(nx, ny);
+    PlaySfx(SFX_DOOR);
+  end;
+  StepToward(nx, ny);
+end;
 
 procedure StartDialog(const dlgName, npcName: string);
 begin
@@ -76,7 +188,14 @@ end;
 
 procedure ExploreKeyDown(scancode: longint);
 begin
+  { any key but the recall key stops a trip in progress; the first Escape
+    only stops it, and does not also quit. }
+  if atActive and (scancode <> SDL_SCANCODE_G) then begin
+    CancelAutoTravel;
+    if scancode = SDL_SCANCODE_ESCAPE then exit;
+  end;
   case scancode of
+    SDL_SCANCODE_G:      RecallToTown;
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_SPACE:  InteractAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
@@ -246,7 +365,18 @@ procedure ExploreUpdate(dt: double);
 begin
   { One grid action per idle moment; the tween gates auto-repeat. }
   if not MotionBusy then begin
-    if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP) then
+    if atActive then begin
+      { a held movement or turn key takes back manual control. }
+      if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP)
+         or KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN)
+         or KeyDown(SDL_SCANCODE_A) or KeyDown(SDL_SCANCODE_D)
+         or KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_LEFT)
+         or KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_RIGHT) then
+        CancelAutoTravel
+      else
+        AutoTravelStep;
+    end
+    else if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP) then
       RequestStep(1, 0)
     else if KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN) then
       RequestStep(-1, 0)
