@@ -87,7 +87,8 @@ end;
 
 var
   a, b, c, e, f, g: TMapData;
-  mx, my: longint;
+  mx, my, wx, wy: longint;
+  atGoal: boolean;
 begin
   { A -> B -> C, three open rooms in a line joined by portals. }
   BuildMap(a, ['.....', '.....', '.....', '.....', '.....']);
@@ -150,6 +151,28 @@ begin
     'unknown marker falls back to the first marker');
   Check(MarkerPos(a, 'any', mx, my) and (mx = 2) and (my = 2),
     'no markers falls back to the map centre');
+
+  { NextHopOver: the first leg toward a destination. From A toward C the
+    waypoint is A's portal tile (4,2), and it is not the goal. }
+  Check(NextHopOver(a, 'A', 0, 0, 'C', 4, 4, @TableProvider, ROUTE_MAX_STATES,
+    wx, wy, atGoal), 'next hop toward C exists');
+  Check((wx = 4) and (wy = 2), 'next hop aims at the portal to B');
+  Check(not atGoal, 'the next hop is a portal, not the goal');
+
+  { When the goal is on this map, the waypoint is the goal itself. }
+  Check(NextHopOver(a, 'A', 0, 0, 'A', 4, 4, @TableProvider, ROUTE_MAX_STATES,
+    wx, wy, atGoal), 'next hop on the goal map exists');
+  Check((wx = 4) and (wy = 4) and atGoal, 'the goal-map hop is the goal');
+
+  { With the portal walled off from the entry, there is no next hop. }
+  Check(not NextHopOver(e, 'E', 0, 0, 'F', 4, 4, @TableProvider,
+    ROUTE_MAX_STATES, wx, wy, atGoal),
+    'no next hop when the only portal is unreachable');
+
+  { From the portal side of E the hop is E's portal tile. }
+  Check(NextHopOver(e, 'E', 4, 0, 'F', 4, 4, @TableProvider, ROUTE_MAX_STATES,
+    wx, wy, atGoal) and (wx = 4) and (wy = 2) and not atGoal,
+    'next hop from the portal side aims at the portal');
 
   TestSummary('maproute');
   halt(TestExit);

@@ -71,6 +71,7 @@ function IsBlocking(mx, my: longint): boolean;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
+function StepToward(nx, ny: longint): boolean;
 function MotionBusy: boolean;
 procedure UpdateMotion(dt: double);
 procedure FreeLook(dyaw, dpitch: double);
@@ -401,6 +402,34 @@ begin
   if MotionBusy then exit;
   FaceDir := (FaceDir + dir + 4) mod 4;
   StartAlign(FaceDir);
+end;
+
+function StepToward(nx, ny: longint): boolean;
+{** Move one tile to a cardinally adjacent target, turning to face it. Unlike
+  RequestStep, which moves relative to the current view, this moves toward an
+  absolute tile, so a planner (auto-travel, monster AI) can follow a path.
+  Returns false if the target is not one cardinal step away or is blocked. }
+var
+  dx, dy, d: longint;
+begin
+  StepToward := false;
+  if MotionBusy then exit;
+  dx := nx - TileX;
+  dy := ny - TileY;
+  if (Abs(dx) + Abs(dy)) <> 1 then exit;   { must be a single cardinal step }
+  if IsBlocking(nx, ny) then exit;
+  if dx = 1 then d := DIR_E
+  else if dx = -1 then d := DIR_W
+  else if dy = 1 then d := DIR_S
+  else d := DIR_N;
+  FaceDir := d;
+  StartAlign(d);
+  fromX := curX; fromY := curY;
+  toX := nx + 0.5; toY := ny + 0.5;
+  TileX := nx; TileY := ny;
+  moving := true;
+  moveT := 0;
+  StepToward := true;
 end;
 
 procedure UpdateMotion(dt: double);

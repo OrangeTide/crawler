@@ -61,6 +61,19 @@ function RouteOver(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
   provider: TRouteMapProvider; maxStates: longint): boolean;
 
+{ The next waypoint on curMap toward the goal, for walking a route one map
+  at a time. curMap is the live map the party stands in (its fog and open
+  doors are the truth), passed in rather than sourced, so the current map is
+  always navigable even before it has a saved snapshot. On success wx,wy is
+  the tile to head for on curMap: the goal itself when it is on this map
+  (atGoal true), otherwise the portal tile that begins a route onward
+  (atGoal false). Downstream maps are supplied by provider, so the route
+  past the current map still obeys the provider's fog. }
+function NextHopOver(const curMap: TMapData; const curName: string;
+  fromX, fromY: longint; const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint;
+  out wx, wy: longint; out atGoal: boolean): boolean;
+
 { Whether the party (pmPlayerKnown) or an omniscient agent (pmOmniscient)
   can reach (toX,toY) on toMap from (fromX,fromY) on fromMap. Sources maps
   from the live pak and generators through worldload, and for the
@@ -68,6 +81,12 @@ function RouteOver(const fromMap: string; fromX, fromY: longint;
   from mapstate. }
 function FindRoute(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint; mode: TRouteMode): boolean;
+
+{ The runtime next waypoint: NextHopOver wired to the live providers for the
+  given mode. The party calls it each step to walk a cross-map route. }
+function RouteNextHop(const curMap: TMapData; const curName: string;
+  fromX, fromY: longint; const toMap: string; toX, toY: longint;
+  mode: TRouteMode; out wx, wy: longint; out atGoal: boolean): boolean;
 
 implementation
 
@@ -99,32 +118,34 @@ begin
   MarkerPos := true;
 end;
 
-function RouteOver(const fromMap: string; fromX, fromY: longint;
+{ The fewest map hops from (fromX,fromY) on fromMap to (toX,toY) on toMap:
+  0 when the goal is on the start map and reachable there, 1 per portal
+  crossing, or -1 when no route is found within maxStates. A breadth-first
+  search over (map, entry tile) states, so the first time the goal map is
+  reached is by the shortest chain of maps. Each intra-map leg is an A* in
+  pathfind, doors passable; the visited set and budget bound the otherwise
+  looping overworld so the search always terminates. }
+function RouteDist(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
-  provider: TRouteMapProvider; maxStates: longint): boolean;
+  provider: TRouteMapProvider; maxStates: longint): longint;
 var
   qName: array of string;
-  qX, qY: array of longint;
+  qX, qY, qDepth: array of longint;
   visited: array of string;
-  head, tail, nvis, explored, i, mx, my: longint;
+  head, tail, nvis, explored, i, mx, my, cd: longint;
   curName: string;
   cx, cy: longint;
   m, tm: TMapData;
 
-  function StateKey(const n: string; x, y: longint): string;
-  begin
-    StateKey := n + ':' + IntToStr(x) + ':' + IntToStr(y);
-  end;
-
   { Enqueue an entry point the first time it is reached. The visited set is
     the key to termination: the overworld's portals loop back on each
     other, so a state must never be expanded twice. }
-  procedure Push(const n: string; x, y: longint);
+  procedure Push(const n: string; x, y, depth: longint);
   var
     k: string;
     j: longint;
   begin
-    k := StateKey(n, x, y);
+    k := n + ':' + IntToStr(x) + ':' + IntToStr(y);
     for j := 0 to nvis - 1 do
       if visited[j] = k then exit;
     if nvis >= Length(visited) then
@@ -135,31 +156,78 @@ var
       SetLength(qName, (tail + 8) * 2);
       SetLength(qX, Length(qName));
       SetLength(qY, Length(qName));
+      SetLength(qDepth, Length(qName));
     end;
-    qName[tail] := n; qX[tail] := x; qY[tail] := y;
+    qName[tail] := n; qX[tail] := x; qY[tail] := y; qDepth[tail] := depth;
     inc(tail);
   end;
 
 begin
-  RouteOver := false;
+  RouteDist := -1;
   head := 0; tail := 0; nvis := 0; explored := 0;
-  Push(fromMap, fromX, fromY);
+  Push(fromMap, fromX, fromY, 0);
   while head < tail do begin
     if explored >= maxStates then exit;   { budget spent; route not found }
     inc(explored);
-    curName := qName[head]; cx := qX[head]; cy := qY[head];
+    curName := qName[head]; cx := qX[head]; cy := qY[head]; cd := qDepth[head];
     inc(head);
     if not provider(curName, m) then continue;   { unknown or unreachable map }
     if (curName = toMap) and PathExists(m, cx, cy, toX, toY, true) then begin
-      RouteOver := true;
+      RouteDist := cd;
       exit;
     end;
     for i := 0 to High(m.portals) do
       if PathExists(m, cx, cy, m.portals[i].x, m.portals[i].y, true) then
         if provider(m.portals[i].target, tm) then
           if MarkerPos(tm, m.portals[i].marker, mx, my) then
-            Push(m.portals[i].target, mx, my);
+            Push(m.portals[i].target, mx, my, cd + 1);
   end;
+end;
+
+function RouteOver(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint): boolean;
+begin
+  RouteOver := RouteDist(fromMap, fromX, fromY, toMap, toX, toY,
+    provider, maxStates) >= 0;
+end;
+
+function NextHopOver(const curMap: TMapData; const curName: string;
+  fromX, fromY: longint; const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint;
+  out wx, wy: longint; out atGoal: boolean): boolean;
+var
+  i, mx, my, d, best: longint;
+  tm: TMapData;
+begin
+  NextHopOver := false;
+  wx := fromX; wy := fromY; atGoal := false;
+  { the goal is on this map and directly reachable: head straight for it. }
+  if (curName = toMap) and PathExists(curMap, fromX, fromY, toX, toY, true) then
+  begin
+    wx := toX; wy := toY; atGoal := true;
+    NextHopOver := true;
+    exit;
+  end;
+  { otherwise take the reachable portal whose onward route reaches the goal
+    in the fewest map hops, so the party does not detour through an extra
+    zone when a nearer crossing exists. }
+  best := High(longint);
+  for i := 0 to High(curMap.portals) do
+    if PathExists(curMap, fromX, fromY, curMap.portals[i].x,
+         curMap.portals[i].y, true) then
+      if provider(curMap.portals[i].target, tm) then
+        if MarkerPos(tm, curMap.portals[i].marker, mx, my) then begin
+          d := RouteDist(curMap.portals[i].target, mx, my, toMap, toX, toY,
+                 provider, maxStates);
+          if (d >= 0) and (d < best) then begin
+            best := d;
+            wx := curMap.portals[i].x;
+            wy := curMap.portals[i].y;
+            atGoal := false;
+            NextHopOver := true;
+          end;
+        end;
 end;
 
 { ---- runtime providers (live pak, generators and fog) ---- }
@@ -213,6 +281,15 @@ begin
   gMode := mode;
   FindRoute := RouteOver(fromMap, fromX, fromY, toMap, toX, toY,
     @RuntimeProvider, ROUTE_MAX_STATES);
+end;
+
+function RouteNextHop(const curMap: TMapData; const curName: string;
+  fromX, fromY: longint; const toMap: string; toX, toY: longint;
+  mode: TRouteMode; out wx, wy: longint; out atGoal: boolean): boolean;
+begin
+  gMode := mode;
+  RouteNextHop := NextHopOver(curMap, curName, fromX, fromY, toMap, toX, toY,
+    @RuntimeProvider, ROUTE_MAX_STATES, wx, wy, atGoal);
 end;
 
 end.
