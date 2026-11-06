@@ -77,8 +77,9 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [done] Key rebinding and settings persistence stored next to the save. A
   config file holds the volumes, the choices, and the core-action key table;
   the explore keys rebind in a dedicated screen.
-- [gap] Hirelings and followers from the tavern, sharing the party structure
-  with a temporary flag.
+- [done] Hirelings and followers from the tavern, sharing the party structure.
+  A recruit joins at the party's level for a charisma-eased fee and draws the
+  same fee as a wage each lunar month, deserting when the purse cannot cover it.
 
 ### D. Reference, meta, and quality-of-life
 
@@ -105,11 +106,16 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### F. World content and the critical path (design section 17)
 
-- [partial] Flesh out the six zones' encounters, landmarks, and loot beyond the
-  skeleton maps.
-- [partial] The main quest and an ending: the quest flags (QUEST_MAIN,
-  QUEST_CRYPT, QUEST_RELIC, QUEST_WON) and a victory screen exist, but the relic
-  thread across the crypt, cave, and infernal zones is not built out.
+- [partial] Flesh out the six zones' encounters, landmarks, and loot. Each zone
+  now carries its authored NPCs, landmarks, lights, hazards, and encounter
+  table: the seaside ferryman and wreck, the forest ranger, hunter's camp and
+  moonlit glade, the torch-lit crypt, the glowing grotto, and the infernal's
+  lava vents. What remains is a distinct tileset per zone (only one exists) and
+  deeper loot placement.
+- [done] The main quest and an ending: the three relic shards (crypt shrine,
+  cave grotto, infernal demon-lord) thread across the zones to the Elder, who
+  gates the victory on all three held. The quest flags and victory screen close
+  the critical path.
 
 ## Sequenced roadmap
 

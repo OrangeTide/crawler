@@ -1,4 +1,5 @@
-# Forest zone. Mossy stands of trees (walls) and winding paths.
+# Forest zone. Mossy stands of trees (walls) and winding paths, with a
+# ranger met near the edge, a hunter's camp, and a moonlit glade shrine.
 map FOREST
 size 16 14
 tileset 0
@@ -8,18 +9,26 @@ surface
 walls
 3333333333333333
 3000000000000003
-3030003003000303
-3030003003000303
+3033033003300303
 3000000000000003
-3003300000033003
+3030330000330303
 3000000000000003
-3000003333000003
+3003300330033003
 3000000000000003
-3030000000000303
-3030003003000303
-3000003003000003
+3030033003300303
+3000000000000003
+3033003003300303
+3000000000000003
 3000000000000003
 3333333333333333
 end
 marker start 2 1 E
 portal 13 12 TOWN gate
+npc 4 3 RANGER Ranger
+npc 11 7 HUNTER Hunter
+skylight 2 5
+moonwell 8 9
+bonfire 12 7
+prop 10 7 BARREL
+prop 14 11 BARREL 45
+prop 2 12 BARREL

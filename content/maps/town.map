@@ -33,3 +33,5 @@ prop 9 6 BARREL
 prop 4 7 BARREL 120
 prop 9 3 DOORWAY 90
 npc 8 3 ELDER Elder
+brazier 3 8
+brazier 8 2

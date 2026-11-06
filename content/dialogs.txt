@@ -58,3 +58,38 @@ resp "Not today." end
 node 1
 text "A sprig of blessed holly calls a gravely wounded soul back from the brink. Carry one into the deep."
 resp "Back." goto 0
+
+dialog DOCKHAND
+node 0
+text "The ferry still runs to the town quay, if the tide allows. Mind the shore, strangers do not fare well out here alone."
+resp "What stalks the shore?" goto 1
+resp "Any word worth hearing?" goto 2
+resp "Row me across." end
+node 1
+text "Crabs the size of shields in the shallows, and the drowned dead where the old ship broke her back. Keep your bows strung."
+resp "Back." goto 0
+node 2
+text "Smugglers put in at the tide caves when the moon is thin. Some went looking for the old relic and never came back."
+resp "Back." goto 0
+
+dialog RANGER
+node 0
+text "Hold. You walk the deep wood with town boots on. I am the warden of these paths. What do you seek?"
+resp "What should we fear here?" goto 1
+resp "We hunt an old relic." goto 2
+resp "Only passing through." end
+node 1
+text "Wolves hunt in packs after dusk, and bandits work the narrow trails. The fey mind their glade, so leave the moonwell as you find it."
+resp "Back." goto 0
+node 2
+text "A shard of it lies in the crypt below the town, they say. Rest at the hunter's fire before you go down. The dark is patient."
+resp "Back." goto 0
+
+dialog HUNTER
+node 0
+text "Sit by the fire if your legs are tired. I trade in pelts, not coin, so I have nothing to sell you but a warm seat and a warning."
+resp "What warning?" goto 1
+resp "Thanks for the fire." end
+node 1
+text "The fey of the glade are no friends to steel. Spill no blood by the moonwell and they will let you pass."
+resp "Back." goto 0

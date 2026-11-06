@@ -42,4 +42,10 @@ portal 2 22 GROTTO start
 npc 22 22 SHRINE Shrine
 trap 7 7 6 12
 trap 16 7 8 13
+trap 12 19 7 13
 moonwell 13 9
+torch 3 7
+torch 20 7
+brazier 2 15
+prop 8 7 BARREL
+prop 9 7 BARREL 45

@@ -22,3 +22,6 @@ portal 1 1 DUNGEON grotto
 npc 6 5 GROTTO Shrine
 torch 10 1
 torch 10 8
+biolume 1 4
+biolume 10 5
+prop 8 8 BARREL
