@@ -1,0 +1,34 @@
+# GitLab CI: build and test on Linux, on the free shared runners.
+#
+# This covers the Linux target only, because GitLab's free shared runners
+# are Linux. The full Linux, Windows, and macOS matrix lives in
+# .github/workflows/ci.yml and runs on a GitHub mirror, where runners for
+# all three hosts are available. Keep the two in step when the build or the
+# test command changes.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "expanded-edition"
+
+default:
+  image: ubuntu:24.04
+  interruptible: true
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq fpc make binutils libc6-dev
+
+build-and-test:
+  stage: test
+  timeout: 30m
+  script:
+    - fpc -iV
+    - make
+    - make test
+  artifacts:
+    when: always
+    paths:
+      - build/crawler
+      - build/game.pak
+    expire_in: 2 weeks

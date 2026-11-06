@@ -1,3 +1,6 @@
+# Full Linux, Windows, and macOS matrix, run on a GitHub mirror. GitLab,
+# where the repository also lives, runs a Linux-only build and test from
+# .gitlab-ci.yml. Keep the two in step when the build or test command changes.
 name: CI
 
 on:
