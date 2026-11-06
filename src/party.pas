@@ -19,6 +19,8 @@ const
   MAX_PARTY = 4;
   BASE_CARRY = 16;   { bulk a character bears unburdened, before strength }
   PER_STR    = 2;    { extra bulk borne per point of strength modifier }
+  REVIVE_BASE = 50;      { temple price to raise a level-1 soul }
+  REVIVE_PER_LEVEL = 50; { added to the price for each level beyond the first }
 
 type
   TEquipSlot = (eqMain, eqOff, eqArmor, eqLight);
@@ -84,6 +86,11 @@ procedure GiveClassKit(var c: TCharacter);
 
 procedure TryLevelUp(var c: TCharacter);
 procedure RestParty;
+{ The gold the temple asks to raise one slain member, by level. }
+function ReviveCost(const c: TCharacter): longint;
+{ Raise every slain member the purse can afford, cheapest first, spending
+  the gold. A raised member returns at half health. Returns the count raised. }
+function TempleRevive: longint;
 procedure NewParty;
 procedure AddPartyMember(const c: TCharacter);
 function PartyAlive: boolean;
@@ -395,6 +402,42 @@ begin
         Roster[i].brushes := 0;
       end;
     end;
+end;
+
+function ReviveCost(const c: TCharacter): longint;
+begin
+  ReviveCost := REVIVE_BASE + (c.level - 1) * REVIVE_PER_LEVEL;
+end;
+
+function TempleRevive: longint;
+var
+  i, best, cost, bestCost: longint;
+begin
+  TempleRevive := 0;
+  repeat
+    { pick the cheapest slain member the purse can still afford }
+    best := -1;
+    bestCost := 0;
+    for i := 0 to High(Roster) do
+      if not Roster[i].alive then begin
+        cost := ReviveCost(Roster[i]);
+        if (cost <= PartyGold) and ((best < 0) or (cost < bestCost)) then begin
+          best := i;
+          bestCost := cost;
+        end;
+      end;
+    if best < 0 then break;
+    PartyGold := PartyGold - bestCost;
+    Roster[best].alive := true;
+    Roster[best].downed := false;
+    Roster[best].guarding := false;
+    Roster[best].brushes := 0;
+    Roster[best].poison := 0;
+    Roster[best].disease := 0;
+    Roster[best].hp := Roster[best].hpMax div 2;   { raised, but weakened }
+    if Roster[best].hp < 1 then Roster[best].hp := 1;
+    inc(TempleRevive);
+  until false;
 end;
 
 procedure NewParty;

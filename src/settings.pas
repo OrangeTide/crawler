@@ -45,7 +45,7 @@ begin
   volMaster := 80;
   volMusic := 55;
   volSfx := 90;
-  SetPermadeath := true;
+  SetPermadeath := false;   { the temple can raise the dead unless turned on }
   SetCriticals := true;
   SetCombatSpeed := CS_NORMAL;
   KeyBindDefaults;

@@ -15,7 +15,7 @@ begin
 
   SettingsDefaults;
   CheckEqI(volMaster, 80, 'default master volume');
-  Check(SetPermadeath, 'permadeath on by default');
+  Check(not SetPermadeath, 'permadeath off by default (temple can revive)');
   Check(SetCriticals, 'criticals on by default');
   CheckEqI(SetCombatSpeed, CS_NORMAL, 'combat speed normal by default');
   CheckEqI(KeyBind[gaForward], SDL_SCANCODE_W, 'forward defaults to W');
@@ -23,7 +23,7 @@ begin
 
   { change every field, with one volume out of range to exercise the clamp }
   volMaster := 999; volMusic := 10; volSfx := 7;
-  SetPermadeath := false;
+  SetPermadeath := true;   { non-default, to prove it persists }
   SetCriticals := false;
   SetCombatSpeed := CS_FAST;
   KeyBind[gaInteract] := SDL_SCANCODE_RETURN;
@@ -36,7 +36,7 @@ begin
   CheckEqI(volMaster, 100, 'an over-range volume is clamped on load');
   CheckEqI(volMusic, 10, 'music volume restored');
   CheckEqI(volSfx, 7, 'sfx volume restored');
-  Check(not SetPermadeath, 'permadeath choice restored');
+  Check(SetPermadeath, 'permadeath choice restored');
   Check(not SetCriticals, 'criticals choice restored');
   CheckEqI(SetCombatSpeed, CS_FAST, 'combat speed restored');
   CheckEqI(KeyBind[gaInteract], SDL_SCANCODE_RETURN, 'a rebound key restored');

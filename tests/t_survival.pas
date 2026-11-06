@@ -98,6 +98,33 @@ begin
   PackAdd(Roster[0], 'HARMOR', 3);
   Check(CharEncumbered(Roster[0]), 'too much carried gear is a burden');
 
+  { ---- temple revival ---- }
+  RngSeed(GameRng, 5);
+  SetLength(Roster, 3);
+  RollAbilities(ab); MakeCharacter(Roster[0], 'D', 0, 0, -1, ab);
+  RollAbilities(ab); MakeCharacter(Roster[1], 'E', 0, 0, -1, ab);
+  RollAbilities(ab); MakeCharacter(Roster[2], 'F', 0, 0, -1, ab);
+  Roster[0].level := 1; Roster[1].level := 1; Roster[2].level := 3;
+  Roster[0].alive := false; Roster[0].downed := true;
+  Roster[1].alive := false; Roster[1].downed := true;
+  Roster[2].alive := true;   { a living member is never charged }
+
+  CheckEqI(ReviveCost(Roster[0]), REVIVE_BASE, 'a level-1 soul costs the base');
+  CheckEqI(ReviveCost(Roster[2]), REVIVE_BASE + 2 * REVIVE_PER_LEVEL,
+    'the price climbs with level');
+
+  PartyGold := REVIVE_BASE;   { enough for exactly one }
+  CheckEqI(TempleRevive, 1, 'raises as many as the purse affords');
+  CheckEqI(PartyGold, 0, 'the revival spends the gold');
+  Check(Roster[0].alive and (not Roster[1].alive),
+    'the cheapest-first fallen is the one raised');
+  Check(Roster[0].hp = Roster[0].hpMax div 2, 'the raised return weakened');
+
+  PartyGold := 1000;
+  CheckEqI(TempleRevive, 1, 'the last rises once there is coin');
+  Check(Roster[1].alive, 'now the whole party stands');
+  CheckEqI(TempleRevive, 0, 'nothing to raise when all are alive');
+
   TestSummary('survival');
   halt(TestExit);
 end.

@@ -99,6 +99,8 @@ begin
           r.action := DA_SHOP;
           if (n >= 4) and (tok[3] <> 'needflag') then r.arg := tok[3];
         end
+        else if (n >= 3) and (tok[2] = 'revive') then
+          r.action := DA_REVIVE
         else if (n >= 4) and (tok[2] = 'setflag') then begin
           r.action := DA_SETFLAG; r.arg := tok[3];
         end else begin

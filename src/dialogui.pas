@@ -15,7 +15,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
-  gamestate;
+  gamestate, party, settings;
 
 procedure DialogRender;
 var
@@ -35,6 +35,9 @@ begin
       DrawText(20, py + 56 + i * 11,
         IntToStr(i + 1) + ') ' + DialogRespText(i), RGB(170, 200, 170));
   end;
+  { a service result lingers a moment at the foot of the box }
+  if saveMsgT > 0 then
+    DrawText(16, FBH - 16, saveMsg, RGB(230, 210, 140));
 end;
 
 procedure SyncJournal;
@@ -55,11 +58,25 @@ begin
 end;
 
 procedure DialogAfterChoice;
+var
+  raised: longint;
 begin
   SyncJournal;
   if FlagHas('QUEST_WON') then begin
     State := gsVictory;
     exit;
+  end;
+  if DlgReviveReq then begin
+    DlgReviveReq := false;
+    if SetPermadeath then
+      saveMsg := 'THE FALLEN DO NOT RETURN'
+    else begin
+      raised := TempleRevive;
+      if raised > 0 then saveMsg := 'THE TEMPLE RAISES ' + IntToStr(raised)
+      else saveMsg := 'NONE TO RAISE, OR NO COIN';
+    end;
+    saveMsgT := 2.5;
+    exit;   { stay in the talk so the result shows }
   end;
   if DlgShopReq then begin
     shopSel := 0;
