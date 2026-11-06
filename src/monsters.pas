@@ -37,6 +37,8 @@ const
   ST_SLOW   = 4;   { slower in the turn order }
   ST_BURN   = 8;   { fire damage over time }
   ST_OFFBAL = 16;  { off balance: the next attack is at disadvantage }
+  ST_FEAR   = 32;  { afraid: attacks at a penalty for a few turns }
+  ST_PARAL  = 64;  { paralysed: loses the turn, like a hard stun }
 
   { a brute's secondary ranged trick, used to disrupt rather than to kill }
   HARRY_NONE  = 0;

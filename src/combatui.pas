@@ -23,7 +23,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raster, meshfmt, models, party, chardata, items,
-  monsters, combat, audio, gamestate;
+  monsters, combat, audio, gamestate, world;
 
 const
   { combat command UI phases }
@@ -729,6 +729,8 @@ begin
   pendingSpell := -1;
   itemSel := 0;
   pendingItem := -1;
+  { fighting in the dark: a fight-long to-hit penalty when the torch is low }
+  if TorchGlow < DARK_GLOW then PartyDark := DARK_ATK else PartyDark := 0;
   PlaySfx(SFX_FOE);
   State := gsCombat;
 end;

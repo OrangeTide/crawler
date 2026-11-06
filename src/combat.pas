@@ -69,7 +69,7 @@ type
 
   { status timers for one combatant, in turns remaining }
   TStatus = record
-    poison, stun, slow, burn, offbal: smallint;
+    poison, stun, slow, burn, offbal, fear, paralyze: smallint;
   end;
 
 var
@@ -189,8 +189,14 @@ function ActorCanCast(actor, spellIdx: longint): boolean;
   modes, an ally index for TGT_ALLY, and ignored for TGT_PARTY. }
 procedure ActCast(spellIdx, target: longint);
 
+const
+  DARK_ATK   = 3;      { to-hit penalty when the party fights in the dark }
+  DARK_GLOW  = 128;    { torch strength below which a fight is "in the dark" }
+
 var
   PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
+  PartyDark: longint;       { a fight-long to-hit penalty for fighting in the
+                             dark, set from the torch when the fight begins }
 
 implementation
 
@@ -213,6 +219,7 @@ const
   POISON_DMG = 2;
   BURN_DMG   = 3;
   STATUS_DC  = 13;     { save target to shrug off an inflicted status }
+  FEAR_ATK   = 3;      { to-hit penalty while afraid }
   FOE_CAST_SP = 2;     { spell points a foe spends per spell }
   FOE_REVIVE_SP = 3;   { spell points to raise a fallen ally }
 
@@ -380,6 +387,8 @@ begin
     ST_SLOW:   StatusName := 'SLOW';
     ST_BURN:   StatusName := 'BURN';
     ST_OFFBAL: StatusName := 'DAZED';
+    ST_FEAR:   StatusName := 'AFRAID';
+    ST_PARAL:  StatusName := 'HELD';
   else StatusName := '';
   end;
 end;
@@ -392,6 +401,8 @@ begin
     ST_SLOW:   if turns > s.slow then s.slow := turns;
     ST_BURN:   if turns > s.burn then s.burn := turns;
     ST_OFFBAL: if turns > s.offbal then s.offbal := turns;
+    ST_FEAR:   if turns > s.fear then s.fear := turns;
+    ST_PARAL:  if turns > s.paralyze then s.paralyze := turns;
   end;
 end;
 
@@ -406,11 +417,18 @@ begin
   PushPop(0, fi, POPC_MISS, StatusName(st));
 end;
 
-{ Try to lay a status on a party member; a Constitution save shrugs it. }
+{ Try to lay a status on a party member; a save shrugs it. Fear is a Will
+  save (WIS), the rest resist with Body (CON). }
 procedure AfflictMember(mi, st, turns: longint);
+var
+  save: longint;
 begin
   if st = 0 then exit;
-  if SaveThrow(GameRng, AbilMod(Roster[mi].abil[abCON]), Roster[mi].level, STATUS_DC) then exit;
+  if st = ST_FEAR then
+    save := AbilMod(Roster[mi].abil[abWIS])
+  else
+    save := AbilMod(Roster[mi].abil[abCON]);
+  if SaveThrow(GameRng, save, Roster[mi].level, STATUS_DC) then exit;
   SetStatus(PartyStatus[mi], st, turns);
   CombatLog(Roster[mi].name + ' is ' + StatusName(st) + '.');
   PushPop(1, mi, POPC_MISS, StatusName(st));
@@ -605,8 +623,14 @@ begin
     end;
     if FoeStatus[i].slow > 0 then dec(FoeStatus[i].slow);
     if FoeStatus[i].offbal > 0 then dec(FoeStatus[i].offbal);
+    if FoeStatus[i].fear > 0 then dec(FoeStatus[i].fear);
     if not Foes[i].alive then begin StartOfTurnSpent := true; exit; end;
-    if FoeStatus[i].stun > 0 then begin
+    if FoeStatus[i].paralyze > 0 then begin
+      dec(FoeStatus[i].paralyze);
+      CombatLog(MonDefs[Foes[i].def].name + ' is held fast.');
+      PushPop(0, i, POPC_MISS, 'HELD');
+      StartOfTurnSpent := true;
+    end else if FoeStatus[i].stun > 0 then begin
       dec(FoeStatus[i].stun);
       CombatLog(MonDefs[Foes[i].def].name + ' is stunned.');
       PushPop(0, i, POPC_MISS, 'STUN');
@@ -624,10 +648,16 @@ begin
     end;
     if PartyStatus[i].slow > 0 then dec(PartyStatus[i].slow);
     if PartyStatus[i].offbal > 0 then dec(PartyStatus[i].offbal);
+    if PartyStatus[i].fear > 0 then dec(PartyStatus[i].fear);
     if (not Roster[i].alive) or Roster[i].downed then begin
       StartOfTurnSpent := true; exit;
     end;
-    if PartyStatus[i].stun > 0 then begin
+    if PartyStatus[i].paralyze > 0 then begin
+      dec(PartyStatus[i].paralyze);
+      CombatLog(Roster[i].name + ' is held fast.');
+      PushPop(1, i, POPC_MISS, 'HELD');
+      StartOfTurnSpent := true;
+    end else if PartyStatus[i].stun > 0 then begin
       dec(PartyStatus[i].stun);
       CombatLog(Roster[i].name + ' is stunned.');
       PushPop(1, i, POPC_MISS, 'STUN');
@@ -709,6 +739,7 @@ begin
   Victory := false;
   Fled := false;
   PartyBless := 0;
+  PartyDark := 0;      { well lit by default; combatui dims it from the torch }
   XPGained := 0;
   GoldGained := 0;
   for i := 0 to LOG_LINES - 1 do Log[i] := '';
@@ -997,7 +1028,7 @@ end;
   carrying the monster's element and any status its hit inflicts. }
 procedure ResolveEnemyTurn;
 var
-  fi, tgt, roll, dmg, effAC: longint;
+  fi, tgt, roll, dmg, effAC, atkB: longint;
   ranged, hasHarry, isMage, isHealer: boolean;
 begin
   fi := TurnQueue[TurnPos].idx;
@@ -1034,8 +1065,9 @@ begin
   roll := D(20);
   effAC := CharAC(Roster[tgt]);
   if Roster[tgt].guarding then effAC := effAC + 2;   { braced to parry }
-  if (roll <> 1) and ((roll = 20) or
-     (roll + MonDefs[Foes[fi].def].atkBonus >= effAC)) then
+  atkB := MonDefs[Foes[fi].def].atkBonus;
+  if FoeStatus[fi].fear > 0 then dec(atkB, FEAR_ATK);   { afraid: swings wide }
+  if (roll <> 1) and ((roll = 20) or (roll + atkB >= effAC)) then
   begin
     dmg := D(MonDefs[Foes[fi].def].dmgSides);
     if dmg < 1 then dmg := 1;
@@ -1089,7 +1121,8 @@ begin
     roll2 := D(20);                       { off balance: roll at disadvantage }
     if roll2 < roll then roll := roll2;
   end;
-  atk := CharAttack(Roster[actor], melee) + PartyBless;
+  atk := CharAttack(Roster[actor], melee) + PartyBless - PartyDark;
+  if PartyStatus[actor].fear > 0 then dec(atk, FEAR_ATK);   { afraid: shaky aim }
   if (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac)) then
   begin
     if roll = 20 then dmg := die

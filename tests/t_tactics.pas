@@ -279,6 +279,69 @@ begin
   Check(Foes[0].sp < 6, 'the revival spends spell points');
   Check(not EnemyCastRevive(0), 'no revival when no ally is dead');
 
+  { ---- fear and the dark lower the party's aim ---- }
+  SetLength(Roster, 1);
+  RollAbilities(ab);
+  MakeCharacter(Roster[0], 'FEA', 0, 0, -1, ab);
+  Roster[0].rank := RANK_FRONT;
+  SetLength(PartyStatus, 1);
+  OneFoe(rat); Foes[0].rank := RANK_FRONT;
+
+  { baseline: well lit and unafraid }
+  RngSeed(GameRng, 99);
+  hits0 := 0;
+  for i := 1 to 400 do begin
+    FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+    PartyDark := 0;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits0);
+  end;
+
+  { afraid: a flat to-hit penalty, so fewer hits }
+  RngSeed(GameRng, 99);
+  hits1 := 0;
+  for i := 1 to 400 do begin
+    FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+    PartyStatus[0].fear := 2;
+    PartyDark := 0;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits1);
+  end;
+  Check(hits1 < hits0, 'fear lowers the hit rate');
+
+  { fighting in the dark: the same kind of flat penalty }
+  RngSeed(GameRng, 99);
+  hits1 := 0;
+  for i := 1 to 400 do begin
+    FillChar(PartyStatus[0], SizeOf(PartyStatus[0]), 0);
+    PartyDark := DARK_ATK;
+    Foes[0].hp := 100; Foes[0].hpMax := 100; Foes[0].alive := true;
+    ResolvePartyAttack(0, 0);
+    if Foes[0].hp < 100 then inc(hits1);
+  end;
+  Check(hits1 < hits0, 'fighting in the dark lowers the hit rate');
+  PartyDark := 0;
+
+  { fear and paralysis can take hold of a foe, on a failed save }
+  OneFoe(rat);
+  RngSeed(GameRng, 7);
+  gotStun := false;
+  for i := 1 to 200 do begin
+    FoeStatus[0].fear := 0;
+    AfflictFoe(0, ST_FEAR, 3);
+    if FoeStatus[0].fear > 0 then gotStun := true;
+  end;
+  Check(gotStun, 'fear can take hold of a foe');
+  gotStun := false;
+  for i := 1 to 200 do begin
+    FoeStatus[0].paralyze := 0;
+    AfflictFoe(0, ST_PARAL, 2);
+    if FoeStatus[0].paralyze > 0 then gotStun := true;
+  end;
+  Check(gotStun, 'paralysis can take hold of a foe');
+
   { ---- revive item ---- }
   Check(ItemIndex('HOLLY') >= 0, 'sprig of holly present');
   Check((ItemDefs[ItemIndex('HOLLY')].flags and IF_REVIVE) <> 0,

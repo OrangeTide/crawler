@@ -18,7 +18,8 @@ unit montext;
     statusimm:poison   statuses it cannot suffer
     harry:taunt        a ranged disruption trick (taunt or throw)
   Element names: phys fire frost shock holy. Status names: poison stun
-  slow burn. Undead gain holy weakness and poison immunity by default.
+  slow burn fear paralyze. Undead gain holy weakness and poison immunity
+  by default.
 
   Blank lines and lines starting with '#' are ignored. }
 
@@ -59,6 +60,8 @@ begin
   else if t = 'stun' then StatusFlag := ST_STUN
   else if t = 'slow' then StatusFlag := ST_SLOW
   else if t = 'burn' then StatusFlag := ST_BURN
+  else if t = 'fear' then StatusFlag := ST_FEAR
+  else if t = 'paralyze' then StatusFlag := ST_PARAL
   else StatusFlag := 0;
 end;
 
