@@ -39,6 +39,7 @@ const
   ST_OFFBAL = 16;  { off balance: the next attack is at disadvantage }
   ST_FEAR   = 32;  { afraid: attacks at a penalty for a few turns }
   ST_PARAL  = 64;  { paralysed: loses the turn, like a hard stun }
+  ST_DISEASE = 128; { a lingering illness, carried out of the fight }
 
   { a brute's secondary ranged trick, used to disrupt rather than to kill }
   HARRY_NONE  = 0;

@@ -36,6 +36,7 @@ begin
   RollAbilities(ab); MakeCharacter(Roster[0], 'Alice', 0, 0, -1, ab);
   RollAbilities(ab); MakeCharacter(Roster[1], 'Bob', 0, 1, -1, ab);
   Roster[0].lycan := true;
+  Roster[1].disease := 2;
   PartyGold := 137;
   FlagSet('QUEST_X');
   JournalAdd('a journal note');
@@ -61,6 +62,7 @@ begin
   CheckEqI(Length(Roster), 2, 'party size restored');
   Check((Length(Roster) >= 1) and (Roster[0].name = 'Alice'), 'name restored');
   Check((Length(Roster) >= 1) and Roster[0].lycan, 'lycanthropy restored');
+  Check((Length(Roster) >= 2) and (Roster[1].disease = 2), 'disease restored');
   CheckEqI(PartyGold, 137, 'gold restored');
   Check(FlagHas('QUEST_X'), 'flag restored');
   CheckEqI(ClockMin, 6 * 60 + 5000, 'clock restored');

@@ -50,6 +50,25 @@ begin
   { spending zero is a no-op success }
   Check(PartyConsume('RATION', 0), 'spending zero succeeds');
 
+  { ---- disease caps rest recovery until it breaks ---- }
+  Roster[0].hpMax := 20; Roster[0].hp := 2;
+  Roster[0].downed := true;
+  Roster[0].disease := 2;
+  Roster[1].hpMax := 20; Roster[1].hp := 5;   { a healthy member for contrast }
+
+  RestParty;
+  CheckEqI(Roster[0].disease, 1, 'a rest wears the illness down by one');
+  CheckEqI(Roster[0].hp, 10, 'a sick member recovers only to half');
+  Check(not Roster[0].downed, 'the rest still brings the sick member round');
+  CheckEqI(Roster[1].hp, 20, 'a healthy member recovers in full');
+
+  RestParty;
+  CheckEqI(Roster[0].disease, 0, 'a second rest breaks the fever');
+  CheckEqI(Roster[0].hp, 10, 'still capped the rest the fever broke on');
+
+  RestParty;
+  CheckEqI(Roster[0].hp, 20, 'cured, the next rest heals in full');
+
   TestSummary('survival');
   halt(TestExit);
 end.

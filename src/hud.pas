@@ -164,6 +164,7 @@ begin
     x := 8 + i * slotW + 2;
     if not Roster[i].alive then c := RGB(150, 70, 70)
     else if Roster[i].downed then c := RGB(170, 130, 80)
+    else if Roster[i].disease > 0 then c := RGB(150, 190, 110)  { sickly green }
     else c := RGB(200, 205, 180);
     nm := Copy(Roster[i].name, 1, 6);
     DrawText(x, FBH - 24, nm, c);

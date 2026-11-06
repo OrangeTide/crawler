@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 6;
+  SAVE_VERSION = 7;
 
 var
   LoadedMapName: string;
@@ -104,6 +104,7 @@ begin
   s.WriteByte(ord(c.guarding));
   s.WriteByte(c.brushes);
   s.WriteByte(c.poison);
+  s.WriteByte(c.disease);
   s.WriteByte(ord(c.lycan));
 end;
 
@@ -124,6 +125,7 @@ begin
   RChar.guarding := s.ReadByte <> 0;
   RChar.brushes := s.ReadByte;
   RChar.poison := s.ReadByte;
+  RChar.disease := s.ReadByte;
   RChar.lycan := s.ReadByte <> 0;
   RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;

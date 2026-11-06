@@ -43,6 +43,7 @@ type
     guarding: boolean;   { parrying this round for +2 AC }
     brushes: byte;       { brushes with death so far today }
     poison: byte;        { remaining poison ticks }
+    disease: byte;       { rests of lingering illness; caps recovery while set }
     lycan: boolean;      { cursed with lycanthropy }
     wereform: boolean;   { transformed now, set by the full moon }
     rank: byte;          { 0 front line, 1 back line, for combat reach }
@@ -269,6 +270,7 @@ begin
   c.guarding := false;
   c.brushes := 0;
   c.poison := 0;
+  c.disease := 0;
   c.lycan := false;
   c.wereform := false;
   { casters hang back by default, melee classes take the front line }
@@ -346,12 +348,20 @@ var
 begin
   for i := 0 to High(Roster) do
     if Roster[i].alive then begin
-      TryLevelUp(Roster[i]);
-      Roster[i].hp := Roster[i].hpMax;
       Roster[i].downed := false;
       Roster[i].guarding := false;
-      Roster[i].brushes := 0;
-      Roster[i].poison := 0;
+      Roster[i].poison := 0;   { acute poison passes with the night }
+      if Roster[i].disease > 0 then begin
+        { the fever runs its course over several rests, and caps recovery
+          at half strength until it breaks. No level-up catch-up while sick. }
+        dec(Roster[i].disease);
+        if Roster[i].hp < Roster[i].hpMax div 2 then
+          Roster[i].hp := Roster[i].hpMax div 2;
+      end else begin
+        TryLevelUp(Roster[i]);
+        Roster[i].hp := Roster[i].hpMax;
+        Roster[i].brushes := 0;
+      end;
     end;
 end;
 

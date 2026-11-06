@@ -13,8 +13,8 @@
 # Statuses: poison stun slow burn fear paralyze.
 # harry: a brute's ranged disruption, taunt (off balance) or throw (lob).
 # Undead (flag 1) are holy-weak and poison-immune by default.
-mon RAT      1 11 1 3 2 2  25 0 CREA4  forest+cave          "Giant Rat"
-mon BAT      1 12 1 3 2 5  25 0 CREA5  cave+forest          "Cave Bat"
+mon RAT      1 11 1 3 2 2  25 0 CREA4  forest+cave          inflict:disease "Giant Rat"
+mon BAT      1 12 1 3 2 5  25 0 CREA5  cave+forest          inflict:disease "Cave Bat"
 mon GOBLIN   1 13 1 6 4 3  25 0 CREA1  forest+cave          harry:taunt "Goblin"
 mon KOBOLD   1 12 1 4 3 3  25 0 CREA6  cave                 "Kobold"
 mon SKELETON 1 12 1 6 4 2  25 1 CREA7  crypt                resist:phys "Skeleton"

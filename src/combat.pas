@@ -220,6 +220,7 @@ const
   BURN_DMG   = 3;
   STATUS_DC  = 13;     { save target to shrug off an inflicted status }
   FEAR_ATK   = 3;      { to-hit penalty while afraid }
+  DISEASE_DAYS = 2;    { rests a caught illness lingers before it breaks }
   FOE_CAST_SP = 2;     { spell points a foe spends per spell }
   FOE_REVIVE_SP = 3;   { spell points to raise a fallen ally }
 
@@ -389,6 +390,7 @@ begin
     ST_OFFBAL: StatusName := 'DAZED';
     ST_FEAR:   StatusName := 'AFRAID';
     ST_PARAL:  StatusName := 'HELD';
+    ST_DISEASE: StatusName := 'SICK';
   else StatusName := '';
   end;
 end;
@@ -410,6 +412,7 @@ end;
 procedure AfflictFoe(fi, st, turns: longint);
 begin
   if st = 0 then exit;
+  if st = ST_DISEASE then exit;   { illness is a party burden, not a foe's }
   if (MonDefs[Foes[fi].def].statusImm and st) <> 0 then exit;
   if SaveThrow(GameRng, 0, MonDefs[Foes[fi].def].hd, STATUS_DC) then exit;
   SetStatus(FoeStatus[fi], st, turns);
@@ -429,6 +432,14 @@ begin
   else
     save := AbilMod(Roster[mi].abil[abCON]);
   if SaveThrow(GameRng, save, Roster[mi].level, STATUS_DC) then exit;
+  { disease is not an in-fight timer: it rides out on the character and is
+    shaken off only by resting it out. }
+  if st = ST_DISEASE then begin
+    if Roster[mi].disease < DISEASE_DAYS then Roster[mi].disease := DISEASE_DAYS;
+    CombatLog(Roster[mi].name + ' is ' + StatusName(st) + '.');
+    PushPop(1, mi, POPC_MISS, StatusName(st));
+    exit;
+  end;
   SetStatus(PartyStatus[mi], st, turns);
   CombatLog(Roster[mi].name + ' is ' + StatusName(st) + '.');
   PushPop(1, mi, POPC_MISS, StatusName(st));
