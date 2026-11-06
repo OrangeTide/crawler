@@ -110,14 +110,21 @@ begin
   FrameRect(ox + OW_RX * OW_CS - 1, oy + OW_RY * OW_CS - 1,
     OW_CS + 1, OW_CS + 1, RGB(250, 250, 250));
 
-  DrawText(8, 6, 'OVERWORLD  ' + BiomeName(BiomeAt(owCx, owCy)),
-    RGB(220, 210, 140));
-  DrawText(FBW - 92, 6, IntToStr(owCx) + ',' + IntToStr(owCy),
-    RGB(160, 170, 150));
+  { header: a title and the cell coordinate, then the place the cursor is
+    over, named if it is a known zone. }
+  DrawText(8, 5, 'OVERWORLD TRAVEL', RGB(170, 180, 150));
+  DrawText(FBW - 8 - Length(IntToStr(owCx) + ',' + IntToStr(owCy)) * 6, 5,
+    IntToStr(owCx) + ',' + IntToStr(owCy), RGB(170, 180, 150));
+  if PinnedAt(owCx, owCy, pin, arr) then
+    DrawText(8, 17, UpperCase(pin) + ' - ' + BiomeName(BiomeAt(owCx, owCy)),
+      RGB(240, 225, 120))
+  else
+    DrawText(8, 17, BiomeName(BiomeAt(owCx, owCy)), RGB(220, 210, 140));
+
+  { footer: the travel cost so far, then the controls. }
   if owSteps > 0 then
     DrawText(8, FBH - 24, IntToStr(owSteps) + ' CELLS   '
-      + IntToStr((owSteps * OVERWORLD_STEP_MIN) div 60) + 'H TRAVEL',
-      RGB(170, 180, 150));
+      + IntToStr((owSteps * OVERWORLD_STEP_MIN) div 60) + 'H', RGB(170, 180, 150));
   DrawText(8, FBH - 12, 'ARROWS TRAVEL   ENTER DESCEND   ESC BACK',
     RGB(140, 150, 120));
 end;
