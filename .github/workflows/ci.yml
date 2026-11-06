@@ -70,8 +70,15 @@ jobs:
       - name: Put FPC on PATH (Windows)
         if: runner.os == 'Windows'
         run: |
-          fpcexe=$(find /c/tools/lazarus /c/lazarus -iname fpc.exe -path '*bin*' 2>/dev/null | head -n1)
-          if [ -z "$fpcexe" ]; then echo "fpc.exe not found under the Lazarus install"; exit 1; fi
+          # Chocolatey's Lazarus deploys to C:\lazarus and bundles FPC under
+          # fpc\<ver>\bin\<target>\fpc.exe. The || true keeps find's exit status
+          # (a missing dir, or SIGPIPE from head) from tripping pipefail.
+          fpcexe=$(find /c/lazarus -iname fpc.exe -path '*bin*' 2>/dev/null | head -n1 || true)
+          if [ -z "$fpcexe" ]; then
+            echo "fpc.exe not found under C:\\lazarus; tree was:"
+            find /c/lazarus -iname 'fpc.exe' 2>/dev/null | head
+            exit 1
+          fi
           echo "Found FPC at: $fpcexe"
           cygpath -w "$(dirname "$fpcexe")" >> "$GITHUB_PATH"
 
