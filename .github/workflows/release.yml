@@ -22,6 +22,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Native runners this repo can reliably get. macOS runners are not
+        # available to this project (jobs are cancelled with no runner), so the
+        # macOS arm64 archive is produced by the local cross-build (make
+        # macos-dist) and attached with "gh release upload" instead.
         include:
           - os: ubuntu-latest
             name: linux-x86_64
@@ -29,12 +33,6 @@ jobs:
           - os: windows-latest
             name: windows-x86_64
             archive: zip
-          - os: macos-14
-            name: macos-aarch64
-            archive: tar
-          - os: macos-13
-            name: macos-x86_64
-            archive: tar
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     defaults:
@@ -77,7 +75,9 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    # Publish on a tag even if a build leg failed, so one flaky platform cannot
+    # block the release. The publish step still requires at least one archive.
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -92,9 +92,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
+          if [ -z "$files" ]; then echo "no archives were built"; exit 1; fi
           echo "Attaching:"; echo "$files"
-          gh release create "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            $files
+          # Idempotent: create the release if missing, else add/replace assets,
+          # so a re-run or a later local macOS upload both work.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber $files
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --title "$GITHUB_REF_NAME" --generate-notes $files
+          fi
