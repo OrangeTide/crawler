@@ -52,14 +52,31 @@ function AdvanceOver(const partyMap: string; partyX, partyY: longint;
   (maps sourced in full from the pak and generators, no fog). }
 function PursuitAdvance(const partyMap: string; partyX, partyY: longint): longint;
 
+{ Advance hunters by the game time that has passed since the last tick, one
+  tile per MINUTES_PER_STEP minutes. Because it reads the clock rather than
+  counting party steps, time that passes without a step (resting, waiting)
+  still closes the distance. Returns the first pursuer to catch the party,
+  or -1. Call it wherever game time advances in exploration. }
+function PursuitTick(const partyMap: string; partyX, partyY: longint): longint;
+
 implementation
 
 uses
-  pathfind, worldload;
+  pathfind, worldload, gametime;
+
+const
+  MINUTES_PER_STEP = 3;     { a hunter covers one tile in this much game time,
+                              matching the three minutes a party tile takes }
+  MAX_TICK_STEPS   = 256;   { cap the catch-up from a long rest so one tick
+                              never loops without bound }
+
+var
+  gLastClock: longword;     { the clock at the last pursuit tick }
 
 procedure PursuitReset;
 begin
   Pursuers := nil;
+  gLastClock := ClockMin;   { start level with the clock; no backlog owed }
 end;
 
 function AddPursuer(monIdx: longint; const map: string; x, y: longint): longint;
@@ -202,6 +219,32 @@ function PursuitAdvance(const partyMap: string; partyX, partyY: longint): longin
 begin
   PursuitAdvance := AdvanceOver(partyMap, partyX, partyY, @PursuitProvider,
     ROUTE_MAX_STATES);
+end;
+
+function PursuitTick(const partyMap: string; partyX, partyY: longint): longint;
+var
+  due, i, caught: longint;
+begin
+  PursuitTick := -1;
+  { with no hunters, just keep the clock mark current so a hunter spawned
+    later does not inherit a backlog of moves. }
+  if ActivePursuerCount = 0 then begin
+    gLastClock := ClockMin;
+    exit;
+  end;
+  if ClockMin <= gLastClock then exit;   { no time has passed (or a reset) }
+  due := longint((ClockMin - gLastClock) div MINUTES_PER_STEP);
+  gLastClock := ClockMin;                { consume all elapsed time }
+  if due <= 0 then exit;
+  if due > MAX_TICK_STEPS then due := MAX_TICK_STEPS;
+  for i := 1 to due do begin
+    caught := AdvanceOver(partyMap, partyX, partyY, @PursuitProvider,
+      ROUTE_MAX_STATES);
+    if caught >= 0 then begin
+      PursuitTick := caught;
+      exit;
+    end;
+  end;
 end;
 
 end.

@@ -148,6 +148,24 @@ begin
   StepToward(nx, ny);
 end;
 
+function ResolvePursuitCatch(caughtBy: longint): boolean;
+{** Turn a pursuer that has caught the party into the fight it was chasing.
+  Returns true when a fight started, so the caller stops what it was doing. }
+var
+  mon: longint;
+begin
+  ResolvePursuitCatch := false;
+  if caughtBy < 0 then exit;
+  mon := Pursuers[caughtBy].mon;
+  RemovePursuer(caughtBy);
+  CancelAutoTravel;
+  saveMsg := 'A HUNTER CATCHES YOU!';
+  saveMsgT := 2.0;
+  if CurDepth > 0 then StartMonsterCombat(mon, CurDepth)
+  else StartMonsterCombat(mon, 1);
+  ResolvePursuitCatch := true;
+end;
+
 procedure StartDialog(const dlgName, npcName: string);
 begin
   DialogStart(dlgName);
@@ -254,8 +272,11 @@ begin
     StartCombat(2);
     exit;
   end;
-  RestParty;
   TimeAdvance(8 * 60);   { a long rest moves the clock by eight hours }
+  { eight hours is plenty of time for a hunter on the party's trail to run
+    them down; a rest with one loose is no rest at all. }
+  if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
+  RestParty;
   PlaySfx(SFX_SELECT);
   saveMsg := 'THE PARTY RESTS AND RECOVERS';
   saveMsgT := 2.0;
@@ -379,7 +400,6 @@ procedure CheckTileEvents;
   poison, advance any hunters, then roll for a wandering monster. }
 var
   target, marker: string;
-  caughtBy, mon: longint;
 begin
   if (TileX = lastTX) and (TileY = lastTY) then
     exit;
@@ -399,19 +419,9 @@ begin
   end;
   if Length(Roster) = 0 then exit;
 
-  { roaming hunters close in; one that reaches the party starts the fight it
-    has been chasing, led by the hunter itself. }
-  caughtBy := PursuitAdvance(CurMapName, TileX, TileY);
-  if caughtBy >= 0 then begin
-    mon := Pursuers[caughtBy].mon;
-    RemovePursuer(caughtBy);
-    CancelAutoTravel;
-    saveMsg := 'A HUNTER CATCHES YOU!';
-    saveMsgT := 2.0;
-    if CurDepth > 0 then StartMonsterCombat(mon, CurDepth)
-    else StartMonsterCombat(mon, 1);
-    exit;
-  end;
+  { roaming hunters close in on the game clock; one that reaches the party
+    starts the fight it has been chasing, led by the hunter itself. }
+  if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
 
   { safe ground shakes off the hunt; dangerous ground may start a new one. }
   if EncTableEmpty(CurEncTable) then
