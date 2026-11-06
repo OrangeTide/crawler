@@ -1,12 +1,19 @@
 FPC      ?= fpc
 MODE     ?= -O2
+# Windows FPC appends .exe to its output; mirror that so the targets and the
+# binaries the recipes invoke carry the right name on every host.
+ifeq ($(OS),Windows_NT)
+  EXE := .exe
+else
+  EXE :=
+endif
 FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild -FUbuild
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
-TARGET    = build/crawler
+TARGET    = build/crawler$(EXE)
 PAK       = build/game.pak
-MKASSETS  = build/tools/mkassets
+MKASSETS  = build/tools/mkassets$(EXE)
 MAPS      = $(wildcard content/maps/*.map)
 ITEMS     = content/items.txt
 MONSTERS  = content/monsters.txt
@@ -72,7 +79,7 @@ test: $(PAK)
 	@mkdir -p build/tests
 	@fail=0; \
 	for s in $(TESTSRC); do \
-	  b=build/tests/`basename $$s .pas`; \
+	  b=build/tests/`basename $$s .pas`$(EXE); \
 	  if ! $(FPC) $(TESTFLAGS) -o$$b $$s > build/tests/compile.log 2>&1; then \
 	    echo "COMPILE FAIL: $$s"; cat build/tests/compile.log; fail=1; continue; \
 	  fi; \

@@ -210,8 +210,17 @@ uses
   dynlibs;
 
 const
+{$IFDEF WINDOWS}
+  SDL_SONAMES: array[0..0] of string = ('SDL2.dll');
+{$ELSE}
+{$IFDEF DARWIN}
+  SDL_SONAMES: array[0..2] of string = (
+    'libSDL2-2.0.0.dylib', 'libSDL2.dylib', 'SDL2');
+{$ELSE}
   SDL_SONAMES: array[0..2] of string = (
     'libSDL2-2.0.so.0', 'libSDL2.so', 'libSDL2-2.0.so');
+{$ENDIF}
+{$ENDIF}
 
 var
   libHandle: TLibHandle = NilHandle;
