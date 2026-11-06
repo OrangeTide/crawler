@@ -115,8 +115,15 @@ Tags: [gap] not started, [partial] exists but incomplete.
   covering a macOS .app bundle and a unix install prefix. Writable state (the
   save and settings) moves to a per-user directory so a read-only install
   works, with a portable.txt marker to keep everything in one folder. This
-  readies the macOS .app and Windows zip layouts; the non-Linux branches are
-  written to spec but not yet built on those hosts.
+  readies the macOS .app and Windows zip layouts, and the per-host path code
+  is exercised natively by CI on each of the three desktop targets.
+- [done] Cross-platform desktop build and CI. The build compiles for Linux,
+  Windows, and macOS from one Makefile (an EXE suffix and a per-OS SDL library
+  name list are the only host-specific pieces), with SDL2 loaded at runtime so
+  no development library is needed to compile. A GitHub Actions matrix builds
+  and runs the full test suite on all three hosts, and a GitLab pipeline does
+  the same on Linux, so the three desktop targets stay green on every push.
+  DOS and the PS1 remain gated on the renderer backend seam above.
 - [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
   out of the PS1 build, recorded only so nothing now blocks it.
 
