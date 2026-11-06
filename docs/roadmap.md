@@ -71,10 +71,12 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [done] Light and food as consumable resources tied to rest. A torch burns
   down as a fuel budget, spare torches relight as it gutters, and a rest
   spends one ration per living member or the party goes hungry.
-- [partial] Difficulty and accessibility options: permadeath versus temple
-  revive, combat speed, text speed, the optional critical-hit rules. Only volume
-  options exist; a revive item exists but no policy toggle.
-- [gap] Key rebinding and settings persistence stored next to the save.
+- [done] Difficulty and accessibility options: permadeath versus temple
+  revive, combat speed, and the optional natural-20/1 critical rules are all
+  options rows. Text speed was dropped: there is no typewriter reveal to tune.
+- [done] Key rebinding and settings persistence stored next to the save. A
+  config file holds the volumes, the choices, and the core-action key table;
+  the explore keys rebind in a dedicated screen.
 - [gap] Hirelings and followers from the tavern, sharing the party structure
   with a temporary flag.
 
@@ -142,12 +144,17 @@ that relight it, rations spent per member at rest with a hunger toll when
 short, and the status breadth (fear, paralysis, fighting blind, lingering
 disease, encumbrance) with the monsters and party-strip cues to surface them.
 
-### 0.22.0 Options, accessibility, and inputs (S)
+### 0.22.0 Options, accessibility, and inputs (S) [done]
 
 Theme C, the settings half, plus theme E's settings file. Difficulty and
 accessibility toggles, key rebinding, and a settings file stored next to the
 save. Small, self-contained, and needed once there are this many actions and
 rules to tune. Best done before wider playtesting.
+
+Delivered: a config file beside the save holding the volumes, the difficulty
+and accessibility choices, and the core-action key table. The options screen
+edits them live; a key-bindings sub-screen rebinds the exploration keys with a
+press-a-key capture. Permadeath gates a temple revival service for the slain.
 
 ### 0.23.0 Reference and meta screens (S)
 
