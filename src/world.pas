@@ -88,6 +88,7 @@ function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function TileLightAt(mx, my: longint): longint;    { 0..256 cast light }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
+function LootAt(mx, my: longint; out gold, qty: longint; out item: string): boolean;
 procedure ForwardDelta(out dx, dy: longint);
 procedure ComputeVisibility;
 
@@ -613,6 +614,22 @@ begin
       dmg := CurMap.traps[i].dmg;
       dc := CurMap.traps[i].dc;
       TrapAt := true;
+      exit;
+    end;
+end;
+
+function LootAt(mx, my: longint; out gold, qty: longint; out item: string): boolean;
+var
+  i: longint;
+begin
+  LootAt := false;
+  gold := 0; qty := 0; item := '';
+  for i := 0 to High(CurMap.loot) do
+    if (CurMap.loot[i].x = mx) and (CurMap.loot[i].y = my) then begin
+      gold := CurMap.loot[i].gold;
+      qty := CurMap.loot[i].qty;
+      item := CurMap.loot[i].item;
+      LootAt := true;
       exit;
     end;
 end;

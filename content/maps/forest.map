@@ -32,3 +32,5 @@ bonfire 12 7
 prop 10 7 BARREL
 prop 14 11 BARREL 45
 prop 2 12 BARREL
+loot 14 11 50 HOLLY 1
+loot 2 12 35 TORCH 3

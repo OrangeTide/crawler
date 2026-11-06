@@ -30,3 +30,5 @@ trap 5 9 5 11
 prop 13 9 BARREL
 prop 2 10 BARREL 45
 prop 13 2 BARREL
+loot 13 2 60 POTION 1
+loot 2 10 40

@@ -30,3 +30,5 @@ gasvent 4 7
 gasvent 12 7
 bonfire 2 12
 gasvent 14 1
+prop 3 12 BARREL
+loot 3 12 200 HARMOR 1

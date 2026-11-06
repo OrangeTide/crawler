@@ -29,3 +29,5 @@ prop 7 1 DOORWAY 90
 prop 3 5 BARREL
 prop 12 8 BARREL 45
 prop 4 9 BARREL 120
+
+loot 3 5 15 RATION 2

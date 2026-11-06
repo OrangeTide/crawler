@@ -106,13 +106,15 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### F. World content and the critical path (design section 17)
 
-- [partial] Flesh out the six zones' encounters, landmarks, and loot. Each zone
-  now carries its authored NPCs, landmarks, lights, hazards, and encounter
-  table: the seaside ferryman and wreck, the forest ranger, hunter's camp and
-  moonlit glade, the torch-lit crypt, the glowing grotto, and the infernal's
-  lava vents. Each also wears its own tileset, one colour scheme over the shared
-  patterns, so a generated map themes from its area too. What remains is deeper
-  loot placement.
+- [done] Flesh out the six zones' encounters, landmarks, and loot. Each zone
+  carries its authored NPCs, landmarks, lights, hazards, and encounter table:
+  the seaside ferryman and wreck, the forest ranger, hunter's camp and moonlit
+  glade, the torch-lit crypt, the glowing grotto, and the infernal's lava vents.
+  Each wears its own tileset, one colour scheme over the shared patterns, so a
+  generated map themes from its area too. Placed caches, barrels across the
+  zones, hand coin and gear to a party that opens them once, the take tracked by
+  a per-tile flag in the save. A fire-resistance stat on worn gear, so the
+  infernal's reward pays off mechanically, still waits on combat support.
 - [done] The main quest and an ending: the three relic shards (crypt shrine,
   cave grotto, infernal demon-lord) thread across the zones to the Elder, who
   gates the victory on all three held. The quest flags and victory screen close

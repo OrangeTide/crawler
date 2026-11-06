@@ -25,3 +25,4 @@ torch 10 8
 biolume 1 4
 biolume 10 5
 prop 8 8 BARREL
+loot 8 8 100 GEODE 1

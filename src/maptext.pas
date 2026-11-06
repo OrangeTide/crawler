@@ -76,6 +76,7 @@ var
   tr: TTrap;
   lt: TLightTile;
   pr: TProp;
+  lo: TLoot;
 begin
   ParseMapText := false;
   errmsg := '';
@@ -83,6 +84,7 @@ begin
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
+  m.loot := nil;
   inWalls := false;
   row := 0;
 
@@ -208,6 +210,20 @@ begin
         else lt.kind := LIGHT_SKYLIGHT;
         SetLength(m.lights, Length(m.lights) + 1);
         m.lights[High(m.lights)] := lt;
+      end else if tok[0] = 'loot' then begin
+        if ntok < 4 then begin errmsg := 'loot needs X Y GOLD [ITEM QTY]'; exit; end;
+        lo.x := StrToInt(tok[1]);
+        lo.y := StrToInt(tok[2]);
+        lo.gold := StrToInt(tok[3]);
+        if ntok >= 6 then begin
+          lo.item := UpperCase(tok[4]);
+          lo.qty := StrToInt(tok[5]);
+        end else begin
+          lo.item := '';
+          lo.qty := 0;
+        end;
+        SetLength(m.loot, Length(m.loot) + 1);
+        m.loot[High(m.loot)] := lo;
       end else if tok[0] = 'prop' then begin
         if ntok < 4 then begin errmsg := 'prop needs X Y NAME [yawDeg]'; exit; end;
         pr.x := StrToInt(tok[1]);

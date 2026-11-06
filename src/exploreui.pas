@@ -27,9 +27,9 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
-  flags, gametime, party, rules, rng, encounters, monsters, audio, gamestate,
-  worldload, combatui, save, pathfind, maproute, pursuit, overworldui, keymap,
-  mappins;
+  flags, gametime, party, rules, rng, items, encounters, monsters, audio,
+  gamestate, worldload, combatui, save, pathfind, maproute, pursuit,
+  overworldui, keymap, mappins;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
@@ -364,6 +364,41 @@ begin
   saveMsgT := 2.0;
 end;
 
+procedure LootCheck;
+{** A placed cache on the tile is taken once: its coin goes to the purse and
+  any item to the first conscious member. A per-tile flag keeps it from
+  refilling on a return visit and rides along in the save. }
+var
+  gold, qty, m, idx: longint;
+  item: string;
+  taken: string;
+begin
+  if not LootAt(TileX, TileY, gold, qty, item) then exit;
+  taken := 'LOOT_' + CurMapName + '_' + IntToStr(TileX) + '_' + IntToStr(TileY);
+  if FlagHas(taken) then exit;
+  FlagSet(taken);
+  if gold > 0 then
+    PartyGold := PartyGold + gold;
+  idx := -1;
+  if (item <> '') and (qty > 0) then begin
+    m := FirstConscious;
+    if m >= 0 then begin
+      PackAdd(Roster[m], item, qty);
+      idx := ItemIndex(item);
+    end;
+  end;
+  PlaySfx(SFX_PICK);
+  if idx >= 0 then begin
+    if gold > 0 then
+      saveMsg := 'A CACHE: ' + IntToStr(gold) + ' GOLD AND '
+        + UpperCase(ItemDefs[idx].name)
+    else
+      saveMsg := 'YOU FIND ' + UpperCase(ItemDefs[idx].name);
+  end else
+    saveMsg := 'YOU FIND ' + IntToStr(gold) + ' GOLD';
+  saveMsgT := 2.0;
+end;
+
 procedure OpenAdjacentDoor(tx, ty: longint);
 {** Force a closed door tile open, used when a light well is lit. }
 begin
@@ -521,6 +556,7 @@ begin
   BurnLight;
   PoisonTick;
   TrapCheck;
+  LootCheck;
   LightPuzzleCheck;
   AutoPinDiscovered;
   ChargeWagesDue;
