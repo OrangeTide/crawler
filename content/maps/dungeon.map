@@ -2,7 +2,7 @@
 # 1=brick 2=stone 3=moss 4=door, 0=open floor.
 map DUNGEON
 size 24 24
-tileset 0
+tileset 4
 music 0
 area crypt
 walls

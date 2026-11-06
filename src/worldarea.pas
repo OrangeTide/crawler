@@ -28,6 +28,11 @@ function AreaMaskByName(const name: string): byte;
 function ParseAreaList(const s: string): byte;
 { A short label for a single-area mask. }
 function AreaName(mask: byte): string;
+{ The texture tileset a generated map in this area should wear. The
+  numbers match the tileset schemes in texgen: 0 default, 2 coast,
+  3 wilds, 4 crypt, 5 cave, 6 infernal, 7 desert, 8 frozen, 9 volcanic.
+  Authored maps carry their own tileset and do not use this. }
+function TilesetForArea(mask: byte): longint;
 
 implementation
 
@@ -79,6 +84,22 @@ begin
     AREA_INFERNAL: AreaName := 'infernal';
   else
     AreaName := 'mixed';
+  end;
+end;
+
+function TilesetForArea(mask: byte): longint;
+begin
+  case mask of
+    AREA_FOREST:   TilesetForArea := 3;
+    AREA_COAST:    TilesetForArea := 2;
+    AREA_DESERT:   TilesetForArea := 7;
+    AREA_FROZEN:   TilesetForArea := 8;
+    AREA_VOLCANIC: TilesetForArea := 9;
+    AREA_CRYPT:    TilesetForArea := 4;
+    AREA_CAVE:     TilesetForArea := 5;
+    AREA_INFERNAL: TilesetForArea := 6;
+  else
+    TilesetForArea := 0;
   end;
 end;
 

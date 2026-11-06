@@ -1,7 +1,7 @@
 # The starting town: a safe hub with two NPCs and the dungeon gate.
 map TOWN
 size 12 10
-tileset 0
+tileset 1
 music 0
 surface
 walls

@@ -1,7 +1,7 @@
 # Infernal and volcanic zone. Brick vaults deep below.
 map INFERNAL
 size 18 14
-tileset 0
+tileset 6
 music 0
 area infernal
 walls

@@ -3,7 +3,7 @@
 # south to the town gate.
 map OUTSKIRTS
 size 16 12
-tileset 0
+tileset 3
 music 0
 surface
 walls

@@ -23,17 +23,39 @@ var
   outPath: string;
   modelVram, modelRam: longint;   { running VRAM and RAM totals across models }
 
-procedure AddTex(const name: string; genProc: longint);
+procedure AddTexLump(const base: string; t, kind: longint);
 begin
-  case genProc of
-    0: GenBrick(img);
-    1: GenStone(img);
-    2: GenMoss(img);
-    3: GenDoor(img);
-    4: GenFloor(img);
-    5: GenCeiling(img);
+  case kind of
+    0: GenBrick(img, TileSchemes[t]);
+    1: GenStone(img, TileSchemes[t]);
+    2: GenMoss(img, TileSchemes[t]);
+    4: GenFloor(img, TileSchemes[t]);
+    5: GenCeiling(img, TileSchemes[t]);
   end;
-  PakWAdd(w, name, PicEncodeDirect(img));
+  PakWAdd(w, base + IntToStr(t), PicEncodeDirect(img));
+end;
+
+procedure AddDoor;
+begin
+  GenDoor(img);
+  PakWAdd(w, 'DOOR0', PicEncodeDirect(img));
+end;
+
+procedure AddTilesets;
+var
+  t: longint;
+begin
+  { Tileset 0 keeps the original BRICK, STONE, MOSS, DOOR, FLOOR, CEIL
+    generation order so its noise stream, and therefore its pixels, are
+    unchanged. The door is one shared plank texture for every tileset. }
+  for t := 0 to NUM_TILESETS - 1 do begin
+    AddTexLump('BRICK', t, 0);
+    AddTexLump('STONE', t, 1);
+    AddTexLump('MOSS',  t, 2);
+    if t = 0 then AddDoor;
+    AddTexLump('FLOOR', t, 4);
+    AddTexLump('CEIL',  t, 5);
+  end;
 end;
 
 procedure AddMap(const fn: string);
@@ -261,12 +283,7 @@ begin
   PakWInit(w);
   InitGfx;   { the palette the model baker quantizes textures against }
   modelVram := 0; modelRam := 0;
-  AddTex('BRICK', 0);
-  AddTex('STONE', 1);
-  AddTex('MOSS',  2);
-  AddTex('DOOR',  3);
-  AddTex('FLOOR', 4);
-  AddTex('CEIL',  5);
+  AddTilesets;
 
   i := 2;
   while i <= ParamCount do begin

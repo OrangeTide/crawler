@@ -2,7 +2,7 @@
 # shard sleeps in the living crystal.
 map GROTTO
 size 12 10
-tileset 0
+tileset 5
 music 0
 area cave
 walls

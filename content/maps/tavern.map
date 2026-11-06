@@ -1,7 +1,7 @@
 # The town tavern: a lamp-lit interior reached by the door in the square.
 map TAVERN
 size 8 7
-tileset 0
+tileset 1
 music 0
 walls
 22222222

@@ -28,7 +28,7 @@ procedure StartGame;
 implementation
 
 uses
-  sysutils, pak, world, models, rng, monsters, encounters,
+  sysutils, pak, world, textures, models, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
   gamestate, pursuit, codex, mappins;
 
@@ -156,6 +156,10 @@ begin
     md.area := DynMaps[di].area;   { the manifest declares its area }
     depth := DynMaps[di].depth;
   end;
+  { a generated map wears the tileset its area theme calls for; authored
+    maps keep the tileset their lump declares }
+  if isDyn then
+    md.tileset := TilesetForArea(md.area);
   { a pinned authored zone leaves back to the wilderness that reaches it,
     not only to the town hub. Derived from the map, so it stays stable. }
   if PinnedCellOf(name, pcx, pcy) then
@@ -180,6 +184,7 @@ begin
   if CurMapName <> '' then
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;
+  SetTileset(GamePak, md.tileset);   { make this zone's textures resident }
   CurMapName := name;
   CurAreaMask := md.area;   { authored maps carry it in the lump, generated
                              maps get it set above: no name list in code }

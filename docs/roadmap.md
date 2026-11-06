@@ -110,8 +110,9 @@ Tags: [gap] not started, [partial] exists but incomplete.
   now carries its authored NPCs, landmarks, lights, hazards, and encounter
   table: the seaside ferryman and wreck, the forest ranger, hunter's camp and
   moonlit glade, the torch-lit crypt, the glowing grotto, and the infernal's
-  lava vents. What remains is a distinct tileset per zone (only one exists) and
-  deeper loot placement.
+  lava vents. Each also wears its own tileset, one colour scheme over the shared
+  patterns, so a generated map themes from its area too. What remains is deeper
+  loot placement.
 - [done] The main quest and an ending: the three relic shards (crypt shrine,
   cave grotto, infernal demon-lord) thread across the zones to the Elder, who
   gates the victory on all three held. The quest flags and victory screen close

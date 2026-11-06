@@ -1,7 +1,7 @@
 # The town temple: a quiet shrine where the apothecary keeps the remedies.
 map TEMPLE
 size 8 7
-tileset 0
+tileset 1
 music 0
 walls
 22222222
