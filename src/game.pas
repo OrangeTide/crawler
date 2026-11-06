@@ -26,7 +26,7 @@ uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, shops, encounters, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
-  miscui, overworldui, gametime, audio, settings, codex;
+  miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
@@ -37,19 +37,9 @@ end;
 { ---- State machine entry points ---- }
 
 function FindPak: string;
-{** Look for game.pak next to the binary, then in common run dirs. }
-var
-  base: string;
+{** Look for game.pak through the relocatable asset search. }
 begin
-  base := ExtractFilePath(ParamStr(0));
-  if FileExists(base + 'game.pak') then
-    FindPak := base + 'game.pak'
-  else if FileExists('game.pak') then
-    FindPak := 'game.pak'
-  else if FileExists('build/game.pak') then
-    FindPak := 'build/game.pak'
-  else
-    FindPak := '';
+  FindPak := AssetPath('game.pak');
 end;
 
 function GameInit: boolean;

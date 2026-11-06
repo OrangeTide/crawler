@@ -38,7 +38,7 @@ function CombatSpeedScale(cs: longint): double;
 implementation
 
 uses
-  sysutils, classes, gamestate, audio, combat, keymap;
+  sysutils, classes, gamestate, audio, combat, keymap, apppaths;
 
 procedure SettingsDefaults;
 begin
@@ -70,7 +70,7 @@ end;
 
 function SettingsPath: string;
 begin
-  SettingsPath := ExtractFilePath(ParamStr(0)) + 'settings.cfg';
+  SettingsPath := UserFilePath('settings.cfg');
 end;
 
 function ClampVol(v: longint): longint;

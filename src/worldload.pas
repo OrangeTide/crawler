@@ -30,11 +30,11 @@ implementation
 uses
   sysutils, pak, world, textures, models, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
-  gamestate, pursuit, codex, mappins;
+  gamestate, pursuit, codex, mappins, apppaths;
 
 function SavePath: string;
 begin
-  SavePath := ExtractFilePath(ParamStr(0)) + 'save1.sav';
+  SavePath := UserFilePath('save1.sav');
 end;
 
 procedure GateAreaModels(tableNum: longint);
