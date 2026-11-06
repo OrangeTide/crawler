@@ -173,7 +173,7 @@ begin
     gsTitle:    TitleRender;
     gsNewParty: CCRender;
     gsExplore:  ExploreRender(fps);
-    gsFullMap:  DrawFullMap;
+    gsFullMap:  FullMapRender;
     gsDialog:   DialogRender;
     gsShop:     ShopRender;
     gsMenu:     JournalRender;

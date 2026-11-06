@@ -30,7 +30,7 @@ implementation
 uses
   sysutils, pak, world, models, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
-  gamestate;
+  gamestate, pursuit;
 
 function SavePath: string;
 begin
@@ -207,6 +207,7 @@ function ContinueGame: boolean;
 begin
   ContinueGame := false;
   if not LoadGame(SavePath) then exit;
+  PursuitReset;              { hunters do not persist across a load }
   CurMapName := '';          { do not capture a stale resident map }
   if not LoadMapLump(LoadedMapName) then exit;
   PlaceAt(LoadedTX, LoadedTY, LoadedFace);
@@ -221,6 +222,7 @@ procedure StartGame;
 begin
   FlagsReset;
   MapStateReset;
+  PursuitReset;
   CurMapName := '';
   if not LoadMapByName('OUTSKIRTS', 'spawn') then begin
     writeln(StdErr, 'game: could not load the starting map');

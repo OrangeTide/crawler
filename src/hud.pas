@@ -12,14 +12,18 @@ unit hud;
 
 interface
 
+uses
+  gfx;
+
 procedure DrawHud(showMap: boolean; fps: longint);
 procedure DrawFullMap;
 function FullMapTileAt(sx, sy: longint; out tx, ty: longint): boolean;
+procedure FullMapMark(tx, ty: longint; col: TColor);
 
 implementation
 
 uses
-  math, sysutils, gfx, world, party, gametime, mapfmt;
+  math, sysutils, world, party, gametime, mapfmt;
 
 function NormAngle(a: double): double;
 begin
@@ -217,6 +221,17 @@ begin
   ty := (sy - oy) div cell;
   if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
   FullMapTileAt := true;
+end;
+
+procedure FullMapMark(tx, ty: longint; col: TColor);
+{** Fill the cell of one tile on the full map, for an overlay such as a
+  hunter marker. Uses the shared layout, so it lines up with the terrain. }
+var
+  cell, ox, oy: longint;
+begin
+  if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
+  FullMapLayout(cell, ox, oy);
+  FillRect(ox + tx * cell, oy + ty * cell, cell, cell, col);
 end;
 
 procedure DrawFullMap;

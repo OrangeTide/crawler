@@ -27,8 +27,13 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
-  flags, gametime, party, rules, rng, encounters, audio, gamestate, worldload,
-  combatui, save, pathfind, maproute;
+  flags, gametime, party, rules, rng, encounters, monsters, audio, gamestate,
+  worldload, combatui, save, pathfind, maproute, pursuit;
+
+const
+  MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
+  HUNTER_SPAWN_ODDS = 40;  { one-in-this chance per step in a dangerous area }
+  HUNTER_MIN_DIST  = 6;    { a hunter spawns at least this far off, in tiles }
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -331,11 +336,50 @@ begin
   saveMsgT := 2.0;
 end;
 
+function PickAreaMonster: longint;
+{** A monster drawn from the current area's encounter table, or -1 if the
+  area is safe or its table names nothing known. }
+var
+  t, e: longint;
+begin
+  PickAreaMonster := -1;
+  t := CurEncTable;
+  if (t < 0) or (t > High(EncTables)) then exit;
+  if Length(EncTables[t].entries) = 0 then exit;
+  e := Range(0, High(EncTables[t].entries));
+  PickAreaMonster := MonIndex(EncTables[t].entries[e].mon);
+end;
+
+procedure TrySpawnHunter;
+{** Now and then in a dangerous area a monster picks up the party's trail
+  and starts hunting from a reachable tile some way off. }
+var
+  mon, tries, tx, ty: longint;
+begin
+  if EncTableEmpty(CurEncTable) then exit;        { safe ground, no hunters }
+  if ActivePursuerCount >= MAX_HUNTERS then exit;
+  if Range(1, HUNTER_SPAWN_ODDS) <> 1 then exit;
+  mon := PickAreaMonster;
+  if mon < 0 then exit;
+  for tries := 1 to 24 do begin
+    tx := Range(0, MapW - 1);
+    ty := Range(0, MapH - 1);
+    if TileAt(tx, ty) <> TILE_EMPTY then continue;
+    if Abs(tx - TileX) + Abs(ty - TileY) < HUNTER_MIN_DIST then continue;
+    if not PathExists(CurMap, TileX, TileY, tx, ty, true) then continue;
+    AddPursuer(mon, CurMapName, tx, ty);
+    saveMsg := 'SOMETHING PICKS UP YOUR TRAIL';
+    saveMsgT := 2.0;
+    exit;
+  end;
+end;
+
 procedure CheckTileEvents;
 {** On stepping onto a new tile: follow a portal, spring a trap, tick
-  poison, then roll for a wandering monster (thinned out per step). }
+  poison, advance any hunters, then roll for a wandering monster. }
 var
   target, marker: string;
+  caughtBy, mon: longint;
 begin
   if (TileX = lastTX) and (TileY = lastTY) then
     exit;
@@ -353,10 +397,32 @@ begin
     State := gsGameOver;
     exit;
   end;
-  { Safe areas (those whose table is empty, like town and interiors) never
-    spawn foes; elsewhere a small per-step chance, scaled by depth. }
-  if (not EncTableEmpty(CurEncTable)) and (Length(Roster) > 0) then
+  if Length(Roster) = 0 then exit;
+
+  { roaming hunters close in; one that reaches the party starts the fight it
+    has been chasing, led by the hunter itself. }
+  caughtBy := PursuitAdvance(CurMapName, TileX, TileY);
+  if caughtBy >= 0 then begin
+    mon := Pursuers[caughtBy].mon;
+    RemovePursuer(caughtBy);
+    CancelAutoTravel;
+    saveMsg := 'A HUNTER CATCHES YOU!';
+    saveMsgT := 2.0;
+    if CurDepth > 0 then StartMonsterCombat(mon, CurDepth)
+    else StartMonsterCombat(mon, 1);
+    exit;
+  end;
+
+  { safe ground shakes off the hunt; dangerous ground may start a new one. }
+  if EncTableEmpty(CurEncTable) then
+    PursuitClear
+  else
+    TrySpawnHunter;
+
+  { the older instant wandering-monster roll, elsewhere than safe areas. }
+  if (not EncTableEmpty(CurEncTable)) then
     if Range(1, 18) = 1 then begin
+      CancelAutoTravel;
       if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
     end;
 end;

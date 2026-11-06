@@ -8,6 +8,7 @@ unit miscui;
 
 interface
 
+procedure FullMapRender;
 procedure FullMapKeyDown(scancode: longint);
 procedure FullMapMouseMotion(xrel, yrel: longint);
 procedure FullMapMouseButton(button: longint);
@@ -24,7 +25,19 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui;
+  exploreui, pursuit;
+
+procedure FullMapRender;
+{** The full map with any hunters on this map marked over it, so the player
+  can see a pursuer closing in. }
+var
+  i: longint;
+begin
+  DrawFullMap;
+  for i := 0 to High(Pursuers) do
+    if Pursuers[i].active and (Pursuers[i].map = CurMapName) then
+      FullMapMark(Pursuers[i].x, Pursuers[i].y, RGB(230, 40, 160));
+end;
 
 procedure FullMapKeyDown(scancode: longint);
 begin
