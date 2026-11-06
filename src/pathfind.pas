@@ -24,11 +24,13 @@ type
     x, y: smallint;
   end;
 
-{ Whether a tile can be walked for planning. Open floor is always
-  passable; a door tile is passable only when doorsPassable is set.
-  Any other value, and any out-of-bounds coordinate, is solid. This
-  mirrors world.IsBlocking but reads the static grid, with no live door
-  state and no NPCs. }
+{ Whether a tile can be walked for planning, read from the map's static
+  data. Open floor is passable. A tile an NPC stands on is blocked, since
+  NPCs do not step aside. A door is passable only when doorsPassable is set
+  and the door is not locked: a locked door has no key-use path in the game,
+  so to a planner it is a wall. Any other wall value, and any out-of-bounds
+  coordinate, is solid. This mirrors world.IsBlocking over the static grid,
+  without the live open-door state. }
 function PathPassable(const m: TMapData; x, y: longint;
   doorsPassable: boolean): boolean;
 
@@ -48,6 +50,33 @@ function PathExists(const m: TMapData; sx, sy, dx, dy: longint;
 
 implementation
 
+function DoorLocked(const m: TMapData; x, y: longint): boolean;
+{** Whether a door tile carries a locked door record. A door tile with no
+  record is an ordinary unlocked door. }
+var
+  i: longint;
+begin
+  DoorLocked := false;
+  for i := 0 to High(m.doors) do
+    if (m.doors[i].x = x) and (m.doors[i].y = y) then begin
+      DoorLocked := m.doors[i].locked <> 0;
+      exit;
+    end;
+end;
+
+function NpcTile(const m: TMapData; x, y: longint): boolean;
+{** Whether an NPC stands on the tile. }
+var
+  i: longint;
+begin
+  NpcTile := false;
+  for i := 0 to High(m.npcs) do
+    if (m.npcs[i].x = x) and (m.npcs[i].y = y) then begin
+      NpcTile := true;
+      exit;
+    end;
+end;
+
 function PathPassable(const m: TMapData; x, y: longint;
   doorsPassable: boolean): boolean;
 var
@@ -55,11 +84,12 @@ var
 begin
   PathPassable := false;
   if (x < 0) or (y < 0) or (x >= m.w) or (y >= m.h) then exit;
+  if NpcTile(m, x, y) then exit;
   t := m.walls[y * m.w + x];
   if t = TILE_EMPTY then
     PathPassable := true
   else if t = TILE_DOOR then
-    PathPassable := doorsPassable;
+    PathPassable := doorsPassable and not DoorLocked(m, x, y);
 end;
 
 const

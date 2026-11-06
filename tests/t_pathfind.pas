@@ -93,6 +93,29 @@ begin
   Check(not FindPath(m, 0, 0, 4, 0, true, tiny, steps),
     'returns false when the route exceeds the buffer');
 
+  { 11: a locked door is a wall to planning; unlocking it opens the route. }
+  BuildMap(m, ['..+..']);
+  SetLength(m.doors, 1);
+  m.doors[0].x := 2; m.doors[0].y := 0; m.doors[0].locked := 1;
+  m.doors[0].key := 'K';
+  Check(not FindPath(m, 0, 0, 4, 0, true, path, steps),
+    'a locked door blocks the route');
+  m.doors[0].locked := 0;
+  Check(FindPath(m, 0, 0, 4, 0, true, path, steps),
+    'the same door unlocked lets the route through');
+
+  { 12: an NPC blocks its tile, and a route detours around one. }
+  BuildMap(m, ['.....']);
+  SetLength(m.npcs, 1);
+  m.npcs[0].x := 2; m.npcs[0].y := 0;
+  Check(not FindPath(m, 0, 0, 4, 0, true, path, steps),
+    'an NPC blocks the only corridor');
+  BuildMap(m, ['.....', '.....']);
+  SetLength(m.npcs, 1);
+  m.npcs[0].x := 2; m.npcs[0].y := 0;
+  Check(FindPath(m, 0, 0, 4, 0, true, path, steps),
+    'a route detours around an NPC when it can');
+
   TestSummary('pathfind');
   halt(TestExit);
 end.
