@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 8;
+  SAVE_VERSION = 9;
 
 var
   LoadedMapName: string;
@@ -30,7 +30,8 @@ function SaveExists(const fn: string): boolean;
 implementation
 
 uses
-  classes, sysutils, rules, chardata, gametime, pursuit, gamestate, codex;
+  classes, sysutils, rules, chardata, gametime, pursuit, gamestate, codex,
+  mappins;
 
 { ---- stream helpers ---- }
 
@@ -198,6 +199,15 @@ begin
     for i := 0 to High(MonSeen) do fs.WriteByte(ord(MonSeen[i]));
     WI32(fs, Length(ItemIdent));
     for i := 0 to High(ItemIdent) do fs.WriteByte(ord(ItemIdent[i]));
+
+    { map pins and auto-markers }
+    WI32(fs, Length(Pins));
+    for i := 0 to High(Pins) do begin
+      WStr(fs, Pins[i].map);
+      WI32(fs, Pins[i].x);
+      WI32(fs, Pins[i].y);
+      fs.WriteByte(Pins[i].kind);
+    end;
   finally
     fs.Free;
   end;
@@ -275,6 +285,18 @@ begin
     for i := 0 to n - 1 do begin
       cells := fs.ReadByte;
       if i <= High(ItemIdent) then ItemIdent[i] := cells <> 0;
+    end;
+
+    { map pins. Read each field in order into the record; argument evaluation
+      order is undefined, so the reads cannot be inlined into one call. }
+    PinsReset;
+    n := RI32(fs);
+    SetLength(Pins, n);
+    for i := 0 to n - 1 do begin
+      Pins[i].map := RStr(fs);
+      Pins[i].x := RI32(fs);
+      Pins[i].y := RI32(fs);
+      Pins[i].kind := fs.ReadByte;
     end;
   finally
     fs.Free;

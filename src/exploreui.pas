@@ -28,7 +28,8 @@ implementation
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, encounters, monsters, audio, gamestate,
-  worldload, combatui, save, pathfind, maproute, pursuit, overworldui, keymap;
+  worldload, combatui, save, pathfind, maproute, pursuit, overworldui, keymap,
+  mappins;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
@@ -452,6 +453,36 @@ begin
   end;
 end;
 
+procedure AutoPinDiscovered;
+{** Drop a marker on each discovered stair, portal and service NPC of the
+  resident map, so the full map fills in points of interest as the party
+  explores. An auto marker is placed once and never overrides a player pin. }
+var
+  i, px, py: longint;
+
+  function Discovered(x, y: longint): boolean;
+  begin
+    Discovered := (x >= 0) and (y >= 0) and (x < MapW) and (y < MapH)
+      and (Seen[y][x] <> VIS_UNSEEN);
+  end;
+
+begin
+  for i := 0 to High(CurMap.portals) do begin
+    px := CurMap.portals[i].x; py := CurMap.portals[i].y;
+    if Discovered(px, py) then begin
+      if (CurMap.portals[i].kind = PK_DOWN) or (CurMap.portals[i].kind = PK_UP) then
+        PinSetAuto(CurMapName, px, py, PIN_STAIR)
+      else
+        PinSetAuto(CurMapName, px, py, PIN_PORTAL);
+    end;
+  end;
+  for i := 0 to High(CurMap.npcs) do begin
+    px := CurMap.npcs[i].x; py := CurMap.npcs[i].y;
+    if Discovered(px, py) then
+      PinSetAuto(CurMapName, px, py, PIN_SHOP);
+  end;
+end;
+
 procedure CheckTileEvents;
 {** On stepping onto a new tile: follow a portal, burn the torch, spring a
   trap, tick poison, advance any hunters, then roll for a wandering monster. }
@@ -471,6 +502,7 @@ begin
   PoisonTick;
   TrapCheck;
   LightPuzzleCheck;
+  AutoPinDiscovered;
   if not PartyConscious then begin
     State := gsGameOver;
     exit;

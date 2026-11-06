@@ -7,7 +7,7 @@ program t_save;
 
 uses
   sysutils, pak, rng, rules, items, chardata, mapfmt, world, party, flags,
-  mapstate, gametime, pursuit, monsters, codex, save, testing;
+  mapstate, gametime, pursuit, monsters, codex, mappins, save, testing;
 
 var
   p: TPak;
@@ -54,6 +54,11 @@ begin
   MarkMonSeen(MonIndex('GHOUL'));
   ItemIdent[ItemIndex('SWORD')] := false;
 
+  { a couple of map pins }
+  PinsReset;
+  PinCycleManual('TOWN', 2, 3);           { a bang }
+  PinSetAuto('DUNGEON', 7, 8, PIN_STAIR); { an auto stair marker }
+
   fn := 'build/tests/save_rt.sav';
   Check(SaveGame(fn), 'save writes');
 
@@ -64,6 +69,7 @@ begin
   ClockMin := 0;
   PursuitReset;          { drop the hunters so the load must restore them }
   CodexReset;            { clear the codex so the load must restore it }
+  PinsReset;             { and the pins }
 
   Check(LoadGame(fn), 'load reads');
   CheckEqI(Length(Roster), 2, 'party size restored');
@@ -75,6 +81,8 @@ begin
   CheckEqI(ClockMin, 6 * 60 + 5000, 'clock restored');
   Check(MonIsSeen(MonIndex('GHOUL')), 'bestiary entry restored');
   Check(not ItemIsKnown(ItemIndex('SWORD')), 'item knowledge restored');
+  CheckEqI(PinKindAt('TOWN', 2, 3), PIN_BANG, 'a map pin restored');
+  CheckEqI(PinKindAt('DUNGEON', 7, 8), PIN_STAIR, 'an auto marker restored');
   CheckEqI(ActivePursuerCount, 2, 'both hunters restored');
   Check((Length(Pursuers) >= 2) and (Pursuers[0].mon = 3)
     and (Pursuers[0].map = 'TOWN') and (Pursuers[0].x = 4) and (Pursuers[0].y = 4),

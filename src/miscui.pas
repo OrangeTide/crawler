@@ -27,18 +27,42 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui, pursuit, settings, keymap, codex, monsters;
+  exploreui, pursuit, settings, keymap, codex, monsters, mappins;
+
+function PinColor(kind: byte): TColor;
+begin
+  case kind of
+    PIN_BANG:   PinColor := RGB(240, 220, 80);
+    PIN_QUERY:  PinColor := RGB(90, 200, 230);
+    PIN_STAR:   PinColor := RGB(220, 120, 220);
+    PIN_STAIR:  PinColor := RGB(235, 235, 235);
+    PIN_PORTAL: PinColor := RGB(90, 120, 240);
+    PIN_SHOP:   PinColor := RGB(120, 220, 120);
+  else PinColor := RGB(200, 200, 200);
+  end;
+end;
 
 procedure FullMapRender;
-{** The full map with any hunters on this map marked over it, so the player
-  can see a pursuer closing in. }
+{** The full map with the player's pins, the auto-markers, and any hunters on
+  this map drawn over it. }
 var
   i: longint;
 begin
   DrawFullMap;
+  for i := 0 to High(Pins) do
+    if Pins[i].map = CurMapName then
+      FullMapMark(Pins[i].x, Pins[i].y, PinColor(Pins[i].kind));
   for i := 0 to High(Pursuers) do
     if Pursuers[i].active and (Pursuers[i].map = CurMapName) then
       FullMapMark(Pursuers[i].x, Pursuers[i].y, RGB(230, 40, 160));
+  { legend across the foot: the manual marks, then the auto markers }
+  DrawText(6, FBH - 9, 'RMB PIN', RGB(150, 150, 140));
+  DrawText(74, FBH - 9, '!', PinColor(PIN_BANG));
+  DrawText(84, FBH - 9, '?', PinColor(PIN_QUERY));
+  DrawText(94, FBH - 9, '*', PinColor(PIN_STAR));
+  DrawText(120, FBH - 9, 'STAIR', PinColor(PIN_STAIR));
+  DrawText(162, FBH - 9, 'PORT', PinColor(PIN_PORTAL));
+  DrawText(196, FBH - 9, 'NPC', PinColor(PIN_SHOP));
 end;
 
 procedure FullMapKeyDown(scancode: longint);
@@ -66,10 +90,15 @@ procedure FullMapMouseButton(button: longint);
 var
   tx, ty: longint;
 begin
-  if button <> SDL_BUTTON_LEFT then exit;
-  if FullMapTileAt(cursorX, cursorY, tx, ty) then begin
-    StartAutoTravel(CurMapName, tx, ty);
-    State := gsExplore;
+  if button = SDL_BUTTON_LEFT then begin
+    if FullMapTileAt(cursorX, cursorY, tx, ty) then begin
+      StartAutoTravel(CurMapName, tx, ty);
+      State := gsExplore;
+    end;
+  end else if button = SDL_BUTTON_RIGHT then begin
+    { right click drops or cycles a pin, without leaving the map }
+    if FullMapTileAt(cursorX, cursorY, tx, ty) then
+      PinCycleManual(CurMapName, tx, ty);
   end;
 end;
 
