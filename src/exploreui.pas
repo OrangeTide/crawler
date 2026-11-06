@@ -28,7 +28,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, encounters, monsters, audio, gamestate,
-  worldload, combatui, save, pathfind, maproute, pursuit;
+  worldload, combatui, save, pathfind, maproute, pursuit, overworldui;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
@@ -219,6 +219,11 @@ begin
   end;
   case scancode of
     SDL_SCANCODE_G:      RecallToTown;
+    SDL_SCANCODE_O:
+      if not EnterOverworld then begin
+        saveMsg := 'NO OVERWORLD TRAVEL FROM HERE';
+        saveMsgT := 2.0;
+      end;
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_SPACE:  InteractAhead;
     SDL_SCANCODE_M:      showMap := not showMap;

@@ -26,7 +26,7 @@ uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, shops, encounters, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
-  miscui, gametime, audio;
+  miscui, overworldui, gametime, audio;
 
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
@@ -126,6 +126,7 @@ begin
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
           gsVictory:  VictoryKeyDown(ev.key.keysym.scancode);
           gsOptions:  OptionsKeyDown(ev.key.keysym.scancode);
+          gsOverworld: OverworldKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -181,6 +182,7 @@ begin
     gsGameOver: GameOverRender;
     gsVictory:  VictoryRender;
     gsOptions:  OptionsRender;
+    gsOverworld: OverworldRender;
   end;
 end;
 

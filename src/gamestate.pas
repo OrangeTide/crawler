@@ -19,7 +19,7 @@ uses
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
                 gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
-                gsGameOver, gsVictory, gsOptions);
+                gsGameOver, gsVictory, gsOptions, gsOverworld);
 
   TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
   PKeyArray = ^TKeyArray;
@@ -54,6 +54,10 @@ var
   optSel: longint;
   volMaster, volMusic, volSfx: longint;
   titleSel: longint;
+
+  { coarse overworld travel: the cursor cell and how many cells it has
+    moved from where the party stood when travel began }
+  owCx, owCy, owSteps: longint;
 
 function KeyDown(scancode: longint): boolean; inline;
 
