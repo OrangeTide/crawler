@@ -1,0 +1,4 @@
+# The macOS SDK is supplied by you and is not redistributable (Apple's
+# license ties it to Apple hardware). Keep it out of the repository.
+*.sdk.tar.*
+*.sdk

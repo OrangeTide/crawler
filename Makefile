@@ -91,3 +91,9 @@ test: $(PAK)
 
 clean:
 	rm -rf build
+
+# Optional cross-build targets (macOS, and others later) live in mk/*.mk and
+# are pulled in here. They are needed only to produce foreign binaries, so they
+# stay out of the way of the common build above. The leading dash keeps make
+# quiet when the directory is empty.
+-include mk/*.mk
