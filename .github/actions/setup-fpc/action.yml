@@ -1,0 +1,40 @@
+name: Setup FPC
+description: Install Free Pascal for this host (and make on Windows) and put it on PATH.
+
+runs:
+  using: composite
+  steps:
+    - name: Install FPC (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y fpc
+
+    - name: Install FPC (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install fpc
+
+    - name: Install FPC and make (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: choco install lazarus make -y --no-progress
+
+    - name: Put FPC on PATH (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        # Chocolatey's Lazarus deploys to C:\lazarus and bundles FPC under
+        # fpc\<ver>\bin\<target>\fpc.exe. The || true keeps find's exit status
+        # (a missing dir, or SIGPIPE from head) from tripping pipefail.
+        fpcexe=$(find /c/lazarus -iname fpc.exe -path '*bin*' 2>/dev/null | head -n1 || true)
+        if [ -z "$fpcexe" ]; then
+          echo "fpc.exe not found under C:\\lazarus; tree was:"
+          find /c/lazarus -iname 'fpc.exe' 2>/dev/null | head
+          exit 1
+        fi
+        echo "Found FPC at: $fpcexe"
+        cygpath -w "$(dirname "$fpcexe")" >> "$GITHUB_PATH"
+
+    - name: Compiler version
+      shell: bash
+      run: fpc -iV
