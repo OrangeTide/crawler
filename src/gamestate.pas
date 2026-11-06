@@ -19,7 +19,7 @@ uses
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
                 gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
-                gsGameOver, gsVictory, gsOptions, gsOverworld);
+                gsGameOver, gsVictory, gsOptions, gsKeybind, gsOverworld);
 
   TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
   PKeyArray = ^TKeyArray;
@@ -59,6 +59,8 @@ var
   optSel: longint;
   volMaster, volMusic, volSfx: longint;
   titleSel: longint;
+  kbSel: longint;          { selected row on the key-bindings screen }
+  kbCapturing: boolean;    { waiting for the next key to bind it }
 
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }

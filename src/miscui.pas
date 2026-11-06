@@ -18,6 +18,8 @@ procedure GameOverRender;
 procedure GameOverKeyDown(scancode: longint);
 procedure OptionsRender;
 procedure OptionsKeyDown(scancode: longint);
+procedure KeybindRender;
+procedure KeybindKeyDown(scancode: longint);
 procedure VictoryRender;
 procedure VictoryKeyDown(scancode: longint);
 
@@ -117,7 +119,8 @@ const
   OPT_DEATH  = 3;
   OPT_CRIT   = 4;
   OPT_SPEED  = 5;
-  OPT_LAST   = 5;
+  OPT_KEYS   = 6;
+  OPT_LAST   = 6;
 
 function SpeedName(cs: longint): string;
 begin
@@ -131,7 +134,8 @@ end;
 procedure OptionsRender;
 const
   LABELS: array[OPT_MASTER .. OPT_LAST] of string =
-    ('MASTER', 'MUSIC', 'SFX', 'PERMADEATH', 'CRITICALS', 'COMBAT SPEED');
+    ('MASTER', 'MUSIC', 'SFX', 'PERMADEATH', 'CRITICALS', 'COMBAT SPEED',
+     'KEY BINDINGS');
 var
   i, y, v: longint;
   c: TColor;
@@ -162,6 +166,7 @@ begin
       OPT_DEATH: OnOff(SetPermadeath);
       OPT_CRIT:  OnOff(SetCriticals);
       OPT_SPEED: DrawText(170, y, SpeedName(SetCombatSpeed), c);
+      OPT_KEYS:  DrawText(170, y, 'EDIT >', c);
     end;
     inc(y, 18);
   end;
@@ -182,13 +187,21 @@ var
 begin
   dir := 0;
   case scancode of
-    SDL_SCANCODE_UP:   if optSel > 0 then dec(optSel);
-    SDL_SCANCODE_DOWN: if optSel < OPT_LAST then inc(optSel);
+    SDL_SCANCODE_UP:   begin if optSel > 0 then dec(optSel); exit; end;
+    SDL_SCANCODE_DOWN: begin if optSel < OPT_LAST then inc(optSel); exit; end;
     SDL_SCANCODE_LEFT:  dir := -1;
     SDL_SCANCODE_RIGHT: dir := 1;
+    SDL_SCANCODE_RETURN: dir := 1;   { enter opens the key-binding sub-screen }
     SDL_SCANCODE_ESCAPE: begin SettingsSave; State := gsTitle; exit; end;
   end;
   if dir = 0 then exit;
+  { the key-bindings row is a door, not a value }
+  if optSel = OPT_KEYS then begin
+    if dir > 0 then begin
+      kbSel := 0; kbCapturing := false; State := gsKeybind;
+    end;
+    exit;
+  end;
   case optSel of
     OPT_MASTER: volMaster := ClampVol(volMaster + dir * 10);
     OPT_MUSIC:  volMusic  := ClampVol(volMusic + dir * 10);
@@ -204,6 +217,57 @@ begin
   SettingsApply;        { push volumes and the combat rules live }
   SettingsSave;         { persist the change at once }
   PlaySfx(SFX_SELECT);
+end;
+
+procedure KeybindRender;
+var
+  a: TGameAction;
+  y: longint;
+  c: TColor;
+begin
+  ClearFB(RGB(12, 12, 16));
+  DrawCenter(16, 'KEY BINDINGS', RGB(220, 200, 120));
+  y := 44;
+  for a := Low(TGameAction) to High(TGameAction) do begin
+    if ord(a) = kbSel then c := RGB(240, 230, 150) else c := RGB(160, 160, 140);
+    DrawText(50, y, ActionName(a), c);
+    if (ord(a) = kbSel) and kbCapturing then
+      DrawText(210, y, 'PRESS A KEY', RGB(230, 180, 90))
+    else
+      DrawText(210, y, KeyName(KeyBind[a]), c);
+    inc(y, 16);
+  end;
+  if kbCapturing then
+    DrawCenter(FBH - 20, 'PRESS A KEY   ESC CANCEL', RGB(130, 140, 110))
+  else
+    DrawCenter(FBH - 20, 'ENTER REBIND   ESC BACK', RGB(130, 140, 110));
+end;
+
+{ A key reserved for menu navigation, which must stay unbindable. }
+function ReservedKey(scancode: longint): boolean;
+begin
+  ReservedKey := (scancode = SDL_SCANCODE_RETURN)
+    or (scancode = SDL_SCANCODE_UP) or (scancode = SDL_SCANCODE_DOWN)
+    or (scancode = SDL_SCANCODE_LEFT) or (scancode = SDL_SCANCODE_RIGHT);
+end;
+
+procedure KeybindKeyDown(scancode: longint);
+begin
+  if kbCapturing then begin
+    if scancode = SDL_SCANCODE_ESCAPE then begin kbCapturing := false; exit; end;
+    if ReservedKey(scancode) then exit;   { keep the menu keys free }
+    RebindKey(TGameAction(kbSel), scancode);
+    kbCapturing := false;
+    SettingsSave;
+    PlaySfx(SFX_SELECT);
+    exit;
+  end;
+  case scancode of
+    SDL_SCANCODE_UP:     if kbSel > 0 then dec(kbSel);
+    SDL_SCANCODE_DOWN:   if kbSel < ord(High(TGameAction)) then inc(kbSel);
+    SDL_SCANCODE_RETURN: kbCapturing := true;
+    SDL_SCANCODE_ESCAPE: begin SettingsSave; State := gsOptions; end;
+  end;
 end;
 
 procedure VictoryRender;

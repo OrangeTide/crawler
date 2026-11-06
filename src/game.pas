@@ -125,6 +125,7 @@ begin
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
           gsVictory:  VictoryKeyDown(ev.key.keysym.scancode);
           gsOptions:  OptionsKeyDown(ev.key.keysym.scancode);
+          gsKeybind:  KeybindKeyDown(ev.key.keysym.scancode);
           gsOverworld: OverworldKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
@@ -181,6 +182,7 @@ begin
     gsGameOver: GameOverRender;
     gsVictory:  VictoryRender;
     gsOptions:  OptionsRender;
+    gsKeybind:  KeybindRender;
     gsOverworld: OverworldRender;
   end;
 end;

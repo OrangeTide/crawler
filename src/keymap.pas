@@ -23,6 +23,9 @@ var
   KeyBind: array[TGameAction] of longint;   { the scancode bound to each action }
 
 procedure KeyBindDefaults;
+{ Bind scancode to action a. If another action already holds it, that action
+  takes a's old key, so the swap never leaves an action without one. }
+procedure RebindKey(a: TGameAction; scancode: longint);
 { The ord of the action bound to scancode, or -1 if none is. }
 function ActionForKey(scancode: longint): longint;
 function ActionName(a: TGameAction): string;   { for the rebinding screen }
@@ -48,6 +51,18 @@ begin
   KeyBind[gaMap]       := SDL_SCANCODE_TAB;
   KeyBind[gaRecall]    := SDL_SCANCODE_G;
   KeyBind[gaOverworld] := SDL_SCANCODE_O;
+end;
+
+procedure RebindKey(a: TGameAction; scancode: longint);
+var
+  other: TGameAction;
+  old: longint;
+begin
+  old := KeyBind[a];
+  for other := Low(TGameAction) to High(TGameAction) do
+    if (other <> a) and (KeyBind[other] = scancode) then
+      KeyBind[other] := old;
+  KeyBind[a] := scancode;
 end;
 
 function ActionForKey(scancode: longint): longint;

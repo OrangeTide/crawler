@@ -28,7 +28,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, encounters, monsters, audio, gamestate,
-  worldload, combatui, save, pathfind, maproute, pursuit, overworldui;
+  worldload, combatui, save, pathfind, maproute, pursuit, overworldui, keymap;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
@@ -210,27 +210,36 @@ begin
 end;
 
 procedure ExploreKeyDown(scancode: longint);
+var
+  act: longint;
 begin
   { any key but the recall key stops a trip in progress; the first Escape
     only stops it, and does not also quit. }
-  if atActive and (scancode <> SDL_SCANCODE_G) then begin
+  if atActive and (scancode <> KeyBind[gaRecall]) then begin
     CancelAutoTravel;
     if scancode = SDL_SCANCODE_ESCAPE then exit;
   end;
-  case scancode of
-    SDL_SCANCODE_G:      RecallToTown;
-    SDL_SCANCODE_O:
+  { the rebindable in-world commands come first, by action }
+  act := ActionForKey(scancode);
+  case act of
+    ord(gaRecall): begin RecallToTown; exit; end;
+    ord(gaOverworld): begin
       if not EnterOverworld then begin
         saveMsg := 'NO OVERWORLD TRAVEL FROM HERE';
         saveMsgT := 2.0;
       end;
+      exit;
+    end;
+    ord(gaInteract): begin InteractAhead; exit; end;
+    ord(gaMap):      begin State := gsFullMap; exit; end;
+    ord(gaRest):     begin RestHere; exit; end;
+  end;
+  { the fixed keys: menus, renderer A/B, quit, and the save slots }
+  case scancode of
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
-    SDL_SCANCODE_SPACE:  InteractAhead;
     SDL_SCANCODE_M:      showMap := not showMap;
     SDL_SCANCODE_P:      UsePoly := not UsePoly;   { A/B the renderers }
-    SDL_SCANCODE_TAB:    State := gsFullMap;
     SDL_SCANCODE_J:      State := gsMenu;
-    SDL_SCANCODE_R:      RestHere;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
     SDL_SCANCODE_F5: begin
       if SaveGame(SavePath) then saveMsg := 'GAME SAVED'
@@ -487,31 +496,34 @@ begin
 end;
 
 procedure ExploreUpdate(dt: double);
+var
+  moveHeld: boolean;
 begin
+  { the bound movement keys, with the arrows kept as fixed alternates for
+    forward, back and turning so the old feel survives a rebind. }
+  moveHeld := KeyDown(KeyBind[gaForward]) or KeyDown(SDL_SCANCODE_UP)
+    or KeyDown(KeyBind[gaBack]) or KeyDown(SDL_SCANCODE_DOWN)
+    or KeyDown(KeyBind[gaStrafeL]) or KeyDown(KeyBind[gaStrafeR])
+    or KeyDown(KeyBind[gaTurnL]) or KeyDown(SDL_SCANCODE_LEFT)
+    or KeyDown(KeyBind[gaTurnR]) or KeyDown(SDL_SCANCODE_RIGHT);
   { One grid action per idle moment; the tween gates auto-repeat. }
   if not MotionBusy then begin
     if atActive then begin
       { a held movement or turn key takes back manual control. }
-      if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP)
-         or KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN)
-         or KeyDown(SDL_SCANCODE_A) or KeyDown(SDL_SCANCODE_D)
-         or KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_LEFT)
-         or KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_RIGHT) then
-        CancelAutoTravel
-      else
-        AutoTravelStep;
+      if moveHeld then CancelAutoTravel
+      else AutoTravelStep;
     end
-    else if KeyDown(SDL_SCANCODE_W) or KeyDown(SDL_SCANCODE_UP) then
+    else if KeyDown(KeyBind[gaForward]) or KeyDown(SDL_SCANCODE_UP) then
       RequestStep(1, 0)
-    else if KeyDown(SDL_SCANCODE_S) or KeyDown(SDL_SCANCODE_DOWN) then
+    else if KeyDown(KeyBind[gaBack]) or KeyDown(SDL_SCANCODE_DOWN) then
       RequestStep(-1, 0)
-    else if KeyDown(SDL_SCANCODE_A) then
+    else if KeyDown(KeyBind[gaStrafeL]) then
       RequestStep(0, -1)
-    else if KeyDown(SDL_SCANCODE_D) then
+    else if KeyDown(KeyBind[gaStrafeR]) then
       RequestStep(0, 1)
-    else if KeyDown(SDL_SCANCODE_Q) or KeyDown(SDL_SCANCODE_LEFT) then
+    else if KeyDown(KeyBind[gaTurnL]) or KeyDown(SDL_SCANCODE_LEFT) then
       RequestTurn(-1)
-    else if KeyDown(SDL_SCANCODE_E) or KeyDown(SDL_SCANCODE_RIGHT) then
+    else if KeyDown(KeyBind[gaTurnR]) or KeyDown(SDL_SCANCODE_RIGHT) then
       RequestTurn(1);
   end;
 
