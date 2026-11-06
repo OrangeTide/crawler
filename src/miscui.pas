@@ -25,7 +25,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui, pursuit;
+  exploreui, pursuit, settings, keymap;
 
 procedure FullMapRender;
 {** The full map with any hunters on this map marked over it, so the player
@@ -109,56 +109,101 @@ begin
   State := gsTitle;
 end;
 
+const
+  { the options rows, in order down the screen }
+  OPT_MASTER = 0;
+  OPT_MUSIC  = 1;
+  OPT_SFX    = 2;
+  OPT_DEATH  = 3;
+  OPT_CRIT   = 4;
+  OPT_SPEED  = 5;
+  OPT_LAST   = 5;
+
+function SpeedName(cs: longint): string;
+begin
+  case cs of
+    CS_SLOW: SpeedName := 'SLOW';
+    CS_FAST: SpeedName := 'FAST';
+  else SpeedName := 'NORMAL';
+  end;
+end;
+
 procedure OptionsRender;
 const
-  LABELS: array[0 .. 2] of string = ('MASTER', 'MUSIC', 'SFX');
+  LABELS: array[OPT_MASTER .. OPT_LAST] of string =
+    ('MASTER', 'MUSIC', 'SFX', 'PERMADEATH', 'CRITICALS', 'COMBAT SPEED');
 var
   i, y, v: longint;
   c: TColor;
+
+  procedure OnOff(flag: boolean);
+  begin
+    if flag then DrawText(170, y, 'ON', c) else DrawText(170, y, 'OFF', c);
+  end;
+
 begin
   ClearFB(RGB(12, 12, 16));
   DrawCenter(20, 'OPTIONS', RGB(220, 200, 120));
-  y := 60;
-  for i := 0 to 2 do begin
+  y := 56;
+  for i := OPT_MASTER to OPT_LAST do begin
     if i = optSel then c := RGB(240, 230, 150) else c := RGB(160, 160, 140);
-    DrawText(60, y, LABELS[i], c);
+    DrawText(50, y, LABELS[i], c);
     case i of
-      0: v := volMaster;
-      1: v := volMusic;
-    else v := volSfx;
+      OPT_MASTER, OPT_MUSIC, OPT_SFX: begin
+        case i of
+          OPT_MASTER: v := volMaster;
+          OPT_MUSIC:  v := volMusic;
+        else v := volSfx;
+        end;
+        FillRect(170, y, 102, 7, RGB(40, 40, 46));
+        FillRect(171, y + 1, v, 5, RGB(90, 160, 110));
+        DrawText(280, y, IntToStr(v), c);
+      end;
+      OPT_DEATH: OnOff(SetPermadeath);
+      OPT_CRIT:  OnOff(SetCriticals);
+      OPT_SPEED: DrawText(170, y, SpeedName(SetCombatSpeed), c);
     end;
-    FillRect(130, y, 102, 7, RGB(40, 40, 46));
-    FillRect(131, y + 1, v, 5, RGB(90, 160, 110));
-    DrawText(240, y, IntToStr(v), c);
-    inc(y, 20);
+    inc(y, 18);
   end;
   DrawCenter(FBH - 20, 'ARROWS ADJUST   ESC BACK', RGB(130, 140, 110));
 end;
 
+{ Nudge a volume by delta and clamp it to 0..100. }
+function ClampVol(v: longint): longint;
+begin
+  if v < 0 then v := 0;
+  if v > 100 then v := 100;
+  ClampVol := v;
+end;
+
 procedure OptionsKeyDown(scancode: longint);
 var
-  delta: longint;
+  dir: longint;
 begin
-  delta := 0;
+  dir := 0;
   case scancode of
     SDL_SCANCODE_UP:   if optSel > 0 then dec(optSel);
-    SDL_SCANCODE_DOWN: if optSel < 2 then inc(optSel);
-    SDL_SCANCODE_LEFT:  delta := -10;
-    SDL_SCANCODE_RIGHT: delta := 10;
-    SDL_SCANCODE_ESCAPE: begin State := gsTitle; exit; end;
+    SDL_SCANCODE_DOWN: if optSel < OPT_LAST then inc(optSel);
+    SDL_SCANCODE_LEFT:  dir := -1;
+    SDL_SCANCODE_RIGHT: dir := 1;
+    SDL_SCANCODE_ESCAPE: begin SettingsSave; State := gsTitle; exit; end;
   end;
-  if delta <> 0 then begin
-    case optSel of
-      0: volMaster := volMaster + delta;
-      1: volMusic := volMusic + delta;
-    else volSfx := volSfx + delta;
+  if dir = 0 then exit;
+  case optSel of
+    OPT_MASTER: volMaster := ClampVol(volMaster + dir * 10);
+    OPT_MUSIC:  volMusic  := ClampVol(volMusic + dir * 10);
+    OPT_SFX:    volSfx    := ClampVol(volSfx + dir * 10);
+    OPT_DEATH:  SetPermadeath := not SetPermadeath;
+    OPT_CRIT:   SetCriticals := not SetCriticals;
+    OPT_SPEED: begin
+      SetCombatSpeed := SetCombatSpeed + dir;
+      if SetCombatSpeed < CS_SLOW then SetCombatSpeed := CS_SLOW;
+      if SetCombatSpeed > CS_FAST then SetCombatSpeed := CS_FAST;
     end;
-    if volMaster < 0 then volMaster := 0; if volMaster > 100 then volMaster := 100;
-    if volMusic < 0 then volMusic := 0;   if volMusic > 100 then volMusic := 100;
-    if volSfx < 0 then volSfx := 0;        if volSfx > 100 then volSfx := 100;
-    SetAudioVolumes(volMaster, volMusic, volSfx);
-    PlaySfx(SFX_SELECT);
   end;
+  SettingsApply;        { push volumes and the combat rules live }
+  SettingsSave;         { persist the change at once }
+  PlaySfx(SFX_SELECT);
 end;
 
 procedure VictoryRender;
