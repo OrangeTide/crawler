@@ -26,7 +26,7 @@ uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, shops, encounters, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
-  miscui, overworldui, gametime, audio;
+  miscui, overworldui, gametime, audio, settings;
 
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
@@ -92,8 +92,7 @@ begin
   MoonOffsetDays := (WorldSeed mod 2953) / 100.0;  { seed the moon phase }
 
   AudioInit(GamePak);   { silent if the device or libxmp is absent }
-  volMaster := 80; volMusic := 55; volSfx := 90;
-  SetAudioVolumes(volMaster, volMusic, volSfx);
+  SettingsLoad;         { volumes, difficulty and key bindings, then applied }
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;

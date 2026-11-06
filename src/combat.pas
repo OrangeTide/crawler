@@ -197,6 +197,8 @@ var
   PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
   PartyDark: longint;       { a fight-long to-hit penalty for fighting in the
                              dark, set from the torch when the fight begins }
+  OptCriticals: boolean;    { natural 20 auto-hits for max damage, 1 fumbles }
+  CombatBeatScale: double;  { scales the pause between beats, from the options }
 
 implementation
 
@@ -545,7 +547,7 @@ begin
   if CombatOver then begin CombatPhase := CP_DONE; exit; end;
   inc(TurnPos);
   CombatPhase := CP_BEAT;
-  CombatTimer := BEAT_TIME;
+  CombatTimer := BEAT_TIME * CombatBeatScale;
 end;
 
 { A combatant's turn-order speed, higher acting sooner. Party members run
@@ -701,7 +703,7 @@ begin
     CombatPhase := CP_INPUT;
   end else begin
     CombatPhase := CP_ENEMY;
-    CombatTimer := ENEMY_STEP;
+    CombatTimer := ENEMY_STEP * CombatBeatScale;
   end;
 end;
 
@@ -1041,7 +1043,7 @@ end;
 procedure ResolveEnemyTurn;
 var
   fi, tgt, roll, dmg, effAC, atkB: longint;
-  ranged, hasHarry, isMage, isHealer: boolean;
+  ranged, hasHarry, isMage, isHealer, hit: boolean;
 begin
   fi := TurnQueue[TurnPos].idx;
   if (fi > High(Foes)) or (not Foes[fi].alive) then exit;
@@ -1079,7 +1081,11 @@ begin
   if Roster[tgt].guarding then effAC := effAC + 2;   { braced to parry }
   atkB := MonDefs[Foes[fi].def].atkBonus;
   if FoeStatus[fi].fear > 0 then dec(atkB, FEAR_ATK);   { afraid: swings wide }
-  if (roll <> 1) and ((roll = 20) or (roll + atkB >= effAC)) then
+  if OptCriticals then
+    hit := (roll <> 1) and ((roll = 20) or (roll + atkB >= effAC))
+  else
+    hit := roll + atkB >= effAC;   { plain roll, no natural 20/1 }
+  if hit then
   begin
     dmg := D(MonDefs[Foes[fi].def].dmgSides);
     if dmg < 1 then dmg := 1;
@@ -1115,7 +1121,7 @@ end;
 
 procedure ResolvePartyAttack(actor, foe: longint);
 var
-  melee: boolean;
+  melee, hit: boolean;
   roll, roll2, atk, dmg, die: longint;
 begin
   melee := not WeaponRanged(Roster[actor]);
@@ -1136,9 +1142,13 @@ begin
   atk := CharAttack(Roster[actor], melee) + PartyBless - PartyDark;
   if PartyStatus[actor].fear > 0 then dec(atk, FEAR_ATK);   { afraid: shaky aim }
   if CharEncumbered(Roster[actor]) then dec(atk, ENCUMBER_ATK);  { overladen }
-  if (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac)) then
+  if OptCriticals then
+    hit := (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Foes[foe].def].ac))
+  else
+    hit := roll + atk >= MonDefs[Foes[foe].def].ac;   { plain roll, no 20/1 }
+  if hit then
   begin
-    if roll = 20 then dmg := die
+    if OptCriticals and (roll = 20) then dmg := die   { a crit for max damage }
     else dmg := D(die);
     if melee then dmg := dmg + AbilMod(Roster[actor].abil[abSTR]);
     if dmg < 1 then dmg := 1;
@@ -1368,5 +1378,9 @@ begin
 
   EndTurn;
 end;
+
+initialization
+  OptCriticals := true;     { the AX&X natural 20/1 rules, on unless turned off }
+  CombatBeatScale := 1.0;
 
 end.
