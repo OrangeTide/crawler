@@ -113,8 +113,10 @@ Tags: [gap] not started, [partial] exists but incomplete.
   Each wears its own tileset, one colour scheme over the shared patterns, so a
   generated map themes from its area too. Placed caches, barrels across the
   zones, hand coin and gear to a party that opens them once, the take tracked by
-  a per-tile flag in the save. A fire-resistance stat on worn gear, so the
-  infernal's reward pays off mechanically, still waits on combat support.
+  a per-tile flag in the save. Worn gear carries an elemental resist mask: the
+  dragonscale shield earned in the crypt halves the demon lord's fire and the
+  infernal's lava vents, so the reward pays off. Other elements (frost, shock,
+  holy) ride the same mask when gear for them is added.
 - [done] The main quest and an ending: the three relic shards (crypt shrine,
   cave grotto, infernal demon-lord) thread across the zones to the Elder, who
   gates the victory on all three held. The quest flags and victory screen close

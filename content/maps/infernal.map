@@ -23,9 +23,9 @@ end
 marker start 2 1 E
 portal 16 1 DUNGEON back
 npc 8 7 DEMONLORD Altar
-trap 7 7 10 13
-trap 4 7 10 13
-trap 12 7 10 13
+trap 7 7 10 13 fire
+trap 4 7 10 13 fire
+trap 12 7 10 13 fire
 gasvent 4 7
 gasvent 12 7
 bonfire 2 12

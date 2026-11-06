@@ -333,12 +333,13 @@ end;
 
 procedure TrapCheck;
 {** A trap on the tile springs once; the lead member rolls a Dodge save,
-  and on a failure the party takes damage and the lead is poisoned. }
+  and on a failure the party takes damage and the lead is poisoned. A member
+  whose worn gear wards against the trap's element takes half. }
 var
-  dmg, dc, lead, i, hit: longint;
+  dmg, dc, elem, lead, i, hit: longint;
   sprung: string;
 begin
-  if not TrapAt(TileX, TileY, dmg, dc) then exit;
+  if not TrapAt(TileX, TileY, dmg, dc, elem) then exit;
   sprung := 'TRAP_' + CurMapName + '_' + IntToStr(TileX) + '_' + IntToStr(TileY);
   if FlagHas(sprung) then exit;
   FlagSet(sprung);
@@ -352,6 +353,8 @@ begin
   for i := 0 to High(Roster) do
     if Roster[i].alive and (not Roster[i].downed) then begin
       hit := D(dmg);
+      if (elem <> 0) and ((CharResist(Roster[i]) and elem) <> 0) then
+        hit := (hit + 1) div 2;   { warded gear halves it, rounding up }
       Roster[i].hp := Roster[i].hp - hit;
       if Roster[i].hp <= 0 then begin
         Roster[i].hp := 0;

@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 6;
+  MAP_VERSION = 7;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -99,6 +99,7 @@ type
     x, y: word;
     dmg: byte;      { damage die sides on a failed save }
     dc: byte;       { Dodge save target }
+    element: byte;  { EL_* the trap deals, 0 physical (a spike or dart) }
   end;
 
   TLightTile = record
@@ -257,6 +258,8 @@ begin
     BU16(b, m.traps[i].y);
     BByte(b, m.traps[i].dmg);
     BByte(b, m.traps[i].dc);
+    BByte(b, m.traps[i].element);
+    BByte(b, 0);
   end;
 
   BU16(b, Length(m.props));
@@ -422,6 +425,8 @@ begin
     m.traps[i].y := RU16(r);
     m.traps[i].dmg := RByte(r);
     m.traps[i].dc := RByte(r);
+    m.traps[i].element := RByte(r);
+    RByte(r);
   end;
 
   count := RU16(r);

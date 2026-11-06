@@ -51,3 +51,5 @@ prop 8 7 BARREL
 prop 9 7 BARREL 45
 loot 8 7 120 ELIXIR 1
 loot 9 7 90 SILVER 1
+prop 21 22 BARREL
+loot 21 22 0 WARDSHLD 1

@@ -44,6 +44,7 @@ type
     value: word;
     flags: byte;
     sprite: byte;
+    resist: byte;     { EL_* mask the item wards against when worn, 0 none }
   end;
 
 var
@@ -93,6 +94,7 @@ begin
     PutB(a, n, (defs[i].value shr 8) and $FF);
     PutB(a, n, defs[i].flags);
     PutB(a, n, defs[i].sprite);
+    PutB(a, n, defs[i].resist);
   end;
   SetLength(a, n);
   EncodeItems := a;
@@ -134,6 +136,7 @@ begin
     ItemDefs[i].value := blob[pos] or (blob[pos + 1] shl 8); inc(pos, 2);
     ItemDefs[i].flags := blob[pos]; inc(pos);
     ItemDefs[i].sprite := blob[pos]; inc(pos);
+    ItemDefs[i].resist := blob[pos]; inc(pos);
   end;
   LoadItems := true;
 end;

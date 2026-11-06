@@ -87,7 +87,7 @@ function PortalKind(mx, my: longint): longint;     { -1 none, else PK_* }
 function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function TileLightAt(mx, my: longint): longint;    { 0..256 cast light }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
-function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
+function TrapAt(mx, my: longint; out dmg, dc, element: longint): boolean;
 function LootAt(mx, my: longint; out gold, qty: longint; out item: string): boolean;
 procedure ForwardDelta(out dx, dy: longint);
 procedure ComputeVisibility;
@@ -603,16 +603,17 @@ begin
     end;
 end;
 
-function TrapAt(mx, my: longint; out dmg, dc: longint): boolean;
+function TrapAt(mx, my: longint; out dmg, dc, element: longint): boolean;
 var
   i: longint;
 begin
   TrapAt := false;
-  dmg := 0; dc := 0;
+  dmg := 0; dc := 0; element := 0;
   for i := 0 to High(CurMap.traps) do
     if (CurMap.traps[i].x = mx) and (CurMap.traps[i].y = my) then begin
       dmg := CurMap.traps[i].dmg;
       dc := CurMap.traps[i].dc;
+      element := CurMap.traps[i].element;
       TrapAt := true;
       exit;
     end;

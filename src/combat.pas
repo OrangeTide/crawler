@@ -504,6 +504,31 @@ begin
   end;
 end;
 
+function ElementName(element: longint): string;
+begin
+  case element of
+    EL_FIRE:  ElementName := 'the flames';
+    EL_FROST: ElementName := 'the cold';
+    EL_SHOCK: ElementName := 'the shock';
+    EL_HOLY:  ElementName := 'the holy fire';
+  else
+    ElementName := 'the blow';
+  end;
+end;
+
+function ApplyResist(mi, dmg, element: longint): longint;
+{** Halve incoming elemental damage when the member's worn gear wards against
+  that element, and note it in the log. Physical and untyped hits pass through
+  since no gear resists them. }
+begin
+  ApplyResist := dmg;
+  if (element <> 0) and ((CharResist(Roster[mi]) and element) <> 0) then begin
+    ApplyResist := dmg div 2;
+    if ApplyResist < 1 then ApplyResist := 1;
+    CombatLog(Roster[mi].name + ' shrugs off ' + ElementName(element) + '.');
+  end;
+end;
+
 procedure CheckEnd;
 begin
   if LivingFoes = 0 then begin
@@ -624,7 +649,7 @@ end;
   skipped turn if stunned. Returns true when the turn is spent (the actor
   died or was stunned) so the caller advances past it. }
 function StartOfTurnSpent(const e: TTurnEnt): boolean;
-var i: longint;
+var i, bd: longint;
 begin
   StartOfTurnSpent := false;
   if e.side = 0 then begin
@@ -657,8 +682,9 @@ begin
       HurtMember(i, POISON_DMG); dec(PartyStatus[i].poison);
     end;
     if Roster[i].alive and (not Roster[i].downed) and (PartyStatus[i].burn > 0) then begin
-      PushPop(1, i, POPC_PARTYDMG, IntToStr(BURN_DMG)); FlashAlly(i);
-      HurtMember(i, BURN_DMG); dec(PartyStatus[i].burn);
+      bd := ApplyResist(i, BURN_DMG, EL_FIRE);
+      PushPop(1, i, POPC_PARTYDMG, IntToStr(bd)); FlashAlly(i);
+      HurtMember(i, bd); dec(PartyStatus[i].burn);
     end;
     if PartyStatus[i].slow > 0 then dec(PartyStatus[i].slow);
     if PartyStatus[i].offbal > 0 then dec(PartyStatus[i].offbal);
@@ -950,6 +976,7 @@ begin
         if tgt < 0 then exit;
         dmg := D(MonDefs[Foes[fi].def].dmgSides) div 2;
         if dmg < 1 then dmg := 1;
+        dmg := ApplyResist(tgt, dmg, MonDefs[Foes[fi].def].element);
         CombatLog(MonDefs[Foes[fi].def].name + ' hurls a weapon at '
           + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
         PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
@@ -976,6 +1003,7 @@ begin
   dec(Foes[fi].sp, FOE_CAST_SP);
   dmg := RngRoll(GameRng, 1, 6) + MonDefs[Foes[fi].def].hd;
   if dmg < 1 then dmg := 1;
+  dmg := ApplyResist(tgt, dmg, MonDefs[Foes[fi].def].element);
   CombatLog(MonDefs[Foes[fi].def].name + ' conjures a bolt at '
     + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
   PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
@@ -1095,6 +1123,7 @@ begin
     if Roster[tgt].guarding then dmg := dmg div 2;          { defend halves }
     if ranged and (Roster[tgt].rank = RANK_BACK) then dmg := dmg div 2;
     if dmg < 1 then dmg := 1;
+    dmg := ApplyResist(tgt, dmg, MonDefs[Foes[fi].def].element);
     CombatLog(MonDefs[Foes[fi].def].name + ' hits ' + Roster[tgt].name
       + ' for ' + IntToStr(dmg) + '.');
     PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));

@@ -75,6 +75,9 @@ function PartyConsume(const id: string; qty: longint): boolean;
 procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 
 function CharAC(const c: TCharacter): longint;
+{ The EL_* mask the character's worn gear wards against, the OR of the resist
+  mask of every equipped item. }
+function CharResist(const c: TCharacter): byte;
 function CharAttack(const c: TCharacter; melee: boolean): longint;
 { Carried bulk, carrying capacity, and whether the load exceeds it. Bulk is
   the item slots field summed over equipped and packed items. }
@@ -213,6 +216,18 @@ begin
      (ItemDefs[c.equip[eqOff].def].kind = IK_SHIELD) then
     ac := ac + ItemDefs[c.equip[eqOff].def].acVal;
   CharAC := ac;
+end;
+
+function CharResist(const c: TCharacter): byte;
+var
+  mask: byte;
+  sl: TEquipSlot;
+begin
+  mask := 0;
+  for sl := eqMain to eqLight do
+    if c.equip[sl].def >= 0 then
+      mask := mask or ItemDefs[c.equip[sl].def].resist;
+  CharResist := mask;
 end;
 
 function CharLoad(const c: TCharacter): longint;

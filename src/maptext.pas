@@ -32,7 +32,18 @@ function ParseMapText(const fn: string; out m: TMapData;
 implementation
 
 uses
-  classes, sysutils, worldarea;
+  classes, sysutils, worldarea, monsters;
+
+{ Map an element name to its EL_* flag, 0 if unknown or omitted. }
+function ElemFlag(const t: string): byte;
+begin
+  if t = 'fire' then ElemFlag := EL_FIRE
+  else if t = 'frost' then ElemFlag := EL_FROST
+  else if t = 'shock' then ElemFlag := EL_SHOCK
+  else if t = 'holy' then ElemFlag := EL_HOLY
+  else if t = 'phys' then ElemFlag := EL_PHYS
+  else ElemFlag := 0;
+end;
 
 function DirCode(const s: string): byte;
 begin
@@ -179,11 +190,12 @@ begin
         SetLength(m.npcs, Length(m.npcs) + 1);
         m.npcs[High(m.npcs)] := np;
       end else if tok[0] = 'trap' then begin
-        if ntok < 5 then begin errmsg := 'trap needs X Y DMG DC'; exit; end;
+        if ntok < 5 then begin errmsg := 'trap needs X Y DMG DC [ELEM]'; exit; end;
         tr.x := StrToInt(tok[1]);
         tr.y := StrToInt(tok[2]);
         tr.dmg := StrToInt(tok[3]);
         tr.dc := StrToInt(tok[4]);
+        if ntok >= 6 then tr.element := ElemFlag(tok[5]) else tr.element := 0;
         SetLength(m.traps, Length(m.traps) + 1);
         m.traps[High(m.traps)] := tr;
       end else if tok[0] = 'surface' then

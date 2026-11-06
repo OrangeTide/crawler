@@ -20,7 +20,35 @@ function ParseItems(const fn: string; out defs: array of TItemDef;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, monsters;
+
+{ Map one element name to its EL_* flag, or 0 if unknown. }
+function ElemFlag(const t: string): byte;
+begin
+  if t = 'phys' then ElemFlag := EL_PHYS
+  else if t = 'fire' then ElemFlag := EL_FIRE
+  else if t = 'frost' then ElemFlag := EL_FROST
+  else if t = 'shock' then ElemFlag := EL_SHOCK
+  else if t = 'holy' then ElemFlag := EL_HOLY
+  else ElemFlag := 0;
+end;
+
+{ A 'resist:fire,frost' tag's value to an EL_* mask. }
+function ElemMask(const list: string): byte;
+var
+  mask, start, i: longint;
+  tok: string;
+begin
+  mask := 0;
+  start := 1;
+  for i := 1 to Length(list) + 1 do
+    if (i > Length(list)) or (list[i] = ',') or (list[i] = '+') then begin
+      tok := Trim(Copy(list, start, i - start));
+      if tok <> '' then mask := mask or ElemFlag(tok);
+      start := i + 1;
+    end;
+  ElemMask := mask;
+end;
 
 function KindCode(const s: string): longint;
 begin
@@ -39,7 +67,7 @@ function ParseItems(const fn: string; out defs: array of TItemDef;
   out count: longint; out errmsg: string): boolean;
 var
   lines: TStringList;
-  li, qpos, qend, kc: longint;
+  li, qpos, qend, kc, pi: longint;
   line, rest, name: string;
   parts: TStringList;
   d: TItemDef;
@@ -95,6 +123,11 @@ begin
       d.value := StrToInt(parts[6]);
       d.flags := StrToInt(parts[7]);
       d.sprite := 0;
+      { optional tags after the eight fields, before the name }
+      d.resist := 0;
+      for pi := 8 to parts.Count - 1 do
+        if Copy(parts[pi], 1, 7) = 'resist:' then
+          d.resist := d.resist or ElemMask(Copy(parts[pi], 8, Length(parts[pi])));
       defs[count] := d;
       inc(count);
     end;
