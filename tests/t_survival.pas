@@ -12,6 +12,7 @@ var
   p: TPak;
   ab: TAbilityScores;
   sl: TEquipSlot;
+  c: TCharacter;
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -141,6 +142,39 @@ begin
   CheckEqI(PartyGold, 100 - IDENTIFY_COST, 'identification spends per kind');
   Check(ItemIsKnown(ItemIndex('ELIXIR')), 'the kind is known afterward');
   CheckEqI(IdentifyParty, 0, 'nothing unknown left to name');
+
+  { ---- hirelings ---- }
+  RngSeed(GameRng, 11);
+  SetLength(Roster, 1);
+  RollAbilities(ab); MakeCharacter(Roster[0], 'LEAD', 0, 0, -1, ab);
+  Roster[0].abil[abCHA] := 10;   { +0 charisma: the base fee }
+  PartyGold := 1000;
+  CheckEqI(HireCost, HIRE_BASE, 'average charisma pays the base hire fee');
+  Check(RecruitHireling('HIRE'), 'a hire joins with room and coin');
+  CheckEqI(HirelingCount, 1, 'the hire is on the roster');
+  CheckEqI(PartyGold, 1000 - HIRE_BASE, 'recruiting spends the fee');
+  Check((Length(Roster) >= 2) and Roster[1].hireling, 'the recruit is a hireling');
+  CheckEqI(Roster[1].wage, HIRE_BASE, 'the wage equals the hire fee');
+
+  { a covered wage is paid and the hire stays }
+  PartyGold := 500;
+  CheckEqI(ChargeWages, 0, 'a covered wage keeps the hire');
+  CheckEqI(PartyGold, 500 - HIRE_BASE, 'the monthly wage is deducted');
+  CheckEqI(HirelingCount, 1, 'the hire stays on');
+
+  { an unpaid wage sends the hire packing }
+  PartyGold := 0;
+  CheckEqI(ChargeWages, 1, 'an unpaid hire deserts');
+  CheckEqI(HirelingCount, 0, 'the deserter is gone');
+  CheckEqI(Length(Roster), 1, 'only the leader remains');
+
+  { a full party cannot take on more }
+  while Length(Roster) < MAX_PARTY do begin
+    RollAbilities(ab); MakeCharacter(c, 'X', 0, 0, -1, ab);
+    AddPartyMember(c);
+  end;
+  PartyGold := 1000;
+  Check(not RecruitHireling('NOPE'), 'a full party turns a hire away');
 
   TestSummary('survival');
   halt(TestExit);

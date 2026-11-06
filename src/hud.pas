@@ -166,6 +166,7 @@ begin
     else if Roster[i].downed then c := RGB(170, 130, 80)
     else if Roster[i].disease > 0 then c := RGB(150, 190, 110)  { sickly green }
     else if CharEncumbered(Roster[i]) then c := RGB(150, 165, 205)  { laden blue }
+    else if Roster[i].hireling then c := RGB(205, 180, 125)  { a hired blade }
     else c := RGB(200, 205, 180);
     nm := Copy(Roster[i].name, 1, 6);
     DrawText(x, FBH - 24, nm, c);

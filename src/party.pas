@@ -22,6 +22,8 @@ const
   REVIVE_BASE = 50;      { temple price to raise a level-1 soul }
   REVIVE_PER_LEVEL = 50; { added to the price for each level beyond the first }
   IDENTIFY_COST = 40;    { temple price to name one unknown item kind }
+  HIRE_BASE = 120;       { base price to take on a hireling }
+  LUNAR_MINUTES = 42524; { a synodic month in game minutes (29.53 days) }
 
 type
   TEquipSlot = (eqMain, eqOff, eqArmor, eqLight);
@@ -53,11 +55,14 @@ type
     wereform: boolean;   { transformed now, set by the full moon }
     rank: byte;          { 0 front line, 1 back line, for combat reach }
     sp: smallint;        { spell points available this fight }
+    hireling: boolean;   { a temporary hire, owed wages each lunar month }
+    wage: smallint;      { their recruitment cost, also the monthly upkeep }
   end;
 
 var
   Roster: array of TCharacter;
   PartyGold: longint;
+  WagesDueClock: longword;   { clock minute the next month's wages fall due }
 
 function EmptyInst: TItemInst;
 procedure PackAdd(var c: TCharacter; const id: string; qty: longint);
@@ -95,6 +100,15 @@ function TempleRevive: longint;
 { Name every unknown item kind the party carries that the purse can afford,
   spending the gold. Returns how many kinds were identified. }
 function IdentifyParty: longint;
+function HirelingCount: longint;
+{ The price to take on a hireling, eased a little by the leader's charisma. }
+function HireCost: longint;
+{ Take on a random hireling under the given name, at the party's level, for
+  the hire cost. Fails if the party is full or the purse is short. }
+function RecruitHireling(const nm: string): boolean;
+{ Pay every hireling this month's wage. A hireling the purse cannot cover
+  deserts and is dropped from the roster. Returns how many left. }
+function ChargeWages: longint;
 procedure NewParty;
 procedure AddPartyMember(const c: TCharacter);
 function PartyAlive: boolean;
@@ -319,6 +333,8 @@ begin
   c.disease := 0;
   c.lycan := false;
   c.wereform := false;
+  c.hireling := false;
+  c.wage := 0;
   { casters hang back by default, melee classes take the front line }
   if (ClassDefs[classIdx].track = TRK_MAGE)
     or (ClassDefs[classIdx].track = TRK_PRIEST) then
@@ -466,10 +482,85 @@ begin
   IdentifyParty := cnt;
 end;
 
+function HirelingCount: longint;
+var i, n: longint;
+begin
+  n := 0;
+  for i := 0 to High(Roster) do
+    if Roster[i].hireling then inc(n);
+  HirelingCount := n;
+end;
+
+function HireCost: longint;
+var lead, chaMod: longint;
+begin
+  { the first standing member leads the bargaining; higher charisma, lower fee }
+  chaMod := 0;
+  for lead := 0 to High(Roster) do
+    if Roster[lead].alive and (not Roster[lead].hireling) then begin
+      chaMod := AbilMod(Roster[lead].abil[abCHA]);
+      break;
+    end;
+  HireCost := HIRE_BASE - chaMod * 15;
+  if HireCost < 40 then HireCost := 40;
+end;
+
+function RecruitHireling(const nm: string): boolean;
+var
+  c: TCharacter;
+  a: TAbilityScores;
+  cost, lvl, i: longint;
+begin
+  RecruitHireling := false;
+  if Length(Roster) >= MAX_PARTY then exit;
+  cost := HireCost;
+  if PartyGold < cost then exit;
+  { a hire comes in at the party's level so it can pull its weight }
+  lvl := 1;
+  for i := 0 to High(Roster) do
+    if (not Roster[i].hireling) and (Roster[i].level > lvl) then lvl := Roster[i].level;
+  RollAbilities(a);
+  MakeCharacter(c, nm, Range(0, High(SpeciesDefs)), Range(0, High(ClassDefs)),
+    -1, a);
+  if lvl > 1 then begin
+    c.level := lvl;
+    c.hpMax := MaxHPDie(ClassDefs[c.klass].hitDie, c.abil[abCON], lvl);
+    c.hp := c.hpMax;
+  end;
+  c.hireling := true;
+  c.wage := cost;
+  PartyGold := PartyGold - cost;
+  AddPartyMember(c);
+  RecruitHireling := true;
+end;
+
+function ChargeWages: longint;
+var i, j, left: longint;
+begin
+  left := 0;
+  i := 0;
+  while i <= High(Roster) do begin
+    if Roster[i].hireling then begin
+      if PartyGold >= Roster[i].wage then begin
+        PartyGold := PartyGold - Roster[i].wage;
+        inc(i);
+      end else begin
+        { unpaid: the hireling walks off }
+        for j := i to High(Roster) - 1 do Roster[j] := Roster[j + 1];
+        SetLength(Roster, Length(Roster) - 1);
+        inc(left);
+      end;
+    end else
+      inc(i);
+  end;
+  ChargeWages := left;
+end;
+
 procedure NewParty;
 begin
   Roster := nil;
   PartyGold := 0;
+  WagesDueClock := 0;
 end;
 
 procedure AddPartyMember(const c: TCharacter);

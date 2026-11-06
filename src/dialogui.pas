@@ -15,7 +15,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
-  gamestate, party, settings, combatui, monsters;
+  gamestate, party, settings, combatui, monsters, gametime, rng;
 
 procedure DialogRender;
 var
@@ -74,7 +74,8 @@ end;
 
 procedure DialogAfterChoice;
 var
-  raised: longint;
+  raised, cost: longint;
+  wasFirst: boolean;
 begin
   SyncJournal;
   if FlagHas('QUEST_WON') then begin
@@ -98,6 +99,18 @@ begin
     raised := IdentifyParty;
     if raised > 0 then saveMsg := 'THE TEMPLE NAMES ' + IntToStr(raised)
     else saveMsg := 'NOTHING UNKNOWN, OR NO COIN';
+    saveMsgT := 2.5;
+    exit;
+  end;
+  if DlgRecruitReq then begin
+    DlgRecruitReq := false;
+    cost := HireCost;
+    wasFirst := HirelingCount = 0;
+    if RecruitHireling(NAME_POOL[Range(0, High(NAME_POOL))]) then begin
+      if wasFirst then WagesDueClock := ClockMin + LUNAR_MINUTES;
+      saveMsg := 'A SWORD-ARM JOINS FOR ' + IntToStr(cost) + ' GOLD';
+    end else
+      saveMsg := 'NO ROOM, OR NO COIN FOR A HIRE';
     saveMsgT := 2.5;
     exit;
   end;

@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 9;
+  SAVE_VERSION = 10;
 
 var
   LoadedMapName: string;
@@ -107,6 +107,8 @@ begin
   s.WriteByte(c.poison);
   s.WriteByte(c.disease);
   s.WriteByte(ord(c.lycan));
+  s.WriteByte(ord(c.hireling));
+  WI32(s, c.wage);
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -128,6 +130,8 @@ begin
   RChar.poison := s.ReadByte;
   RChar.disease := s.ReadByte;
   RChar.lycan := s.ReadByte <> 0;
+  RChar.hireling := s.ReadByte <> 0;
+  RChar.wage := RI32(s);
   RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;
 
@@ -167,6 +171,7 @@ begin
     WU32(fs, ClockMin);
     WI32(fs, Round(MoonOffsetDays * 1000.0));
     WI32(fs, TorchFuel);
+    WU32(fs, WagesDueClock);
 
     { visited-map snapshots }
     WI32(fs, Length(Snapshots));
@@ -244,6 +249,7 @@ begin
     ClockMin := RU32(fs);
     MoonOffsetDays := RI32(fs) / 1000.0;
     TorchFuel := RI32(fs);
+    WagesDueClock := RU32(fs);
 
     MapStateReset;
     n := RI32(fs);

@@ -38,6 +38,9 @@ begin
   RollAbilities(ab); MakeCharacter(Roster[1], 'Bob', 0, 1, -1, ab);
   Roster[0].lycan := true;
   Roster[1].disease := 2;
+  Roster[1].hireling := true;
+  Roster[1].wage := 90;
+  WagesDueClock := 123456;
   PartyGold := 137;
   FlagSet('QUEST_X');
   JournalAdd('a journal note');
@@ -70,6 +73,7 @@ begin
   PursuitReset;          { drop the hunters so the load must restore them }
   CodexReset;            { clear the codex so the load must restore it }
   PinsReset;             { and the pins }
+  WagesDueClock := 0;
 
   Check(LoadGame(fn), 'load reads');
   CheckEqI(Length(Roster), 2, 'party size restored');
@@ -83,6 +87,9 @@ begin
   Check(not ItemIsKnown(ItemIndex('SWORD')), 'item knowledge restored');
   CheckEqI(PinKindAt('TOWN', 2, 3), PIN_BANG, 'a map pin restored');
   CheckEqI(PinKindAt('DUNGEON', 7, 8), PIN_STAIR, 'an auto marker restored');
+  Check((Length(Roster) >= 2) and Roster[1].hireling, 'hireling flag restored');
+  CheckEqI(Roster[1].wage, 90, 'hireling wage restored');
+  CheckEqI(longint(WagesDueClock), 123456, 'the wage due-date restored');
   CheckEqI(ActivePursuerCount, 2, 'both hunters restored');
   Check((Length(Pursuers) >= 2) and (Pursuers[0].mon = 3)
     and (Pursuers[0].map = 'TOWN') and (Pursuers[0].x = 4) and (Pursuers[0].y = 4),

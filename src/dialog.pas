@@ -32,6 +32,7 @@ const
   DA_IDENTIFY = 5;  { ask the temple to name the party's unknown goods }
   DA_FIGHT    = 6;  { start a fixed boss fight; arg is the monster, arg2 the
                       flag set on winning }
+  DA_RECRUIT  = 7;  { take on a tavern hireling for gold }
 
 type
   TResponse = record
@@ -67,6 +68,7 @@ var
   DlgFightReq: boolean;   { set when a response started a boss fight }
   DlgFightMon: string;    { the monster id of the boss to fight }
   DlgFightFlag: string;   { the flag to set when that boss is beaten }
+  DlgRecruitReq: boolean; { set when a response asked to hire a follower }
 
 function EncodeDialogs(const cs: array of TConversation): TByteArray;
 function LoadDialogs(const p: TPak): boolean;
@@ -236,6 +238,7 @@ begin
   DlgReviveReq := false;
   DlgIdentifyReq := false;
   DlgFightReq := false;
+  DlgRecruitReq := false;
   if not ConvIndex(name) then begin
     DlgActive := false;
     exit;
@@ -267,6 +270,7 @@ begin
     DA_SHOP:    begin DlgShopReq := true; DlgShopId := r.arg; end;
     DA_REVIVE:  DlgReviveReq := true;
     DA_IDENTIFY: DlgIdentifyReq := true;
+    DA_RECRUIT: DlgRecruitReq := true;
     DA_FIGHT: begin
       DlgFightReq := true;
       DlgFightMon := r.arg;

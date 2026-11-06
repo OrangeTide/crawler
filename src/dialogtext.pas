@@ -104,6 +104,8 @@ begin
           r.action := DA_REVIVE
         else if (n >= 3) and (tok[2] = 'identify') then
           r.action := DA_IDENTIFY
+        else if (n >= 3) and (tok[2] = 'recruit') then
+          r.action := DA_RECRUIT
         else if (n >= 4) and (tok[2] = 'setflag') then begin
           r.action := DA_SETFLAG; r.arg := tok[3];
         end

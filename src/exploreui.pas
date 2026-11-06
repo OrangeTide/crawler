@@ -41,6 +41,7 @@ const
   MOUSE_PITCH  = 0.7;     { pixels per mouse unit, free look }
 
 procedure RestHere; forward;
+procedure ChargeWagesDue; forward;
 
 { ---- party auto-travel ---- }
 
@@ -313,6 +314,7 @@ begin
     them down; a rest with one loose is no rest at all. }
   if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
   RestEatAndRecover;
+  ChargeWagesDue;        { a rest can carry past a pay day }
   PlaySfx(SFX_SELECT);
   saveMsgT := 2.0;
 end;
@@ -453,6 +455,24 @@ begin
   end;
 end;
 
+procedure ChargeWagesDue;
+{** When a lunar month has turned, pay the hirelings' wages from the purse.
+  Any the party cannot cover desert. }
+var
+  left: longint;
+begin
+  if HirelingCount = 0 then exit;
+  if WagesDueClock = 0 then WagesDueClock := ClockMin + LUNAR_MINUTES;
+  while (HirelingCount > 0) and (ClockMin >= WagesDueClock) do begin
+    left := ChargeWages;
+    if left > 0 then saveMsg := 'A HIRELING LEFT, UNPAID'
+    else saveMsg := 'WAGES PAID TO YOUR HIRELINGS';
+    saveMsgT := 2.0;
+    WagesDueClock := WagesDueClock + LUNAR_MINUTES;
+  end;
+  if HirelingCount = 0 then WagesDueClock := 0;
+end;
+
 procedure AutoPinDiscovered;
 {** Drop a marker on each discovered stair, portal and service NPC of the
   resident map, so the full map fills in points of interest as the party
@@ -503,6 +523,7 @@ begin
   TrapCheck;
   LightPuzzleCheck;
   AutoPinDiscovered;
+  ChargeWagesDue;
   if not PartyConscious then begin
     State := gsGameOver;
     exit;

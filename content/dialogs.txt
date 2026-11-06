@@ -4,6 +4,7 @@ node 0
 text "Welcome to the Prancing Pony, traveller. What will it be?"
 resp "Heard any rumors?" goto 1
 resp "Show me your wares." shop GENERAL
+resp "I need a sword-arm for hire." recruit
 resp "Nothing, thanks." end
 node 1
 text "They say the old crypt below the town stirs with restless dead."
