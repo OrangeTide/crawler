@@ -25,7 +25,7 @@ unit combat;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata, encounters;
+  sysutils, rng, rules, items, monsters, party, chardata, encounters, codex;
 
 const
   MAX_FOES = 6;
@@ -825,6 +825,9 @@ begin
   for i := 0 to High(FoeStatus) do FillChar(FoeStatus[i], SizeOf(TStatus), 0);
   for i := 0 to High(PartyStatus) do FillChar(PartyStatus[i], SizeOf(TStatus), 0);
   CombatSfxCue := CUE_NONE;
+
+  { the party now meets these foes: record them in the bestiary }
+  for i := 0 to High(Foes) do MarkMonSeen(Foes[i].def);
 
   CombatLog('Foes close in: ' + IntToStr(count) + ' of them.');
   NewRound;

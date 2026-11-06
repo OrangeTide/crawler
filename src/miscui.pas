@@ -27,7 +27,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui, pursuit, settings, keymap;
+  exploreui, pursuit, settings, keymap, codex, monsters;
 
 procedure FullMapRender;
 {** The full map with any hunters on this map marked over it, so the player
@@ -73,27 +73,74 @@ begin
   end;
 end;
 
-procedure JournalRender;
-var
-  i, y: longint;
+{ Short element names for a weakness or resistance mask. }
+function ElemTags(mask: byte): string;
+  procedure Add(bit: byte; const nm: string);
+  begin
+    if (mask and bit) <> 0 then begin
+      if ElemTags <> '' then ElemTags := ElemTags + '/';
+      ElemTags := ElemTags + nm;
+    end;
+  end;
 begin
-  ClearFB(RGB(10, 10, 16));
-  DrawText(12, 10, 'JOURNAL', RGB(220, 200, 120));
+  ElemTags := '';
+  Add(EL_FIRE, 'FIRE'); Add(EL_FROST, 'FROST'); Add(EL_SHOCK, 'SHOCK');
+  Add(EL_HOLY, 'HOLY'); Add(EL_PHYS, 'PHYS');
+end;
+
+procedure JournalBody;
+var i, y: longint;
+begin
   if Length(Journal) = 0 then
-    DrawText(16, 30, 'No quests recorded yet.', RGB(150, 150, 130))
+    DrawText(16, 36, 'No quests recorded yet.', RGB(150, 150, 130))
   else begin
-    y := 30;
+    y := 36;
     for i := 0 to High(Journal) do begin
       DrawWrapped(16, y, 48, '- ' + Journal[i], RGB(195, 200, 180));
       inc(y, 22);
     end;
   end;
-  DrawText(12, FBH - 14, 'J OR ESC TO CLOSE', RGB(130, 140, 110));
+end;
+
+procedure BestiaryBody;
+var
+  i, y: longint;
+  weak: string;
+begin
+  DrawText(16, 28, 'FACED ' + IntToStr(MonSeenCount) + ' OF '
+    + IntToStr(Length(MonDefs)), RGB(150, 160, 140));
+  y := 40;
+  for i := 0 to High(MonDefs) do begin
+    if MonIsSeen(i) then begin
+      DrawText(16, y, MonDefs[i].name, RGB(205, 205, 185));
+      DrawText(150, y, 'HD' + IntToStr(MonDefs[i].hd)
+        + ' AC' + IntToStr(MonDefs[i].ac), RGB(150, 160, 170));
+      weak := ElemTags(MonDefs[i].weak);
+      if weak <> '' then
+        DrawText(220, y, 'WEAK ' + weak, RGB(150, 200, 150));
+    end else
+      DrawText(16, y, '???', RGB(120, 120, 135));
+    inc(y, 10);
+  end;
+end;
+
+procedure JournalRender;
+begin
+  ClearFB(RGB(10, 10, 16));
+  { the two tabs, the open one lit }
+  if menuTab = 0 then DrawText(12, 10, 'JOURNAL', RGB(230, 210, 130))
+  else DrawText(12, 10, 'JOURNAL', RGB(120, 120, 110));
+  if menuTab = 1 then DrawText(120, 10, 'BESTIARY', RGB(230, 210, 130))
+  else DrawText(120, 10, 'BESTIARY', RGB(120, 120, 110));
+  if menuTab = 1 then BestiaryBody else JournalBody;
+  DrawText(12, FBH - 14, 'TAB SWITCH   J/ESC CLOSE', RGB(130, 140, 110));
 end;
 
 procedure JournalKeyDown(scancode: longint);
 begin
   case scancode of
+    SDL_SCANCODE_TAB, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT:
+      menuTab := 1 - menuTab;
     SDL_SCANCODE_J, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;

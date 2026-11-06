@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 7;
+  SAVE_VERSION = 8;
 
 var
   LoadedMapName: string;
@@ -30,7 +30,7 @@ function SaveExists(const fn: string): boolean;
 implementation
 
 uses
-  classes, sysutils, rules, chardata, gametime, pursuit, gamestate;
+  classes, sysutils, rules, chardata, gametime, pursuit, gamestate, codex;
 
 { ---- stream helpers ---- }
 
@@ -192,6 +192,12 @@ begin
         WI32(fs, Pursuers[i].x);
         WI32(fs, Pursuers[i].y);
       end;
+
+    { codex: the bestiary and the identified item kinds }
+    WI32(fs, Length(MonSeen));
+    for i := 0 to High(MonSeen) do fs.WriteByte(ord(MonSeen[i]));
+    WI32(fs, Length(ItemIdent));
+    for i := 0 to High(ItemIdent) do fs.WriteByte(ord(ItemIdent[i]));
   finally
     fs.Free;
   end;
@@ -256,6 +262,19 @@ begin
       px := RI32(fs);
       py := RI32(fs);
       AddPursuer(pmon, pmap, px, py);
+    end;
+
+    { codex: size to the current tables, then overlay the saved bits }
+    CodexReset;
+    n := RI32(fs);
+    for i := 0 to n - 1 do begin
+      cells := fs.ReadByte;   { reuse cells as a scratch byte }
+      if i <= High(MonSeen) then MonSeen[i] := cells <> 0;
+    end;
+    n := RI32(fs);
+    for i := 0 to n - 1 do begin
+      cells := fs.ReadByte;
+      if i <= High(ItemIdent) then ItemIdent[i] := cells <> 0;
     end;
   finally
     fs.Free;

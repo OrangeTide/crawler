@@ -30,7 +30,7 @@ implementation
 uses
   sysutils, pak, world, models, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
-  gamestate, pursuit;
+  gamestate, pursuit, codex;
 
 function SavePath: string;
 begin
@@ -222,6 +222,7 @@ begin
   FlagsReset;
   MapStateReset;
   PursuitReset;
+  CodexReset;                   { a new party knows no monsters yet }
   TorchFuel := TORCH_MINUTES;   { set out with a lit torch }
   CurMapName := '';
   if not LoadMapByName('OUTSKIRTS', 'spawn') then begin

@@ -238,7 +238,7 @@ end;
   Only the glyphs the HUD needs are defined; others draw blank. }
 
 const
-  FONT_COUNT = 44;
+  FONT_COUNT = 45;
   FONT: array[0 .. FONT_COUNT - 1, 0 .. 7] of byte = (
     (ord('0'), $0E, $11, $13, $15, $19, $11, $0E),
     (ord('1'), $04, $0C, $04, $04, $04, $04, $0E),
@@ -283,7 +283,8 @@ const
     (ord('+'), $00, $04, $04, $1F, $04, $04, $00),
     (ord('/'), $01, $02, $02, $04, $08, $08, $10),
     (ord('('), $02, $04, $08, $08, $08, $04, $02),
-    (ord(')'), $08, $04, $02, $02, $02, $04, $08));
+    (ord(')'), $08, $04, $02, $02, $02, $04, $08),
+    (ord('?'), $0E, $11, $01, $02, $04, $00, $04));
 
 procedure DrawChar(x, y: longint; ch: char; c: TColor);
 var

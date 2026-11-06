@@ -29,6 +29,7 @@ const
   IF_RANGED  = 2;
   IF_SILVER  = 4;   { a blessed or silvered weapon; strikes as holy }
   IF_REVIVE  = 8;   { a consumable that raises a gravely wounded ally }
+  IF_MYSTERY = 16;  { found unidentified; its true name is hidden until known }
 
   ITEMS_MAGIC = $4D455449;  { 'ITEM' little-endian }
 

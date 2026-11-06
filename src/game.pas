@@ -26,7 +26,7 @@ uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, shops, encounters, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
-  miscui, overworldui, gametime, audio, settings;
+  miscui, overworldui, gametime, audio, settings, codex;
 
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
@@ -87,6 +87,7 @@ begin
   LoadEncounters(GamePak); { optional; per-area encounter tables }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
   LoadModels(GamePak);    { optional; polygon-renderer props }
+  CodexReset;             { size the bestiary and item knowledge to the tables }
 
   TimeReset;
   MoonOffsetDays := (WorldSeed mod 2953) / 100.0;  { seed the moon phase }

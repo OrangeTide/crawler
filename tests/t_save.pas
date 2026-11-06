@@ -7,7 +7,7 @@ program t_save;
 
 uses
   sysutils, pak, rng, rules, items, chardata, mapfmt, world, party, flags,
-  mapstate, gametime, pursuit, save, testing;
+  mapstate, gametime, pursuit, monsters, codex, save, testing;
 
 var
   p: TPak;
@@ -22,6 +22,7 @@ begin
   end;
   LoadItems(p);
   LoadCharData(p);
+  LoadMonsters(p);
 
   { a resident map so its fog is captured on save }
   Check(PakGet(p, 'TOWN', blob) and DecodeMap(blob, m), 'decode TOWN');
@@ -48,6 +49,11 @@ begin
   AddPursuer(3, 'TOWN', 4, 4);
   AddPursuer(5, 'DUNGEON', 2, 1);
 
+  { codex: one monster met, one item kind marked unknown }
+  CodexReset;
+  MarkMonSeen(MonIndex('GHOUL'));
+  ItemIdent[ItemIndex('SWORD')] := false;
+
   fn := 'build/tests/save_rt.sav';
   Check(SaveGame(fn), 'save writes');
 
@@ -57,6 +63,7 @@ begin
   FlagsReset;
   ClockMin := 0;
   PursuitReset;          { drop the hunters so the load must restore them }
+  CodexReset;            { clear the codex so the load must restore it }
 
   Check(LoadGame(fn), 'load reads');
   CheckEqI(Length(Roster), 2, 'party size restored');
@@ -66,6 +73,8 @@ begin
   CheckEqI(PartyGold, 137, 'gold restored');
   Check(FlagHas('QUEST_X'), 'flag restored');
   CheckEqI(ClockMin, 6 * 60 + 5000, 'clock restored');
+  Check(MonIsSeen(MonIndex('GHOUL')), 'bestiary entry restored');
+  Check(not ItemIsKnown(ItemIndex('SWORD')), 'item knowledge restored');
   CheckEqI(ActivePursuerCount, 2, 'both hunters restored');
   Check((Length(Pursuers) >= 2) and (Pursuers[0].mon = 3)
     and (Pursuers[0].map = 'TOWN') and (Pursuers[0].x = 4) and (Pursuers[0].y = 4),
