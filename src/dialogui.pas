@@ -78,6 +78,14 @@ begin
     saveMsgT := 2.5;
     exit;   { stay in the talk so the result shows }
   end;
+  if DlgIdentifyReq then begin
+    DlgIdentifyReq := false;
+    raised := IdentifyParty;
+    if raised > 0 then saveMsg := 'THE TEMPLE NAMES ' + IntToStr(raised)
+    else saveMsg := 'NOTHING UNKNOWN, OR NO COIN';
+    saveMsgT := 2.5;
+    exit;
+  end;
   if DlgShopReq then begin
     shopSel := 0;
     shopStock := DlgShopId;

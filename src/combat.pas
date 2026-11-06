@@ -1237,6 +1237,7 @@ begin
   if (not reviving) and Roster[target].downed then exit;
 
   dec(Roster[CurActor].pack[slot].qty);
+  MarkItemKnown(def);   { quaffing an unknown potion reveals what it is }
   heal := RngRoll(GameRng, 1, 8) + 2;
   if reviving then begin
     Roster[target].downed := false;

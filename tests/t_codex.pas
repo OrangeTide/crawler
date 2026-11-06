@@ -34,9 +34,20 @@ begin
   MarkMonSeen(99999);
   CheckEqI(MonSeenCount, 1, 'out-of-range marks are ignored');
 
-  { with no mystery items authored, everything reads as known }
+  { plain gear is always known and shows its real name }
   Check(ItemIsKnown(ItemIndex('SWORD')), 'plain gear is known');
   Check(ItemIsKnown(-1), 'an out-of-range item reads as known');
+  Check(ItemLabel(ItemIndex('SWORD')) = 'Short Sword', 'known gear shows its name');
+
+  { a mystery item hides its name until identified }
+  Check(ItemIndex('ELIXIR') >= 0, 'the mystery elixir exists');
+  Check(not ItemIsKnown(ItemIndex('ELIXIR')), 'a mystery item starts unknown');
+  Check(ItemLabel(ItemIndex('ELIXIR')) = 'UNKNOWN POTION',
+    'an unknown potion shows a generic label');
+  MarkItemKnown(ItemIndex('ELIXIR'));
+  Check(ItemIsKnown(ItemIndex('ELIXIR')), 'it is known once identified');
+  Check(ItemLabel(ItemIndex('ELIXIR')) = 'Elixir of Vigor',
+    'a known item shows its true name');
 
   { CodexReset wipes the bestiary back to empty }
   CodexReset;

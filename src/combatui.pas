@@ -23,7 +23,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raster, meshfmt, models, party, chardata, items,
-  monsters, combat, audio, gamestate, world;
+  monsters, combat, audio, gamestate, world, codex, rng;
 
 const
   { combat command UI phases }
@@ -55,8 +55,29 @@ var
   itemSel: longint;       { highlighted item, a pack slot }
   pendingItem: longint;   { item chosen, awaiting a target, -1 none }
 
+const
+  LOOT_CHANCE = 12;   { percent chance a won fight yields an unknown find }
+
+{ A won fight sometimes leaves an unidentified potion among the spoils. The
+  roll runs here, in the UI, so the combat core's RNG stream is untouched. }
+procedure MaybeDropLoot;
+var i, wi: longint;
+begin
+  if (not Victory) or FromQuickBattle then exit;
+  if ItemIndex('ELIXIR') < 0 then exit;
+  if Range(1, 100) > LOOT_CHANCE then exit;
+  wi := -1;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) then begin wi := i; break; end;
+  if wi < 0 then exit;
+  PackAdd(Roster[wi], 'ELIXIR', 1);
+  saveMsg := 'AN UNKNOWN POTION AMONG THE SPOILS';
+  saveMsgT := 2.5;
+end;
+
 procedure EndCombat;
 begin
+  MaybeDropLoot;
   if FromQuickBattle then begin
     FromQuickBattle := false;
     State := gsTitle;
@@ -237,12 +258,12 @@ begin
           if i = itemSel then DrawText(CMDBOX_X + 5, y, '>', c);
           if Roster[CurActor].pack[i].qty > 1 then begin
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemDefs[Roster[CurActor].pack[i].def].name, 1, 10), c);
+              Copy(ItemLabel(Roster[CurActor].pack[i].def), 1, 10), c);
             DrawText(CMDBOX_X + CMDBOX_W - 16, y,
               'x' + IntToStr(Roster[CurActor].pack[i].qty), c);
           end else
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemDefs[Roster[CurActor].pack[i].def].name, 1, 14), c);
+              Copy(ItemLabel(Roster[CurActor].pack[i].def), 1, 14), c);
           inc(row);
           any := true;
         end;

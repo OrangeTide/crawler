@@ -6,7 +6,7 @@ program t_survival;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, rng, rules, items, chardata, party, testing;
+  sysutils, pak, rng, rules, items, chardata, party, codex, testing;
 
 var
   p: TPak;
@@ -124,6 +124,23 @@ begin
   CheckEqI(TempleRevive, 1, 'the last rises once there is coin');
   Check(Roster[1].alive, 'now the whole party stands');
   CheckEqI(TempleRevive, 0, 'nothing to raise when all are alive');
+
+  { ---- temple identification ---- }
+  CodexReset;
+  SetLength(Roster, 1);
+  RollAbilities(ab); MakeCharacter(Roster[0], 'G', 0, 0, -1, ab);
+  SetLength(Roster[0].pack, 0);
+  PackAdd(Roster[0], 'ELIXIR', 2);   { two of one unknown kind }
+
+  PartyGold := IDENTIFY_COST - 1;
+  CheckEqI(IdentifyParty, 0, 'too little coin names nothing');
+  Check(not ItemIsKnown(ItemIndex('ELIXIR')), 'the kind stays unknown');
+
+  PartyGold := 100;
+  CheckEqI(IdentifyParty, 1, 'names each unknown kind once, not per item');
+  CheckEqI(PartyGold, 100 - IDENTIFY_COST, 'identification spends per kind');
+  Check(ItemIsKnown(ItemIndex('ELIXIR')), 'the kind is known afterward');
+  CheckEqI(IdentifyParty, 0, 'nothing unknown left to name');
 
   TestSummary('survival');
   halt(TestExit);

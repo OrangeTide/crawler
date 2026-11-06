@@ -24,6 +24,9 @@ function MonIsSeen(mi: longint): boolean;
 function MonSeenCount: longint;
 procedure MarkItemKnown(di: longint);
 function ItemIsKnown(di: longint): boolean;
+{ The name to show for an item: its true name once the kind is known,
+  otherwise a generic label by kind. }
+function ItemLabel(di: longint): string;
 
 implementation
 
@@ -69,6 +72,14 @@ begin
     name the codex does not track }
   if (di < 0) or (di > High(ItemIdent)) then ItemIsKnown := true
   else ItemIsKnown := ItemIdent[di];
+end;
+
+function ItemLabel(di: longint): string;
+begin
+  if (di < 0) or (di > High(ItemDefs)) then ItemLabel := ''
+  else if ItemIsKnown(di) then ItemLabel := ItemDefs[di].name
+  else if ItemDefs[di].kind = IK_POTION then ItemLabel := 'UNKNOWN POTION'
+  else ItemLabel := 'UNKNOWN ITEM';
 end;
 
 end.

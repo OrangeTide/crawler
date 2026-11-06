@@ -29,6 +29,7 @@ const
   DA_SHOP    = 2;
   DA_SETFLAG = 3;
   DA_REVIVE  = 4;   { ask the temple to raise the party's slain }
+  DA_IDENTIFY = 5;  { ask the temple to name the party's unknown goods }
 
 type
   TResponse = record
@@ -59,6 +60,7 @@ var
   DlgShopReq: boolean;    { set when a response opened a shop }
   DlgShopId: string;      { the shop stock id that response named }
   DlgReviveReq: boolean;  { set when a response asked for a temple revival }
+  DlgIdentifyReq: boolean; { set when a response asked to identify goods }
 
 function EncodeDialogs(const cs: array of TConversation): TByteArray;
 function LoadDialogs(const p: TPak): boolean;
@@ -224,6 +226,7 @@ procedure DialogStart(const name: string);
 begin
   DlgShopReq := false;
   DlgReviveReq := false;
+  DlgIdentifyReq := false;
   if not ConvIndex(name) then begin
     DlgActive := false;
     exit;
@@ -254,6 +257,7 @@ begin
     DA_SETFLAG: FlagSet(r.arg);
     DA_SHOP:    begin DlgShopReq := true; DlgShopId := r.arg; end;
     DA_REVIVE:  DlgReviveReq := true;
+    DA_IDENTIFY: DlgIdentifyReq := true;
     DA_END: begin DlgActive := false; exit; end;
   end;
   if r.action = DA_END then

@@ -21,6 +21,7 @@ const
   PER_STR    = 2;    { extra bulk borne per point of strength modifier }
   REVIVE_BASE = 50;      { temple price to raise a level-1 soul }
   REVIVE_PER_LEVEL = 50; { added to the price for each level beyond the first }
+  IDENTIFY_COST = 40;    { temple price to name one unknown item kind }
 
 type
   TEquipSlot = (eqMain, eqOff, eqArmor, eqLight);
@@ -91,6 +92,9 @@ function ReviveCost(const c: TCharacter): longint;
 { Raise every slain member the purse can afford, cheapest first, spending
   the gold. A raised member returns at half health. Returns the count raised. }
 function TempleRevive: longint;
+{ Name every unknown item kind the party carries that the purse can afford,
+  spending the gold. Returns how many kinds were identified. }
+function IdentifyParty: longint;
 procedure NewParty;
 procedure AddPartyMember(const c: TCharacter);
 function PartyAlive: boolean;
@@ -98,6 +102,9 @@ function PartyConscious: boolean;
 function FirstConscious: longint;
 
 implementation
+
+uses
+  codex;
 
 function EmptyInst: TItemInst;
 begin
@@ -438,6 +445,25 @@ begin
     if Roster[best].hp < 1 then Roster[best].hp := 1;
     inc(TempleRevive);
   until false;
+end;
+
+function IdentifyParty: longint;
+var
+  i, j, def, cnt: longint;
+begin
+  cnt := 0;
+  for i := 0 to High(Roster) do
+    for j := 0 to High(Roster[i].pack) do begin
+      def := Roster[i].pack[j].def;
+      if (def >= 0) and (Roster[i].pack[j].qty > 0) and (not ItemIsKnown(def)) then
+      begin
+        if PartyGold < IDENTIFY_COST then begin IdentifyParty := cnt; exit; end;
+        PartyGold := PartyGold - IDENTIFY_COST;
+        MarkItemKnown(def);   { later copies of the same kind read as known }
+        inc(cnt);
+      end;
+    end;
+  IdentifyParty := cnt;
 end;
 
 procedure NewParty;

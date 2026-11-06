@@ -39,6 +39,7 @@ node 0
 text "The temple tends the hurt and the fallen. Draughts, holy water, and the blessed holly, if you have coin."
 resp "Show me your remedies." shop APOTHECARY
 resp "Raise our fallen." revive
+resp "Name our unknown finds." identify
 resp "What is the holly for?" goto 1
 resp "Not today." end
 node 1
