@@ -4,7 +4,7 @@
 
 # The town trader (the tavern barkeep): arms, armour and general goods.
 shop GENERAL DAGGER SWORD MACE SILVER GREATAXE SPEAR BOW STAFF
-shop GENERAL LARMOR MARMOR HARMOR HIDE SHIELD TORCH
+shop GENERAL LARMOR MARMOR HARMOR HIDE SHIELD TORCH RATION
 
 # The temple apothecary: remedies and sacred gear.
 shop APOTHECARY POTION HOLLY HOLYSYM

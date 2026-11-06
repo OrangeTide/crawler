@@ -267,6 +267,27 @@ begin
     ExploreInteract;
 end;
 
+procedure RestEatAndRecover;
+{** A rest costs one ration per living member. Fed, the party recovers;
+  with too little food they pass the night hungry, recovering nothing and
+  losing a little vigor. }
+var
+  need, i: longint;
+begin
+  need := 0;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive then inc(need);
+  if PartyConsume('RATION', need) then begin
+    RestParty;
+    saveMsg := 'THE PARTY RESTS AND RECOVERS';
+  end else begin
+    for i := 0 to High(Roster) do
+      if Roster[i].alive and (not Roster[i].downed) and (Roster[i].hp > 1) then
+        dec(Roster[i].hp);
+    saveMsg := 'NO FOOD: THE PARTY GOES HUNGRY';
+  end;
+end;
+
 procedure RestHere;
 {** Camp to recover. Away from town a rest risks a wandering monster. }
 begin
@@ -281,9 +302,8 @@ begin
   { eight hours is plenty of time for a hunter on the party's trail to run
     them down; a rest with one loose is no rest at all. }
   if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
-  RestParty;
+  RestEatAndRecover;
   PlaySfx(SFX_SELECT);
-  saveMsg := 'THE PARTY RESTS AND RECOVERS';
   saveMsgT := 2.0;
 end;
 

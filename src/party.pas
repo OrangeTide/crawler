@@ -55,6 +55,12 @@ var
 
 function EmptyInst: TItemInst;
 procedure PackAdd(var c: TCharacter; const id: string; qty: longint);
+{ The total quantity of an item id carried across the whole party. }
+function PartyItemCount(const id: string): longint;
+{ Remove qty of an item id from the party packs, drawing from each member in
+  turn, and dropping emptied stacks. Returns false and changes nothing if
+  the party holds fewer than qty. }
+function PartyConsume(const id: string; qty: longint): boolean;
 procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
 
 function CharAC(const c: TCharacter): longint;
@@ -97,6 +103,60 @@ begin
   if ItemIndex(id) < 0 then exit;
   SetLength(c.pack, Length(c.pack) + 1);
   c.pack[High(c.pack)] := MakeInst(id, qty);
+end;
+
+function PartyItemCount(const id: string): longint;
+var
+  di, i, j, n: longint;
+begin
+  PartyItemCount := 0;
+  di := ItemIndex(id);
+  if di < 0 then exit;
+  n := 0;
+  for i := 0 to High(Roster) do
+    for j := 0 to High(Roster[i].pack) do
+      if Roster[i].pack[j].def = di then inc(n, Roster[i].pack[j].qty);
+  PartyItemCount := n;
+end;
+
+procedure PackCompact(var c: TCharacter);
+{ Drop emptied stacks (qty 0) from a pack. }
+var
+  i, n: longint;
+  keep: array of TItemInst;
+begin
+  n := 0;
+  SetLength(keep, Length(c.pack));
+  for i := 0 to High(c.pack) do
+    if c.pack[i].qty > 0 then begin
+      keep[n] := c.pack[i];
+      inc(n);
+    end;
+  SetLength(keep, n);
+  c.pack := keep;
+end;
+
+function PartyConsume(const id: string; qty: longint): boolean;
+var
+  di, i, j, take: longint;
+begin
+  PartyConsume := false;
+  if qty <= 0 then begin PartyConsume := true; exit; end;
+  if PartyItemCount(id) < qty then exit;   { not enough; change nothing }
+  di := ItemIndex(id);
+  for i := 0 to High(Roster) do begin
+    for j := 0 to High(Roster[i].pack) do begin
+      if qty <= 0 then break;
+      if Roster[i].pack[j].def = di then begin
+        take := Roster[i].pack[j].qty;
+        if take > qty then take := qty;
+        Roster[i].pack[j].qty := Roster[i].pack[j].qty - take;
+        qty := qty - take;
+      end;
+    end;
+    PackCompact(Roster[i]);
+  end;
+  PartyConsume := true;
 end;
 
 procedure SetEquip(var c: TCharacter; slot: TEquipSlot; const id: string);
@@ -264,6 +324,7 @@ begin
     end;
   end;
   PackAdd(c, 'POTION', 1);
+  PackAdd(c, 'RATION', 4);   { trail food, spent resting }
 end;
 
 procedure TryLevelUp(var c: TCharacter);
