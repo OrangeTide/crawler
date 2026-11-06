@@ -141,8 +141,10 @@ function PlatformDataDir: string;
 var
   base: string;
 begin
-  base := GetEnvironmentVariable('APPDATA');
-  if base = '' then base := GetEnvironmentVariable('USERPROFILE');
+  { qualify SysUtils: on Windows the windows unit's GetEnvironmentVariable
+    (the 3-argument WinAPI) is also in scope and would shadow this one. }
+  base := SysUtils.GetEnvironmentVariable('APPDATA');
+  if base = '' then base := SysUtils.GetEnvironmentVariable('USERPROFILE');
   if base = '' then begin PlatformDataDir := ExeDir; exit; end;
   PlatformDataDir := IncludeTrailingPathDelimiter(base) + 'crawler' + PathDelim;
 end;
@@ -151,7 +153,7 @@ end;
 var
   home: string;
 begin
-  home := GetEnvironmentVariable('HOME');
+  home := SysUtils.GetEnvironmentVariable('HOME');
   if home = '' then begin PlatformDataDir := ExeDir; exit; end;
   PlatformDataDir := IncludeTrailingPathDelimiter(home)
     + 'Library' + PathDelim + 'Application Support' + PathDelim + 'crawler' + PathDelim;
@@ -161,9 +163,9 @@ end;
 var
   base, home: string;
 begin
-  base := GetEnvironmentVariable('XDG_CONFIG_HOME');
+  base := SysUtils.GetEnvironmentVariable('XDG_CONFIG_HOME');
   if base = '' then begin
-    home := GetEnvironmentVariable('HOME');
+    home := SysUtils.GetEnvironmentVariable('HOME');
     if home = '' then begin PlatformDataDir := ExeDir; exit; end;
     base := IncludeTrailingPathDelimiter(home) + '.config';
   end;
