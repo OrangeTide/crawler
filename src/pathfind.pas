@@ -8,8 +8,8 @@ unit pathfind;
   AI can route without linking the view.
 
   This is the intra-map foundation. Cross-map routing over portals, with
-  a player-known (fog-limited) mode and an omniscient mode, is declared
-  here as FindRoute but not yet built. }
+  a player-known (fog-limited) mode and an omniscient mode, builds on this
+  unit and lives in maproute. }
 
 {$mode objfpc}{$H+}
 
@@ -23,9 +23,6 @@ type
   TPathStep = packed record
     x, y: smallint;
   end;
-
-  { Cross-map routing mode (for the future FindRoute). }
-  TRouteMode = (pmPlayerKnown, pmOmniscient);
 
 { Whether a tile can be walked for planning. Open floor is always
   passable; a door tile is passable only when doorsPassable is set.
@@ -48,15 +45,6 @@ function FindPath(const m: TMapData; sx, sy, dx, dy: longint;
   FindPath but it never touches a path buffer, so it cannot fail on size. }
 function PathExists(const m: TMapData; sx, sy, dx, dy: longint;
   doorsPassable: boolean): boolean;
-
-{ FUTURE: cross-map routing across portal links. A cross-map edge is a
-  portal tile in one map joined to its target map at the named marker;
-  intra-map legs are solved with FindPath above. Static maps come from the
-  pak, dynamic maps regenerate from their stored seed. pmPlayerKnown keeps
-  to tiles and maps the party has seen (mapstate fog); pmOmniscient uses
-  the full geometry. Unimplemented this pass: always returns false. }
-function FindRoute(const fromMap: string; fromX, fromY: longint;
-  const toMap: string; toX, toY: longint; mode: TRouteMode): boolean;
 
 implementation
 
@@ -247,13 +235,6 @@ begin
   if si = gi then begin PathExists := true; exit; end;
   SetLength(cameFrom, m.w * m.h);
   PathExists := RunAStar(m, si, gi, doorsPassable, cameFrom);
-end;
-
-function FindRoute(const fromMap: string; fromX, fromY: longint;
-  const toMap: string; toX, toY: longint; mode: TRouteMode): boolean;
-begin
-  { Not yet implemented; see the interface note. }
-  FindRoute := false;
 end;
 
 end.
