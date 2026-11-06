@@ -65,10 +65,12 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### C. RPG systems depth (design section 16)
 
-- [gap] Status effects breadth: disease, fear, paralysis, blindness in dim
-  light, encumbrance. Poison is the only one wired.
-- [gap] Light and food as consumable resources tied to rest. Torches are
-  cosmetic today and rest costs only time.
+- [done] Status effects breadth: poison, fear, paralysis, fighting blind in
+  dim light, lingering disease, and encumbrance from carried bulk are all
+  wired, with monsters that inflict them and a party-strip that shows them.
+- [done] Light and food as consumable resources tied to rest. A torch burns
+  down as a fuel budget, spare torches relight as it gutters, and a rest
+  spends one ration per living member or the party goes hungry.
 - [partial] Difficulty and accessibility options: permadeath versus temple
   revive, combat speed, text speed, the optional critical-hit rules. Only volume
   options exist; a revive item exists but no policy toggle.
@@ -127,13 +129,18 @@ the router. This milestone turns the recent one-off systems into a coherent
 layer and makes long-distance travel real. It depends on nothing but the routing
 already in place.
 
-### 0.21.0 Survival systems (M)
+### 0.21.0 Survival systems (M) [done]
 
 Theme C, the exploration-pressure half. Light and food as consumable resources
 tied to rest, and the status-effect breadth with its save hooks. These give
 torches, rations, and the Thief and Cleric their intended jobs and make the
 dungeon loop tense rather than frictionless. Status effects reuse the save
 system already in place.
+
+Delivered: a torch fuel budget that gutters and dims the view, spare torches
+that relight it, rations spent per member at rest with a hunger toll when
+short, and the status breadth (fear, paralysis, fighting blind, lingering
+disease, encumbrance) with the monsters and party-strip cues to surface them.
 
 ### 0.22.0 Options, accessibility, and inputs (S)
 
