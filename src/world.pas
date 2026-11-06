@@ -56,6 +56,8 @@ var
   AmbientLight: longint;    { 0..256, applied to the view; 256 is full }
   SkyLightLevel: longint;   { 0..256, how strongly skylight tiles glow now }
   MoonLightLevel: longint;  { 0..256, how strongly moonwell tiles glow now }
+  TorchGlow: longint;       { 0..256, the party torch's strength, dims as it
+                              burns down; the renderer scales the near light }
   MapW, MapH: longint;
   CurMap: TMapData;
   CurMapName: string;
@@ -614,5 +616,8 @@ begin
       exit;
     end;
 end;
+
+initialization
+  TorchGlow := 256;   { full until the light system dims it }
 
 end.

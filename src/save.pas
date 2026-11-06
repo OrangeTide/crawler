@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 5;
+  SAVE_VERSION = 6;
 
 var
   LoadedMapName: string;
@@ -30,7 +30,7 @@ function SaveExists(const fn: string): boolean;
 implementation
 
 uses
-  classes, sysutils, rules, chardata, gametime, pursuit;
+  classes, sysutils, rules, chardata, gametime, pursuit, gamestate;
 
 { ---- stream helpers ---- }
 
@@ -160,9 +160,10 @@ begin
     WStr(fs, CurMapName);
     WI32(fs, TileX); WI32(fs, TileY); WI32(fs, FaceDir);
 
-    { clock and moon }
+    { clock and moon, then the party light }
     WU32(fs, ClockMin);
     WI32(fs, Round(MoonOffsetDays * 1000.0));
+    WI32(fs, TorchFuel);
 
     { visited-map snapshots }
     WI32(fs, Length(Snapshots));
@@ -224,6 +225,7 @@ begin
 
     ClockMin := RU32(fs);
     MoonOffsetDays := RI32(fs) / 1000.0;
+    TorchFuel := RI32(fs);
 
     MapStateReset;
     n := RI32(fs);

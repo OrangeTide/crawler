@@ -55,6 +55,7 @@ function LitFactor(torch, tileX, tileY: longint): longint;
 var
   scene: longint;
 begin
+  torch := (torch * TorchGlow) shr 8;   { the party light, dim as it burns out }
   scene := AmbientLight + TileLightAt(tileX, tileY);
   if scene > 256 then scene := 256;
   if torch > scene then LitFactor := torch else LitFactor := scene;

@@ -420,9 +420,32 @@ begin
   end;
 end;
 
+procedure BurnLight;
+{** Underground the torch burns down a little each step. When it runs out
+  the party lights a fresh one from the pack, or presses on in the dark; a
+  torch found or bought later is lit on the next step. }
+begin
+  if CurMapSurface then exit;
+  if TorchFuel > 0 then begin
+    dec(TorchFuel, 3);   { the three minutes a tile takes }
+    if TorchFuel > 0 then exit;
+    TorchFuel := 0;
+    if PartyConsume('TORCH', 1) then begin
+      TorchFuel := TORCH_MINUTES;
+      saveMsg := 'YOU LIGHT A FRESH TORCH';
+    end else
+      saveMsg := 'YOUR LIGHT GUTTERS OUT';
+    saveMsgT := 2.0;
+  end else if PartyConsume('TORCH', 1) then begin
+    TorchFuel := TORCH_MINUTES;   { was dark; a spare is now at hand }
+    saveMsg := 'YOU LIGHT A FRESH TORCH';
+    saveMsgT := 2.0;
+  end;
+end;
+
 procedure CheckTileEvents;
-{** On stepping onto a new tile: follow a portal, spring a trap, tick
-  poison, advance any hunters, then roll for a wandering monster. }
+{** On stepping onto a new tile: follow a portal, burn the torch, spring a
+  trap, tick poison, advance any hunters, then roll for a wandering monster. }
 var
   target, marker: string;
 begin
@@ -435,6 +458,7 @@ begin
     LoadMapByName(target, marker);
     exit;
   end;
+  BurnLight;
   PoisonTick;
   TrapCheck;
   LightPuzzleCheck;
@@ -508,10 +532,22 @@ end;
 
 procedure UpdateWorldLight;
 {** Feed the clock into the renderer: surface maps darken at night, and
-  light wells glow by the current sun and moon. }
+  light wells glow by the current sun and moon. Underground the party's
+  torch sets the near light, fading as its fuel runs down; in daylight the
+  torch does not matter, so it stays full. }
 begin
-  if CurMapSurface then AmbientLight := OutdoorAmbient
-  else AmbientLight := 48;   { a dim underworld, lifted by fires and glow }
+  if CurMapSurface then begin
+    AmbientLight := OutdoorAmbient;
+    TorchGlow := 256;
+  end else begin
+    AmbientLight := 48;   { a dim underworld, lifted by fires and glow }
+    if TorchFuel >= TORCH_GUTTER then
+      TorchGlow := 256
+    else if TorchFuel > 0 then
+      TorchGlow := TORCH_DARK + (TorchFuel * (256 - TORCH_DARK)) div TORCH_GUTTER
+    else
+      TorchGlow := TORCH_DARK;
+  end;
   SkyLightLevel := DaylightFactor;
   MoonLightLevel := MoonlightFactor;
 end;

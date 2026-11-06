@@ -222,6 +222,7 @@ begin
   FlagsReset;
   MapStateReset;
   PursuitReset;
+  TorchFuel := TORCH_MINUTES;   { set out with a lit torch }
   CurMapName := '';
   if not LoadMapByName('OUTSKIRTS', 'spawn') then begin
     writeln(StdErr, 'game: could not load the starting map');

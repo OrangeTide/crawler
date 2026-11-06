@@ -65,7 +65,7 @@ var scene: longint;
 begin
   scene := AmbientLight + TileLightAt(tx, ty);
   if scene > 256 then scene := 256;
-  TileLight := FogAt(dist);
+  TileLight := FogAt(dist) * TorchGlow / 256;   { party light dims as it burns }
   if scene > TileLight then TileLight := scene;
 end;
 

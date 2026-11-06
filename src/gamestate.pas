@@ -29,6 +29,11 @@ const
     'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
     'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
 
+  { light-as-a-resource tuning }
+  TORCH_MINUTES = 240;   { how long one torch burns, in game minutes }
+  TORCH_GUTTER  = 20;    { below this many minutes the flame gutters low }
+  TORCH_DARK    = 56;    { torchless underground glow, 0..256 }
+
 var
   State: TGameState;
   QuitRequested: boolean;
@@ -58,6 +63,9 @@ var
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }
   owCx, owCy, owSteps: longint;
+
+  { the party light: game minutes left on the burning torch }
+  TorchFuel: longint;
 
 function KeyDown(scancode: longint): boolean; inline;
 

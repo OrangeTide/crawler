@@ -325,6 +325,7 @@ begin
   end;
   PackAdd(c, 'POTION', 1);
   PackAdd(c, 'RATION', 4);   { trail food, spent resting }
+  PackAdd(c, 'TORCH', 3);    { spare torches, lit as the light burns out }
 end;
 
 procedure TryLevelUp(var c: TCharacter);
