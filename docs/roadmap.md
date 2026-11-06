@@ -108,6 +108,15 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [gap] Resident-memory instrumentation and caps: the overworld cell cache and
   the visited-snapshot store are the main risks against the PS1 2 MB budget
   (design section 23). Add an LRU and a budget warning before they grow.
+- [done] Relocatable file paths for an install-free distribution. An apppaths
+  unit locates the pak relative to the real executable (resolved through
+  /proc/self/exe, _NSGetExecutablePath, or GetModuleFileName, so a launch by
+  bare name or through a symlink still finds its data), with the search list
+  covering a macOS .app bundle and a unix install prefix. Writable state (the
+  save and settings) moves to a per-user directory so a read-only install
+  works, with a portable.txt marker to keep everything in one folder. This
+  readies the macOS .app and Windows zip layouts; the non-Linux branches are
+  written to spec but not yet built on those hosts.
 - [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
   out of the PS1 build, recorded only so nothing now blocks it.
 
