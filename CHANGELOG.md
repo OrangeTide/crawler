@@ -61,6 +61,12 @@ whose development history is summarized in docs/roadmap.md.
   headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
+- Generated dungeon levels now choose stairs or a ladder for each vertical
+  exit from the ground around it. The way up favours a staircase at the foot
+  of a wide wall near the entrance; the way down favours a ladder standing in
+  an open chamber, and falls back to stairs where the deep end is cramped. The
+  generator version is bumped, so stored dungeon seeds regenerate under the new
+  rule. A ladder exit is marked as a stair pin on the full map.
 - Exits now stand in the world as billboards instead of coloured floor pads.
   A door, staircase, ladder, cave mouth or shaft is drawn as a front-facing
   sprite on its tile, scaled and lit with distance and occluded by walls, in

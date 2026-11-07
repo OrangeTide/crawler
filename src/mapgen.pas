@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 1;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 2;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -31,6 +31,10 @@ implementation
 
 uses
   gridgen, overworld, worldname;
+
+const
+  LADDER_SNAP = 3;   { how far an exit may shift to reach open floor for a ladder }
+  STAIR_SNAP  = 3;   { how far an exit may shift to reach a wall for stairs }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 var
@@ -274,6 +278,106 @@ begin
   end;
 end;
 
+{ True when the floor tile (x,y) sits at the foot of a straight wall run at
+  least three tiles wide: the tile on one side is wall, and so are the two
+  that flank it. A stair leans against such a flat back; an open tile with no
+  such wall takes a ladder instead. The tile is interior, so x+-1 and y+-1
+  stay in range. }
+function BacksWideWall(const g: TGrid; x, y: longint): boolean;
+begin
+  BacksWideWall := false;
+  if At(g, x, y) <> 0 then exit;
+  if (At(g, x, y - 1) <> 0) and (At(g, x - 1, y - 1) <> 0)
+    and (At(g, x + 1, y - 1) <> 0) then begin BacksWideWall := true; exit; end;
+  if (At(g, x, y + 1) <> 0) and (At(g, x - 1, y + 1) <> 0)
+    and (At(g, x + 1, y + 1) <> 0) then begin BacksWideWall := true; exit; end;
+  if (At(g, x - 1, y) <> 0) and (At(g, x - 1, y - 1) <> 0)
+    and (At(g, x - 1, y + 1) <> 0) then begin BacksWideWall := true; exit; end;
+  if (At(g, x + 1, y) <> 0) and (At(g, x + 1, y - 1) <> 0)
+    and (At(g, x + 1, y + 1) <> 0) then begin BacksWideWall := true; exit; end;
+end;
+
+{ True when the floor tile stands clear of walls: it and all eight neighbors
+  are open, so it sits in the middle of a room or cavern where a ladder fits.
+  The tile is interior, so the neighbor reads stay in range. }
+function OpenMiddle(const g: TGrid; x, y: longint): boolean;
+begin
+  OpenMiddle :=
+    (At(g, x, y) = 0)
+    and (At(g, x - 1, y) = 0) and (At(g, x + 1, y) = 0)
+    and (At(g, x, y - 1) = 0) and (At(g, x, y + 1) = 0)
+    and (At(g, x - 1, y - 1) = 0) and (At(g, x + 1, y - 1) = 0)
+    and (At(g, x - 1, y + 1) = 0) and (At(g, x + 1, y + 1) = 0);
+end;
+
+{ Breadth-first from the anchor over connected floor, out to `radius` steps,
+  for the nearest tile matching the wanted shape: an open middle (for a
+  ladder) or the foot of a wide wall (for stairs). Staying on connected floor
+  keeps the relocated exit linked to the anchor. False when none is near. }
+function SnapNearest(const g: TGrid; ax, ay, radius: longint; wantOpen: boolean;
+  out sx, sy: longint): boolean;
+const
+  dx4: array[0 .. 3] of longint = (1, -1, 0, 0);
+  dy4: array[0 .. 3] of longint = (0, 0, 1, -1);
+var
+  qx, qy, qd: array of longint;
+  seen: array of boolean;
+  head, tail, cx, cy, cd, k, nxx, nyy: longint;
+  hit: boolean;
+begin
+  SnapNearest := false;
+  SetLength(seen, gw * gh);
+  SetLength(qx, gw * gh); SetLength(qy, gw * gh); SetLength(qd, gw * gh);
+  head := 0; tail := 0;
+  qx[tail] := ax; qy[tail] := ay; qd[tail] := 0; inc(tail);
+  seen[ay * gw + ax] := true;
+  while head < tail do begin
+    cx := qx[head]; cy := qy[head]; cd := qd[head]; inc(head);
+    if wantOpen then hit := OpenMiddle(g, cx, cy)
+    else hit := BacksWideWall(g, cx, cy);
+    if hit then begin
+      sx := cx; sy := cy; SnapNearest := true; exit;
+    end;
+    if cd >= radius then continue;
+    for k := 0 to 3 do begin
+      nxx := cx + dx4[k]; nyy := cy + dy4[k];
+      if (nxx < 0) or (nyy < 0) or (nxx >= gw) or (nyy >= gh) then continue;
+      if seen[nyy * gw + nxx] then continue;
+      if At(g, nxx, nyy) <> 0 then continue;
+      seen[nyy * gw + nxx] := true;
+      qx[tail] := nxx; qy[tail] := nyy; qd[tail] := cd + 1; inc(tail);
+    end;
+  end;
+end;
+
+{ Place a vertical exit near its anchor, choosing its form from the ground it
+  can reach. When preferLadder is set the exit looks first for an open room or
+  cavern interior and stands there as a ladder; otherwise it looks first for
+  the foot of a wide wall and reads as stairs. Each falls back to the other
+  shape, then to the anchor as stairs. The way up favors a staircase on the
+  entrance wall; the way down favors a ladder in an open chamber. The final
+  tile is returned so its landing can be lit. }
+procedure PlaceVerticalExit(var m: TMapData; const g: TGrid;
+  ax, ay, stairKind: longint; preferLadder: boolean;
+  const target, marker, arrive: string; out fx, fy: longint);
+var
+  kind: longint;
+begin
+  kind := stairKind; fx := ax; fy := ay;
+  if preferLadder then begin
+    if SnapNearest(g, ax, ay, LADDER_SNAP, true, fx, fy) then
+      kind := PK_LADDER
+    else if SnapNearest(g, ax, ay, STAIR_SNAP, false, fx, fy) then
+      kind := stairKind;
+  end else begin
+    if SnapNearest(g, ax, ay, STAIR_SNAP, false, fx, fy) then
+      kind := stairKind
+    else if SnapNearest(g, ax, ay, LADDER_SNAP, true, fx, fy) then
+      kind := PK_LADDER;
+  end;
+  AddStair(m, g, fx, fy, kind, target, marker, arrive);
+end;
+
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 const
   W = 28; H = 28;
@@ -282,6 +386,7 @@ var
   g: TGrid;
   m: TMapData;
   i, theme, wallTile, usx, usy, dsx, dsy, reach, nx, ny: longint;
+  upx, upy, dnx, dny: longint;
   pin, arr, upTarget, upMarker, downTarget: string;
 begin
   gw := W; gh := H;
@@ -315,22 +420,24 @@ begin
     upTarget := DungeonName(cx, cy, depth - 1);
     upMarker := 'downarr';
   end;
-  AddStair(m, g, usx, usy, PK_UP, upTarget, upMarker, 'uparr');
+  PlaceVerticalExit(m, g, usx, usy, PK_UP, false, upTarget, upMarker, 'uparr',
+    upx, upy);
 
   { the way down: deeper, or into the Sunless Depths at the threshold }
   if depth >= SUNLESS_DEPTH then
     downTarget := DepthsName(cx, cy)
   else
     downTarget := DungeonName(cx, cy, depth + 1);
-  AddStair(m, g, dsx, dsy, PK_DOWN, downTarget, 'uparr', 'downarr');
+  PlaceVerticalExit(m, g, dsx, dsy, PK_DOWN, true, downTarget, 'uparr',
+    'downarr', dnx, dny);
 
   { natural underground light: bioluminescence and small gas vents }
   ScatterLights(m, g, r, 3 + RngRange(r, 0, 3), LIGHT_BIOLUME);
   ScatterLights(m, g, r, 1 + RngRange(r, 0, 2), LIGHT_GASVENT);
-  { a torch-lit landing at the stairs up, a brazier if this is a tomb }
-  if FloorNeighbor(g, usx, usy, nx, ny) then AddLight(m, nx, ny, LIGHT_TORCH);
+  { a torch-lit landing at the way up, a brazier if this is a tomb }
+  if FloorNeighbor(g, upx, upy, nx, ny) then AddLight(m, nx, ny, LIGHT_TORCH);
   if (theme = THEME_CRYPT) or (theme = THEME_DESERTTOMB) then
-    if FloorNeighbor(g, dsx, dsy, nx, ny) then AddLight(m, nx, ny, LIGHT_BRAZIER);
+    if FloorNeighbor(g, dnx, dny, nx, ny) then AddLight(m, nx, ny, LIGHT_BRAZIER);
 
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do

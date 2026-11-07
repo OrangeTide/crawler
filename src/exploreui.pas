@@ -593,7 +593,9 @@ begin
   for i := 0 to High(CurMap.portals) do begin
     px := CurMap.portals[i].x; py := CurMap.portals[i].y;
     if Discovered(px, py) then begin
-      if (CurMap.portals[i].kind = PK_DOWN) or (CurMap.portals[i].kind = PK_UP) then
+      if (CurMap.portals[i].kind = PK_DOWN) or (CurMap.portals[i].kind = PK_UP)
+        or (CurMap.portals[i].kind = PK_LADDER)
+        or (CurMap.portals[i].kind = PK_SHAFT) then
         PinSetAuto(CurMapName, px, py, PIN_STAIR)
       else
         PinSetAuto(CurMapName, px, py, PIN_PORTAL);
