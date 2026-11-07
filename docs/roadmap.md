@@ -60,11 +60,11 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Draw the portal and light-source glows in the polygon path that the
   raycaster already shows.
 - [gap] Vertex snap and ordered dither for the PSX look.
-- [partial] Backfill the billboard sprites with real art. The sprite system and
-  bake pipeline are in place with placeholders; source CC0 front-facing art,
-  palette-clean it against the fixed cube, and wire the NPCs, the roaming
-  hunter, and the monster roster, keeping the glyph fallback until each is
-  covered.
+- [partial] Backfill the billboard sprites with real art. Most of the monster
+  roster and the NPCs now draw CC0 pixel art from the public domain Dungeon
+  Crawl tiles. Still open: the crab and zombie have no tile yet, the werewolf
+  shares the demon tile, and the NPCs all share one sprite since a map NPC
+  names no sprite of its own. Give those a home and the art pass is done.
 - [gap] Decide and apply prop collision: props do not block movement yet, which
   may be intentional for decorations but wrong for furniture.
 - [gap] Reach parity with the raycaster, then make the polygon renderer the
