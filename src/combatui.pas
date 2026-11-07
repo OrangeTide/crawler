@@ -44,11 +44,12 @@ const
   CMD_ITEM   = 2;
   CMD_GUARD  = 3;
   CMD_MOVE   = 4;
-  CMD_FLEE   = 5;
-  CMD_COUNT  = 6;
+  CMD_SKIP   = 5;
+  CMD_FLEE   = 6;
+  CMD_COUNT  = 7;
 
   CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
-    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'MOVE', 'FLEE');
+    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'MOVE', 'SKIP', 'FLEE');
 
 var
   { combat command UI: a FF-style command then target flow }
@@ -195,6 +196,19 @@ begin
   CombatSlotRevives := (ItemDefs[def].flags and IF_REVIVE) <> 0;
 end;
 
+{ A command whose slot the current actor has already spent this turn is
+  shown greyed and refused: MOVE once the move is used, and the action
+  commands once the action is used. SKIP and FLEE are always available. }
+function CmdSpent(cmd: longint): boolean;
+begin
+  case cmd of
+    CMD_MOVE: CmdSpent := TurnMoved;
+    CMD_ATTACK, CMD_CAST, CMD_ITEM, CMD_GUARD: CmdSpent := TurnActed;
+  else
+    CmdSpent := false;
+  end;
+end;
+
 procedure DrawCombatMenu;
 var
   i, y, y0, bh, row: longint;
@@ -223,7 +237,10 @@ begin
     CB_COMMAND:
       for i := 0 to CMD_COUNT - 1 do begin
         y := y0 + i * 11;
-        if i = cmdSel then begin
+        if CmdSpent(i) then begin
+          if i = cmdSel then DrawText(CMDBOX_X + 5, y, '>', RGB(96, 90, 72));
+          DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(96, 90, 72));
+        end else if i = cmdSel then begin
           DrawText(CMDBOX_X + 5, y, '>', RGB(245, 230, 140));
           DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(245, 230, 140));
         end else
@@ -455,6 +472,22 @@ begin
   for i := 0 to LOG_LINES - 1 do
     DrawText(122, PANEL_Y + 6 + i * 10, Log[i], RGB(175, 185, 170));
 
+  { context help: what the acting member may still do this turn. One move
+    and one action in either order, then the turn ends; SKIP ends it early. }
+  if (not CombatOver) and (CombatPhase = CP_INPUT) and (CurActor >= 0) then begin
+    FillRect(122, FBH - 27, FBW - 134, 1, RGB(70, 74, 92));
+    if TurnMoved and (not TurnActed) then begin
+      DrawText(122, FBH - 22, 'Move spent.', RGB(150, 205, 175));
+      DrawText(122, FBH - 12, 'Take an ACTION, or SKIP.', RGB(175, 185, 205));
+    end else if TurnActed and (not TurnMoved) then begin
+      DrawText(122, FBH - 22, 'Action spent.', RGB(150, 205, 175));
+      DrawText(122, FBH - 12, 'MOVE, or SKIP to end turn.', RGB(175, 185, 205));
+    end else begin
+      DrawText(122, FBH - 22, 'One MOVE and one ACTION,', RGB(175, 185, 205));
+      DrawText(122, FBH - 12, 'any order. SKIP ends turn.', RGB(175, 185, 205));
+    end;
+  end;
+
   if CombatOver then begin
     FillRectBlend(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(6, 8, 14), 235);
     FrameRect(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(150, 140, 90));
@@ -565,9 +598,13 @@ end;
 { Return to the command menu, clearing any pending choice and picking a
   sane default target. Called at the top of each actor's turn. }
 procedure CombatToCommand;
+var
+  i: longint;
 begin
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
+  for i := 0 to CMD_COUNT - 1 do        { land on the first command still open }
+    if not CmdSpent(i) then begin cmdSel := i; break; end;
   pendingSpell := -1;
   pendingItem := -1;
   if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
@@ -578,6 +615,7 @@ procedure CombatConfirmCommand;
 var
   i: longint;
 begin
+  if CmdSpent(cmdSel) then begin PlaySfx(SFX_DOWN); exit; end;
   case cmdSel of
     CMD_ATTACK: begin
       pendingSpell := -1;
@@ -613,6 +651,7 @@ begin
     end;
     CMD_GUARD: begin ActGuard; PlaySfx(SFX_SELECT); CombatToCommand; end;
     CMD_MOVE:  begin ActMove; PlaySfx(SFX_SELECT); CombatToCommand; end;
+    CMD_SKIP:  begin ActSkip; PlaySfx(SFX_SELECT); CombatToCommand; end;
     CMD_FLEE:  begin ActFlee; PlaySfx(SFX_SELECT); CombatToCommand; end;
   end;
 end;

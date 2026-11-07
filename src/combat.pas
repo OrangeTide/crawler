@@ -39,6 +39,7 @@ procedure ActAttack;
 procedure ActGuard;
 procedure ActMove;
 procedure ActFlee;
+procedure ActSkip;
 procedure ActUseItem(slot, target: longint);
 procedure NextTarget;
 
@@ -70,6 +71,7 @@ type
 var
   TurnQueue: array of TTurnEnt;  { this round's actors, fastest first }
   TurnPos: longint;              { cursor into TurnQueue }
+  TurnContinue: boolean;         { the actor keeps its turn for the other slot }
   CombatTimer: double;           { seconds left in the current beat }
   FoesAtStart: longint;          { for the morale threshold }
 
@@ -123,9 +125,28 @@ procedure AdvanceTurn; forward;
 { Finish whoever just acted: end the fight, or hold a beat and move on. }
 procedure EndTurn;
 begin
+  TurnContinue := false;
   CheckEnd;
   if CombatOver then begin CombatPhase := CP_DONE; exit; end;
   inc(TurnPos);
+  CombatPhase := CP_BEAT;
+  CombatTimer := BEAT_TIME * CombatBeatScale;
+end;
+
+{ A party member gets one move and one other action per turn, in either
+  order. A sub-action marks its slot; the turn ends once both slots are
+  spent (or on a SKIP or FLEE, which end it outright through EndTurn).
+  Until then the same actor is handed back the command menu after a beat. }
+procedure FinishSubAction(isMove: boolean);
+begin
+  if isMove then TurnMoved := true else TurnActed := true;
+  if TurnMoved and TurnActed then begin
+    EndTurn;
+    exit;
+  end;
+  CheckEnd;
+  if CombatOver then begin TurnContinue := false; CombatPhase := CP_DONE; exit; end;
+  TurnContinue := true;
   CombatPhase := CP_BEAT;
   CombatTimer := BEAT_TIME * CombatBeatScale;
 end;
@@ -281,6 +302,8 @@ begin
   if e.side = 1 then begin
     CurActor := e.idx;
     Roster[e.idx].guarding := false;   { the defence held until now }
+    TurnMoved := false;                { a fresh move and action this turn }
+    TurnActed := false;
     CombatPhase := CP_INPUT;
   end else begin
     CombatPhase := CP_ENEMY;
@@ -303,7 +326,12 @@ begin
     CombatTimer := 0;
   end;
   case CombatPhase of
-    CP_BEAT:  AdvanceTurn;
+    CP_BEAT:
+      if TurnContinue then begin
+        TurnContinue := false;
+        CombatPhase := CP_INPUT;   { same actor takes its remaining slot }
+      end else
+        AdvanceTurn;
     CP_ENEMY: begin ResolveEnemyTurn; EndTurn; end;
   end;
 end;
@@ -520,7 +548,7 @@ begin
   ResolvePartyAttack(CurActor, CurTarget);
   if (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
     CurTarget := FirstLivingFoe;
-  EndTurn;
+  FinishSubAction(false);
 end;
 
 procedure ActGuard;
@@ -528,13 +556,13 @@ begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   Roster[CurActor].guarding := true;
   CombatLog(Roster[CurActor].name + ' braces to defend.');
-  EndTurn;
+  FinishSubAction(false);
 end;
 
 procedure ActMove;
 begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
-  { step between the front line and the back; this spends the turn }
+  { step between the front line and the back; this spends the move slot }
   if Roster[CurActor].rank = RANK_FRONT then begin
     Roster[CurActor].rank := RANK_BACK;
     CombatLog(Roster[CurActor].name + ' falls back.');
@@ -542,7 +570,7 @@ begin
     Roster[CurActor].rank := RANK_FRONT;
     CombatLog(Roster[CurActor].name + ' steps up to the front.');
   end;
-  EndTurn;
+  FinishSubAction(true);
 end;
 
 procedure ActFlee;
@@ -560,6 +588,14 @@ begin
     CombatLog(Roster[CurActor].name + ' fails to break away.');
     EndTurn;
   end;
+end;
+
+{ Pass: give up any unused move and action and end the turn. }
+procedure ActSkip;
+begin
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
+  CombatLog(Roster[CurActor].name + ' waits.');
+  EndTurn;
 end;
 
 { Use a chosen consumable (pack slot) on a chosen ally. A revive item raises
@@ -595,7 +631,7 @@ begin
     + ' on ' + Roster[target].name + ' (+' + IntToStr(heal) + ').');
   PushPop(1, target, POPC_HEAL, '+' + IntToStr(heal));
   FlashAlly(target);
-  EndTurn;
+  FinishSubAction(false);
 end;
 
 procedure NextTarget;
@@ -631,7 +667,7 @@ begin
     TGT_ENEMY: begin
       if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
         target := FirstLivingFoe;
-      if target < 0 then begin EndTurn; exit; end;
+      if target < 0 then begin FinishSubAction(false); exit; end;
       CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
       DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
       if Foes[target].alive and (sp.inflict <> 0) then
@@ -640,7 +676,7 @@ begin
     TGT_ENEMY_RANK: begin
       if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
         target := FirstLivingFoe;
-      if target < 0 then begin EndTurn; exit; end;
+      if target < 0 then begin FinishSubAction(false); exit; end;
       rk := Foes[target].rank;
       CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
       for i := 0 to High(Foes) do
@@ -671,7 +707,7 @@ begin
     end;
   end;
 
-  EndTurn;
+  FinishSubAction(false);
 end;
 
 end.

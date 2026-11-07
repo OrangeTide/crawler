@@ -100,6 +100,9 @@ var
 
   CombatPhase: longint;
 
+  TurnMoved: boolean;   { the current party actor has spent its move this turn }
+  TurnActed: boolean;   { the current party actor has spent its action this turn }
+
   Pops: array of TPop;       { active floating numbers }
   FoeFlash: array of double; { per-foe flash timer }
   PartyFlash: array of double;

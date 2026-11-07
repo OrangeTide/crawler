@@ -46,6 +46,12 @@ whose development history is summarized in docs/roadmap.md.
   headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
+- A combatant now gets both a move and a full action each turn, in either
+  order, instead of one or the other. MOVE spends the move slot; ATTACK, CAST,
+  ITEM, or DEFEND spends the action slot; the turn ends once both are spent. A
+  new SKIP command ends the turn early, forfeiting whatever is unused. Spent
+  commands grey out, and a context line in the message box states what the
+  acting member may still do.
 - Split the 1423-line combat unit along its concerns into combatstate (the
   shared state), combatcore (resolution and tactics), combatai (the foe AI),
   and a thin combat driver (turn order, setup, player actions). Internal

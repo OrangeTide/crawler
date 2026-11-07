@@ -43,7 +43,7 @@ begin
   rounds := 0;
   while (not CombatOver) and (rounds < 400) do begin
     if CombatBusy then begin CombatSettle; continue; end;
-    if CurActor >= 0 then ActGuard;   { pass the turn, never killing a foe }
+    if CurActor >= 0 then ActSkip;   { pass the turn, never killing a foe }
     CombatSettle;
     inc(rounds);
   end;
