@@ -25,9 +25,9 @@ whose development history is summarized in docs/roadmap.md.
   depth array and a distance-sorted sprite pass; the polygon renderer draws a
   camera-facing quad against its depth buffer. A monster or NPC with no sprite
   still falls back to its drawn glyph.
-- CC0 pixel art for most of the monster roster and the NPCs, from the public
-  domain "Dungeon Crawl 32x32 tiles" set. The crab and zombie stay on the
-  glyph fallback until art is picked.
+- CC0 pixel art for the full monster roster and the NPCs, from the public
+  domain "Dungeon Crawl 32x32 tiles" set and its supplemental set. The shore
+  crab and zombie now have sprites too, so no monster falls back to a glyph.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the

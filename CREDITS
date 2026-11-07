@@ -9,13 +9,17 @@ provenance, not as an obligation.
 Monster and NPC billboard sprites
 ---------------------------------
 
-Source: "Dungeon Crawl 32x32 tiles", a tile set released to the public domain
-by the Dungeon Crawl Stone Soup artists, who waived their copyrights to it.
+Source: "Dungeon Crawl 32x32 tiles" and its supplemental set, released to the
+public domain by the Dungeon Crawl Stone Soup artists, who waived their
+copyrights to them.
 License: CC0 1.0 (public domain dedication).
-Obtained from: OpenGameArt (https://opengameart.org/content/dungeon-crawl-32x32-tiles).
+Obtained from: OpenGameArt.
+  https://opengameart.org/content/dungeon-crawl-32x32-tiles
+  https://opengameart.org/content/dungeon-crawl-32x32-tiles-supplemental
 
 The sprites in content/sprites are resized and color-keyed copies of these
-tiles:
+tiles. Most come from the base set; crea9 comes from the supplemental set,
+as noted.
 
   crea1   goblin
   crea2   orc
@@ -25,9 +29,11 @@ tiles:
   crea6   kobold
   crea7   small humanoid skeleton
   crea8   wolf spider
+  crea9   fire crab (supplemental)
   crea10  wolf
   crea11  ghoul
   crea12  imp
   crea13  sun demon
+  flesh1  small zombie
   flesh2  ooze
   npc     human

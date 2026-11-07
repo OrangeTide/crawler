@@ -29,8 +29,8 @@ MODELNAMES = barrel doorway
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
-SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea10 \
-              crea11 crea12 crea13 flesh2 npc
+SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
+              crea10 crea11 crea12 crea13 flesh1 flesh2 npc
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.
