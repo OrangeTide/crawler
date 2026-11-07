@@ -125,10 +125,10 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Journal and quest expansion: map pins and auto-markers on the full
   map are done. A fuller quest log waits on the quest content in 0.24.0.
 - [gap] A run timer or achievements for replay (low priority).
-- [gap] Refresh the README screenshots to the current game. Capture the town
-  area, a shop keeper, a dungeon view with a monster in the distance, and a
-  combat screen with several opponents that uses both the front and back
-  ranks. The headless shot tool can frame each.
+- [done] Refreshed the README screenshots to the current game: the town with
+  its elder, each zone, the tavern keeper, a skeleton down a crypt hall, and a
+  five-foe fight across the front and back ranks. The shot tool gained a `foe`
+  scene and a combat depth, and `scripts/screenshots.sh` regenerates the set.
 - [done] A proper title screen, adopting ideas from the DOS RPG at
   ~/DEVEL/dos-rpg (Liminal Kingdoms): the same mountain photo that game uses,
   taken from the original at full colour and dithered to our palette, with

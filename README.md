@@ -30,6 +30,20 @@ wall and floor patterns, so even a generated map themes from its area.
 | ![The grotto](screenshots/grotto.png) | ![The infernal depth](screenshots/infernal.png) |
 | The glowing grotto, a cave of warm stone. | The infernal depth, a rust corridor falling into the dark. |
 
+The party meets the folk of each place, runs into what walks the halls, and
+fights foes drawn up in two ranks.
+
+| | |
+|---|---|
+| ![A skeleton down a crypt hall](screenshots/monster.png) | ![The tavern keeper](screenshots/shop.png) |
+| A lone skeleton caught in the torchlight, a hall away. | The tavern keeper, who hires out a sword-arm for a fee. |
+
+![A fight against five foes across a front and a back rank](screenshots/combat.png)
+
+Combat forms two ranks a side. Melee reaches only the front line, so the
+acolyte and demon lord hang back while the skeleton and zombies hold the front;
+spells and bows strike over them.
+
 ## Features
 
 - Textured raycasting walls (DDA grid cast) with per-face shading, plus floor
