@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 7;
+  MAP_VERSION = 8;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -93,6 +93,7 @@ type
     x, y: word;
     dialog: string[12];
     name: string[12];
+    sprite: string[12];   { sprite lump name, empty for the default NPC art }
   end;
 
   TTrap = record
@@ -242,6 +243,7 @@ begin
     BU16(b, m.npcs[i].y);
     BName(b, m.npcs[i].dialog, 12);
     BName(b, m.npcs[i].name, 12);
+    BName(b, m.npcs[i].sprite, 12);
   end;
 
   BU16(b, Length(m.lights));
@@ -407,6 +409,7 @@ begin
     m.npcs[i].y := RU16(r);
     m.npcs[i].dialog := RName(r, 12);
     m.npcs[i].name := RName(r, 12);
+    m.npcs[i].sprite := RName(r, 12);
   end;
 
   count := RU16(r);

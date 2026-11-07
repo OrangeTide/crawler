@@ -31,6 +31,11 @@ whose development history is summarized in docs/roadmap.md.
   sprites, and the werewolf, acolyte, and bandit were split off the tiles
   they used to share with the demon and the cultist. No monster falls back
   to a glyph.
+- A per-NPC sprite field in the map format. A map NPC may now name its own
+  billboard sprite as an optional fifth argument on its npc line, so NPCs no
+  longer all share one placeholder. An NPC that names none keeps the default
+  human art, and a named sprite that will not load falls back to it. The map
+  format version is bumped accordingly.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the

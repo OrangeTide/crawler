@@ -29,16 +29,20 @@ uses
   world, sprites, pursuit, monsters, gamestate;
 
 const
-  NPC_SPRITE = 'NPC';   { the shared placeholder until NPCs name their own }
+  NPC_SPRITE = 'NPC';   { the default art for an NPC that names no sprite }
 
 function GatherWorldSprites(var lst: array of TWorldSprite): longint;
 var
   n, i, si: longint;
+  spr: string;
 begin
   n := 0;
   for i := 0 to High(CurMap.npcs) do begin
     if n > High(lst) then break;
-    si := LoadSprite(GamePak, NPC_SPRITE);
+    spr := CurMap.npcs[i].sprite;
+    if spr = '' then spr := NPC_SPRITE;
+    si := LoadSprite(GamePak, spr);
+    if si < 0 then si := LoadSprite(GamePak, NPC_SPRITE);
     if si < 0 then continue;
     lst[n].x := CurMap.npcs[i].x + 0.5;
     lst[n].y := CurMap.npcs[i].y + 0.5;

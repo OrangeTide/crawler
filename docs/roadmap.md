@@ -63,9 +63,10 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Backfill the billboard sprites with real art. Every monster and
   the NPCs now draw CC0 pixel art from the public domain Dungeon Crawl tiles
   and its supplemental set. No monster falls back to a glyph, and each one
-  has its own distinct tile. Still open: the NPCs all share one sprite since a
-  map NPC names no sprite of its own. A per-NPC sprite field finishes the art
-  pass.
+  has its own distinct tile. A map NPC can now name its own sprite, so NPCs no
+  longer have to share one. Still open: the maps have not yet been given
+  distinct NPC art, so every NPC still draws the default human until each is
+  assigned a sprite.
 - [gap] Decide and apply prop collision: props do not block movement yet, which
   may be intentional for decorations but wrong for furniture.
 - [gap] Reach parity with the raycaster, then make the polygon renderer the
