@@ -6,7 +6,8 @@ program t_tactics;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, rng, rules, items, chardata, monsters, party, combat, testing;
+  sysutils, pak, rng, rules, items, chardata, monsters, party, combat,
+  combatstate, combatcore, combatai, testing;
 
 var
   p: TPak;

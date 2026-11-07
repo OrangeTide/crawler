@@ -8,7 +8,8 @@ program t_fireres;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, rng, rules, items, chardata, monsters, party, combat, testing;
+  sysutils, pak, rng, rules, items, chardata, monsters, party, combat,
+  combatstate, combatcore, testing;
 
 var
   p: TPak;

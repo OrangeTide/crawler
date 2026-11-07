@@ -38,7 +38,7 @@ function CombatSpeedScale(cs: longint): double;
 implementation
 
 uses
-  sysutils, classes, gamestate, audio, combat, keymap, apppaths;
+  sysutils, classes, gamestate, audio, combatstate, keymap, apppaths;
 
 procedure SettingsDefaults;
 begin

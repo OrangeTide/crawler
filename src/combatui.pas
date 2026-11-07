@@ -24,7 +24,8 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raster, meshfmt, models, party, chardata, items,
-  monsters, combat, audio, gamestate, world, codex, rng, flags;
+  monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
+  rng, flags;
 
 var
   BossRewardFlag: string;   { set a story flag when the current boss is beaten }
