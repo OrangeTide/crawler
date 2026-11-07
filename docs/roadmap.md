@@ -116,6 +116,20 @@ Tags: [gap] not started, [partial] exists but incomplete.
   shelter behind one big one (up to eight tiny behind a single large). This
   gates the combat MOVE between ranks and the initial encounter layout.
 
+- [gap] Import the spell lists from axx-rpg, which was recently expanded with
+  many new spells. The source is ~/Vibe/axx-rpg/src/sup/spells.csv (name,
+  class, level, save, damage_type, effect, components; about 170 rows, keyed by
+  class such as Cleric). Bring them into a content spell table for the crawler,
+  mapping the axx classes and levels onto ours. Pairs with the caster-class
+  work below.
+- [gap] Give the caster classes their known spells, spell schools and domains.
+  Today classes carry only a caster track (mage, priest) and a spell-point
+  pool (CharSpellPoints, MF_MAGE), with no actual spell lists. The Magic-User,
+  Priest/Cleric and Druid should each draw from their own domains: arcane
+  schools for the Magic-User, divine domains for the Priest/Cleric, and the
+  natural domain for the Druid. Record each class's accessible schools and the
+  spells known or prepared, and let combat and exploration cast from them.
+
 ### D. Reference, meta, and quality-of-life
 
 - [done] Bestiary of discovered monsters and item identification. A codex
@@ -190,6 +204,13 @@ Tags: [gap] not started, [partial] exists but incomplete.
   cave grotto, infernal demon-lord) thread across the zones to the Elder, who
   gates the victory on all three held. The quest flags and victory screen close
   the critical path.
+- [gap] Rename the game from "Shadows of the Deep" to "Cities of the Sunless
+  Depths" and write a fuller main quest arc to match. The name ties to the
+  existing Sunless Depths layer (SUNLESS_DEPTH, the Depths cells reached below
+  depth 30). The arc should build to a capstone: discovering and exploring the
+  ancient ruins of the Depths, the lost cities the title names. Touch the title
+  logo, the README, and the quest content; the current three-shard quest can
+  become an early beat of the longer arc.
 
 ## Sequenced roadmap
 
