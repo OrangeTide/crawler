@@ -29,7 +29,7 @@ MODELNAMES = barrel doorway
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
-SPRITENAMES = crea1 crea4
+SPRITENAMES = crea1 crea4 npc
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.
@@ -78,7 +78,8 @@ $(PAK): $(MKASSETS) $(CONTENT)
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
 content/sprites/%.ppm: content/sprites/%.png
-	convert $< -background '#FF00FF' -flatten -resize 64x96 ppm:$@
+	convert $< -resize 64x96 -alpha on -channel A -threshold 50% +channel \
+	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 build:
 	mkdir -p build

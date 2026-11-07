@@ -18,12 +18,14 @@ procedure RenderViewPoly;
 implementation
 
 uses
-  math, gfx, textures, world, mapfmt, raster, models, meshfmt;
+  math, gfx, textures, world, mapfmt, raster, models, meshfmt,
+  sprites, worldspr;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
   FOCAL  = (FBW / 2) / 0.66;
   NS_DARK = 0.72;       { north/south faces darker, as the raycaster does }
+  ENT_H  = 1.1;         { billboard height in tiles }
 
 var
   GridTex: array[0 .. TEX_COUNT - 1] of array of byte;   { palette indices }
@@ -90,6 +92,28 @@ begin
   end;
 end;
 
+{ Billboard every NPC and active pursuer on the current map. }
+procedure DrawEntities(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
+var
+  ents: array[0 .. 63] of TWorldSprite;
+  n, i, ptx, pty: longint;
+  px, py, dist, fwd, light, wscale: double;
+begin
+  n := GatherWorldSprites(ents);
+  for i := 0 to n - 1 do begin
+    px := ents[i].x; py := ents[i].y;
+    fwd := (px - ex) * cyaw + (py - ey) * syaw;
+    if fwd < -1.0 then continue;                 { behind the camera }
+    dist := sqrt(sqr(px - ex) + sqr(py - ey));
+    if dist > VIEW_R + 1 then continue;
+    ptx := trunc(px); pty := trunc(py);
+    light := TileLight(ptx, pty, dist);
+    with SpriteReg[ents[i].img].img do
+      if h > 0 then wscale := ENT_H * w / h else wscale := ENT_H;
+    DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale, ENT_H, light);
+  end;
+end;
+
 procedure RenderViewPoly;
 var
   mc: TMeshCam;
@@ -120,28 +144,28 @@ begin
       if fwd < -1.3 then continue;            { behind the camera }
       dist := sqrt(sqr(cx - ex) + sqr(cy - ey));
 
-      if IsBlocking(tx, ty) then begin
+      if IsWallTile(tx, ty) then begin
         ftex := WallTexId(TileAt(tx, ty));
         { a face toward each open neighbor, lit from that neighbor tile }
-        if not IsBlocking(tx - 1, ty) then begin   { west face, x = tx }
+        if not IsWallTile(tx - 1, ty) then begin   { west face, x = tx }
           fcx := tx; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx - 1, ty, fd);
           DrawTexQuad(mc, tx, ty, 0,  tx, ty + 1, 0,  tx, ty + 1, 1,  tx, ty, 1,
             0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
         end;
-        if not IsBlocking(tx + 1, ty) then begin   { east face, x = tx+1 }
+        if not IsWallTile(tx + 1, ty) then begin   { east face, x = tx+1 }
           fcx := tx + 1; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx + 1, ty, fd);
           DrawTexQuad(mc, tx + 1, ty + 1, 0,  tx + 1, ty, 0,  tx + 1, ty, 1,  tx + 1, ty + 1, 1,
             0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
         end;
-        if not IsBlocking(tx, ty - 1) then begin   { south face, y = ty }
+        if not IsWallTile(tx, ty - 1) then begin   { south face, y = ty }
           fcx := cx; fcy := ty; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty - 1, fd) * NS_DARK;
           DrawTexQuad(mc, tx + 1, ty, 0,  tx, ty, 0,  tx, ty, 1,  tx + 1, ty, 1,
             0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
         end;
-        if not IsBlocking(tx, ty + 1) then begin   { north face, y = ty+1 }
+        if not IsWallTile(tx, ty + 1) then begin   { north face, y = ty+1 }
           fcx := cx; fcy := ty + 1; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty + 1, fd) * NS_DARK;
           DrawTexQuad(mc, tx, ty + 1, 0,  tx + 1, ty + 1, 0,  tx + 1, ty + 1, 1,  tx, ty + 1, 1,
@@ -161,6 +185,7 @@ begin
     end;
 
   DrawProps(mc, ex, ey, cyaw, syaw);
+  DrawEntities(mc, ex, ey, cyaw, syaw);
 end;
 
 end.

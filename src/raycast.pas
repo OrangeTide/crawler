@@ -17,9 +17,10 @@ procedure RenderView;
 implementation
 
 uses
-  gfx, textures, world, mapfmt, fixedpt;
+  gfx, textures, world, mapfmt, fixedpt, pic, sprites, worldspr;
 
 const
+  ENT_H = 1.1;   { world-view billboard height in tiles, matching polyrender }
   { Fog in fixed point: fully lit to NEAR (1.5), fading to FAR (9.0). }
   FOG_NEAR_F = 1 * FONE + FONE div 2;        { 1.5 }
   FOG_FAR_F  = 9 * FONE;                      { 9.0 }
@@ -33,6 +34,11 @@ const
   BIO_GLOW    = $FF50FFB4;   { bioluminescent growth }
   GAS_GLOW    = $FF8CE0FF;   { a gas vent flame }
   FIRE_GLOW   = $FFFFA030;   { brazier, torch or bonfire }
+
+var
+  { Perpendicular wall distance per screen column, in world tiles, filled by
+    DrawWalls and read by the sprite pass to occlude billboards behind walls. }
+  ColDepth: array[0 .. FBW - 1] of double;
 
 function FogFactor(dist: TFix): longint;
 {** Maps a fixed-point distance to a 0..256 brightness scale for Shade. }
@@ -227,7 +233,7 @@ begin
         mapY := mapY + stepY;
         side := 1;
       end;
-      if IsBlocking(mapX, mapY) then begin
+      if IsWallTile(mapX, mapY) then begin
         tile := TileAt(mapX, mapY);
         hit := 1;
       end;
@@ -239,6 +245,7 @@ begin
       perpWallDist := sideDistY - deltaDistY;
     if perpWallDist < 8 then
       perpWallDist := 8;   { ~0.0001, guards the divide }
+    ColDepth[x] := perpWallDist / (1.0 * FONE);   { world tiles, for sprites }
 
     { line height as a plain integer so a near wall cannot overflow fixed }
     lineHeight := longint((int64(FBH) shl FBITS) div perpWallDist);
@@ -286,10 +293,91 @@ begin
   end;
 end;
 
+procedure DrawSprites;
+{** Classic distance-sorted raycaster sprite pass. Each entity is projected
+  to camera space, the list drawn far to near, and every billboard column is
+  skipped where the wall at that column stands nearer than the sprite. }
+var
+  ents: array[0 .. 63] of TWorldSprite;
+  order: array[0 .. 63] of longint;
+  dist: array[0 .. 63] of double;
+  n, i, j, stripe, yy, texX, texY, tmp, horizon: longint;
+  posX, posY, dirX, dirY, planeX, planeY, invDet: double;
+  spriteX, spriteY, transformX, transformY: double;
+  spriteScreenX, unitH, spriteH, spriteW, vTop, vBase: double;
+  drawStartX, drawEndX, drawStartY, drawEndY, litI, fog, iw, ih: longint;
+  img: ^TImage;
+  src: TColor;
+begin
+  n := GatherWorldSprites(ents);
+  if n = 0 then exit;
+  posX := Cam.posX; posY := Cam.posY;
+  dirX := Cam.dirX; dirY := Cam.dirY;
+  planeX := Cam.planeX; planeY := Cam.planeY;
+  horizon := FBH div 2 + trunc(Cam.pitch);
+  invDet := 1.0 / (planeX * dirY - dirX * planeY);
+
+  for i := 0 to n - 1 do begin
+    order[i] := i;
+    dist[i] := sqr(posX - ents[i].x) + sqr(posY - ents[i].y);
+  end;
+  for i := 0 to n - 2 do
+    for j := 0 to n - 2 - i do
+      if dist[order[j]] < dist[order[j + 1]] then begin
+        tmp := order[j]; order[j] := order[j + 1]; order[j + 1] := tmp;
+      end;
+
+  for i := 0 to n - 1 do begin
+    img := @SpriteReg[ents[order[i]].img].img;
+    iw := img^.w; ih := img^.h;
+    if (iw <= 0) or (ih <= 0) or (Length(img^.pix) = 0) then continue;
+    spriteX := ents[order[i]].x - posX;
+    spriteY := ents[order[i]].y - posY;
+    transformX := invDet * (dirY * spriteX - dirX * spriteY);
+    transformY := invDet * (planeX * spriteY - planeY * spriteX);   { depth }
+    if transformY <= 0.05 then continue;                 { behind the camera }
+
+    spriteScreenX := (FBW / 2) * (1 + transformX / transformY);
+    unitH := FBH / transformY;              { a one-tile-tall wall in pixels }
+    spriteH := unitH * ENT_H;
+    spriteW := unitH * (ENT_H * iw / ih);
+    if (spriteW < 0.001) or (spriteH < 0.001) then continue;
+    vBase := horizon + unitH / 2;           { the floor line at this depth }
+    vTop := vBase - spriteH;
+
+    drawStartX := round(spriteScreenX - spriteW / 2);
+    drawEndX   := round(spriteScreenX + spriteW / 2);
+    drawStartY := round(vTop);
+    drawEndY   := round(vBase);
+
+    fog := FogFactor(FixF(transformY));
+    litI := LitFactor(fog, trunc(ents[order[i]].x), trunc(ents[order[i]].y));
+
+    for stripe := drawStartX to drawEndX do begin
+      if (stripe < 0) or (stripe > FBW - 1) then continue;
+      if transformY >= ColDepth[stripe] then continue;   { occluded by a wall }
+      texX := trunc((stripe - (spriteScreenX - spriteW / 2)) / spriteW * iw);
+      if texX < 0 then texX := 0 else if texX > iw - 1 then texX := iw - 1;
+      for yy := drawStartY to drawEndY do begin
+        if (yy < 0) or (yy > FBH - 1) then continue;
+        texY := trunc((yy - vTop) / spriteH * ih);
+        if texY < 0 then texY := 0 else if texY > ih - 1 then texY := ih - 1;
+        src := img^.pix[texY * iw + texX];
+        if (src shr 24) < 128 then continue;              { transparent texel }
+        if litI >= 256 then
+          FB[yy * FBW + stripe] := Quantize(src)
+        else
+          FB[yy * FBW + stripe] := Quantize(Shade(src, litI));
+      end;
+    end;
+  end;
+end;
+
 procedure RenderView;
 begin
   DrawFloorCeiling;
   DrawWalls;
+  DrawSprites;
 end;
 
 end.

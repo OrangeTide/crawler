@@ -16,7 +16,7 @@ unit raster;
 interface
 
 uses
-  meshfmt, gfx;
+  meshfmt, gfx, pic;
 
 type
   TMeshCam = record
@@ -46,6 +46,14 @@ procedure DrawTexQuad(const cam: TMeshCam;
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
   tex: PByte; tw, th: longint; light: double);
+
+{ Draw a front-facing billboard: a camera-facing quad standing on the floor
+  at world (wx,wy), wscale wide and hscale tall in tiles, textured with the
+  ARGB image img. Transparent texels are skipped, so the key color shows the
+  world behind, and the depth buffer occludes the sprite behind nearer walls
+  and sprites. }
+procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
+  wx, wy, wscale, hscale, light: double);
 
 implementation
 
@@ -184,6 +192,112 @@ begin
   c2.u := u2; c2.v := v2; c3.u := u3; c3.v := v3;
   FillTriTex(c0, c1, c2, tex, tw, th, light);
   FillTriTex(c0, c2, c3, tex, tw, th, light);
+end;
+
+{ Affine z-buffered span fill of one screen triangle from an ARGB image,
+  skipping transparent texels. Mirrors FillTriTex but alpha tests and
+  samples a 32-bit image rather than a palette page. }
+procedure FillTriSpr(const t0, t1, t2: TCorner; pix: PLongWord; tw, th: longint; light: double);
+var
+  p: array[0 .. 2] of TCorner;
+  tmp: TCorner;
+  y, iy0, iy1, ix0, ix1, x, fbo: longint;
+  xa, ua, va, za, xb, ub, vb, zb, tx, u, v, z: double;
+  fy0, fy1, fy2: double;
+  litI, tsx, tsy: longint;
+  src: TColor;
+
+  procedure Edge(ay, by, ax, bx, au, bu, av, bv, az, bz, yy: double;
+    out ox, ou, ov, oz: double);
+  var tt: double;
+  begin
+    if by = ay then tt := 0 else tt := (yy - ay) / (by - ay);
+    if tt < 0 then tt := 0 else if tt > 1 then tt := 1;
+    ox := ax + (bx - ax) * tt;
+    ou := au + (bu - au) * tt;
+    ov := av + (bv - av) * tt;
+    oz := az + (bz - az) * tt;
+  end;
+
+begin
+  p[0] := t0; p[1] := t1; p[2] := t2;
+  if p[1].sy < p[0].sy then begin tmp := p[0]; p[0] := p[1]; p[1] := tmp; end;
+  if p[2].sy < p[1].sy then begin tmp := p[1]; p[1] := p[2]; p[2] := tmp; end;
+  if p[1].sy < p[0].sy then begin tmp := p[0]; p[0] := p[1]; p[1] := tmp; end;
+
+  fy0 := p[0].sy; fy1 := p[1].sy; fy2 := p[2].sy;
+  if fy2 - fy0 < 0.001 then exit;
+
+  litI := round(light);
+  iy0 := round(fy0); iy1 := round(fy2);
+  if iy0 < 0 then iy0 := 0;
+  if iy1 > FBH - 1 then iy1 := FBH - 1;
+
+  for y := iy0 to iy1 do begin
+    Edge(fy0, fy2, p[0].sx, p[2].sx, p[0].u, p[2].u, p[0].v, p[2].v,
+      p[0].iz, p[2].iz, y, xa, ua, va, za);
+    if y < fy1 then begin
+      if fy1 - fy0 < 0.001 then continue;
+      Edge(fy0, fy1, p[0].sx, p[1].sx, p[0].u, p[1].u, p[0].v, p[1].v,
+        p[0].iz, p[1].iz, y, xb, ub, vb, zb);
+    end else begin
+      if fy2 - fy1 < 0.001 then continue;
+      Edge(fy1, fy2, p[1].sx, p[2].sx, p[1].u, p[2].u, p[1].v, p[2].v,
+        p[1].iz, p[2].iz, y, xb, ub, vb, zb);
+    end;
+    if xb < xa then begin
+      tx := xa; xa := xb; xb := tx;
+      tx := ua; ua := ub; ub := tx;
+      tx := va; va := vb; vb := tx;
+      tx := za; za := zb; zb := tx;
+    end;
+    ix0 := round(xa); ix1 := round(xb);
+    if ix0 < 0 then ix0 := 0;
+    if ix1 > FBW - 1 then ix1 := FBW - 1;
+    fbo := y * FBW;
+    for x := ix0 to ix1 do begin
+      if xb - xa < 0.001 then tx := 0 else tx := (x - xa) / (xb - xa);
+      if tx < 0 then tx := 0 else if tx > 1 then tx := 1;
+      z := za + (zb - za) * tx;
+      if z <= ZBuf[fbo + x] then continue;   { something nearer is here }
+      u := ua + (ub - ua) * tx;
+      v := va + (vb - va) * tx;
+      tsx := round(u * tw); tsy := round((1.0 - v) * th);
+      if tsx < 0 then tsx := 0 else if tsx > tw - 1 then tsx := tw - 1;
+      if tsy < 0 then tsy := 0 else if tsy > th - 1 then tsy := th - 1;
+      src := pix[tsy * tw + tsx];
+      if (src shr 24) < 128 then continue;   { transparent texel }
+      ZBuf[fbo + x] := z;
+      if litI >= 256 then
+        FB[fbo + x] := Quantize(src)
+      else
+        FB[fbo + x] := Quantize(Shade(src, litI));
+    end;
+  end;
+end;
+
+procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
+  wx, wy, wscale, hscale, light: double);
+var
+  rx, ry, hw: double;
+  c: array[0 .. 3] of TCorner;
+  ok: boolean;
+begin
+  if Length(img.pix) = 0 then exit;
+  { camera right vector in the world XY plane, so the quad faces the eye }
+  rx := sin(cam.yaw); ry := -cos(cam.yaw);
+  hw := wscale * 0.5;
+  ok := Project(cam, wx - rx * hw, wy - ry * hw, 0,      c[0]);      { bottom left }
+  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, 0,      c[1]);  { bottom right }
+  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, hscale, c[2]);  { top right }
+  ok := ok and Project(cam, wx - rx * hw, wy - ry * hw, hscale, c[3]);  { top left }
+  if not ok then exit;
+  c[0].u := 0; c[0].v := 0;
+  c[1].u := 1; c[1].v := 0;
+  c[2].u := 1; c[2].v := 1;
+  c[3].u := 0; c[3].v := 1;
+  FillTriSpr(c[0], c[1], c[2], @img.pix[0], img.w, img.h, light);
+  FillTriSpr(c[0], c[2], c[3], @img.pix[0], img.w, img.h, light);
 end;
 
 procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;

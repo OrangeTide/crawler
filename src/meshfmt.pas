@@ -236,6 +236,7 @@ begin
   if fld < 3 then exit;
   w := vals[0]; h := vals[1];
   if (w <= 0) or (h <= 0) then exit;
+  if vals[2] <> 255 then exit;   { only 8-bit channels; 16-bit PPM is rejected }
   if len - n < w * h * 3 then exit;
   SetLength(pixbuf, w * h * 3);
   Move(raw[n], pixbuf[0], w * h * 3);

@@ -70,6 +70,7 @@ procedure PlaceAtMarker(const name: string);
 procedure PlaceAt(tx, ty, face: longint);
 function TileAt(mx, my: longint): byte;
 function IsBlocking(mx, my: longint): boolean;
+function IsWallTile(mx, my: longint): boolean;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -348,24 +349,29 @@ begin
     end;
 end;
 
-function IsBlocking(mx, my: longint): boolean;
+function IsWallTile(mx, my: longint): boolean;
+{** Whether the tile geometry blocks, ignoring NPCs. This is what the
+  renderers cast against: an NPC stands on an open tile and is drawn as a
+  billboard, not as a wall. Movement uses IsBlocking, which also stops on
+  NPC tiles so the party cannot walk through them. }
 var
   t: byte;
 begin
-  if NpcTileOccupied(mx, my) then begin
-    IsBlocking := true;
-    exit;
-  end;
   t := TileAt(mx, my);
   if t = TILE_EMPTY then
-    IsBlocking := false
+    IsWallTile := false
   else if t = TILE_DOOR then begin
     if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then
-      IsBlocking := true
+      IsWallTile := true
     else
-      IsBlocking := not DoorOpen[my][mx];
+      IsWallTile := not DoorOpen[my][mx];
   end else
-    IsBlocking := true;
+    IsWallTile := true;
+end;
+
+function IsBlocking(mx, my: longint): boolean;
+begin
+  IsBlocking := NpcTileOccupied(mx, my) or IsWallTile(mx, my);
 end;
 
 function MotionBusy: boolean;
