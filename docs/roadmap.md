@@ -39,6 +39,10 @@ the game clock (`pursuit`). Auto-travel then grew a materialized route that it
 plans once and follows, with a route preview on the full map. These opened a
 navigation and AI track that the backlog below carries forward.
 
+On code structure, the largest units are split along their concerns. Combat is
+now a thin driver over `combatstate`, `combatcore`, and `combatai`, matching
+the earlier `game`, `overworld`, and `mapgen` splits.
+
 ## Open backlog by theme
 
 Tags: [gap] not started, [partial] exists but incomplete.

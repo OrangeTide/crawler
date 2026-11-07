@@ -18,6 +18,12 @@ whose development history is summarized in docs/roadmap.md.
   would walk to the tile under the cursor, and the active route's leg on the
   current map.
 
+### Changed
+- Split the 1423-line combat unit along its concerns into combatstate (the
+  shared state), combatcore (resolution and tactics), combatai (the foe AI),
+  and a thin combat driver (turn order, setup, player actions). Internal
+  structure only, no behavior change; the combat tests pass unchanged.
+
 ## [0.24.0] - 2026-11-06
 
 World content and the critical path.
