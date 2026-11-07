@@ -1,0 +1,33 @@
+Third-party assets
+==================
+
+The game code is covered by LICENSE. The art assets listed here come from
+third parties under their own terms, recorded below. CC0 waives copyright and
+requires no attribution. The credit is kept here as a courtesy and a record of
+provenance, not as an obligation.
+
+Monster and NPC billboard sprites
+---------------------------------
+
+Source: "Dungeon Crawl 32x32 tiles", a tile set released to the public domain
+by the Dungeon Crawl Stone Soup artists, who waived their copyrights to it.
+License: CC0 1.0 (public domain dedication).
+Obtained from: OpenGameArt (https://opengameart.org/content/dungeon-crawl-32x32-tiles).
+
+The sprites in content/sprites are resized and color-keyed copies of these
+tiles:
+
+  crea1   goblin
+  crea2   orc
+  crea3   cultist
+  crea4   rat
+  crea5   giant bat
+  crea6   kobold
+  crea7   small humanoid skeleton
+  crea8   wolf spider
+  crea10  wolf
+  crea11  ghoul
+  crea12  imp
+  crea13  sun demon
+  flesh2  ooze
+  npc     human
