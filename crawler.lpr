@@ -17,7 +17,7 @@ const
   SCALE   = 4;
   WINW    = FBW * SCALE;
   WINH    = FBH * SCALE;
-  TITLE   = 'Crawler - Shadows of the Deep';
+  TITLE   = 'Cities of the Sunless Depths';
 
 var
   win, ren, tex: Pointer;

@@ -118,8 +118,8 @@ begin
   DrawBirds;
 
   { the title logo and its tagline }
-  Logo('SHADOWS', 16, 3);
-  Logo('OF THE DEEP', 42, 2);
+  Logo('CITIES OF THE', 18, 2);
+  Logo('SUNLESS DEPTHS', 36, 3);
   DrawCenter(63, 'A DUNGEON CRAWL', RGB(224, 228, 238));   { light underglow }
   DrawCenter(62, 'A DUNGEON CRAWL', RGB(34, 30, 54));       { dark, reads on sky }
 

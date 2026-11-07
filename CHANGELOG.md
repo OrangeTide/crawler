@@ -71,6 +71,8 @@ whose development history is summarized in docs/roadmap.md.
   headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
+- Renamed the game to "Cities of the Sunless Depths" (was "Shadows of the
+  Deep"). The title logo and the window caption carry the new name.
 - Generated dungeon levels now choose stairs or a ladder for each vertical
   exit from the ground around it. The way up favours a staircase at the foot
   of a wide wall near the entrance; the way down favours a ladder standing in

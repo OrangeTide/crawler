@@ -1,7 +1,7 @@
-# Crawler
+# Cities of the Sunless Depths
 
 A first person dungeon crawler written in Free Pascal (OBJFPC mode) with a
-textured raycasting engine. It renders at 320x240 into a software framebuffer
+textured raycasting engine. The build is named `crawler`. It renders at 320x240 into a software framebuffer
 and upscales with nearest-neighbour filtering for a crisp retro look. The
 camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
 as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
