@@ -59,7 +59,7 @@ procedure DrawBirds;
 const
   N = 6;
   baseX: array[0 .. N - 1] of longint = (40, 120, 190, 250, 85, 215);
-  baseY: array[0 .. N - 1] of longint = (74, 60,  82,  66,  96, 92);
+  baseY: array[0 .. N - 1] of longint = (58, 46,  66,  50,  74, 62);
 var
   i, bx, by: longint;
 begin
