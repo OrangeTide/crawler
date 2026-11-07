@@ -22,9 +22,10 @@ overworld and biomes, vertical space and the Sunless Depths, and the time,
 day-night, and moon systems with lycanthropy and the light-well puzzles.
 
 Milestone 0.19.0 (the PSX-style polygon renderer) is in progress: the
-rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, instanced
-props, and monster meshes framed into combat slots all exist. The raycaster is
-still the default.
+rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, and
+instanced props all exist. The raycaster is still the default. Monsters and
+NPCs are no longer meshes: they draw as front-facing billboard sprites, in
+combat slots and in the world view, so only the props remain as meshes.
 
 The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
 navigation work: survival systems (light, food, status breadth), options and
@@ -39,6 +40,13 @@ the game clock (`pursuit`). Auto-travel then grew a materialized route that it
 plans once and follows, with a route preview on the full map. These opened a
 navigation and AI track that the backlog below carries forward.
 
+The art-asset bottleneck drove a switch from per-monster meshes to billboard
+sprites (`sprites`, `worldspr`): combat foes and world entities now draw from a
+transparency-keyed PIC store, which retired the creature meshes and freed the
+model VRAM budget. Front-facing sprites fit a blobber and unlock the pool of
+CC0 2D creature art. The sprites in the build are placeholders; sourcing real
+CC0 art and wiring it per creature is the remaining step.
+
 On code structure, the largest units are split along their concerns. Combat is
 now a thin driver over `combatstate`, `combatcore`, and `combatai`, matching
 the earlier `game`, `overworld`, and `mapgen` splits.
@@ -52,6 +60,11 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Draw the portal and light-source glows in the polygon path that the
   raycaster already shows.
 - [gap] Vertex snap and ordered dither for the PSX look.
+- [partial] Backfill the billboard sprites with real art. The sprite system and
+  bake pipeline are in place with placeholders; source CC0 front-facing art,
+  palette-clean it against the fixed cube, and wire the NPCs, the roaming
+  hunter, and the monster roster, keeping the glyph fallback until each is
+  covered.
 - [gap] Decide and apply prop collision: props do not block movement yet, which
   may be intentional for decorations but wrong for furniture.
 - [gap] Reach parity with the raycaster, then make the polygon renderer the

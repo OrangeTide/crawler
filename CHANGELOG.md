@@ -17,12 +17,32 @@ whose development history is summarized in docs/roadmap.md.
 - Route preview on the full map. The map screen draws the trail a left click
   would walk to the tile under the cursor, and the active route's leg on the
   current map.
+- Billboard sprites for monsters and NPCs. A new sprites unit holds a runtime
+  store of front-facing PIC images keyed for transparency, and a sprite asset
+  kind in the baker builds them from PNG art. Combat foes draw as sprites in
+  their slots, and the world view draws every NPC and active pursuer as a
+  camera-facing billboard in both renderers. The raycaster gained a per-column
+  depth array and a distance-sorted sprite pass; the polygon renderer draws a
+  camera-facing quad against its depth buffer. A monster or NPC with no sprite
+  still falls back to its drawn glyph.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the
   shared state), combatcore (resolution and tactics), combatai (the foe AI),
   and a thin combat driver (turn order, setup, player actions). Internal
   structure only, no behavior change; the combat tests pass unchanged.
+- Retired the per-monster combat meshes in favor of sprites. The CREA* and
+  FLESH* models leave the registry, which now holds only the prop meshes, so
+  the model cache no longer overflows its VRAM budget.
+- Split IsWallTile out of IsBlocking so the renderers cast against tile
+  geometry only. An NPC tile no longer draws as a phantom wall, while movement
+  still stops on it.
+
+### Fixed
+- The sprite bake step emitted 16-bit PPMs that the reader decoded as 8-bit,
+  turning art into color noise. It now emits 8-bit channels with a hard alpha
+  mask for clean keyed edges, and the PPM reader rejects a non 8-bit file
+  rather than corrupt it.
 
 ## [0.24.0] - 2026-11-06
 
