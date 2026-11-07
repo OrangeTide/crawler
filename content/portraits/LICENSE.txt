@@ -1,0 +1,22 @@
+NPC portrait art
+================
+
+The portrait PNGs in this directory are third-party art by a third-party artist,
+obtained from a third-party source. They are bundled here for use within
+this game, not for standalone redistribution.
+
+port_elder, port_barkeep, port_apothecary, port_ranger, port_hunter come
+from the "a portrait pack". port_dockhand comes from the "Old
+Villager Portrait" pack.
+
+License terms as provided by the author:
+
+- We want you to have the freedom to use this asset pack in both your free
+  and commercial projects.
+- Feel free to modify the assets to suit your unique needs. While credit is
+  not required, we genuinely appreciate any attribution given.
+- You may not redistribute or resell the assets on their own, that includes
+  NFT/images asset compilations.
+
+Created using a local generative tool for rough concepts, then refined by
+hand for consistency and quality.

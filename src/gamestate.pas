@@ -52,6 +52,7 @@ var
   cursorX, cursorY: longint;
   rmbHeld: boolean;
   dlgNpcName: string;
+  dlgId: string;        { the active dialog id, used to pick the NPC portrait }
   shopSel: longint;
   shopStock: string;      { id of the shop currently open }
   saveMsg: string;

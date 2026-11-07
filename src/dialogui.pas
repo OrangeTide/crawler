@@ -15,24 +15,52 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
-  gamestate, party, settings, combatui, monsters, gametime, rng;
+  gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic;
+
+{ Blit a portrait image at its native size, skipping the keyed background. }
+procedure DrawPortrait(px, py: longint; const img: TImage);
+var
+  x, y: longint;
+  c: TColor;
+begin
+  for y := 0 to img.h - 1 do
+    for x := 0 to img.w - 1 do begin
+      c := img.pix[y * img.w + x];
+      if (c shr 24) < 128 then continue;
+      PutPixel(px + x, py + y, c);
+    end;
+end;
 
 procedure DialogRender;
 var
-  i, py, n: longint;
+  i, py, n, pi, tx, tw: longint;
 begin
   if UsePoly then RenderViewPoly else RenderView;
   FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
   py := 118;
   FillRectBlend(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);
   FrameRect(8, py, FBW - 16, FBH - py - 8, RGB(120, 110, 90));
-  DrawText(16, py + 6, dlgNpcName, RGB(230, 210, 140));
+
+  { an NPC with a PORT_<dialog-id> portrait lump shows a framed face on the
+    left, and the text makes room for it; speakers with none keep the full
+    width (a shrine, an altar, and such name no portrait) }
+  pi := LoadSprite(GamePak, 'PORT_' + UpperCase(dlgId));
+  if pi >= 0 then begin
+    FillRectBlend(14, py + 6, 64, 64, RGB(0, 0, 0), 190);
+    FrameRect(14, py + 6, 64, 64, RGB(120, 110, 90));
+    DrawPortrait(14, py + 6, SpriteReg[pi].img);
+    tx := 86; tw := 36;
+  end else begin
+    tx := 16; tw := 48;
+  end;
+
+  DrawText(tx, py + 6, dlgNpcName, RGB(230, 210, 140));
   if DlgActive then begin
-    DrawWrapped(16, py + 20, 48, Convs[DlgConv].nodes[DlgNode].text,
+    DrawWrapped(tx, py + 20, tw, Convs[DlgConv].nodes[DlgNode].text,
       RGB(205, 205, 190));
     n := DialogRespCount;
     for i := 0 to n - 1 do
-      DrawText(20, py + 56 + i * 11,
+      DrawText(tx + 4, py + 56 + i * 11,
         IntToStr(i + 1) + ') ' + DialogRespText(i), RGB(170, 200, 170));
   end;
   { a service result lingers a moment at the foot of the box }

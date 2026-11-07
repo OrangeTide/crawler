@@ -39,6 +39,11 @@ whose development history is summarized in docs/roadmap.md.
   own CC0 tile: the elder, ranger, hunter, ferryman, barkeep, and apothecary
   each get a distinct figure, and the infernal altar and the two shrines draw
   as statues rather than people.
+- Portraits for the interactible NPCs. A talking NPC with a PORT_<dialog-id>
+  portrait lump shows a framed face in the dialog box, with the text reflowed
+  beside it; speakers that name none (a shrine, an altar) keep the full-width
+  text. The art is licensed portrait packs by a third-party artist, bundled under
+  content/portraits with their license; see CREDITS.
 - An open sky on surface maps. Instead of a dungeon ceiling, a surface map now
   draws a gradient sky above the horizon in both renderers, shaded by the
   day and moon light so it darkens at night. The outskirts where a new party

@@ -35,16 +35,22 @@ SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
               npc_elder npc_ranger npc_hunter npc_ferry npc_barkeep \
               npc_apoth npc_altar npc_shrine1 npc_shrine2
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
+# NPC dialog portraits: a 64x64 PNG per dialog id in content/portraits,
+# keyed to magenta and baked to a PORT_<ID> PIC lump via the sprite path.
+PORTRAITNAMES = port_elder port_barkeep port_apothecary port_ranger \
+                port_hunter port_dockhand
+PORTRAITSRC = $(foreach n,$(PORTRAITNAMES),content/portraits/$(n).ppm)
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) $(SPRITESRC) \
-            $(MUSICSRC)
+            $(PORTRAITSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
+PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
@@ -86,12 +92,18 @@ build/tools/shot: tools/shot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(MUSICARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
 content/sprites/%.ppm: content/sprites/%.png
 	convert $< -filter point -resize 64x96 -alpha on -channel A -threshold 50% +channel \
+	  -background '#FF00FF' -flatten -depth 8 ppm:$@
+
+# Portrait source: a 64x64 PNG (with alpha) flattened onto the magenta key.
+# Kept at native size, no scaling, so the face stays square.
+content/portraits/%.ppm: content/portraits/%.png
+	convert $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 build:

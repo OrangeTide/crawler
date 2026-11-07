@@ -237,6 +237,7 @@ begin
   DialogStart(dlgName);
   if DlgActive then begin
     dlgNpcName := npcName;
+    dlgId := dlgName;
     State := gsDialog;
   end;
 end;
