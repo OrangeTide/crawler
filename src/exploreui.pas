@@ -22,6 +22,9 @@ procedure UpdateLycanthropy;
 procedure StartAutoTravel(const destMap: string; dx, dy: longint);
 procedure CancelAutoTravel;
 function AutoTravelActive: boolean;
+{ The current route leg's target tile on the current map, for the full-map
+  preview. False when no route is active or its current leg is elsewhere. }
+function AutoTravelTargetOnMap(out tx, ty: longint): boolean;
 
 implementation
 
@@ -52,11 +55,59 @@ const
 var
   atActive: boolean;
   atMap: string;
-  atX, atY: longint;
+  atX, atY: longint;                       { final goal, kept for the arrival test }
+  atPath: array[0 .. ROUTE_MAX_LEGS - 1] of TRouteLeg;
+  atN, atLeg: longint;                     { leg count, and the leg in progress }
 
 function AutoTravelActive: boolean;
 begin
   AutoTravelActive := atActive;
+end;
+
+{ Make atLeg name the current map's leg, re-materializing the route from here
+  if the stored plan no longer covers this map. False means no route from the
+  party's current position to the goal. }
+function RefreshRoute: boolean;
+var
+  i: longint;
+begin
+  RefreshRoute := false;
+  { the stored plan still names this map: scan forward to its leg. }
+  if atActive then
+    for i := atLeg to atN - 1 do
+      if atPath[i].map = CurMapName then begin
+        atLeg := i;
+        RefreshRoute := true;
+        exit;
+      end;
+  { otherwise plan afresh from where the party stands. }
+  if RoutePath(CurMapName, TileX, TileY, atMap, atX, atY,
+       pmPlayerKnown, atPath, atN) and (atN > 0) then begin
+    atLeg := 0;
+    RefreshRoute := true;
+  end;
+end;
+
+{ Always re-materialize from the party's current position, discarding the
+  stored plan. Used when the current leg will not path on the live map, so a
+  different crossing can be tried. }
+function ForcePlan: boolean;
+begin
+  ForcePlan := RoutePath(CurMapName, TileX, TileY, atMap, atX, atY,
+    pmPlayerKnown, atPath, atN) and (atN > 0);
+  if ForcePlan then atLeg := 0;
+end;
+
+{ The current leg's target tile on this map, for the full-map preview: the
+  portal the route leaves through, or the goal when it is on this map. }
+function AutoTravelTargetOnMap(out tx, ty: longint): boolean;
+begin
+  AutoTravelTargetOnMap := false;
+  tx := 0; ty := 0;
+  if (not atActive) or (atLeg < 0) or (atLeg >= atN) then exit;
+  if atPath[atLeg].map <> CurMapName then exit;
+  tx := atPath[atLeg].exitX; ty := atPath[atLeg].exitY;
+  AutoTravelTargetOnMap := true;
 end;
 
 procedure CancelAutoTravel;
@@ -68,22 +119,21 @@ begin
 end;
 
 procedure StartAutoTravel(const destMap: string; dx, dy: longint);
-var
-  wx, wy: longint;
-  atGoal: boolean;
 begin
   atActive := false;
   if Length(Roster) = 0 then exit;
   if (destMap = CurMapName) and (dx = TileX) and (dy = TileY) then exit;
-  { a plan must exist from here before committing; the walk re-plans each
-    map, but refuse up front if the destination is not known-reachable. }
-  if not RouteNextHop(CurMap, CurMapName, TileX, TileY, destMap, dx, dy,
-       pmPlayerKnown, wx, wy, atGoal) then begin
+  { materialize the whole route once; refuse up front if the destination is
+    not known-reachable. The walk then follows these legs without re-searching
+    every tile. }
+  if not RoutePath(CurMapName, TileX, TileY, destMap, dx, dy,
+       pmPlayerKnown, atPath, atN) or (atN = 0) then begin
     saveMsg := 'NO KNOWN ROUTE';
     saveMsgT := 2.0;
     exit;
   end;
   atMap := destMap; atX := dx; atY := dy;
+  atLeg := 0;
   atActive := true;
   saveMsg := 'TRAVELING';
   saveMsgT := 1.0;
@@ -104,9 +154,11 @@ begin
 end;
 
 procedure AutoTravelStep;
-{** One tile of the current route: re-plan the next waypoint on this map,
-  path to it, open a door in the way, and step. A portal on the way hands
-  off to the next map in CheckTileEvents, and the next call re-plans there. }
+{** One tile of the current route: follow the materialized leg for this map,
+  path to its target, open a door in the way, and step. A portal on the way
+  hands off to the next map in CheckTileEvents; the next call picks up that
+  map's leg. The route is only re-searched when the stored plan no longer
+  covers the current map or a leg will not path. }
 var
   wx, wy, nsteps, nx, ny: longint;
   atGoal: boolean;
@@ -118,18 +170,30 @@ begin
     saveMsgT := 2.0;
     exit;
   end;
-  if not RouteNextHop(CurMap, CurMapName, TileX, TileY, atMap, atX, atY,
-       pmPlayerKnown, wx, wy, atGoal) then begin
+  if not RefreshRoute then begin
     atActive := false;
     saveMsg := 'ROUTE LOST';
     saveMsgT := 2.0;
     exit;
   end;
+  wx := atPath[atLeg].exitX; wy := atPath[atLeg].exitY;
+  atGoal := atPath[atLeg].atGoal;
   if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps) then begin
-    atActive := false;
-    saveMsg := 'ROUTE BLOCKED';
-    saveMsgT := 2.0;
-    exit;
+    { the stored leg will not path on the live map: re-plan once from here. }
+    if (not ForcePlan) then begin
+      atActive := false;
+      saveMsg := 'ROUTE BLOCKED';
+      saveMsgT := 2.0;
+      exit;
+    end;
+    wx := atPath[atLeg].exitX; wy := atPath[atLeg].exitY;
+    atGoal := atPath[atLeg].atGoal;
+    if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps) then begin
+      atActive := false;
+      saveMsg := 'ROUTE BLOCKED';
+      saveMsgT := 2.0;
+      exit;
+    end;
   end;
   if nsteps < 2 then begin
     { already on the waypoint: the goal ends the trip, a portal tile should

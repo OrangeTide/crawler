@@ -27,7 +27,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui, pursuit, settings, keymap, codex, monsters, mappins;
+  exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind;
 
 function PinColor(kind: byte): TColor;
 begin
@@ -43,12 +43,23 @@ begin
 end;
 
 procedure FullMapRender;
-{** The full map with the player's pins, the auto-markers, and any hunters on
-  this map drawn over it. }
+{** The full map with the route preview, the player's pins, the auto-markers,
+  and any hunters on this map drawn over it. }
 var
-  i: longint;
+  i, n, tx, ty: longint;
+  path: array[0 .. 2047] of TPathStep;
 begin
   DrawFullMap;
+  { preview the trail a left click would walk to the tile under the cursor }
+  if FullMapTileAt(cursorX, cursorY, tx, ty) then
+    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n) then
+      for i := 1 to n - 2 do
+        FullMapMark(path[i].x, path[i].y, RGB(70, 90, 150));
+  { the active route's leg on this map, drawn brighter over the hover trail }
+  if AutoTravelActive and AutoTravelTargetOnMap(tx, ty) then
+    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n) then
+      for i := 1 to n - 2 do
+        FullMapMark(path[i].x, path[i].y, RGB(90, 200, 220));
   for i := 0 to High(Pins) do
     if Pins[i].map = CurMapName then
       FullMapMark(Pins[i].x, Pins[i].y, PinColor(Pins[i].kind));

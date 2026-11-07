@@ -89,6 +89,9 @@ var
   a, b, c, e, f, g: TMapData;
   mx, my, wx, wy: longint;
   atGoal: boolean;
+  legs: array[0 .. 15] of TRouteLeg;
+  small: array[0 .. 0] of TRouteLeg;
+  nlegs: longint;
 begin
   { A -> B -> C, three open rooms in a line joined by portals. }
   BuildMap(a, ['.....', '.....', '.....', '.....', '.....']);
@@ -173,6 +176,45 @@ begin
   Check(NextHopOver(e, 'E', 4, 0, 'F', 4, 4, @TableProvider, ROUTE_MAX_STATES,
     wx, wy, atGoal) and (wx = 4) and (wy = 2) and not atGoal,
     'next hop from the portal side aims at the portal');
+
+  { RoutePathOver: the materialized leg list for A -> B -> C. }
+  Check(RoutePathOver('A', 0, 0, 'C', 4, 4, @TableProvider, ROUTE_MAX_STATES,
+    legs, nlegs), 'materialized route A to C found');
+  CheckEqI(3, nlegs, 'A to C is three legs');
+  Check((legs[0].map = 'A') and (legs[0].entryX = 0) and (legs[0].entryY = 0)
+    and (legs[0].exitX = 4) and (legs[0].exitY = 2) and (not legs[0].atGoal),
+    'leg 0 enters A at the start and exits its portal');
+  Check((legs[1].map = 'B') and (legs[1].entryX = 0) and (legs[1].entryY = 2)
+    and (legs[1].exitX = 4) and (legs[1].exitY = 2) and (not legs[1].atGoal),
+    'leg 1 enters B at the marker and exits its portal');
+  Check((legs[2].map = 'C') and (legs[2].entryX = 0) and (legs[2].entryY = 2)
+    and (legs[2].exitX = 4) and (legs[2].exitY = 4) and legs[2].atGoal,
+    'leg 2 enters C at the marker and ends on the goal');
+
+  { Same map: a single leg that is already the goal. }
+  Check(RoutePathOver('A', 0, 0, 'A', 4, 4, @TableProvider, ROUTE_MAX_STATES,
+    legs, nlegs), 'materialized same-map route found');
+  CheckEqI(1, nlegs, 'a same-map route is one leg');
+  Check((legs[0].map = 'A') and (legs[0].entryX = 0) and (legs[0].entryY = 0)
+    and (legs[0].exitX = 4) and (legs[0].exitY = 4) and legs[0].atGoal,
+    'the one leg runs from the start to the goal');
+
+  { A route the search cannot find materializes nothing. }
+  Check(not RoutePathOver('A', 0, 0, 'Z', 0, 0, @TableProvider,
+    ROUTE_MAX_STATES, legs, nlegs), 'no route to an unserved map');
+  CheckEqI(0, nlegs, 'an unreachable goal yields no legs');
+  Check(not RoutePathOver('E', 0, 0, 'F', 4, 4, @TableProvider,
+    ROUTE_MAX_STATES, legs, nlegs), 'walled-off portal yields no route');
+
+  { A buffer too small to hold the route is refused, like FindPath. }
+  Check(not RoutePathOver('A', 0, 0, 'C', 4, 4, @TableProvider,
+    ROUTE_MAX_STATES, small, nlegs), 'a too-small leg buffer is refused');
+  CheckEqI(0, nlegs, 'a refused buffer yields no legs');
+
+  { The materialized route agrees with RouteOver on reachability. }
+  Check(RoutePathOver('A', 0, 0, 'C', 4, 4, @TableProvider, 8, legs, nlegs)
+    = RouteOver('A', 0, 0, 'C', 4, 4, @TableProvider, 8),
+    'RoutePathOver agrees with RouteOver');
 
   TestSummary('maproute');
   halt(TestExit);

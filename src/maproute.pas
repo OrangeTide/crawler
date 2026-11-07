@@ -39,11 +39,25 @@ type
     caller must not cross as solid, so the search needs no fog logic. }
   TRouteMapProvider = function(const name: string; out m: TMapData): boolean;
 
+  { One map on a materialized route. The party arrives at (entryX,entryY)
+    and, on every leg but the last, leaves through the portal tile
+    (exitX,exitY) toward the next leg. On the final leg atGoal is true and
+    (exitX,exitY) is the goal tile itself. }
+  TRouteLeg = packed record
+    map: string[12];
+    entryX, entryY: smallint;
+    exitX, exitY: smallint;
+    atGoal: boolean;
+  end;
+
 const
   { The most map entry points one query will expand before giving up. The
     overworld is effectively unbounded, so an omniscient search needs a
     ceiling; player-known searches stay far below it. }
   ROUTE_MAX_STATES = 512;
+
+  { A materialized route never needs more map hops than this. }
+  ROUTE_MAX_LEGS = 64;
 
 { The marker's tile in m, by name. Falls back to the first marker, then to
   the map centre, exactly as world.PlaceAtMarker does, so a routed entry
@@ -88,6 +102,20 @@ function RouteNextHop(const curMap: TMapData; const curName: string;
   fromX, fromY: longint; const toMap: string; toX, toY: longint;
   mode: TRouteMode; out wx, wy: longint; out atGoal: boolean): boolean;
 
+{ Materialize the whole route as an ordered list of per-map legs in a single
+  search. legs[0] is the start map; the last leg has atGoal true. The caller
+  owns and sizes legs, as pathfind.FindPath does its buffer. Returns false
+  with nlegs=0 when no route is found or legs is too small to hold it. }
+function RoutePathOver(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint;
+  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+
+{ RoutePathOver wired to the live providers for the given mode. }
+function RoutePath(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint; mode: TRouteMode;
+  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+
 implementation
 
 uses
@@ -118,29 +146,37 @@ begin
   MarkerPos := true;
 end;
 
-{ The fewest map hops from (fromX,fromY) on fromMap to (toX,toY) on toMap:
-  0 when the goal is on the start map and reachable there, 1 per portal
-  crossing, or -1 when no route is found within maxStates. A breadth-first
-  search over (map, entry tile) states, so the first time the goal map is
-  reached is by the shortest chain of maps. Each intra-map leg is an A* in
-  pathfind, doors passable; the visited set and budget bound the otherwise
-  looping overworld so the search always terminates. }
-function RouteDist(const fromMap: string; fromX, fromY: longint;
+type
+  TStrArr = array of string;
+  TIntArr = array of longint;
+
+{ The breadth-first search both the distance and the materialized route are
+  built on. It expands (map, entry tile) states, so the first time the goal
+  map is reached is by the shortest chain of maps. Each intra-map leg is an A*
+  in pathfind, doors passable; the visited set and budget bound the otherwise
+  looping overworld so the search always terminates. The queue arrays are the
+  caller's, grown as needed; on a hit the goal state's index is returned and
+  the arrays hold the tree to reconstruct from (each state records its parent
+  and the portal tile on the parent that reached it), or -1 when no route is
+  found within maxStates. }
+function RouteSearch(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
-  provider: TRouteMapProvider; maxStates: longint): longint;
+  provider: TRouteMapProvider; maxStates: longint;
+  var qName: TStrArr;
+  var qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr): longint;
 var
-  qName: array of string;
-  qX, qY, qDepth: array of longint;
   visited: array of string;
-  head, tail, nvis, explored, i, mx, my, cd: longint;
+  head, tail, nvis, explored, i, mx, my, cd, curIdx: longint;
   curName: string;
   cx, cy: longint;
   m, tm: TMapData;
 
   { Enqueue an entry point the first time it is reached. The visited set is
     the key to termination: the overworld's portals loop back on each
-    other, so a state must never be expanded twice. }
-  procedure Push(const n: string; x, y, depth: longint);
+    other, so a state must never be expanded twice. parent is the index of
+    the state it was reached from, and (portX,portY) the portal tile on that
+    parent's map that led here. }
+  procedure Push(const n: string; x, y, depth, parent, portX, portY: longint);
   var
     k: string;
     j: longint;
@@ -157,31 +193,54 @@ var
       SetLength(qX, Length(qName));
       SetLength(qY, Length(qName));
       SetLength(qDepth, Length(qName));
+      SetLength(qParent, Length(qName));
+      SetLength(qPortX, Length(qName));
+      SetLength(qPortY, Length(qName));
     end;
     qName[tail] := n; qX[tail] := x; qY[tail] := y; qDepth[tail] := depth;
+    qParent[tail] := parent; qPortX[tail] := portX; qPortY[tail] := portY;
     inc(tail);
   end;
 
 begin
-  RouteDist := -1;
+  RouteSearch := -1;
   head := 0; tail := 0; nvis := 0; explored := 0;
-  Push(fromMap, fromX, fromY, 0);
+  Push(fromMap, fromX, fromY, 0, -1, 0, 0);
   while head < tail do begin
     if explored >= maxStates then exit;   { budget spent; route not found }
     inc(explored);
+    curIdx := head;
     curName := qName[head]; cx := qX[head]; cy := qY[head]; cd := qDepth[head];
     inc(head);
     if not provider(curName, m) then continue;   { unknown or unreachable map }
     if (curName = toMap) and PathExists(m, cx, cy, toX, toY, true) then begin
-      RouteDist := cd;
+      RouteSearch := curIdx;
       exit;
     end;
     for i := 0 to High(m.portals) do
       if PathExists(m, cx, cy, m.portals[i].x, m.portals[i].y, true) then
         if provider(m.portals[i].target, tm) then
           if MarkerPos(tm, m.portals[i].marker, mx, my) then
-            Push(m.portals[i].target, mx, my, cd + 1);
+            Push(m.portals[i].target, mx, my, cd + 1, curIdx,
+              m.portals[i].x, m.portals[i].y);
   end;
+end;
+
+{ The fewest map hops from (fromX,fromY) on fromMap to (toX,toY) on toMap:
+  0 when the goal is on the start map and reachable there, 1 per portal
+  crossing, or -1 when no route is found within maxStates. }
+function RouteDist(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint): longint;
+var
+  qName: TStrArr;
+  qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr;
+  goal: longint;
+begin
+  goal := RouteSearch(fromMap, fromX, fromY, toMap, toX, toY,
+    provider, maxStates, qName, qX, qY, qDepth, qParent, qPortX, qPortY);
+  if goal < 0 then RouteDist := -1
+  else RouteDist := qDepth[goal];
 end;
 
 function RouteOver(const fromMap: string; fromX, fromY: longint;
@@ -290,6 +349,55 @@ begin
   gMode := mode;
   RouteNextHop := NextHopOver(curMap, curName, fromX, fromY, toMap, toX, toY,
     @RuntimeProvider, ROUTE_MAX_STATES, wx, wy, atGoal);
+end;
+
+function RoutePathOver(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint;
+  provider: TRouteMapProvider; maxStates: longint;
+  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+var
+  qName: TStrArr;
+  qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr;
+  goal, count, idx, prevIdx, pos: longint;
+begin
+  RoutePathOver := false;
+  nlegs := 0;
+  goal := RouteSearch(fromMap, fromX, fromY, toMap, toX, toY,
+    provider, maxStates, qName, qX, qY, qDepth, qParent, qPortX, qPortY);
+  if goal < 0 then exit;
+  { count the chain from goal up to the root, then refuse if it will not fit. }
+  count := 0; idx := goal;
+  while idx >= 0 do begin inc(count); idx := qParent[idx]; end;
+  if (count = 0) or (count > Length(legs)) then exit;
+  { walk goal -> root, filling legs root-first. A state's exit is the portal
+    tile recorded on its child (the state visited just before it here); the
+    goal's exit is the goal tile itself. }
+  pos := count - 1; idx := goal; prevIdx := -1;
+  while idx >= 0 do begin
+    legs[pos].map := qName[idx];
+    legs[pos].entryX := qX[idx]; legs[pos].entryY := qY[idx];
+    if idx = goal then begin
+      legs[pos].exitX := toX; legs[pos].exitY := toY;
+      legs[pos].atGoal := true;
+    end else begin
+      legs[pos].exitX := qPortX[prevIdx]; legs[pos].exitY := qPortY[prevIdx];
+      legs[pos].atGoal := false;
+    end;
+    prevIdx := idx;
+    idx := qParent[idx];
+    dec(pos);
+  end;
+  nlegs := count;
+  RoutePathOver := true;
+end;
+
+function RoutePath(const fromMap: string; fromX, fromY: longint;
+  const toMap: string; toX, toY: longint; mode: TRouteMode;
+  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+begin
+  gMode := mode;
+  RoutePath := RoutePathOver(fromMap, fromX, fromY, toMap, toX, toY,
+    @RuntimeProvider, ROUTE_MAX_STATES, legs, nlegs);
 end;
 
 end.
