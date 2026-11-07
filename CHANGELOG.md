@@ -10,11 +10,14 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
-- A title screen in place of the plain text menu: a mountain photo ordered-
-  dithered to the palette in the PlayStation style, under a two-line logo with
-  birds drifting across its sky and the menu in a framed box. The scene is the
-  same one the DOS game the project grows from uses, taken from the original
-  photo at full colour rather than the CGA-reduced version, and framed to the
+- A title screen in place of the plain text menu: a mountain photo under a
+  two-line logo with birds drifting across its sky and the menu in a framed
+  box. The scene carries its own optimised 256-colour palette, swapped in while
+  the title shows and restored on the way out, the way a PlayStation 8-bit
+  background works. This renders the photo smoothly, free of the chunky dither
+  the shared 6x6x6 cube would impose, with the menu and logo colours reserved
+  in that palette. The scene is the same one the DOS game the project grows
+  from uses, taken from the original photo at full colour and framed to the
   same crop. A scaled-text helper in the graphics unit draws the logo. With no
   save to continue, the menu opens on NEW GAME and skips the dead CONTINUE row.
 - Materialized cross-map routes. The party's auto-travel now plans the whole

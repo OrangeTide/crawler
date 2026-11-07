@@ -41,9 +41,10 @@ SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 PORTRAITNAMES = port_elder port_barkeep port_apothecary port_ranger \
                 port_hunter port_dockhand
 PORTRAITSRC = $(foreach n,$(PORTRAITNAMES),content/portraits/$(n).ppm)
-# Title background: a 320x240 scene (from Jon's photo, dithered to the cube)
-# baked to a TITLE_BG PIC lump via the sprite path.
-TITLEBGSRC = content/title/title_bg.ppm
+# Title background: a 320x240 scene (from Jon's photo) and its own 256-colour
+# palette, baked to TITLE_BG and TITLE_PAL PIC lumps via the sprite path. The
+# title swaps this palette in, PlayStation 8-bit-CLUT style, for a smooth scene.
+TITLEBGSRC = content/title/title_bg.ppm content/title/title_pal.ppm
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
@@ -55,7 +56,8 @@ MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
-TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm
+TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm \
+             sprite TITLE_PAL content/title/title_pal.ppm
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \

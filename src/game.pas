@@ -28,6 +28,9 @@ uses
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
+var
+  palIsTitle: boolean = false;   { the title's CLUT is active }
+
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
 begin
@@ -161,6 +164,13 @@ end;
 procedure GameRender(fps: longint);
 begin
   UpdateMusic;
+  { the title carries its own 256-colour palette; swap it in while on the
+    title and restore the game palette on the way out }
+  if State = gsTitle then begin
+    if not palIsTitle then begin TitleUsePalette; palIsTitle := true; end;
+  end else if palIsTitle then begin
+    UseGamePalette; palIsTitle := false;
+  end;
   case State of
     gsTitle:    TitleRender;
     gsNewParty: CCRender;

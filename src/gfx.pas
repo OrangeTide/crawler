@@ -27,6 +27,8 @@ var
 procedure InitGfx;                  { build the palette and inverse lookup }
 function Quantize(c: TColor): byte; inline;        { color to nearest index }
 procedure PalExpand(dst: PColorArray);             { indices to ARGB for SDL }
+procedure UsePalette(const cols: array of TColor); { swap in a scene palette }
+procedure UseGamePalette;                          { restore the game palette }
 
 function RGB(r, g, b: byte): TColor; inline;
 function Shade(c: TColor; f: longint): TColor; inline;
@@ -132,9 +134,35 @@ begin
   end;
 end;
 
+var
+  GamePalSaved: array[0 .. 255] of TColor;   { the game palette, for restoring }
+
 procedure InitGfx;
+var i: longint;
 begin
   BuildPalette;
+  BuildInvLUT;
+  for i := 0 to 255 do GamePalSaved[i] := Palette[i];
+end;
+
+{ Swap in a scene palette (up to 256 colours; the rest go black) and rebuild
+  the inverse lookup, so both display and quantizing use it. PlayStation
+  8-bit backgrounds work this way: each scene carries its own CLUT. }
+procedure UsePalette(const cols: array of TColor);
+var i, n: longint;
+begin
+  n := Length(cols);
+  if n > 256 then n := 256;
+  for i := 0 to n - 1 do Palette[i] := cols[i];
+  for i := n to 255 do Palette[i] := RGB(0, 0, 0);
+  BuildInvLUT;
+end;
+
+{ Restore the game palette saved at init and rebuild the inverse lookup. }
+procedure UseGamePalette;
+var i: longint;
+begin
+  for i := 0 to 255 do Palette[i] := GamePalSaved[i];
   BuildInvLUT;
 end;
 

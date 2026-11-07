@@ -11,6 +11,7 @@ interface
 
 procedure TitleRender;
 procedure TitleKeyDown(scancode: longint);
+procedure TitleUsePalette;   { swap in the title's own 256-colour CLUT }
 procedure QuickBattle;
 procedure QuickStart;
 
@@ -79,6 +80,23 @@ begin
   x := (FBW - TextScaledWidth(s, sc)) div 2;
   DrawTextScaled(x + 2, y + 2, s, RGB(10, 8, 14), sc);
   DrawTextScaled(x, y, s, RGB(236, 214, 130), sc);
+end;
+
+{ Load the title's own 256-colour palette (baked as a 256x1 lump) and make it
+  the active palette, so the scene renders smoothly in the PlayStation 8-bit
+  way. A missing lump leaves the game palette in place. }
+procedure TitleUsePalette;
+var
+  si, i, n: longint;
+  cols: array[0 .. 255] of TColor;
+begin
+  si := LoadSprite(GamePak, 'TITLE_PAL');
+  if si < 0 then exit;
+  n := SpriteReg[si].img.w * SpriteReg[si].img.h;
+  if n > 256 then n := 256;
+  for i := 0 to 255 do
+    if i < n then cols[i] := SpriteReg[si].img.pix[i] else cols[i] := RGB(0, 0, 0);
+  UsePalette(cols);
 end;
 
 procedure TitleRender;
