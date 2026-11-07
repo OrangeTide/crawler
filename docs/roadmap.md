@@ -125,6 +125,10 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Journal and quest expansion: map pins and auto-markers on the full
   map are done. A fuller quest log waits on the quest content in 0.24.0.
 - [gap] A run timer or achievements for replay (low priority).
+- [gap] Refresh the README screenshots to the current game. Capture the town
+  area, a shop keeper, a dungeon view with a monster in the distance, and a
+  combat screen with several opponents that uses both the front and back
+  ranks. The headless shot tool can frame each.
 
 ### E. Shipping targets (design sections 23 and 24)
 
