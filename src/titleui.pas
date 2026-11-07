@@ -12,6 +12,7 @@ interface
 procedure TitleRender;
 procedure TitleKeyDown(scancode: longint);
 procedure QuickBattle;
+procedure QuickStart;
 
 implementation
 

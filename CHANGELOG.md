@@ -39,6 +39,11 @@ whose development history is summarized in docs/roadmap.md.
   own CC0 tile: the elder, ranger, hunter, ferryman, barkeep, and apothecary
   each get a distinct figure, and the infernal altar and the two shrines draw
   as statues rather than people.
+- A headless screenshot tool (`make shottool`, `scripts/shots.sh`). It drives
+  the game's own init and render paths on SDL's dummy video driver, so it
+  renders a real game screen (title, world, a map at a position, or combat) to
+  an image with no window, display or GPU. This makes the UI verifiable in a
+  headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the

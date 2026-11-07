@@ -51,7 +51,7 @@ TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
             shops $(SHOPS) encounters $(ENCOUNTERS) world $(WORLD)
 
-.PHONY: all run clean tools meshtools test
+.PHONY: all run clean tools meshtools shottool test
 
 all: $(TARGET) $(PAK)
 
@@ -75,6 +75,15 @@ build/tools/mkmesh: tools/mkmesh.pas src/*.pas | build
 build/tools/meshshot: tools/meshshot.pas src/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -obuild/tools/meshshot tools/meshshot.pas
+
+# Headless screenshot tool: renders a real game screen (title, world,
+# a map at a position, or combat) to a PPM with no window, via SDL's
+# dummy video driver. Used by the headless-run skill.
+shottool: build/tools/shot
+
+build/tools/shot: tools/shot.pas src/*.pas | build
+	mkdir -p build/tools
+	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
 	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(MUSICARGS)
