@@ -52,6 +52,9 @@ function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
   the game palette (InitGfx must have run), and build the mesh. }
 function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
 
+{ Read a binary PPM (P6) into a flat RGB byte buffer (w*h*3). }
+function ReadPpm(const fn: string; out w, h: longint; out pixbuf: TByteArray): boolean;
+
 { Offline baker: reduce a mesh to at most maxTris triangles by clustering
   vertices onto a spatial grid. A mesh already within budget is left as
   is. Returns the triangle count after the pass. }

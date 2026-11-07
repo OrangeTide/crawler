@@ -230,6 +230,33 @@ begin
       vram, ' B vram, ', ram, ' B ram) from ', objFn);
 end;
 
+procedure AddSprite(const name, ppmFn: string);
+{ Ingest a billboard sprite from a binary PPM. Magenta (255,0,255) pixels
+  become the transparent key; the rest keep their colour. Shipped as a
+  format-0 ARGB PIC with the alpha flag, which PicDecode reads back. }
+var
+  sw, sh, i: longint;
+  pixbuf: TByteArray;
+  spr: TImage;
+  r, g, b: byte;
+begin
+  if not ReadPpm(ppmFn, sw, sh, pixbuf) then begin
+    writeln(StdErr, 'mkassets: sprite ', name, ': cannot read ', ppmFn);
+    halt(1);
+  end;
+  ImgNew(spr, sw, sh);
+  spr.hasAlpha := true;
+  for i := 0 to sw * sh - 1 do begin
+    r := pixbuf[i * 3]; g := pixbuf[i * 3 + 1]; b := pixbuf[i * 3 + 2];
+    if (r = 255) and (g = 0) and (b = 255) then
+      spr.pix[i] := 0                      { magenta key -> transparent }
+    else
+      spr.pix[i] := RGB(r, g, b);
+  end;
+  PakWAdd(w, UpperCase(name), PicEncodeDirect(spr));
+  writeln('  sprite ', UpperCase(name), ' (', sw, 'x', sh, ') from ', ppmFn);
+end;
+
 procedure AddMusic(const lump, fn: string);
 { Bundle a tracker module file verbatim as a lump. The module format is
   not parsed here; libxmp identifies it at load time, so any of .xm, .it,
@@ -311,6 +338,8 @@ begin
       AddMusic(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'model' then begin
       AddModel(ParamStr(i + 1), ParamStr(i + 2), ParamStr(i + 3)); inc(i, 4);
+    end else if ParamStr(i) = 'sprite' then begin
+      AddSprite(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);
