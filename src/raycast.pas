@@ -96,6 +96,7 @@ var
   cF, cC: TColor;
   cxi, cyi, lk, pk, shF: longint;
   gc: TColor;
+  skyb: byte;
 begin
   cfPosX := FixF(Cam.posX); cfPosY := FixF(Cam.posY);
   cfDirX := FixF(Cam.dirX); cfDirY := FixF(Cam.dirY);
@@ -115,6 +116,13 @@ begin
       p := horizon - y;
     if p <= 0 then
       continue;
+
+    { on a surface map the ceiling half becomes an open sky }
+    if (not isFloor) and CurMapSurface then begin
+      skyb := Quantize(SkyColorAt(y, horizon));
+      for x := 0 to FBW - 1 do FB[y * FBW + x] := skyb;
+      continue;
+    end;
 
     rowDistance := FDiv(posZF, FixI(p));
 

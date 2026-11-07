@@ -17,7 +17,7 @@ unit world;
 interface
 
 uses
-  textures, mapfmt;
+  textures, mapfmt, gfx;
 
 const
   MAXMAP = 64;
@@ -85,6 +85,10 @@ function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function IsPortalTile(mx, my: longint): boolean;
 function PortalKind(mx, my: longint): longint;     { -1 none, else PK_* }
+{ A gradient sky color for a surface map: a vertical band from the zenith
+  (y = 0) down to the horizon row, shaded by the current day and moon light
+  so it darkens at night. Both renderers draw it above the horizon. }
+function SkyColorAt(y, horizon: longint): TColor;
 function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function TileLightAt(mx, my: longint): longint;    { 0..256 cast light }
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
@@ -258,6 +262,36 @@ begin
     PortalKind := -1
   else
     PortalKind := PortalMask[my][mx] - 1;
+end;
+
+function SkyColorAt(y, horizon: longint): TColor;
+const
+  { day: deep blue zenith to a pale horizon; night: near-black to faint navy }
+  dz: array[0..2] of longint = (60, 110, 190);
+  dh: array[0..2] of longint = (150, 190, 225);
+  nz: array[0..2] of longint = (6, 8, 22);
+  nh: array[0..2] of longint = (22, 26, 52);
+var
+  f, t, mlift, i, dayc, nightc, v: longint;
+  rgbv: array[0..2] of longint;
+begin
+  if horizon < 1 then horizon := 1;
+  f := (y * 256) div horizon;             { 0 at the zenith, 256 at horizon }
+  if f < 0 then f := 0;
+  if f > 256 then f := 256;
+  t := SkyLightLevel;                     { 0 night, 256 full day }
+  if t < 0 then t := 0;
+  if t > 256 then t := 256;
+  mlift := (MoonLightLevel * (256 - t)) div 256;   { the moon lifts the night }
+  for i := 0 to 2 do begin
+    dayc   := dz[i] + ((dh[i] - dz[i]) * f) div 256;
+    nightc := nz[i] + ((nh[i] - nz[i]) * f) div 256 + mlift div 5;
+    v := nightc + ((dayc - nightc) * t) div 256;
+    if v < 0 then v := 0;
+    if v > 255 then v := 255;
+    rgbv[i] := v;
+  end;
+  SkyColorAt := RGB(rgbv[0], rgbv[1], rgbv[2]);
 end;
 
 function LightTileKind(mx, my: longint): longint;

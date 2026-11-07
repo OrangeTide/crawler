@@ -39,6 +39,11 @@ whose development history is summarized in docs/roadmap.md.
   own CC0 tile: the elder, ranger, hunter, ferryman, barkeep, and apothecary
   each get a distinct figure, and the infernal altar and the two shrines draw
   as statues rather than people.
+- An open sky on surface maps. Instead of a dungeon ceiling, a surface map now
+  draws a gradient sky above the horizon in both renderers, shaded by the
+  day and moon light so it darkens at night. The outskirts where a new party
+  starts, and the town, read as outdoors rather than roofed. Underground maps
+  keep their ceiling.
 - A gender enum (beings unit) on every being: party characters, NPCs, and
   monster definitions each carry a TGender, defaulting to unspecified. It
   persists in the save, in the map format (a new npc line field), and in the

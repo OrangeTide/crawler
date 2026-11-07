@@ -122,11 +122,23 @@ var
   cx, cy, dist, fwd, light, fcx, fcy, fd: double;
   cyaw, syaw: double;
   ftex: longint;
+  shor, syy, sxx: longint;
+  sb: byte;
 begin
   if not gtReady then BuildGridTex;
   RasterCX := FBW / 2; RasterCY := FBH / 2;
   RasterBeginFrame;
-  ClearFB(RGB(6, 6, 10));
+  if CurMapSurface then begin
+    { open sky above the horizon; the dark ground below is covered by the
+      floor quads, matching the raycaster's surface view }
+    shor := round(FBH / 2 + Cam.pitch);
+    for syy := 0 to FBH - 1 do begin
+      if syy < shor then sb := Quantize(SkyColorAt(syy, shor))
+      else sb := Quantize(RGB(6, 6, 10));
+      for sxx := 0 to FBW - 1 do FB[syy * FBW + sxx] := sb;
+    end;
+  end else
+    ClearFB(RGB(6, 6, 10));
 
   ex := Cam.posX; ey := Cam.posY;
   mc.x := ex; mc.y := ey; mc.z := 0.5;
@@ -178,9 +190,10 @@ begin
         { floor }
         DrawTexQuad(mc, tx, ty, 0,  tx + 1, ty, 0,  tx + 1, ty + 1, 0,  tx, ty + 1, 0,
           0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
-        { ceiling }
-        DrawTexQuad(mc, tx, ty + 1, 1,  tx + 1, ty + 1, 1,  tx + 1, ty, 1,  tx, ty, 1,
-          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+        { ceiling, unless this is an open-air surface map }
+        if not CurMapSurface then
+          DrawTexQuad(mc, tx, ty + 1, 1,  tx + 1, ty + 1, 1,  tx + 1, ty, 1,  tx, ty, 1,
+            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
       end;
     end;
 
