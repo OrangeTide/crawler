@@ -105,6 +105,14 @@ Tags: [gap] not started, [partial] exists but incomplete.
   A recruit joins at the party's level for a charisma-eased fee and draws the
   same fee as a wage each lunar month, deserting when the purse cannot cover it.
 
+- [gap] Rank capacity by creature size. The front rank must hold at least as
+  much bulk as the back rank, so a back-rank combatant always has cover in
+  front of it. Each creature counts as a size multiplier: tiny 1/4, small 1/2,
+  medium 1, large 2, huge 3, colossal 4. The front rank's summed size must be
+  greater than or equal to the back rank's, which lets several small creatures
+  shelter behind one big one (up to eight tiny behind a single large). This
+  gates the combat MOVE between ranks and the initial encounter layout.
+
 ### D. Reference, meta, and quality-of-life
 
 - [done] Bestiary of discovered monsters and item identification. A codex
