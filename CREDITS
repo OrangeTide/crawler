@@ -18,8 +18,8 @@ Obtained from: OpenGameArt.
   https://opengameart.org/content/dungeon-crawl-32x32-tiles-supplemental
 
 The sprites in content/sprites are resized and color-keyed copies of these
-tiles. Most come from the base set; crea9 comes from the supplemental set,
-as noted.
+tiles. Most come from the base set; crea9 and crea16 come from the
+supplemental set, as noted.
 
   crea1   goblin
   crea2   orc
@@ -34,6 +34,9 @@ as noted.
   crea11  ghoul
   crea12  imp
   crea13  sun demon
+  crea14  warg
+  crea15  wizard
+  crea16  human (supplemental)
   flesh1  small zombie
   flesh2  ooze
   npc     human

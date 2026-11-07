@@ -26,8 +26,11 @@ whose development history is summarized in docs/roadmap.md.
   camera-facing quad against its depth buffer. A monster or NPC with no sprite
   still falls back to its drawn glyph.
 - CC0 pixel art for the full monster roster and the NPCs, from the public
-  domain "Dungeon Crawl 32x32 tiles" set and its supplemental set. The shore
-  crab and zombie now have sprites too, so no monster falls back to a glyph.
+  domain "Dungeon Crawl 32x32 tiles" set and its supplemental set. Every
+  monster now has its own distinct tile: the shore crab and zombie gained
+  sprites, and the werewolf, acolyte, and bandit were split off the tiles
+  they used to share with the demon and the cultist. No monster falls back
+  to a glyph.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the
