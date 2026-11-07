@@ -25,7 +25,10 @@ Milestone 0.19.0 (the PSX-style polygon renderer) is in progress: the
 rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, and
 instanced props all exist. The raycaster is still the default. Monsters and
 NPCs are no longer meshes: they draw as front-facing billboard sprites, in
-combat slots and in the world view, so only the props remain as meshes.
+combat slots and in the world view, so only the props remain as meshes. Map
+exits (doors, stairs, ladders, cave mouths, shafts) also draw as billboards in
+both renderers, replacing the old coloured floor pads, and surface maps open
+onto a gradient sky instead of a ceiling.
 
 The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
 navigation work: survival systems (light, food, status breadth), options and
@@ -48,13 +51,24 @@ CC0 2D creature art. That art is now in the build: every monster and NPC draws
 a distinct CC0 tile from the public domain Dungeon Crawl set and its
 supplemental set.
 
+Presentation and content gained several passes on top of that. Interactible
+NPCs show dialog portraits. A painted title screen carries its own per-scene
+256-colour palette, the way a PlayStation 8-bit background does, over the
+mountain photo the project's DOS forebear uses; `gfx.UsePalette` and
+`UseGamePalette` make that scene-palette swap reusable. Combat gives each turn
+one move and one action in either order, ended early by a SKIP. Every being
+carries a gender. Generated dungeons now choose each vertical exit's form from
+the ground around it: a staircase against a wide wall, or a ladder standing in
+an open chamber.
+
 On code structure, the largest units are split along their concerns. Combat is
 now a thin driver over `combatstate`, `combatcore`, and `combatai`, matching
 the earlier `game`, `overworld`, and `mapgen` splits.
 
 ## Open backlog by theme
 
-Tags: [gap] not started, [partial] exists but incomplete.
+Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
+[future] recorded but unscheduled.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
@@ -327,3 +341,9 @@ Two sensible entry points:
 If the recent AI thread is the live interest, 0.20.0 has the most momentum and
 the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is the
 one unfinished milestone on the books.
+
+A third thread is now live in theme C: the caster classes have a spell-point
+pool but no spells, schools, or domains yet. Importing the expanded axx-rpg
+spell list and giving the Magic-User, Priest and Druid their own domains is
+self-contained, leans on the data-driven content pipeline, and fills an obvious
+gap in the character system. It depends on neither open milestone.
