@@ -17,8 +17,8 @@ procedure QuickStart;
 implementation
 
 uses
-  sdl2min, gfx, world, party, chardata, rules, audio, uihelp, gamestate,
-  worldload, combatui, charcreateui, save;
+  sdl2min, gfx, pic, sprites, world, party, chardata, rules, audio, uihelp,
+  gamestate, worldload, combatui, charcreateui, save;
 
 const
   TITLE_ITEMS = 6;
@@ -26,83 +26,20 @@ const
 var
   titleTick: longword = 0;   { advances each render, to drift the birds }
 
-{ One channel of a linear blend between two stops. }
-function Lerp1(a, b: longint; t: double): longint;
-begin
-  Lerp1 := round(a + (b - a) * t);
-end;
-
-{ The dusk sky colour at a vertical fraction 0 (zenith) to 1 (horizon):
-  deep indigo overhead through blue and mauve to a warm rose and pale gold
-  band at the ridgeline. The channels are the ideal, pre-dither values. }
-function SkyColor(frac: double): TColor;
-const
-  NST = 5;
-  sy: array[0 .. NST - 1] of double  = (0.0, 0.45, 0.72, 0.88, 1.0);
-  sr: array[0 .. NST - 1] of longint = (32,  70,  138, 236, 250);
-  sg: array[0 .. NST - 1] of longint = (34,  82,  130, 170, 206);
-  sb: array[0 .. NST - 1] of longint = (78,  150, 182, 150, 150);
+{ Blit the baked title background: Jon's mountain photo, already dithered to
+  the palette, loaded as a full-screen PIC lump. A missing lump leaves a dark
+  field rather than a crash. }
+procedure DrawTitleBg;
 var
-  seg: longint;
-  lt: double;
+  si, x, y, w, h: longint;
 begin
-  if frac < 0 then frac := 0;
-  if frac > 1 then frac := 1;
-  seg := 0;
-  while (seg < NST - 2) and (frac > sy[seg + 1]) do inc(seg);
-  lt := (frac - sy[seg]) / (sy[seg + 1] - sy[seg]);
-  SkyColor := RGB(Lerp1(sr[seg], sr[seg + 1], lt),
-                  Lerp1(sg[seg], sg[seg + 1], lt),
-                  Lerp1(sb[seg], sb[seg + 1], lt));
-end;
-
-{ One channel ordered-dithered between the two bracketing palette cube
-  levels (the cube steps by 51), so a smooth gradient reads without the
-  hard banding the 6x6x6 palette would otherwise show. }
-function DitherCh(v, bx, by: longint): longint;
-const
-  bayer: array[0 .. 3, 0 .. 3] of longint =
-    ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5));
-var
-  lo: longint;
-begin
-  if v < 0 then v := 0;
-  if v > 255 then v := 255;
-  lo := (v div 51) * 51;
-  if (v - lo) * 16 > (bayer[by and 3][bx and 3] * 51 + 25) then
-    lo := lo + 51;
-  if lo > 255 then lo := 255;
-  DitherCh := lo;
-end;
-
-{ Fill the sky with the dithered gradient. }
-procedure DrawSky;
-var
-  x, y, rr, gg, bb: longint;
-  col: TColor;
-begin
-  for y := 0 to FBH - 1 do begin
-    col := SkyColor(y / 132);
-    rr := (col shr 16) and $FF; gg := (col shr 8) and $FF; bb := col and $FF;
+  si := LoadSprite(GamePak, 'TITLE_BG');
+  if si < 0 then begin ClearFB(RGB(12, 14, 24)); exit; end;
+  w := SpriteReg[si].img.w; h := SpriteReg[si].img.h;
+  if (w <> FBW) or (h <> FBH) then begin ClearFB(RGB(12, 14, 24)); exit; end;
+  for y := 0 to FBH - 1 do
     for x := 0 to FBW - 1 do
-      PutPixel(x, y, RGB(DitherCh(rr, x, y), DitherCh(gg, x, y),
-        DitherCh(bb, x, y)));
-  end;
-end;
-
-{ A mountain ridge: a wandering crest from two sines, filled solid to the
-  foot of the screen. A near ridge drawn over a far one reads as depth. }
-procedure DrawRidge(baseY, a1, a2: longint; f1, p1, f2, p2: double;
-  col, rim: TColor; doRim: boolean);
-var
-  x, top: longint;
-begin
-  for x := 0 to FBW - 1 do begin
-    top := baseY - round(a1 * sin(x * f1 + p1)) - round(a2 * sin(x * f2 + p2));
-    if top < 0 then top := 0;
-    VLine(x, top, FBH - top, col);
-    if doRim then PutPixel(x, top, rim);   { a dawn rim picks out the crest }
-  end;
+      PutPixel(x, y, SpriteReg[si].img.pix[y * w + x]);
 end;
 
 { A distant bird: a small centre with two wings, flapped between a raised
@@ -154,22 +91,18 @@ var
   c: TColor;
 begin
   inc(titleTick);
+  { CONTINUE is dead without a save, so never rest the cursor on it }
+  if (titleSel = 0) and (not SaveExists(SavePath)) then titleSel := 1;
 
-  { the sky: a dithered gradient packed into the space above the ridgeline }
-  DrawSky;
-
-  { far then near mountains, the near one rimmed by the last light }
-  DrawRidge(116, 9, 15, 0.050, 0.6, 0.015, 2.0, RGB(56, 60, 96),
-    RGB(0, 0, 0), false);
-  DrawRidge(150, 8, 13, 0.038, 3.1, 0.090, 0.4, RGB(24, 22, 40),
-    RGB(78, 72, 108), true);
-
+  { the mountain photo, then birds drifting across its sky }
+  DrawTitleBg;
   DrawBirds;
 
   { the title logo and its tagline }
   Logo('SHADOWS', 16, 3);
   Logo('OF THE DEEP', 42, 2);
-  DrawCenter(62, 'A DUNGEON CRAWL', RGB(150, 150, 180));
+  DrawCenter(63, 'A DUNGEON CRAWL', RGB(224, 228, 238));   { light underglow }
+  DrawCenter(62, 'A DUNGEON CRAWL', RGB(34, 30, 54));       { dark, reads on sky }
 
   { the menu in a framed box over the foreground }
   FillRectBlend(BOXL, BOXT, BOXR - BOXL, BOXB - BOXT, RGB(14, 12, 24), 215);
@@ -248,6 +181,11 @@ begin
     SDL_SCANCODE_DOWN:   titleSel := (titleSel + 1) mod TITLE_ITEMS;
     SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin PlaySfx(SFX_SELECT); TitleSelect; end;
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
+  end;
+  { skip the dead CONTINUE row when there is no save to continue }
+  if (titleSel = 0) and (not SaveExists(SavePath)) then begin
+    if scancode = SDL_SCANCODE_UP then titleSel := TITLE_ITEMS - 1
+    else titleSel := 1;
   end;
 end;
 

@@ -41,17 +41,21 @@ SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 PORTRAITNAMES = port_elder port_barkeep port_apothecary port_ranger \
                 port_hunter port_dockhand
 PORTRAITSRC = $(foreach n,$(PORTRAITNAMES),content/portraits/$(n).ppm)
+# Title background: a 320x240 scene (from Jon's photo, dithered to the cube)
+# baked to a TITLE_BG PIC lump via the sprite path.
+TITLEBGSRC = content/title/title_bg.ppm
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) $(SPRITESRC) \
-            $(PORTRAITSRC) $(MUSICSRC)
+            $(PORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
+TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
@@ -93,7 +97,7 @@ build/tools/shot: tools/shot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(TITLEBGARG) $(MUSICARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
@@ -106,6 +110,11 @@ content/sprites/%.ppm: content/sprites/%.png
 content/portraits/%.ppm: content/portraits/%.png
 	convert $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
+
+# Title background: an opaque 320x240 PNG, already dithered to the palette.
+# Passed straight through to a PPM; no resize or colour key.
+content/title/%.ppm: content/title/%.png
+	convert $< -depth 8 ppm:$@
 
 build:
 	mkdir -p build
