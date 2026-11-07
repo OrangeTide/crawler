@@ -35,8 +35,9 @@ open milestones on the books.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
-the game clock (`pursuit`). These opened a navigation and AI track that the
-backlog below carries forward.
+the game clock (`pursuit`). Auto-travel then grew a materialized route that it
+plans once and follows, with a route preview on the full map. These opened a
+navigation and AI track that the backlog below carries forward.
 
 ## Open backlog by theme
 
@@ -56,6 +57,9 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### B. Navigation and AI (continues the recent track)
 
+- [done] Materialized cross-map routes: auto-travel plans the portal route once
+  as a list of per-map legs and follows it, re-planning only on divergence,
+  rather than re-searching every step. The full map previews the walked path.
 - [gap] Locked-door handling in routing: `pathfind` treats every door as
   passable, so a route can plan through a door the party cannot open.
 - [gap] NPC-aware pathing: auto-travel can stall on an NPC-occupied tile, and a

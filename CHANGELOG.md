@@ -7,6 +7,17 @@ that release's section below.
 This is the first tagged release. It builds on milestones 0.1.0 through 0.23.0,
 whose development history is summarized in docs/roadmap.md.
 
+## [Unreleased]
+
+### Added
+- Materialized cross-map routes. The party's auto-travel now plans the whole
+  portal-linked route once, as an ordered list of per-map legs, and follows
+  it. It re-searches only when the stored plan no longer covers the current
+  map or a leg will not path, instead of re-running the search on every tile.
+- Route preview on the full map. The map screen draws the trail a left click
+  would walk to the tile under the cursor, and the active route's leg on the
+  current map.
+
 ## [0.24.0] - 2026-11-06
 
 World content and the critical path.
