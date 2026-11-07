@@ -10,13 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
-- A title screen in place of the plain text menu: a mountain photo, dithered
-  to the palette, under a two-line logo with birds drifting across its sky and
-  the menu in a framed box. The art is the same scene used by the DOS game the
-  project grows from, taken from the original photo at full colour rather than
-  the CGA-reduced version. A scaled-text helper in the graphics unit draws the
-  logo. With no save to continue, the menu opens on NEW GAME and skips the
-  dead CONTINUE row.
+- A title screen in place of the plain text menu: a mountain photo ordered-
+  dithered to the palette in the PlayStation style, under a two-line logo with
+  birds drifting across its sky and the menu in a framed box. The scene is the
+  same one the DOS game the project grows from uses, taken from the original
+  photo at full colour rather than the CGA-reduced version, and framed to the
+  same crop. A scaled-text helper in the graphics unit draws the logo. With no
+  save to continue, the menu opens on NEW GAME and skips the dead CONTINUE row.
 - Materialized cross-map routes. The party's auto-travel now plans the whole
   portal-linked route once, as an ordered list of per-map legs, and follows
   it. It re-searches only when the stored plan no longer covers the current
