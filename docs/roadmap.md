@@ -58,7 +58,10 @@ Tags: [gap] not started, [partial] exists but incomplete.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
-- [partial] Draw the portal and light-source glows in the polygon path that the
+- [done] Exits (doors, stairs, ladders, cave mouths, shafts) draw as
+  floor-anchored billboards in both renderers, replacing the coloured floor
+  pads. The shared gather step keeps the two paths in step.
+- [partial] Draw the remaining light-source glows in the polygon path that the
   raycaster already shows.
 - [gap] Vertex snap and ordered dither for the PSX look.
 - [gap] Decide and apply prop collision: props do not block movement yet, which

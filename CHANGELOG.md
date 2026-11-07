@@ -61,6 +61,13 @@ whose development history is summarized in docs/roadmap.md.
   headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
+- Exits now stand in the world as billboards instead of coloured floor pads.
+  A door, staircase, ladder, cave mouth or shaft is drawn as a front-facing
+  sprite on its tile, scaled and lit with distance and occluded by walls, in
+  both the raycaster and the polygon renderer through the shared sprite gather
+  step. A door and a ladder stand a full tile tall while stairs down and a
+  shaft sit low on the floor. The old cyan, amber and green floor glows are
+  gone; the map and the minimap still mark where an exit leads.
 - A combatant now gets both a move and a full action each turn, in either
   order, instead of one or the other. MOVE spends the move slot; ATTACK, CAST,
   ITEM, or DEFEND spends the action slot; the turn ends once both are spent. A

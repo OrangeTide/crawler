@@ -33,7 +33,8 @@ SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
               crea10 crea11 crea12 crea13 crea14 crea15 crea16 \
               flesh1 flesh2 npc \
               npc_elder npc_ranger npc_hunter npc_ferry npc_barkeep \
-              npc_apoth npc_altar npc_shrine1 npc_shrine2
+              npc_apoth npc_altar npc_shrine1 npc_shrine2 \
+              exit_door exit_up exit_down exit_ladder exit_cave exit_shaft
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 # NPC dialog portraits: a 64x64 PNG per dialog id in content/portraits,
 # keyed to magenta and baked to a PORT_<ID> PIC lump via the sprite path.

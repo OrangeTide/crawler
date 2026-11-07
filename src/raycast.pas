@@ -20,15 +20,10 @@ uses
   gfx, textures, world, mapfmt, fixedpt, pic, sprites, worldspr;
 
 const
-  ENT_H = 1.1;   { world-view billboard height in tiles, matching polyrender }
   { Fog in fixed point: fully lit to NEAR (1.5), fading to FAR (9.0). }
   FOG_NEAR_F = 1 * FONE + FONE div 2;        { 1.5 }
   FOG_FAR_F  = 9 * FONE;                      { 9.0 }
   FOG_SPAN_F = FOG_FAR_F - FOG_NEAR_F;
-  PORTAL_GLOW = $FF50C8FF;   { cyan pad: a flat transition or gate }
-  DOWN_GLOW   = $FFFFB450;   { amber pad: stairs or a cave mouth down }
-  UP_GLOW     = $FF8CE08C;   { green pad: stairs up }
-  DOOR_GLOW   = $FFC89650;   { warm wood threshold: a door into a building }
   SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
   MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
   BIO_GLOW    = $FF50FFB4;   { bioluminescent growth }
@@ -94,8 +89,7 @@ var
   texId: longint;
   fog: longint;
   cF, cC: TColor;
-  cxi, cyi, lk, pk, shF: longint;
-  gc: TColor;
+  cxi, cyi, lk, shF: longint;
   skyb: byte;
 begin
   cfPosX := FixF(Cam.posX); cfPosY := FixF(Cam.posY);
@@ -144,27 +138,16 @@ begin
       shF := LitFactor(fog, cxi, cyi);
       if isFloor then begin
         cF := Shade(Tex[texId][ty * TEXW + tx], shF);
-        { a glowing pad marks a portal, a light well or an emissive source }
-        if IsPortalTile(cxi, cyi) then begin
-          pk := PortalKind(cxi, cyi);
-          case pk of
-            PK_DOWN, PK_CAVE, PK_SHAFT: gc := DOWN_GLOW;
-            PK_UP: gc := UP_GLOW;
-            PK_DOOR: gc := DOOR_GLOW;
-          else gc := PORTAL_GLOW;
-          end;
-          cF := MixColor(cF, Shade(gc, shF), 150);
-        end
-        else begin
-          lk := LightTileKind(cxi, cyi);
-          case lk of
-            LIGHT_SKYLIGHT: cF := MixColor(cF, Shade(SKY_GLOW, shF), 40 + (SkyLightLevel shr 1));
-            LIGHT_MOONWELL: cF := MixColor(cF, Shade(MOON_GLOW, shF), 40 + (MoonLightLevel shr 1));
-            LIGHT_BIOLUME:  cF := MixColor(cF, Shade(BIO_GLOW, shF), 120);
-            LIGHT_GASVENT:  cF := MixColor(cF, Shade(GAS_GLOW, shF), 90);
-            LIGHT_BRAZIER, LIGHT_TORCH, LIGHT_BONFIRE:
-              cF := MixColor(cF, Shade(FIRE_GLOW, shF), 170);
-          end;
+        { light wells and emissive sources glow; an exit now stands as a
+          billboard, so its tile carries no coloured floor pad }
+        lk := LightTileKind(cxi, cyi);
+        case lk of
+          LIGHT_SKYLIGHT: cF := MixColor(cF, Shade(SKY_GLOW, shF), 40 + (SkyLightLevel shr 1));
+          LIGHT_MOONWELL: cF := MixColor(cF, Shade(MOON_GLOW, shF), 40 + (MoonLightLevel shr 1));
+          LIGHT_BIOLUME:  cF := MixColor(cF, Shade(BIO_GLOW, shF), 120);
+          LIGHT_GASVENT:  cF := MixColor(cF, Shade(GAS_GLOW, shF), 90);
+          LIGHT_BRAZIER, LIGHT_TORCH, LIGHT_BONFIRE:
+            cF := MixColor(cF, Shade(FIRE_GLOW, shF), 170);
         end;
         FB[y * FBW + x] := Quantize(cF);
       end else begin
@@ -347,8 +330,8 @@ begin
 
     spriteScreenX := (FBW / 2) * (1 + transformX / transformY);
     unitH := FBH / transformY;              { a one-tile-tall wall in pixels }
-    spriteH := unitH * ENT_H;
-    spriteW := unitH * (ENT_H * iw / ih);
+    spriteH := unitH * ents[order[i]].wh;
+    spriteW := unitH * (ents[order[i]].wh * iw / ih);
     if (spriteW < 0.001) or (spriteH < 0.001) then continue;
     vBase := horizon + unitH / 2;           { the floor line at this depth }
     vTop := vBase - spriteH;

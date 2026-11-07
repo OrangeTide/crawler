@@ -25,7 +25,6 @@ const
   VIEW_R = 14;          { tiles drawn around the camera }
   FOCAL  = (FBW / 2) / 0.66;
   NS_DARK = 0.72;       { north/south faces darker, as the raycaster does }
-  ENT_H  = 1.1;         { billboard height in tiles }
 
 var
   GridTex: array[0 .. TEX_COUNT - 1] of array of byte;   { palette indices }
@@ -109,8 +108,9 @@ begin
     ptx := trunc(px); pty := trunc(py);
     light := TileLight(ptx, pty, dist);
     with SpriteReg[ents[i].img].img do
-      if h > 0 then wscale := ENT_H * w / h else wscale := ENT_H;
-    DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale, ENT_H, light);
+      if h > 0 then wscale := ents[i].wh * w / h else wscale := ents[i].wh;
+    DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
+      ents[i].wh, light);
   end;
 end;
 
@@ -185,8 +185,6 @@ begin
         end;
       end else begin
         light := TileLight(tx, ty, dist);
-        if IsPortalTile(tx, ty) then
-          light := min(256, light + 90);         { exits read brighter }
         { floor }
         DrawTexQuad(mc, tx, ty, 0,  tx + 1, ty, 0,  tx + 1, ty + 1, 0,  tx, ty + 1, 0,
           0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
