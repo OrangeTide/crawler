@@ -13,6 +13,7 @@ procedure TitleRender;
 procedure TitleKeyDown(scancode: longint);
 procedure TitleUsePalette;   { swap in the title's own 256-colour CLUT }
 procedure QuickBattle;
+procedure QuickBattleDepth(depth: longint);
 procedure QuickStart;
 
 implementation
@@ -166,10 +167,10 @@ begin
   StartGame;
 end;
 
-procedure QuickBattle;
-{** Skip the world and drop a pregen party into a test encounter. Set
-   FromQuickBattle so leaving the fight returns to the title, since no map
-   is loaded. Any area, a mid depth for a meaty mix of foes. }
+procedure QuickBattleDepth(depth: longint);
+{** Skip the world and drop a pregen party into a test encounter at the given
+   depth (deeper means more and bigger foes). Set FromQuickBattle so leaving
+   the fight returns to the title, since no map is loaded. }
 begin
   BuildPregenParty;
   CurMapName := 'QUICKBATTLE';
@@ -177,7 +178,13 @@ begin
   CurEncTable := 0;   { table 0 is empty, so StartRandomEncounter falls back
                         to the whole bestiary for a test fight }
   FromQuickBattle := true;
-  StartCombat(3);
+  StartCombat(depth);
+end;
+
+procedure QuickBattle;
+{** A quick test fight at a mid depth. }
+begin
+  QuickBattleDepth(3);
 end;
 
 procedure TitleSelect;

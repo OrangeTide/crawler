@@ -10,19 +10,23 @@ program shot;
 
   Usage:
     shot <out.ppm> title
-    shot <out.ppm> combat
+    shot <out.ppm> combat [DEPTH]
     shot <out.ppm> world
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
+    shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
   'map' starts a pregen party, switches to the named map lump, and
   stands the party on tile X,Y facing the given cardinal, which is how
-  the per-map NPC and entity sprites are framed for inspection. }
+  the per-map NPC and entity sprites are framed for inspection. 'foe'
+  does the same and places a monster MON on tile MX,MY so it appears as
+  a billboard down the corridor. 'combat' takes an optional depth, deeper
+  being more and bigger foes. }
 
 {$mode objfpc}{$H+}
 
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
-  mapfmt, titleui;
+  mapfmt, monsters, pursuit, titleui;
 
 procedure DumpPPM(const fn: string);
 var
@@ -63,6 +67,7 @@ end;
 
 var
   outPath, scene: string;
+  mi: longint;
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: shot <out.ppm> title|combat|world|map ...');
@@ -88,11 +93,13 @@ begin
 
   if scene = 'title' then
     { GameInit already leaves the state at the title }
-  else if scene = 'combat' then
-    QuickBattle
+  else if scene = 'combat' then begin
+    if ParamCount >= 3 then QuickBattleDepth(StrToInt(ParamStr(3)))
+    else QuickBattle;
+  end
   else if scene = 'world' then
     QuickStart
-  else if scene = 'map' then begin
+  else if (scene = 'map') or (scene = 'foe') then begin
     if ParamCount < 6 then begin
       writeln(StdErr, 'usage: shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>');
       halt(2);
@@ -102,6 +109,19 @@ begin
       writeln(StdErr, 'shot: no map lump ', ParamStr(3)); halt(1);
     end;
     PlaceAt(StrToInt(ParamStr(4)), StrToInt(ParamStr(5)), DirCode(ParamStr(6)));
+    if scene = 'foe' then begin
+      if ParamCount < 9 then begin
+        writeln(StdErr,
+          'usage: shot <out.ppm> foe <MAP> <X> <Y> <DIR> <MON> <MX> <MY>');
+        halt(2);
+      end;
+      mi := MonIndex(UpperCase(ParamStr(7)));
+      if mi < 0 then begin
+        writeln(StdErr, 'shot: no monster ', ParamStr(7)); halt(1);
+      end;
+      AddPursuer(mi, UpperCase(ParamStr(3)),
+        StrToInt(ParamStr(8)), StrToInt(ParamStr(9)));
+    end;
   end else begin
     writeln(StdErr, 'shot: unknown scene ', scene); halt(2);
   end;
