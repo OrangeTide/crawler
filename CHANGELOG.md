@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A painted title screen in place of the plain text menu: a dithered dusk sky
+  over layered mountain ridges, with birds drifting across it, a two-line logo,
+  and the menu in a framed box. The sky gradient is ordered-dithered so it
+  reads smoothly on the 6x6x6 palette, in the spirit of the DOS game it draws
+  from. A scaled-text helper in the graphics unit draws the logo.
 - Materialized cross-map routes. The party's auto-travel now plans the whole
   portal-linked route once, as an ordered list of per-map legs, and follows
   it. It re-searches only when the stored plan no longer covers the current

@@ -129,13 +129,13 @@ Tags: [gap] not started, [partial] exists but incomplete.
   area, a shop keeper, a dungeon view with a monster in the distance, and a
   combat screen with several opponents that uses both the front and back
   ranks. The headless shot tool can frame each.
-- [gap] A proper title screen, adopting ideas from the DOS RPG at
+- [partial] A proper title screen, adopting ideas from the DOS RPG at
   ~/DEVEL/dos-rpg (Liminal Kingdoms): a mountain-silhouette horizon under a
-  sky with flying birds, paired with the boxed menu style we already use.
-  Reach into the original source art for a higher-resolution, higher-colour
-  version rather than the DOS dithered 320x200 frame. Our renderer and palette
-  carry far more colour than the CGA/VGA-limited original, so the same scene
-  can be rendered cleanly.
+  sky with flying birds, paired with the boxed menu style we already use. Done
+  as a procedural scene: a dithered dusk gradient, two mountain ridges, drifting
+  birds, a scaled logo and a framed menu. Still open: reach into the original
+  source art for a hand-painted, higher-resolution horizon rather than the
+  generated ridges, if that reads better.
 - [gap] Evaluate the sprite and portrait file formats from ~/DEVEL/dos-rpg for
   our animated sprites. See its sprfmt.md: the .SPA animation bank (named
   sequences, run-encoded frames that drop the mask plane and skip transparent

@@ -41,6 +41,8 @@ procedure HLine(x, y, len: longint; c: TColor);
 procedure VLine(x, y, len: longint; c: TColor);
 procedure DrawChar(x, y: longint; ch: char; c: TColor);
 procedure DrawText(x, y: longint; const s: string; c: TColor);
+procedure DrawTextScaled(x, y: longint; const s: string; c: TColor; sc: longint);
+function TextScaledWidth(const s: string; sc: longint): longint;
 
 implementation
 
@@ -317,6 +319,42 @@ var
 begin
   for i := 1 to length(s) do
     DrawChar(x + (i - 1) * 6, y, s[i], c);
+end;
+
+{ The 5x7 font drawn at an integer scale, each lit pixel a sc x sc block.
+  Used for headings such as the title logo. }
+procedure DrawCharScaled(x, y: longint; ch: char; c: TColor; sc: longint);
+var
+  row, col, i, idx: longint;
+  bits: byte;
+begin
+  if (ch >= 'a') and (ch <= 'z') then
+    ch := char(ord(ch) - 32);
+  idx := -1;
+  for i := 0 to FONT_COUNT - 1 do
+    if FONT[i][0] = ord(ch) then begin idx := i; break; end;
+  if idx < 0 then exit;
+  for row := 0 to 6 do begin
+    bits := FONT[idx][row + 1];
+    for col := 0 to 4 do
+      if (bits and (1 shl (4 - col))) <> 0 then
+        FillRect(x + col * sc, y + row * sc, sc, sc, c);
+  end;
+end;
+
+procedure DrawTextScaled(x, y: longint; const s: string; c: TColor; sc: longint);
+var
+  i: longint;
+begin
+  for i := 1 to length(s) do
+    DrawCharScaled(x + (i - 1) * 6 * sc, y, s[i], c, sc);
+end;
+
+{ Pixel width a scaled string occupies, for centering. }
+function TextScaledWidth(const s: string; sc: longint): longint;
+begin
+  if length(s) = 0 then TextScaledWidth := 0
+  else TextScaledWidth := (length(s) * 6 - 1) * sc;
 end;
 
 end.
