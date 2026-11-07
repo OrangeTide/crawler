@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 10;
+  SAVE_VERSION = 11;
 
 var
   LoadedMapName: string;
@@ -31,7 +31,7 @@ implementation
 
 uses
   classes, sysutils, rules, chardata, gametime, pursuit, gamestate, codex,
-  mappins;
+  mappins, beings;
 
 { ---- stream helpers ---- }
 
@@ -93,6 +93,7 @@ procedure WChar(s: TStream; const c: TCharacter);
 var a: TAbility; sl: TEquipSlot; i: longint;
 begin
   WStr(s, c.name);
+  s.WriteByte(GenderToByte(c.gender));
   WI32(s, c.species); WI32(s, c.klass); WI32(s, c.background);
   WI32(s, c.level); WI32(s, c.xp);
   for a := abSTR to abCHA do s.WriteByte(c.abil[a]);
@@ -115,6 +116,7 @@ function RChar(s: TStream): TCharacter;
 var a: TAbility; sl: TEquipSlot; i, n: longint;
 begin
   RChar.name := RStr(s);
+  RChar.gender := GenderFromByte(s.ReadByte);
   RChar.species := RI32(s); RChar.klass := RI32(s); RChar.background := RI32(s);
   RChar.level := RI32(s); RChar.xp := RI32(s);
   for a := abSTR to abCHA do RChar.abil[a] := s.ReadByte;

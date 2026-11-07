@@ -13,7 +13,7 @@ unit party;
 interface
 
 uses
-  rng, rules, items, chardata, dice;
+  rng, rules, items, chardata, dice, beings;
 
 const
   MAX_PARTY = 4;
@@ -36,6 +36,7 @@ type
 
   TCharacter = record
     name: string[15];
+    gender: TGender;      { how the character identifies; default unspecified }
     species: longint;     { index into SpeciesDefs }
     klass: longint;       { index into ClassDefs }
     background: longint;  { index into BackgroundDefs, -1 none }
@@ -321,6 +322,7 @@ var
   s: TEquipSlot;
 begin
   c.name := nm;
+  c.gender := GenderUnspecified;
   c.species := speciesIdx;
   c.klass := classIdx;
   c.background := bgIdx;

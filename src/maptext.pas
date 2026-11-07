@@ -32,7 +32,7 @@ function ParseMapText(const fn: string; out m: TMapData;
 implementation
 
 uses
-  classes, sysutils, worldarea, monsters;
+  classes, sysutils, worldarea, monsters, beings;
 
 { Map an element name to its EL_* flag, 0 if unknown or omitted. }
 function ElemFlag(const t: string): byte;
@@ -182,12 +182,13 @@ begin
         SetLength(m.doors, Length(m.doors) + 1);
         m.doors[High(m.doors)] := dr;
       end else if tok[0] = 'npc' then begin
-        if ntok < 5 then begin errmsg := 'npc needs X Y DIALOG NAME [SPRITE]'; exit; end;
+        if ntok < 5 then begin errmsg := 'npc needs X Y DIALOG NAME [SPRITE] [GENDER]'; exit; end;
         np.x := StrToInt(tok[1]);
         np.y := StrToInt(tok[2]);
         np.dialog := tok[3];
         np.name := tok[4];
         if ntok >= 6 then np.sprite := tok[5] else np.sprite := '';
+        if ntok >= 7 then np.gender := GenderFromStr(tok[6]) else np.gender := GenderUnspecified;
         SetLength(m.npcs, Length(m.npcs) + 1);
         m.npcs[High(m.npcs)] := np;
       end else if tok[0] = 'trap' then begin

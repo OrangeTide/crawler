@@ -39,6 +39,11 @@ whose development history is summarized in docs/roadmap.md.
   own CC0 tile: the elder, ranger, hunter, ferryman, barkeep, and apothecary
   each get a distinct figure, and the infernal altar and the two shrines draw
   as statues rather than people.
+- A gender enum (beings unit) on every being: party characters, NPCs, and
+  monster definitions each carry a TGender, defaulting to unspecified. It
+  persists in the save, in the map format (a new npc line field), and in the
+  monster table (a `gender:` tag in monsters.txt). The save and map format
+  versions are bumped accordingly.
 - A headless screenshot tool (`make shottool`, `scripts/shots.sh`). It drives
   the game's own init and render paths on SDL's dummy video driver, so it
   renders a real game screen (title, world, a map at a position, or combat) to

@@ -26,11 +26,11 @@ unit mapfmt;
 interface
 
 uses
-  pak;
+  pak, beings;
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 8;
+  MAP_VERSION = 9;
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -94,6 +94,7 @@ type
     dialog: string[12];
     name: string[12];
     sprite: string[12];   { sprite lump name, empty for the default NPC art }
+    gender: TGender;      { how the NPC identifies; default unspecified }
   end;
 
   TTrap = record
@@ -244,6 +245,7 @@ begin
     BName(b, m.npcs[i].dialog, 12);
     BName(b, m.npcs[i].name, 12);
     BName(b, m.npcs[i].sprite, 12);
+    BByte(b, GenderToByte(m.npcs[i].gender));
   end;
 
   BU16(b, Length(m.lights));
@@ -410,6 +412,7 @@ begin
     m.npcs[i].dialog := RName(r, 12);
     m.npcs[i].name := RName(r, 12);
     m.npcs[i].sprite := RName(r, 12);
+    m.npcs[i].gender := GenderFromByte(RByte(r));
   end;
 
   count := RU16(r);

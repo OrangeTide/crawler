@@ -36,7 +36,7 @@ function ParseMonsters(const fn: string; out defs: array of TMonsterDef;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, beings;
 
 { Map one element name to its EL_* flag, or 0 if unknown. }
 function ElemFlag(const s: string): byte;
@@ -149,6 +149,7 @@ begin
           else if key = 'immune' then d.immune := FlagList(val, true)
           else if key = 'inflict' then d.inflict := FlagList(val, false)
           else if key = 'statusimm' then d.statusImm := FlagList(val, false)
+          else if key = 'gender' then d.gender := GenderFromStr(val)
           else if key = 'harry' then begin
             if LowerCase(val) = 'taunt' then d.harry := HARRY_TAUNT
             else if LowerCase(val) = 'throw' then d.harry := HARRY_THROW
