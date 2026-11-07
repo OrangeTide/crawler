@@ -71,24 +71,10 @@ type
   end;
 
 const
-  ModelDefs: array[0 .. 16] of TModelDef = (
+  { Prop meshes only. Monsters and NPCs are billboard sprites now. }
+  ModelDefs: array[0 .. 1] of TModelDef = (
     (name: 'BARREL';  targetHeight: 0.7),
-    (name: 'DOORWAY'; targetHeight: 1.7),
-    (name: 'CREA1';  targetHeight: 1.2),
-    (name: 'CREA2';  targetHeight: 1.2),
-    (name: 'CREA3';  targetHeight: 1.2),
-    (name: 'CREA4';  targetHeight: 1.2),
-    (name: 'CREA5';  targetHeight: 1.2),
-    (name: 'CREA6';  targetHeight: 1.2),
-    (name: 'CREA7';  targetHeight: 1.2),
-    (name: 'CREA8';  targetHeight: 1.2),
-    (name: 'CREA9';  targetHeight: 1.2),
-    (name: 'CREA10'; targetHeight: 1.2),
-    (name: 'CREA11'; targetHeight: 1.2),
-    (name: 'CREA12'; targetHeight: 1.2),
-    (name: 'CREA13'; targetHeight: 1.2),
-    (name: 'FLESH1'; targetHeight: 1.0),
-    (name: 'FLESH2'; targetHeight: 1.0)
+    (name: 'DOORWAY'; targetHeight: 1.7)
   );
 
 { The model's height in its own units, to derive a scale. }

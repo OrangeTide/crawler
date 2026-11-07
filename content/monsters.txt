@@ -3,10 +3,10 @@
 # ATK is the to-hit bonus, DMG the damage die, MORALE the 1d6 hold threshold.
 # SPEED drives turn order: higher acts sooner.
 # FLAGS: 1 = undead, 2 = ranged, 4 = lycanthrope, 8 = mage, 16 = healer.
-# MODEL is the combat mesh id; omit it to fall back to a drawn glyph.
+# MODEL is the combat sprite id; omit it to fall back to a drawn glyph.
 # AREAS is a '+' list of the areas the monster roams: forest, coast,
 # desert, frozen, volcanic, crypt, cave, infernal. It drives both the
-# encounter table and the per-area model cache.
+# encounter table and the per-area sprite cache.
 # Trailing tags tune combat: elem: weak: resist: immune: inflict: statusimm:
 #   harry:
 # Elements: phys fire frost shock holy.

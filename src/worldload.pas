@@ -28,7 +28,7 @@ procedure StartGame;
 implementation
 
 uses
-  sysutils, pak, world, textures, models, rng, monsters, encounters,
+  sysutils, pak, world, textures, models, sprites, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
   gamestate, pursuit, codex, mappins, apppaths;
 
@@ -38,9 +38,9 @@ begin
 end;
 
 procedure GateAreaModels(tableNum: longint);
-{** The per-area model cache gate. Load exactly the models the current
-  map's props and this area's encounter monsters need, then check them
-  against the VRAM budget so a level never asks for more than it can hold. }
+{** The per-area cache gate. Load exactly the prop meshes the current map
+  needs (checked against the model VRAM budget), and preload this area's
+  encounter-monster sprites so a fight opens without a load hitch. }
 var
   names: array of string;
   i, mi: longint;
@@ -58,16 +58,17 @@ var
 begin
   names := nil;
   for i := 0 to High(CurMap.props) do Add(CurMap.props[i].name);
-  if (tableNum >= 0) and (tableNum <= High(EncTables)) then
-    for i := 0 to High(EncTables[tableNum].entries) do begin
-      mi := MonIndex(EncTables[tableNum].entries[i].mon);
-      if mi >= 0 then Add(MonDefs[mi].model);
-    end;
   LoadModelSet(GamePak, names);
   if not ModelSetFitsVram(names) then begin
     saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(CurAreaMask);
     saveMsgT := 2.0;
   end;
+  { monsters are billboard sprites: warm the cache for this area's foes }
+  if (tableNum >= 0) and (tableNum <= High(EncTables)) then
+    for i := 0 to High(EncTables[tableNum].entries) do begin
+      mi := MonIndex(EncTables[tableNum].entries[i].mon);
+      if mi >= 0 then LoadSprite(GamePak, MonDefs[mi].model);
+    end;
 end;
 
 function NameSeed(const name: string): longword;

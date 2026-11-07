@@ -23,7 +23,7 @@ procedure CombatAutoTurn(dt: double);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, raster, meshfmt, models, party, chardata, items,
+  sysutils, sdl2min, gfx, pic, sprites, party, chardata, items,
   monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
   rng, flags;
 
@@ -138,40 +138,28 @@ begin
   PutPixel(cx + hw - 9, cy - hh + 8, RGB(20, 20, 20));
 end;
 
-{ Frame a creature mesh into a combat slot centered on (cx,cy). }
-procedure DrawFoeModel(const mesh: TMesh; cx, cy: longint; myaw: double;
-  halfpx: longint);
-const
-  FOCALC = (FBW / 2) / 0.66;
+{ Draw a billboard sprite into a combat slot, scaled to fit a box of height
+  boxH centered on (cx,cy), feet-down, with its colour key left transparent. }
+procedure DrawFoeSprite(const img: TImage; cx, cy, boxH: longint);
 var
-  i: longint;
-  mnx, mny, mnz, mxx, mxy, mxz, h, radius, d: double;
-  mc: TMeshCam;
+  dx, dy, dw, dh, x0, y0, srcx, srcy: longint;
+  c: TColor;
 begin
-  if Length(mesh.verts) = 0 then exit;
-  mnx := mesh.verts[0].x; mxx := mnx;
-  mny := mesh.verts[0].y; mxy := mny;
-  mnz := mesh.verts[0].z; mxz := mnz;
-  for i := 1 to High(mesh.verts) do begin
-    if mesh.verts[i].x < mnx then mnx := mesh.verts[i].x;
-    if mesh.verts[i].x > mxx then mxx := mesh.verts[i].x;
-    if mesh.verts[i].y < mny then mny := mesh.verts[i].y;
-    if mesh.verts[i].y > mxy then mxy := mesh.verts[i].y;
-    if mesh.verts[i].z < mnz then mnz := mesh.verts[i].z;
-    if mesh.verts[i].z > mxz then mxz := mesh.verts[i].z;
+  if (img.w <= 0) or (img.h <= 0) or (boxH < 1) then exit;
+  dh := boxH;
+  dw := round(img.w * (boxH / img.h));
+  if dw < 1 then dw := 1;
+  x0 := cx - dw div 2;
+  y0 := cy - dh div 2;
+  for dy := 0 to dh - 1 do begin
+    srcy := (dy * img.h) div dh;
+    for dx := 0 to dw - 1 do begin
+      srcx := (dx * img.w) div dw;
+      c := img.pix[srcy * img.w + srcx];
+      if (c shr 24) < 128 then continue;      { transparent key }
+      PutPixel(x0 + dx, y0 + dy, c);
+    end;
   end;
-  h := mxz - mnz;
-  radius := mxx - mnx;
-  if mxy - mny > radius then radius := mxy - mny;
-  if h > radius then radius := h;
-  radius := radius * 0.5;
-  if radius < 0.001 then radius := 1;
-
-  if halfpx < 1 then halfpx := 1;
-  d := radius * FOCALC / halfpx;
-  mc.x := -d; mc.y := 0; mc.z := h / 2; mc.yaw := 0; mc.pitch := 0;
-  RasterCX := cx; RasterCY := cy;
-  RenderMeshAt(mesh, mc, 0, 0, 0, 1.0, myaw, 236);
 end;
 
 const
@@ -340,7 +328,6 @@ end;
 
 procedure CombatRender;
 const
-  FOE_YAW = 0.6;
   { the battlefield is one depth axis: foe ranks recede up and back, the
     party ranks stand forward toward the viewer. Reach then reads off the
     screen, a back-rank member is plainly behind the front line. }
@@ -369,7 +356,6 @@ begin
 
   { --- foes, in depth ranks: back rank up and small, front rank nearer
     the clash and larger. Same rank spreads across columns. --- }
-  RasterBeginFrame;     { clear depth before the foe models }
   for rk := RANK_BACK downto RANK_FRONT do begin
     living := 0;
     for i := 0 to High(Foes) do
@@ -383,9 +369,9 @@ begin
       if (not Foes[i].alive) or (Foes[i].rank <> rk) then continue;
       cx := slot * col + slot div 2;
       body := FOE_PAL[Foes[i].def mod 6];
-      mi := FindModel(MonDefs[Foes[i].def].model);
+      mi := LoadSprite(GamePak, MonDefs[Foes[i].def].model);
       if mi >= 0 then
-        DrawFoeModel(ModelReg[mi].mesh, cx, cy, FOE_YAW, half)
+        DrawFoeSprite(SpriteReg[mi].img, cx, cy, 2 * half)
       else
         DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
       if (i <= High(FoeFlash)) then
