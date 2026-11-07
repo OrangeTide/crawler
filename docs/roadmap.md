@@ -216,15 +216,22 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   holy) ride the same mask when gear for them is added.
 - [done] The main quest and an ending: the three relic shards (crypt shrine,
   cave grotto, infernal demon-lord) thread across the zones to the Elder, who
-  gates the victory on all three held. The quest flags and victory screen close
-  the critical path.
-- [gap] Rename the game from "Shadows of the Deep" to "Cities of the Sunless
-  Depths" and write a fuller main quest arc to match. The name ties to the
-  existing Sunless Depths layer (SUNLESS_DEPTH, the Depths cells reached below
-  depth 30). The arc should build to a capstone: discovering and exploring the
-  ancient ruins of the Depths, the lost cities the title names. Touch the title
-  logo, the README, and the quest content; the current three-shard quest can
-  become an early beat of the longer arc.
+  gates the arc on all three held. The quest flags, journal and victory screen
+  close the critical path.
+- [done] Renamed the game to "Cities of the Sunless Depths" (was "Shadows of
+  the Deep") and extended the arc to match. The three-shard quest is now its
+  early beat: once the relic is whole the Elder reveals it as a key, not a
+  ward, and charges the descent. The capstone is the Sunless Depths layer
+  (SUNLESS_DEPTH, the Depths cells below depth 30), where a sealed City Gate in
+  the Depths settlement opens on the key and wins the game on the first of the
+  lost cities. Touched the title logo, the window caption, the README, the
+  dialogue content (ELDER, the new DEPTHS gate), the journal, the Depths
+  generator (the gate NPC, GEN_VERSION 3), and the victory screen.
+- [gap] Follow-on arc content: name and populate the lost cities beyond the
+  first gate, and balance the depth-30 descent as a real finale rather than a
+  single capstone beat. The win currently fires on reaching the first City Gate;
+  the cities themselves are still the generated Depths cavern, not authored
+  ruins.
 
 ## Sequenced roadmap
 

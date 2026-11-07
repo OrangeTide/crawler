@@ -1,8 +1,9 @@
 program t_quest;
 
 {** The relic spine at the dialogue layer: the shard shrines set their flags,
-  the demon altar raises a boss-fight request, and the elder's victory line is
-  gated behind the assembled relic. }
+  the demon altar raises a boss-fight request, the elder reveals the whole
+  relic as a key and charges the descent, and the Depths gate turns that key
+  into the win. }
 
 {$mode objfpc}{$H+}
 
@@ -50,7 +51,7 @@ begin
   Check(DlgFightMon = 'DEMON', 'the fight is against the demon');
   Check(DlgFightFlag = 'SHARD_INFER', 'winning will grant the infernal shard');
 
-  { the elder hides the victory line until the relic is whole }
+  { the elder hides the relic turn-in until the relic is whole }
   DialogStart('ELDER');
   Check(RespStarting('I bear the relic') < 0,
     'the elder will not take a relic you do not hold');
@@ -58,9 +59,25 @@ begin
   DialogStart('ELDER');
   Check(RespStarting('I bear the relic') >= 0,
     'with the relic whole, the elder will take it');
-  DialogChoose(RespStarting('I bear the relic'));   { goto the closing node }
-  DialogChoose(RespStarting('It was my honour'));
-  Check(FlagHas('QUEST_WON'), 'returning the relic wins the game');
+  { the relic is revealed as a key: the elder charges the descent, no win yet }
+  DialogChoose(RespStarting('I bear the relic'));   { the reveal node }
+  DialogChoose(RespStarting('The road to where')); { the charge node }
+  DialogChoose(RespStarting('I will go down'));
+  Check(FlagHas('QUEST_DEPTHS'), 'the elder charges the descent to the Depths');
+  Check(not FlagHas('QUEST_WON'), 'handing back the relic does not end the game');
+
+  { the Depths gate stays sealed without the charge, then grants the win }
+  FlagsReset;
+  DialogStart('DEPTHS');
+  Check(RespStarting('Set the relic-key') < 0,
+    'the gate will not open without the charge to descend');
+  FlagSet('QUEST_DEPTHS');
+  DialogStart('DEPTHS');
+  Check(RespStarting('Set the relic-key') >= 0,
+    'with the charge, the key turns in the gate');
+  DialogChoose(RespStarting('Set the relic-key'));  { the gate grinds open }
+  DialogChoose(RespStarting('Walk into the ruins'));
+  Check(FlagHas('QUEST_WON'), 'entering the first lost city wins the game');
 
   TestSummary('quest');
   halt(TestExit);

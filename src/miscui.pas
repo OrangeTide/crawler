@@ -359,10 +359,11 @@ end;
 
 procedure VictoryRender;
 begin
-  ClearFB(RGB(8, 14, 10));
-  DrawCenter(80, 'THE DEEP IS SEALED', RGB(230, 220, 140));
-  DrawCenter(96, 'THE TOWN IS SAVED', RGB(180, 200, 160));
-  DrawCenter(120, 'PRESS A KEY', RGB(140, 150, 120));
+  ClearFB(RGB(8, 10, 16));
+  DrawCenter(72, 'THE GATE STANDS OPEN', RGB(230, 220, 140));
+  DrawCenter(88, 'THE LOST CITIES ARE FOUND', RGB(180, 190, 200));
+  DrawCenter(104, 'THE SUNLESS DEPTHS AWAIT', RGB(150, 170, 190));
+  DrawCenter(128, 'PRESS A KEY', RGB(130, 140, 150));
 end;
 
 procedure VictoryKeyDown(scancode: longint);

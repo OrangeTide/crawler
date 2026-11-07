@@ -98,6 +98,10 @@ begin
     FlagSet('QUEST_RELIC');
     JournalAdd('The relic is whole. Return it to the elder.');
   end;
+  if FlagHas('QUEST_DEPTHS') and (not FlagHas('J_DEPTHS')) then begin
+    JournalAdd('The relic is a key. Descend to the Sunless Depths and find the lost cities.');
+    FlagSet('J_DEPTHS');
+  end;
 end;
 
 procedure DialogAfterChoice;

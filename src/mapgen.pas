@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 2;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 3;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -265,6 +265,18 @@ begin
   m.lights[High(m.lights)].kind := kind;
 end;
 
+{ Place an NPC at a tile. The remaining TNpc fields (sprite, gender) stay at
+  their zeroed defaults: the default NPC art and an unspecified gender. }
+procedure AddNpc(var m: TMapData; x, y: longint; const dialog, name: string);
+begin
+  SetLength(m.npcs, Length(m.npcs) + 1);
+  m.npcs[High(m.npcs)].x := x;
+  m.npcs[High(m.npcs)].y := y;
+  m.npcs[High(m.npcs)].dialog := dialog;
+  m.npcs[High(m.npcs)].name := name;
+  m.npcs[High(m.npcs)].sprite := '';
+end;
+
 { Scatter n lights of a kind on random floor tiles of the grid. }
 procedure ScatterLights(var m: TMapData; const g: TGrid; var r: TRng;
   n, kind: longint);
@@ -453,7 +465,7 @@ var
   r: TRng;
   g: TGrid;
   m: TMapData;
-  i, mx, my, nx, ny: longint;
+  i, mx, my, nx, ny, gy: longint;
 begin
   gw := W; gh := H;
   mx := gw div 2; my := gh div 2;
@@ -486,6 +498,12 @@ begin
   if FloorNeighbor(g, mx, my, nx, ny) then AddLight(m, nx, ny, LIGHT_BONFIRE);
   ScatterLights(m, g, r, 6, LIGHT_BIOLUME);
   ScatterLights(m, g, r, 3, LIGHT_GASVENT);
+
+  { the capstone: the sealed gate to the lost cities, set ahead of the
+    landing along the north corridor the carvers always open }
+  gy := my - 2;
+  if (gy >= 1) and (At(g, mx, gy) = 0) then
+    AddNpc(m, mx, gy, 'DEPTHS', 'City Gate');
 
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do

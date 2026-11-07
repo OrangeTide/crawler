@@ -92,6 +92,11 @@ spells and bows strike over them.
   down a dungeon breaks into the Sunless Depths, a world-spanning cavern.
   Cross-map auto-travel routes the party over portals, and roaming monsters
   can hunt it across maps on the game clock.
+- A main quest arc: the elder sets the party to gather three shards of an old
+  relic from the crypt, the grotto and the infernal deep. Made whole, the
+  relic proves to be a key, not a ward. The arc builds to its capstone in the
+  descent to the Sunless Depths, where the key opens the gate to the first of
+  the drowned cities the title names.
 - A game clock drives a day-night cycle that lights and darkens outdoor maps,
   and a 29.53 day moon. A full moon transforms characters cursed with
   lycanthropy even underground. Skylight and moonwell tiles admit light into

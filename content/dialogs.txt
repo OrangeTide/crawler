@@ -22,12 +22,16 @@ resp "What is wrong?" goto 1
 resp "I bear the relic you sought." goto 2 needflag QUEST_RELIC
 resp "Not now." end
 node 1
-text "The old relic broke into three shards, scattered to the crypt, the deep grotto, and the infernal below. Gather all three and the deep can be sealed."
+text "An old relic broke into three shards, scattered to the crypt, the deep grotto, and the infernal below. Gather all three and bring the relic whole to me."
 resp "I accept the charge." setflag QUEST_MAIN
 resp "I must decline." goto 0
 node 2
-text "All three shards, made whole! With this the deep is sealed. You have saved us all."
-resp "It was my honour." setflag QUEST_WON
+text "All three shards, made whole. This is no ward against the dark, child. It is a key, hidden by the elders so none could open the sealed road below."
+resp "The road to where?" goto 3
+node 3
+text "To the Sunless Depths, and the drowned cities our people fled an age ago. Carry the key down. Find the first of the lost cities and look on what we left behind."
+resp "I will go down." setflag QUEST_DEPTHS
+resp "Farewell." end
 
 dialog SHRINE
 node 0
@@ -40,6 +44,15 @@ node 0
 text "Deep in the grotto a second shard is fused into the living crystal, cold and bright."
 resp "Prise the cave shard free." setflag SHARD_CAVE
 resp "Step away." end
+
+dialog DEPTHS
+node 0
+text "A gate of black stone bars the cavern on, a drowned city's sigil cut in its lintel. A socket at its heart waits for a key."
+resp "Set the relic-key in the socket." goto 1 needflag QUEST_DEPTHS
+resp "Step back from the gate." end
+node 1
+text "The key turns. Stone grinds on stone and the gate swings wide. Beyond lie the first Cities of the Sunless Depths: pale towers under a living light, whole and silent and empty. The lost world is found."
+resp "Walk into the ruins." setflag QUEST_WON
 
 dialog DEMONLORD
 node 0

@@ -78,7 +78,7 @@ var
   cx2, cy2, dep, depth, ux, uy, dx, dy, edges, i: longint;
   m: TMapData;
   tgt: string;
-  allVert: boolean;
+  allVert, hasGate: boolean;
 begin
   allVert := true;
   { names }
@@ -123,6 +123,12 @@ begin
   for i := 0 to High(m.portals) do
     if m.portals[i].kind = PK_FLAT then inc(edges);
   Check(edges = 4, 'Depths cell has four world-spanning edges');
+
+  { the capstone gate to the lost cities stands in the Depths settlement }
+  hasGate := false;
+  for i := 0 to High(m.npcs) do
+    if m.npcs[i].dialog = 'DEPTHS' then hasGate := true;
+  Check(hasGate, 'the Depths cell holds the City Gate');
 
   TestSummary('vertical');
   halt(TestExit);

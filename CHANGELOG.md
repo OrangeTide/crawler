@@ -102,6 +102,13 @@ whose development history is summarized in docs/roadmap.md.
 - Split IsWallTile out of IsBlocking so the renderers cast against tile
   geometry only. An NPC tile no longer draws as a phantom wall, while movement
   still stops on it.
+- Extended the main quest to a capstone in the Sunless Depths. The three-shard
+  relic quest is now the arc's early beat: once the relic is whole the Elder
+  reveals it as a key rather than a ward and charges the party to descend. A
+  sealed City Gate now stands in the Depths settlement and opens on the key,
+  winning the game on the first of the drowned cities. The Depths generator
+  places the gate and the generator version is bumped; the victory screen is
+  rewritten for the new ending.
 
 ### Fixed
 - The sprite bake step emitted 16-bit PPMs that the reader decoded as 8-bit,
