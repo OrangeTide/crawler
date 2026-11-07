@@ -18,8 +18,8 @@ Obtained from: OpenGameArt.
   https://opengameart.org/content/dungeon-crawl-32x32-tiles-supplemental
 
 The sprites in content/sprites are resized and color-keyed copies of these
-tiles. Most come from the base set; crea9 and crea16 come from the
-supplemental set, as noted.
+tiles. Most come from the base set; the ones marked "supplemental" come from
+the supplemental set.
 
   crea1   goblin
   crea2   orc
@@ -40,3 +40,13 @@ supplemental set, as noted.
   flesh1  small zombie
   flesh2  ooze
   npc     human
+
+  npc_elder    deep elf priest
+  npc_ranger   deep elf master archer
+  npc_hunter   satyr (supplemental)
+  npc_ferry    merfolk
+  npc_barkeep  halfling (supplemental)
+  npc_apoth    gnome (supplemental)
+  npc_altar    orcish idol (supplemental)
+  npc_shrine1  granite statue
+  npc_shrine2  orcish idol

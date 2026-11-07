@@ -16,4 +16,4 @@ marker entry 4 4 N
 portal 4 5 TOWN tavdoor door
 torch 1 1
 torch 6 1
-npc 3 2 BARKEEP Barkeep
+npc 3 2 BARKEEP Barkeep NPC_BARKEEP

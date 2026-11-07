@@ -24,8 +24,8 @@ walls
 end
 marker start 2 1 E
 portal 13 12 TOWN gate
-npc 4 3 RANGER Ranger
-npc 11 7 HUNTER Hunter
+npc 4 3 RANGER Ranger NPC_RANGER
+npc 11 7 HUNTER Hunter NPC_HUNTER
 skylight 2 5
 moonwell 8 9
 bonfire 12 7

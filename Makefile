@@ -31,7 +31,9 @@ MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
 SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
               crea10 crea11 crea12 crea13 crea14 crea15 crea16 \
-              flesh1 flesh2 npc
+              flesh1 flesh2 npc \
+              npc_elder npc_ranger npc_hunter npc_ferry npc_barkeep \
+              npc_apoth npc_altar npc_shrine1 npc_shrine2
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 # music tracks: each lump name paired with its module file. Files may be
 # absent; a missing track just stays silent.

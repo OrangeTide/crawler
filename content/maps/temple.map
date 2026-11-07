@@ -17,4 +17,4 @@ portal 4 5 TOWN templedoor door
 torch 1 1
 torch 6 1
 prop 4 1 DOORWAY
-npc 4 2 APOTHECARY Apothecary
+npc 4 2 APOTHECARY Apothecary NPC_APOTH

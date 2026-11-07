@@ -22,7 +22,7 @@ walls
 end
 marker start 2 2 E
 portal 14 10 TOWN gate
-npc 12 9 DOCKHAND Ferryman
+npc 12 9 DOCKHAND Ferryman NPC_FERRY
 skylight 8 2
 brazier 12 10
 trap 7 6 5 11

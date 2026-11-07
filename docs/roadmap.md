@@ -44,8 +44,9 @@ The art-asset bottleneck drove a switch from per-monster meshes to billboard
 sprites (`sprites`, `worldspr`): combat foes and world entities now draw from a
 transparency-keyed PIC store, which retired the creature meshes and freed the
 model VRAM budget. Front-facing sprites fit a blobber and unlock the pool of
-CC0 2D creature art. The sprites in the build are placeholders; sourcing real
-CC0 art and wiring it per creature is the remaining step.
+CC0 2D creature art. That art is now in the build: every monster and NPC draws
+a distinct CC0 tile from the public domain Dungeon Crawl set and its
+supplemental set.
 
 On code structure, the largest units are split along their concerns. Combat is
 now a thin driver over `combatstate`, `combatcore`, and `combatai`, matching
@@ -60,13 +61,6 @@ Tags: [gap] not started, [partial] exists but incomplete.
 - [partial] Draw the portal and light-source glows in the polygon path that the
   raycaster already shows.
 - [gap] Vertex snap and ordered dither for the PSX look.
-- [partial] Backfill the billboard sprites with real art. Every monster and
-  the NPCs now draw CC0 pixel art from the public domain Dungeon Crawl tiles
-  and its supplemental set. No monster falls back to a glyph, and each one
-  has its own distinct tile. A map NPC can now name its own sprite, so NPCs no
-  longer have to share one. Still open: the maps have not yet been given
-  distinct NPC art, so every NPC still draws the default human until each is
-  assigned a sprite.
 - [gap] Decide and apply prop collision: props do not block movement yet, which
   may be intentional for decorations but wrong for furniture.
 - [gap] Reach parity with the raycaster, then make the polygon renderer the

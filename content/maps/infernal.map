@@ -22,7 +22,7 @@ walls
 end
 marker start 2 1 E
 portal 16 1 DUNGEON back
-npc 8 7 DEMONLORD Altar
+npc 8 7 DEMONLORD Altar NPC_ALTAR
 trap 7 7 10 13 fire
 trap 4 7 10 13 fire
 trap 12 7 10 13 fire

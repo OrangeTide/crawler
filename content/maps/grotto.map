@@ -19,7 +19,7 @@ walls
 end
 marker start 1 8 E
 portal 1 1 DUNGEON grotto
-npc 6 5 GROTTO Shrine
+npc 6 5 GROTTO Shrine NPC_SHRINE1
 torch 10 1
 torch 10 8
 biolume 1 4

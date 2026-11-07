@@ -35,7 +35,10 @@ whose development history is summarized in docs/roadmap.md.
   billboard sprite as an optional fifth argument on its npc line, so NPCs no
   longer all share one placeholder. An NPC that names none keeps the default
   human art, and a named sprite that will not load falls back to it. The map
-  format version is bumped accordingly.
+  format version is bumped accordingly. Every NPC in the game now names its
+  own CC0 tile: the elder, ranger, hunter, ferryman, barkeep, and apothecary
+  each get a distinct figure, and the infernal altar and the two shrines draw
+  as statues rather than people.
 
 ### Changed
 - Split the 1423-line combat unit along its concerns into combatstate (the

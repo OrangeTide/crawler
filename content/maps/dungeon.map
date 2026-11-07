@@ -39,7 +39,7 @@ portal 11 7 CATACOMB start
 portal 13 7 MAZE start
 portal 20 1 INFERNAL start
 portal 2 22 GROTTO start
-npc 22 22 SHRINE Shrine
+npc 22 22 SHRINE Shrine NPC_SHRINE2
 trap 7 7 6 12
 trap 16 7 8 13
 trap 12 19 7 13
