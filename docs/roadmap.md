@@ -4,11 +4,20 @@ This roadmap sequences the work that remains to carry the game from where it is
 now to a finished, shippable crawler on its three targets. It is grounded in the
 design doc (`expanded-edition-design.md`), whose build order (section 19) runs
 through milestone 0.19.0, and in the open items that work and the recent
-navigation and AI work have left behind.
+navigation, AI, and systems work have left behind.
 
 Numbering continues the design doc's milestone scheme. The engine is renderer
 and content agnostic, so most of this is additive and each milestone leaves the
-game runnable.
+game runnable. Every open feature below names the milestone it lands in, and the
+sequenced roadmap collects them in execution order.
+
+The major new direction is a map-format rework that grows out of the polygon
+renderer: the world moves from a uniform-height tile grid to a late-1990s
+first-person RPG look, Doom-style sectors built indoors from modular tile meshes
+and outdoors from heightfield terrain. Sprite billboards and turn-based grid
+movement stay; only the world geometry and its data format change. It is tracked
+as theme G and sits late in the sequence because it depends on the polygon
+renderer being the default first.
 
 ## Where things stand
 
@@ -34,8 +43,17 @@ The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
 navigation work: survival systems (light, food, status breadth), options and
 key rebinding with a settings file, the bestiary and item identification with
 map pins, and the full world-content milestone, the six themed zones and the
-relic quest that closes the critical path. That leaves 0.19.0 and 0.20.0 as the
-open milestones on the books.
+relic quest that closes the critical path.
+
+Past the numbered build order, a large systems-and-presentation pass landed,
+captured retrospectively as milestone 0.25.0. The axx-rpg spell catalog now
+drives both combat and out-of-combat casting; caster classes carry domains and
+specialist schools and learn from a learn screen; the martial counterpart, a
+proficiency-slot skills system with exploration checks and no-resource combat
+maneuvers, is in; and presentation gained per-spell and per-skill icons,
+player-character portraits, and a full character sheet. That leaves 0.19.0 and
+0.20.0 as the open low-numbered milestones, and themes E, F, and the new theme G
+as the forward work.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
@@ -49,7 +67,8 @@ transparency-keyed PIC store, which retired the creature meshes and freed the
 model VRAM budget. Front-facing sprites fit a blobber and unlock the pool of
 CC0 2D creature art. That art is now in the build: every monster and NPC draws
 a distinct CC0 tile from the public domain Dungeon Crawl set and its
-supplemental set.
+supplemental set. The props remain as meshes, which is the seam the modular-tile
+work in theme G builds on.
 
 Presentation and content gained several passes on top of that. Interactible
 NPCs show dialog portraits. A painted title screen carries its own per-scene
@@ -68,41 +87,45 @@ the earlier `game`, `overworld`, and `mapgen` splits.
 ## Open backlog by theme
 
 Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
-[future] recorded but unscheduled.
+[future] recorded but unscheduled. Each open item names its target milestone.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
 - [done] Exits (doors, stairs, ladders, cave mouths, shafts) draw as
   floor-anchored billboards in both renderers, replacing the coloured floor
   pads. The shared gather step keeps the two paths in step.
-- [partial] Draw the remaining light-source glows in the polygon path that the
-  raycaster already shows.
-- [gap] Vertex snap and ordered dither for the PSX look.
-- [gap] Decide and apply prop collision: props do not block movement yet, which
-  may be intentional for decorations but wrong for furniture.
-- [gap] Reach parity with the raycaster, then make the polygon renderer the
-  default and keep the raycaster as a compile-time fallback.
-- [partial] Port the rasterizer hot path to fixed point (the camera still uses a
-  few floats per frame; see theme E).
+- [partial] (0.19.0) Draw the remaining light-source glows in the polygon path
+  that the raycaster already shows.
+- [gap] (0.19.0) Vertex snap and ordered dither for the PSX look.
+- [gap] (0.19.0) Decide and apply prop collision: props do not block movement
+  yet, which may be intentional for decorations but wrong for furniture.
+- [gap] (0.19.0) Reach parity with the raycaster, then make the polygon renderer
+  the default and keep the raycaster as a compile-time fallback. This is the
+  gate that unblocks theme G.
+- [partial] (0.19.0) Port the rasterizer hot path to fixed point (the camera
+  still uses a few floats per frame; see theme E).
 
-### B. Navigation and AI (continues the recent track)
+### B. Navigation and AI (continues the recent track, 0.20.0)
 
 - [done] Materialized cross-map routes: auto-travel plans the portal route once
   as a list of per-map legs and follows it, re-planning only on divergence,
   rather than re-searching every step. The full map previews the walked path.
-- [gap] Locked-door handling in routing: `pathfind` treats every door as
-  passable, so a route can plan through a door the party cannot open.
-- [gap] NPC-aware pathing: auto-travel can stall on an NPC-occupied tile, and a
-  pursuer can path through one, because the planners read only the static grid.
-- [gap] Persist pursuers in the save so a hunt survives a save and load (they
-  are transient today).
-- [partial] Pursuit tuning: spawn cadence and caps, and letting a fled fight
-  keep the hunter on the trail instead of consuming it on contact.
-- [gap] Coarse overworld travel mode (design section 20): one cell per step for
-  long journeys, built on the same router, with the time system advancing
-  faster. The local cross-map auto-travel is the detailed mode only.
-- [gap] Broader omniscient AI uses now that the router exists: patrols, fleeing
-  to reinforcements, guards that converge on an alarm.
+- [gap] (0.20.0) Locked-door handling in routing: `pathfind` treats every door
+  as passable, so a route can plan through a door the party cannot open. Now
+  that the Pick Locks skill exists (theme C), a door-aware router should consult
+  the party's best lockpick before treating a locked door as passable.
+- [gap] (0.20.0) NPC-aware pathing: auto-travel can stall on an NPC-occupied
+  tile, and a pursuer can path through one, because the planners read only the
+  static grid.
+- [gap] (0.20.0) Persist pursuers in the save so a hunt survives a save and load
+  (they are transient today).
+- [partial] (0.20.0) Pursuit tuning: spawn cadence and caps, and letting a fled
+  fight keep the hunter on the trail instead of consuming it on contact.
+- [gap] (0.20.0) Coarse overworld travel mode (design section 20): one cell per
+  step for long journeys, built on the same router, with the time system
+  advancing faster. The local cross-map auto-travel is the detailed mode only.
+- [gap] (0.20.0) Broader omniscient AI uses now that the router exists: patrols,
+  fleeing to reinforcements, guards that converge on an alarm.
 
 ### C. RPG systems depth (design section 16)
 
@@ -121,73 +144,38 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
 - [done] Hirelings and followers from the tavern, sharing the party structure.
   A recruit joins at the party's level for a charisma-eased fee and draws the
   same fee as a wage each lunar month, deserting when the purse cannot cover it.
+- [done] (0.25.0) The spell system: imported the axx-rpg lists, gave each caster
+  class its domain and specialist schools, a learn screen and a saved known
+  list, combat casting from the catalog, and out-of-combat casting off a
+  persistent, rest-restored spell-point pool. (Full detail in the 0.25.0
+  milestone below.)
+- [done] (0.25.0) The skills system, the martial counterpart to spells.
+  Proficiency-slot acquisition, exploration checks (pick locks, find traps,
+  move silently, first aid), and no-resource combat maneuvers (power attack,
+  disarm, shield bash, aimed shot, rally) on a SKILL command. Data-driven in
+  content/skills.txt, rules in skillbook, saved per character (save version 14).
 
-- [gap] Rank capacity by creature size. The front rank must hold at least as
-  much bulk as the back rank, so a back-rank combatant always has cover in
-  front of it. Each creature counts as a size multiplier: tiny 1/4, small 1/2,
-  medium 1, large 2, huge 3, colossal 4. The front rank's summed size must be
-  greater than or equal to the back rank's, which lets several small creatures
-  shelter behind one big one (up to eight tiny behind a single large). This
-  gates the combat MOVE between ranks and the initial encounter layout.
-
-- [done] A skills system, the martial counterpart to spells. A skill is a
-  non-spell ability trained with proficiency slots (2e NWP style): a character
-  banks slots at creation and on level-up, generous for the thief kit, and
-  spends them on a learn-a-skill screen to learn a skill or rank one up.
-  Skills split by arena. Exploration skills roll a d20 check in the world (pick
-  locks, find traps, move silently, first aid); combat maneuvers resolve in a
-  fight through a SKILL command and cost no resource, the strongest limited to
-  a few uses per encounter (power attack, disarm, shield bash, aimed shot,
-  rally). Data-driven in content/skills.txt, baked to a SKIL lump by the
-  skilltext parser and loaded by the skilldb unit; the rules live in skillbook.
-  Skills and unspent slots are saved per character (save version 14). The
-  "250 WARRIOR ICONS" art is mapped per skill, tracked under section D below.
-
-- [done] Imported the axx-rpg spell lists. All 170 spells from
-  ~/Vibe/axx-rpg/src/sup/spells.csv (Cleric, Druid, Magic-User across six
-  levels) now live in content/spells.txt as a data-driven catalog, baked into a
-  SPEL lump by a spelltext parser and loaded at runtime by the spelldb unit.
-  Each spell keeps its level, save, damage type and effect prose; the prose is
-  the behaviour, and SpellElement maps the damage type onto the engine's five
-  elements thematically (acid, force and poison fall back to physical). Combat
-  is not wired to the catalog yet. Covered by t_spells. Provenance is in
-  CREDITS. This is the foundation for the caster-class work below.
-- [done] Give the caster classes their domains, schools, and known spells.
-  Each class now names a spell domain in classes.txt (cleric, druid, magicuser
-  or none), carried on the class record as a byte and read with ClassDomain.
-  The priest-track classes draw from the Cleric list, the mage-track from the
-  Magic-User list, and the Forestal from the Druid list; the rest cast nothing.
-  A SPELLS tab on the meta screen lists a caster's whole domain in level order
-  with the highlighted spell's prose, paged and switched between the party's
-  casters. Combat now casts from the catalog too: a caster's command menu is
-  the castable spells of its domain, gated by character level and spell points,
-  resolved with the ability from its class prime, and the old seven-spell
-  built-in table is gone. A spell becomes castable by carrying an optional
-  thematic combat line in spells.txt (cost, target mode, effect, dice, element
-  from its damage type). The combat-shaped spells across all six levels in all
-  three domains are statted (about fifty), the in-combat menu is level-ordered
-  and scrolls when the list outgrows its box. Casters now command only the
-  spells they have learned: a character picks new spells from its domain as it
-  levels, on a learn screen that opens before play resumes, and the known list
-  is kept on the character and in the save (version bumped). Combat and the
-  SPELLS tab both read that list, and generated parties and hirelings learn
-  automatically. The rules live in a spellbook unit. Arcane schools are now a
-  sub-domain of the Magic-User list: every arcane spell names one of the eight
-  schools, and a specialist mage (eight of them ship) focuses on one, barred
-  from its opposition schools but for Lesser Divination, knowing one extra
-  spell and casting its school at a steeper save. Casters also cast out of
-  combat from the SPELLS tab: heals and status cures on a chosen member, and
-  party-wide light, read-magic and sense-the-area utility, each spell carrying
-  an optional field line in spells.txt. With that, spell points became a
-  persistent pool: combat no longer refills them at the start of a fight, and
-  rest restores them, so a caster depletes across a delve.
-- [gap] Port the remaining hardcoded party and class data to content files.
-  Against the data-driven rule, a few designer-tunable tables still live in
-  Pascal literals: the quick-start / pregen party (its classes, names, and
+- [gap] (0.30.0) Rank capacity by creature size. The front rank must hold at
+  least as much bulk as the back rank, so a back-rank combatant always has cover
+  in front of it. Each creature counts as a size multiplier: tiny 1/4, small
+  1/2, medium 1, large 2, huge 3, colossal 4. The front rank's summed size must
+  be greater than or equal to the back rank's, which lets several small
+  creatures shelter behind one big one (up to eight tiny behind a single large).
+  This gates the combat MOVE between ranks and the initial encounter layout.
+- [gap] (0.30.0) Port the remaining hardcoded party and class data to content
+  files. Against the data-driven rule, a few designer-tunable tables still live
+  in Pascal literals: the quick-start / pregen party (its classes, names, and
   species in titleui.BuildPregenParty), the random name pool (NAME_POOL in
-  gamestate), and the char-creation default class. Move each into a content
-  lump with a parser, the way classes, monsters, and spells already load. (The
+  gamestate), and the char-creation default class. Move each into a content lump
+  with a parser, the way classes, monsters, and spells already load. (The
   built-in combat spell table is already retired in favour of spells.txt.)
+- [gap] (0.30.0) Prepared-spell subset on top of the known list (optional
+  caster depth): a caster readies a subset of its known spells per rest, the way
+  memorized-spell rules work, instead of casting any known spell at will within
+  its point pool.
+- [gap] (0.30.0) Stat more combat-shaped spells. About fifty of the catalog's
+  170 carry a combat line today; the rest fall back to prose only. Extend the
+  thematic combat stats across more of the list as content tuning.
 
 ### D. Reference, meta, and quality-of-life
 
@@ -195,9 +183,20 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   tracks monsters met and item kinds known; a bestiary tab lists foes with
   their weaknesses, and mystery loot hides its name until quaffed or named at
   the temple.
-- [partial] Journal and quest expansion: map pins and auto-markers on the full
-  map are done. A fuller quest log waits on the quest content in 0.24.0.
-- [gap] A run timer or achievements for replay (low priority).
+- [done] (0.25.0) Player-character portraits and the character sheet. A new
+  character cycles a pool of Batareya faces at creation (P key), saved and shown
+  as a thumbnail in the party strip and the combat panel. The character sheet
+  (press I) shows one member at full size with the full stat block and gear, and
+  for a caster or a trained character a spell and skill browser.
+- [done] (0.25.0) Spell and skill icons, and the UI that uses them. Every spell
+  names a per-spell icon from the Batareya "MAGE ICONS BIG PACK" (SI<NN> lumps)
+  and every skill an icon from the "250 WARRIOR ICONS" pack (WI<N> lumps), drawn
+  wherever the player meets a spell or skill: the character sheet browsers, the
+  SPELLS tab, the learn screens, and the combat cast and SKILL menus.
+- [partial] (0.30.0) Journal and quest expansion: map pins and auto-markers on
+  the full map are done. A fuller quest log can now proceed since the 0.24.0
+  quest content shipped.
+- [gap] (0.30.0) A run timer or achievements for replay (low priority).
 - [done] Refreshed the README screenshots to the current game: the town with
   its elder, each zone, the tavern keeper, a skeleton down a crypt hall, and a
   five-foe fight across the front and back ranks. The shot tool gained a `foe`
@@ -207,51 +206,40 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   taken from the original at full colour and dithered to our palette, with
   birds drifting across its sky, a scaled logo and the boxed menu we already
   use.
-- [gap] Evaluate the sprite and portrait file formats from ~/DEVEL/dos-rpg for
-  our animated sprites. See its sprfmt.md: the .SPA animation bank (named
-  sequences, run-encoded frames that drop the mask plane and skip transparent
-  pixels) and the single-sequence .SPC/.SPV with struct sprhdr; portraits ship
-  in SPR/PORTRAIT.SPC. Its asset tools are C (tools/sprite-split.c,
-  sprite-sheet.c). The main project stays Pascal, but C is permitted for
-  off-line tools and support libraries, especially when porting from another
-  project. The DOS original's hard limit was a tiny palette; our content is
-  mostly 32 colours or fewer, so that constraint is not a real blocker.
+- [gap] (0.30.0) Evaluate the sprite and portrait file formats from
+  ~/DEVEL/dos-rpg for our animated sprites. See its sprfmt.md: the .SPA
+  animation bank (named sequences, run-encoded frames that drop the mask plane
+  and skip transparent pixels) and the single-sequence .SPC/.SPV with struct
+  sprhdr; portraits ship in SPR/PORTRAIT.SPC. Its asset tools are C
+  (tools/sprite-split.c, sprite-sheet.c). The main project stays Pascal, but C
+  is permitted for off-line tools and support libraries, especially when porting
+  from another project. The DOS original's hard limit was a tiny palette; our
+  content is mostly 32 colours or fewer, so that constraint is not a real
+  blocker.
 - [done] Swapped the six NPC portraits to the Batareya "500 Fantasy Pixel Art
   Portraits" pack (free for personal and commercial use, no redistribution
   limit), scaled to the 64x64 dialog format. The previous licensed portrait art
   was then scrubbed from the whole commit history with a git filter-repo
   rewrite, both the image blobs and the text references. The rewrite is local;
   the remotes still carry the old history.
-- [done] Added a party-character portrait. A new character cycles a pool of
-  twenty-four Batareya faces at creation (P key), the choice is saved, and the
-  face shows as a thumbnail in the party strip. Generated parties and hirelings
-  draw varied faces.
-- [done] Build further on the party-character portrait. The character sheet
-  screen is in (press I in the world): one member's face at full size beside
-  the full stat block and gear, with the left and right keys paging the party,
-  and for a caster a spell browser that lists its known spells with icons. The
-  combat party panel now shows each member's face beside its name and bars, and
-  P on the character sheet repicks a member's face in play.
-- [done] Spell and skill icons, and the UI that uses them. Every spell in the
-  catalog names a per-spell icon from the Batareya "MAGE ICONS BIG PACK" (an
-  icon line in spells.txt, baked to SI<NN> lumps), drawn everywhere a caster
-  meets its spells: the character sheet's spell browser, the SPELLS tab, the
-  learn-a-spell screen, and the combat cast menu. Each skill likewise names an
-  icon from the Batareya "250 WARRIOR ICONS" pack (baked to WI<N> lumps),
-  drawn on the character sheet's skills list, the learn-a-skill screen, and the
-  combat SKILL menu. Both pack licenses are still to be confirmed against their
-  itch.io pages before release.
 
 ### E. Shipping targets (design sections 23 and 24)
 
-- [partial] Finish the fixed-point conversion: the camera vectors, and the
-  polygon hot path, still use `double`. The raycaster already runs in fixed
-  point and the framebuffer is 8-bit paletted.
-- [gap] The renderer backend seam for DOS mode 13h and the PS1 GPU, with the
-  Linux software rasterizer as one backend behind it.
-- [gap] Resident-memory instrumentation and caps: the overworld cell cache and
-  the visited-snapshot store are the main risks against the PS1 2 MB budget
-  (design section 23). Add an LRU and a budget warning before they grow.
+- [partial] (0.31.0, parallel) Finish the fixed-point conversion: the camera
+  vectors, and the polygon hot path, still use `double`. The raycaster already
+  runs in fixed point and the framebuffer is 8-bit paletted.
+- [gap] (0.31.0) The renderer backend seam for DOS mode 13h and the PS1 GPU,
+  with the Linux software rasterizer as one backend behind it.
+- [gap] (0.20.0) Resident-memory instrumentation and caps: the overworld cell
+  cache and the visited-snapshot store are the main risks against the PS1 2 MB
+  budget (design section 23). Add an LRU and a budget warning before they grow.
+  Lands with 0.20.0, since the coarse overworld travel is the first real
+  pressure on the budget.
+- [gap] (0.31.0) Confirm every third-party asset license before a release. The
+  Batareya mage-icon, warrior-icon, and portrait packs are offered free for
+  commercial use but their exact terms still need confirming against each
+  itch.io page; the SigilsVault kits (theme G) and the Dungeon Crawl sprites are
+  CC0. This is a release gate, not code.
 - [done] Relocatable file paths for an install-free distribution. An apppaths
   unit locates the pak relative to the real executable (resolved through
   /proc/self/exe, _NSGetExecutablePath, or GetModuleFileName, so a launch by
@@ -297,98 +285,197 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   lost cities. Touched the title logo, the window caption, the README, the
   dialogue content (ELDER, the new DEPTHS gate), the journal, the Depths
   generator (the gate NPC, GEN_VERSION 3), and the victory screen.
-- [gap] Follow-on arc content: name and populate the lost cities beyond the
-  first gate, and balance the depth-30 descent as a real finale rather than a
-  single capstone beat. The win currently fires on reaching the first City Gate;
-  the cities themselves are still the generated Depths cavern, not authored
-  ruins.
+- [gap] (0.29.0) Follow-on arc content: name and populate the lost cities beyond
+  the first gate, and balance the depth-30 descent as a real finale rather than
+  a single capstone beat. The win currently fires on reaching the first City
+  Gate; the cities themselves are still the generated Depths cavern, not
+  authored ruins. The authored-ruin half pairs naturally with the modular-tile
+  work in theme G.
+
+### G. Sector maps, modular tiles, and terrain (grows out of theme A)
+
+The target look shifts from the uniform-height tile grid to a late-1990s
+first-person RPG: Doom-style sectors with per-area floor and ceiling heights,
+built indoors from modular tile meshes and outdoors from heightfield terrain.
+Sprite billboards and turn-based grid movement stay; only the world geometry
+and its data format change. The polygon renderer (theme A) is the foundation,
+so this thread opens once that renderer is the default. The whole thread keeps
+one eye on the PS1: the modular kits are chosen and budgeted for it.
+
+- [gap] (0.26.0) Evaluate the SigilsVault CC0 kits (REF/sigilsvault.itch.io: the
+  Modular Dungeon and Modular Cathedral kits, 90+ pieces each, CC0 by Kevin
+  Barany, a 1-metre grid, trim-sheet textured, GLB and FBX) for PS1 feasibility.
+  Measure polygon and vertex counts per piece against the model VRAM budget, the
+  256x256 trim sheet against the texture budget, and the decimation each piece
+  needs to sit inside a PS1 scene (the kits are GameCube/PS2-era low-poly, a
+  step above PS1). Assess importing GLB/FBX into the meshtools pipeline. Produce
+  a go/no-go with a target poly budget per tile.
+- [gap] (0.26.0) Trim-sheet texturing in the asset and mesh pipeline: a single
+  shared atlas per tileset, UV-mapped per piece and baked once, so a whole
+  modular room costs one texture. This is the PS1-friendly path and the kits
+  already ship this way, with a plain and a handpainted trim sheet each.
+- [gap] (0.26.0) Bake a first modular room: import a hand-placed set of kit
+  pieces as instanced meshes in the polygon renderer, drawn over the existing
+  grid, to prove the look and the budget before the map format changes. This
+  reuses the instanced-prop path that already draws the remaining meshes.
+- [gap] (0.27.0) The sector map format: sectors carry a floor and a ceiling
+  height and a tileset, walls are segments between sectors, and a cell
+  references the modular pieces that build it. This replaces the uniform-height
+  tile grid as the authored and generated map model and lets halls, vaults,
+  balconies, and pits read as height rather than as flat tiles. Collision and
+  the turn-based grid decouple from the render geometry: movement stays on a
+  logical grid laid over the sectors, so the feel is unchanged. Bump the map and
+  GEN versions and keep seed determinism, so generated sector maps rebuild
+  identically from a seed and the save still stores the seed plus diffs. The
+  raycaster stays only as a flat-grid fallback for the DOS target.
+- [gap] (0.27.0) Port mapgen and the authored maps to sectors: the generators
+  emit sector geometry assembled from kit pieces, and content/maps/*.map migrate
+  to the new format. Vary floor and ceiling heights per area so the generated
+  dungeons gain vertical variety over the current single-height rooms.
+- [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
+  the open zones, rendered in the polygon path, with the indoor/outdoor seam
+  handled by the sector model (a cave mouth opens from a sector onto terrain).
+  Keep the billboard foliage and entities over the terrain, and keep the seeded,
+  deterministic generation the overworld already uses.
 
 ## Sequenced roadmap
 
 Each milestone is a minor version, leaves the game runnable, and is ordered by
 value and by what it unblocks. Sizes are rough: S a few days, M a week or two,
-L longer.
+L longer. The sector thread (0.26.0 to 0.28.0) is the one hard dependency chain:
+it needs the polygon renderer promoted to default in 0.19.0.
 
-### 0.19.0 Finish the polygon renderer (M)
+### 0.19.0 Finish the polygon renderer (M) [in progress]
 
 Theme A. Glows in the polygon path, vertex snap and dither, the prop-collision
 decision, then promote the polygon renderer to default with the raycaster as a
-fallback. This closes the in-progress milestone and makes the target-shaped
-renderer the one the game actually runs, which de-risks everything downstream.
+fallback, and port the rasterizer hot path to fixed point. This closes the
+in-progress milestone, makes the target-shaped renderer the one the game runs,
+and is the gate the whole theme G map rework depends on.
 
 ### 0.20.0 Navigation and AI consolidation (M)
 
-Theme B. Locked-door handling and NPC-aware pathing first, since both auto-travel
-and pursuit stand on the planners and both have the same two blind spots. Then
-pursuit persistence and tuning, then the coarse overworld travel mode on top of
-the router. This milestone turns the recent one-off systems into a coherent
-layer and makes long-distance travel real. It depends on nothing but the routing
-already in place.
+Theme B, plus the memory instrumentation from theme E. Locked-door handling
+(now consulting the Pick Locks skill) and NPC-aware pathing first, since both
+auto-travel and pursuit stand on the planners and share the same two blind
+spots. Then pursuit persistence and tuning, then the coarse overworld travel
+mode on top of the router, with the resident-memory LRU and budget warning
+landing alongside it because that travel mode is the first real pressure on the
+2 MB budget. Depends on nothing but the routing already in place.
 
 ### 0.21.0 Survival systems (M) [done]
 
 Theme C, the exploration-pressure half. Light and food as consumable resources
-tied to rest, and the status-effect breadth with its save hooks. These give
-torches, rations, and the Thief and Cleric their intended jobs and make the
-dungeon loop tense rather than frictionless. Status effects reuse the save
-system already in place.
-
-Delivered: a torch fuel budget that gutters and dims the view, spare torches
-that relight it, rations spent per member at rest with a hunger toll when
-short, and the status breadth (fear, paralysis, fighting blind, lingering
-disease, encumbrance) with the monsters and party-strip cues to surface them.
+tied to rest, and the status-effect breadth with its save hooks. Delivered: a
+torch fuel budget that gutters and dims the view, spare torches that relight it,
+rations spent per member at rest with a hunger toll when short, and the status
+breadth (fear, paralysis, fighting blind, lingering disease, encumbrance) with
+the monsters and party-strip cues to surface them.
 
 ### 0.22.0 Options, accessibility, and inputs (S) [done]
 
-Theme C, the settings half, plus theme E's settings file. Difficulty and
-accessibility toggles, key rebinding, and a settings file stored next to the
-save. Small, self-contained, and needed once there are this many actions and
-rules to tune. Best done before wider playtesting.
-
-Delivered: a config file beside the save holding the volumes, the difficulty
-and accessibility choices, and the core-action key table. The options screen
-edits them live; a key-bindings sub-screen rebinds the exploration keys with a
-press-a-key capture. Permadeath gates a temple revival service for the slain.
+Theme C, the settings half, plus theme E's settings file. Delivered: a config
+file beside the save holding the volumes, the difficulty and accessibility
+choices, and the core-action key table. The options screen edits them live; a
+key-bindings sub-screen rebinds the exploration keys with a press-a-key capture.
+Permadeath gates a temple revival service for the slain.
 
 ### 0.23.0 Reference and meta screens (S) [done]
 
-Theme D. The bestiary and item identification, and the journal notes and pins.
-These are reward and legibility features that pair with the content build-out,
-so they land just before it.
-
-Delivered: a codex unit, saved with the game, that records monsters met and
-item kinds identified. A bestiary tab on the journal screen lists foes with
-hit dice, armour, and weakness, with the unmet shown as ???. Mystery loot
-drops unidentified and is named by using it or paying the temple. Full-map
-pins (right-click to cycle) and auto-markers for discovered stairs, portals,
-and NPCs round out the map. A fuller quest log waits on 0.24.0's content.
+Theme D, the reference half. Delivered: a codex unit, saved with the game, that
+records monsters met and item kinds identified; a bestiary tab that lists foes
+with hit dice, armour, and weakness (unmet shown as ???); mystery loot that is
+named by using it or paying the temple; and full-map pins (right-click to cycle)
+with auto-markers for discovered stairs, portals, and NPCs.
 
 ### 0.24.0 World content and the critical path (L) [done]
 
-Theme F, with hirelings from theme C folded in. Build out the six zones and
-thread the relic quest across the crypt, cave, and infernal zones to an ending,
-so the game concludes rather than stops. This is the largest milestone and the
-one that turns a systems demo into a game. It depends on the survival and AI
-systems being in place so the content can lean on them.
+Theme F, with hirelings from theme C folded in. Delivered: the six zones each
+carry authored landmarks, NPCs, lights, hazards, and an encounter table, each
+wearing its own tileset; placed caches and barrels hand gold and gear once,
+tracked per tile in the save; worn gear carries an elemental resist mask (the
+dragonscale shield halves the demon lord's fire), with a combat-damage assertion
+pinning the halving; and the three relic shards thread across the crypt, cave,
+and infernal zones to the Elder, whose victory screen gates on all three held.
 
-Delivered: the six zones each carry authored landmarks, NPCs, lights, hazards,
-and an encounter table, and each wears its own tileset, one colour scheme over
-the shared patterns, so a generated map themes from its area. Placed caches and
-barrels hand gold and gear to a party that opens them once, the take tracked by
-a per-tile flag in the save. Worn gear carries an elemental resist mask: the
-dragonscale shield earned in the crypt halves the demon lord's fire and the
-infernal lava vents, with a combat-damage assertion pinning the halving. The
-three relic shards thread across the crypt, cave, and infernal zones to the
-Elder, whose victory screen gates on all three held, closing the critical path.
+### 0.25.0 Caster and martial systems, and party presentation (L) [done]
+
+Themes C and D, the systems-and-presentation pass that landed after the world
+content. Recorded here so every feature has a milestone home.
+
+Delivered: the axx-rpg spell catalog (170 spells, three domains, six levels)
+drives combat and the SPELLS tab; caster classes name a domain in classes.txt
+and specialist mages split the arcane list into eight schools; casters learn
+from their domain on a learn screen and the known list is saved; out-of-combat
+casting (heals, cures, light, read-magic, sense-the-area) runs off a persistent,
+rest-restored spell-point pool. The martial counterpart shipped too: a
+proficiency-slot skills system with exploration checks (pick locks, find traps,
+move silently, first aid) and no-resource combat maneuvers (power attack,
+disarm, shield bash, aimed shot, rally) on a SKILL command, data-driven in
+content/skills.txt and saved per character. Presentation gained per-spell and
+per-skill icons drawn everywhere the player meets a spell or skill, player
+portraits in the party strip and combat panel, and a full character sheet with
+a spell and skill browser.
+
+### 0.26.0 Modular tiles and PS1 kit evaluation (M)
+
+Theme G, the groundwork. Evaluate the SigilsVault CC0 kits for PS1 feasibility
+and settle a per-tile poly budget, bring trim-sheet texturing into the asset and
+mesh pipeline, and bake a first hand-placed modular room drawn over the existing
+grid to prove the look and the budget. No map-format change yet: this de-risks
+the rework and produces the go/no-go before the format churns. Depends on the
+polygon renderer being the default (0.19.0).
+
+### 0.27.0 Sector map format (L)
+
+Theme G, the core rework. Define the Doom-style sector data model (per-sector
+floor and ceiling height, wall segments, a referenced tileset), decouple
+collision and the turn-based grid from the render geometry, and migrate both
+mapgen and the authored content/maps to it, bumping the map and GEN versions
+while keeping seed determinism. The raycaster drops to a flat-grid fallback.
+This is the largest milestone of the thread and the one that changes the game's
+look from a flat grid to a late-90s first-person RPG. Depends on 0.26.0.
+
+### 0.28.0 Outdoor terrain (M)
+
+Theme G, the outdoor half. A heightfield terrain for the overworld surface and
+the open zones, rendered in the polygon path, with the indoor/outdoor seam
+handled by the sector model and the billboard foliage and entities kept over the
+terrain. Depends on 0.27.0.
+
+### 0.29.0 Follow-on arc: the lost cities (M)
+
+Theme F, the remaining content. Name and populate the lost cities beyond the
+first City Gate, and balance the depth-30 descent as a real finale rather than a
+single capstone beat. The authored-ruin half pairs with the modular-tile work,
+so it is best taken after at least 0.26.0 so the cities can be built from the
+kit rather than the generated cavern.
+
+### 0.30.0 Systems depth and data cleanup (S/M)
+
+Themes C and D, the remaining smaller items gathered into one polish milestone:
+rank capacity by creature size, porting the last hardcoded party and class data
+to content files (which the data-driven constraint demands), the optional
+prepared-spell subset and more combat-statted spells, the fuller quest log now
+that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg
+sprite-format evaluation. Independent of the renderer and map threads.
+
+### 0.31.0 Target backends: DOS and PS1 (L)
+
+Theme E, the hardware push. Finish the fixed-point conversion, build the
+renderer backend seam with the Linux software rasterizer as one backend, and
+confirm every third-party asset license before release. Gated on the sector
+evaluation (0.26.0, which sets whether the modular geometry fits the PS1) and on
+the fixed-point and memory work from earlier milestones.
 
 ### Parallel track: the hardware push (theme E)
 
-Finishing fixed point, the renderer backend seam, and the memory instrumentation
-are gated on starting an actual DOS or PS1 build, not on gameplay. They can run
-in parallel with the gameplay milestones and should begin in earnest when a
-target build is attempted. The memory instrumentation should land with or just
-after 0.20.0, because the coarse overworld travel and its cell cache are the
-first real pressure on the 2 MB budget.
+Finishing fixed point and the memory instrumentation are gated on gameplay only
+loosely and can run in parallel with the gameplay milestones. The memory
+instrumentation lands with 0.20.0, because the coarse overworld travel and its
+cell cache are the first real pressure on the 2 MB budget. The backend seam
+itself (0.31.0) should begin in earnest once a target build is attempted, which
+the theme G kit evaluation informs.
 
 ## Cross-cutting constraints
 
@@ -396,35 +483,41 @@ These hold across every milestone and are the reason for the choices above.
 
 - The PS1 2 MB main RAM budget and a small resident executable. Favor
   generating or loading data in place over resident banks, and cap every cache.
+  The modular-tile and terrain work in theme G is budgeted against this from the
+  start.
 - Data-driven content. Anything a designer would tune lives in `content/*.txt`
   and compiles into the pak, not in Pascal branches.
 - Determinism. Dynamic maps and the overworld rebuild from a seed, so the save
-  stores the seed plus the player's diffs, never the terrain.
+  stores the seed plus the player's diffs, never the terrain. The sector format
+  keeps this: generated sector maps rebuild identically from a seed.
 - No FPU on the targets. New hot-path math is written so it can move to the
   16.16 fixed-point layer.
+- Turn-based grid movement and sprite billboards are kept through the map
+  rework. The sector geometry is a presentation layer over a logical grid, not a
+  change to how the party moves or how beings are drawn.
 
 ## Recommended next
 
-Two sensible entry points:
+The whole forward direction now funnels through the polygon renderer, so the
+order is clearer than before:
 
-- Finish 0.19.0 (the polygon renderer) to close the stated in-progress milestone
-  and make the target-shaped renderer the default. This is the tidy choice if
-  the goal is to get the rendering foundation settled before more systems.
-- Start 0.20.0 (navigation and AI) to build directly on the just-landed routing,
-  auto-travel, and pursuit. The locked-door and NPC-pathing fixes are small and
-  high-value, and the coarse overworld travel mode is the feature that makes the
-  seeded world usable at scale.
+- Finish 0.19.0 (the polygon renderer) first. It closes the one in-progress
+  milestone, makes the target-shaped renderer the default, and is the hard gate
+  for the theme G map rework. Nothing in the late-90s sector direction can start
+  until it lands.
+- Then the sector thread can open with 0.26.0 (the kit evaluation), which is
+  low-risk and produces the go/no-go that tells us whether the SigilsVault
+  modular geometry can reach the PS1. Do this before the format churns in
+  0.27.0.
+- 0.20.0 (navigation and AI) is independent of the renderer and can run in
+  parallel at any time. It builds directly on the just-landed routing,
+  auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
+  high-value, and the coarse overworld travel mode is what makes the seeded
+  world usable at scale.
 
-If the recent AI thread is the live interest, 0.20.0 has the most momentum and
-the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is the
-one unfinished milestone on the books.
-
-The caster thread in theme C is essentially complete. The axx-rpg spell list is
-imported into content/spells.txt, each caster class names its spell domain in
-classes.txt, specialist mages split the arcane list into schools, a SPELLS tab
-lists a caster's learned spells, and casting works both in combat (a caster's
-menu is its castable domain, gated by level and a now-persistent spell-point
-pool) and out of it (heals, cures, and utility from the SPELLS tab). What is
-left is optional depth: statting more of the combat-shaped spells, and a
-prepared-spell subset on top of the known list. This leans on the data-driven
-content pipeline and depends on neither open milestone.
+The caster and martial systems in themes C and D are complete (0.25.0): spells
+and skills both work in and out of combat, with icons, portraits, and a
+character sheet. What remains in those themes is optional depth (prepared
+spells, more combat-statted spells, rank capacity) and the data-port cleanup,
+all gathered into 0.30.0 and dependent on neither the renderer nor the map
+threads.
