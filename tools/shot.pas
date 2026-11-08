@@ -16,6 +16,7 @@ program shot;
     shot <out.ppm> castmenu     (a quick battle with the Wizard's spell list open)
     shot <out.ppm> learn        (the level-up learn-a-spell screen for a caster)
     shot <out.ppm> dialog <ID>  (an NPC dialog, to frame its portrait)
+    shot <out.ppm> create       (the character-creation screen)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -31,7 +32,7 @@ program shot;
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
-  dialog;
+  dialog, charcreateui;
 
 procedure DumpPPM(const fn: string);
 var
@@ -104,6 +105,14 @@ begin
   end
   else if scene = 'world' then
     QuickStart
+  else if scene = 'create' then begin
+    { the character-creation screen, to frame the portrait picker. An optional
+      count presses P that many times to cycle the face forward. }
+    CCStartNewParty;
+    State := gsNewParty;
+    if ParamCount >= 3 then
+      for mi := 1 to StrToInt(ParamStr(3)) do CCKeyDown(SDL_SCANCODE_P);
+  end
   else if scene = 'menu' then begin
     QuickStart;             { a party, so the spells tab has casters }
     State := gsMenu;

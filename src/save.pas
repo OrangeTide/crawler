@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 12;
+  SAVE_VERSION = 13;
 
 var
   LoadedMapName: string;
@@ -112,6 +112,7 @@ begin
   WI32(s, c.wage);
   WI32(s, Length(c.known));
   for i := 0 to High(c.known) do WStr(s, c.known[i]);
+  s.WriteByte(c.portrait);
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -139,6 +140,7 @@ begin
   n := RI32(s);
   SetLength(RChar.known, n);
   for i := 0 to n - 1 do RChar.known[i] := RStr(s);
+  RChar.portrait := s.ReadByte;
   RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;
 

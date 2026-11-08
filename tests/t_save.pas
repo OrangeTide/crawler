@@ -41,6 +41,7 @@ begin
   SetLength(Roster[0].known, 2);
   Roster[0].known[0] := 'M_MAGICMISSILE';
   Roster[0].known[1] := 'M_SLEEP';
+  Roster[0].portrait := 7;
   Roster[1].disease := 2;
   Roster[1].hireling := true;
   Roster[1].wage := 90;
@@ -86,6 +87,7 @@ begin
   Check((Length(Roster) >= 1) and (Length(Roster[0].known) = 2)
     and (Roster[0].known[0] = 'M_MAGICMISSILE')
     and (Roster[0].known[1] = 'M_SLEEP'), 'known spells restored');
+  Check((Length(Roster) >= 1) and (Roster[0].portrait = 7), 'portrait restored');
   Check((Length(Roster) >= 2) and (Roster[1].disease = 2), 'disease restored');
   CheckEqI(PartyGold, 137, 'gold restored');
   Check(FlagHas('QUEST_X'), 'flag restored');

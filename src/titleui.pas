@@ -20,7 +20,7 @@ implementation
 
 uses
   sdl2min, gfx, pic, sprites, world, party, chardata, rules, audio, uihelp,
-  gamestate, worldload, combatui, charcreateui, save, spellbook;
+  gamestate, worldload, combatui, charcreateui, save, spellbook, pcportrait;
 
 const
   TITLE_ITEMS = 6;
@@ -156,6 +156,7 @@ begin
   for i := 0 to 3 do begin
     RollAbilities(a);
     MakeCharacter(c, NAME_POOL[i], sp, ClassOr0(clsId[i]), 0, a);
+    c.portrait := PCPortraitClamp(i);   { a varied face per slot }
     AutoLearn(c);   { a ready-made caster comes knowing its spells }
     AddPartyMember(c);
   end;

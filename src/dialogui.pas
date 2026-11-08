@@ -16,7 +16,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
   gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic,
-  spellbook;
+  spellbook, pcportrait;
 
 { Blit a portrait image at its native size, skipping the keyed background. }
 procedure DrawPortrait(px, py: longint; const img: TImage);
@@ -140,7 +140,8 @@ begin
     cost := HireCost;
     wasFirst := HirelingCount = 0;
     if RecruitHireling(NAME_POOL[Range(0, High(NAME_POOL))]) then begin
-      { a hired caster comes already knowing its spells }
+      { a hired caster comes already knowing its spells, and a random face }
+      Roster[High(Roster)].portrait := PCPortraitClamp(Range(0, PCPortraitCount - 1));
       AutoLearn(Roster[High(Roster)]);
       if wasFirst then WagesDueClock := ClockMin + LUNAR_MINUTES;
       saveMsg := 'A SWORD-ARM JOINS FOR ' + IntToStr(cost) + ' GOLD';

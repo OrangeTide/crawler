@@ -17,7 +17,8 @@ procedure CCKeyDown(scancode: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, chardata, party, rules, uihelp, gamestate, worldload;
+  sysutils, sdl2min, gfx, chardata, party, rules, uihelp, gamestate, worldload,
+  pcportrait;
 
 var
   ccSlot: longint;
@@ -25,6 +26,7 @@ var
   ccClass: longint;
   ccBg: longint;
   ccNameIdx: longint;
+  ccPortrait: longint;
   ccAbil: TAbilityScores;
   ccPreview: TCharacter;
 
@@ -43,6 +45,7 @@ end;
 procedure CCRebuild;
 begin
   MakeCharacter(ccPreview, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
+  ccPreview.portrait := ccPortrait;
 end;
 
 procedure CCBeginSlot;
@@ -51,6 +54,7 @@ begin
   ccClass := ClassOr0('FIGHTER');
   ccBg := 0;
   ccNameIdx := ccSlot;
+  ccPortrait := PCPortraitClamp(ccSlot);
   RollAbilities(ccAbil);
   CCRebuild;
 end;
@@ -95,9 +99,14 @@ begin
   DrawText(150, 102, 'ATK ' + IntToStr(CharAttack(ccPreview, true)),
     RGB(200, 190, 150));
 
+  { the chosen face, framed, top right }
+  FillRect(240, 28, 64, 64, RGB(0, 0, 0));
+  DrawPCPortrait(240, 28, ccPortrait);
+  FrameRect(240, 28, 64, 64, RGB(120, 110, 90));
+
   DrawText(14, FBH - 40, 'N NAME  K SPECIES  [ ] CLASS  B PAST  R REROLL',
     RGB(140, 130, 110));
-  DrawText(14, FBH - 28, 'ENTER ACCEPT   G FINISH   ESC TITLE',
+  DrawText(14, FBH - 28, 'P FACE   ENTER ACCEPT   G FINISH   ESC TITLE',
     RGB(140, 130, 110));
 end;
 
@@ -106,6 +115,7 @@ var
   c: TCharacter;
 begin
   MakeCharacter(c, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
+  c.portrait := ccPortrait;
   AddPartyMember(c);
   inc(ccSlot);
   if ccSlot >= MAX_PARTY then
@@ -134,6 +144,10 @@ begin
     SDL_SCANCODE_LEFTBRACKET, SDL_SCANCODE_Q: begin
       ccClass := (ccClass + Length(ClassDefs) - 1) mod Length(ClassDefs);
       CCRebuild;
+    end;
+    SDL_SCANCODE_P: begin
+      ccPortrait := PCPortraitClamp(ccPortrait + 1);
+      ccPreview.portrait := ccPortrait;
     end;
     SDL_SCANCODE_R: begin
       RollAbilities(ccAbil);

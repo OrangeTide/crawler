@@ -23,7 +23,7 @@ procedure FullMapMark(tx, ty: longint; col: TColor);
 implementation
 
 uses
-  math, sysutils, world, party, gametime, mapfmt;
+  math, sysutils, world, party, gametime, mapfmt, pcportrait;
 
 function NormAngle(a: double): double;
 begin
@@ -151,8 +151,10 @@ begin
 end;
 
 procedure DrawPartyStrip;
+const
+  FACE = 16;   { the thumbnail square at the left of each slot }
 var
-  i, n, slotW, x, barW: longint;
+  i, n, slotW, x, tx, barW: longint;
   c: TColor;
   nm: string;
 begin
@@ -168,13 +170,17 @@ begin
     else if CharEncumbered(Roster[i]) then c := RGB(150, 165, 205)  { laden blue }
     else if Roster[i].hireling then c := RGB(205, 180, 125)  { a hired blade }
     else c := RGB(200, 205, 180);
+    { the portrait thumbnail, then the name and HP bar beside it }
+    DrawPCPortraitScaled(x, FBH - 25, FACE, FACE, Roster[i].portrait);
+    FrameRect(x, FBH - 25, FACE, FACE, RGB(70, 64, 54));
+    tx := x + FACE + 2;
     nm := Copy(Roster[i].name, 1, 6);
-    DrawText(x, FBH - 24, nm, c);
+    DrawText(tx, FBH - 24, nm, c);
     { HP bar }
-    barW := slotW - 8;
-    FillRect(x, FBH - 14, barW, 3, RGB(50, 20, 20));
+    barW := slotW - 8 - FACE - 2;
+    FillRect(tx, FBH - 14, barW, 3, RGB(50, 20, 20));
     if Roster[i].hpMax > 0 then
-      FillRect(x, FBH - 14,
+      FillRect(tx, FBH - 14,
         (barW * Roster[i].hp) div Roster[i].hpMax, 3, RGB(70, 170, 70));
   end;
 end;

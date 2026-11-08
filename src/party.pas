@@ -59,6 +59,7 @@ type
     hireling: boolean;   { a temporary hire, owed wages each lunar month }
     wage: smallint;      { their recruitment cost, also the monthly upkeep }
     known: array of string[16]; { catalog ids of the spells this caster knows }
+    portrait: byte;      { index into the PC portrait pool, shown in the strip }
   end;
 
 var
@@ -361,6 +362,7 @@ begin
     c.rank := 0;
   c.sp := 0;
   c.known := nil;
+  c.portrait := 0;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;
