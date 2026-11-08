@@ -18,10 +18,10 @@ set -- \
   "hero:map DUNGEON 2 7 E" \
   "town:map TOWN 6 8 N" \
   "seaside:map SEASIDE 10 9 E" \
-  "forest:map FOREST 8 13 N" \
+  "forest:map FOREST 2 7 E" \
   "crypt:map DUNGEON 13 7 W" \
   "grotto:map GROTTO 3 8 N" \
-  "infernal:map INFERNAL 8 13 N" \
+  "infernal:map INFERNAL 2 7 E" \
   "monster:foe DUNGEON 2 7 E SKELETON 8 7" \
   "shop:map TAVERN 3 5 N" \
   "combat:combat 12"
