@@ -24,8 +24,8 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
-  monsters, dialog, spelldb, spellbook, shops, encounters, worldfmt,
-  overworld, gamestate,
+  monsters, dialog, spelldb, spellbook, skilldb, skillbook, shops, encounters,
+  worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
@@ -78,6 +78,7 @@ begin
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadSpells(GamePak);    { optional; the imported spell catalog }
+  LoadSkills(GamePak);    { optional; the skill catalog }
   LoadShops(GamePak);     { optional; shop stock lists }
   LoadEncounters(GamePak); { optional; per-area encounter tables }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
@@ -125,6 +126,7 @@ begin
           gsKeybind:  KeybindKeyDown(ev.key.keysym.scancode);
           gsOverworld: OverworldKeyDown(ev.key.keysym.scancode);
           gsLearnSpell: LearnKeyDown(ev.key.keysym.scancode);
+          gsLearnSkill: LearnSkillKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -193,6 +195,7 @@ begin
     gsKeybind:  KeybindRender;
     gsOverworld: OverworldRender;
     gsLearnSpell: LearnRender;
+    gsLearnSkill: LearnSkillRender;
   end;
 end;
 

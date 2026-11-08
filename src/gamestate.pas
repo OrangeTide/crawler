@@ -20,7 +20,7 @@ type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
                 gsDialog, gsShop, gsFullMap, gsCharSheet, gsMenu,
                 gsGameOver, gsVictory, gsOptions, gsKeybind, gsOverworld,
-                gsLearnSpell);
+                gsLearnSpell, gsLearnSkill);
 
   TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
   PKeyArray = ^TKeyArray;
@@ -66,6 +66,8 @@ var
   menuTab: longint;        { meta-screen tab: 0 journal, 1 bestiary, 2 spells }
   sheetSel: longint;       { which party member the character sheet shows }
   sheetSpellSel: longint;  { highlighted spell in the sheet's spell browser }
+  skillActor: longint;     { the member training on the learn-a-skill screen }
+  skillTrainSel: longint;  { highlighted skill on the learn-a-skill screen }
 
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }

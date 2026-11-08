@@ -34,7 +34,8 @@ program shot;
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
-  dialog, charcreateui, spellbook, miscui, spelldb, fieldcast;
+  dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
+  skilldb, skillbook;
 
 procedure DumpPPM(const fn: string);
 var
@@ -162,6 +163,25 @@ begin
     end;
     if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'cast') then
       JournalKeyDown(SDL_SCANCODE_RETURN);   { open the member picker }
+  end
+  else if scene = 'skills' then begin
+    { a thief with trained skills and slots to spare, on the character sheet. A
+      'train' argument opens the learn-a-skill screen instead. }
+    QuickStart;
+    ci := 0;
+    Roster[ci].klass := ClassIndex('THIEF');
+    Roster[ci].level := 5;
+    Roster[ci].skillSlots := 10;
+    LearnSkill(Roster[ci], SkillByID('SK_PICKLOCK'));
+    LearnSkill(Roster[ci], SkillByID('SK_PICKLOCK'));   { rank it up }
+    LearnSkill(Roster[ci], SkillByID('SK_FINDTRAPS'));
+    LearnSkill(Roster[ci], SkillByID('SK_MOVESILENT'));
+    LearnSkill(Roster[ci], SkillByID('SK_MEND'));
+    sheetSel := ci; sheetSpellSel := 0;
+    if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'train') then begin
+      skillActor := ci; skillTrainSel := 0; State := gsLearnSkill;
+    end else
+      State := gsCharSheet;
   end
   else if scene = 'castmenu' then begin
     { a quick battle, then drive the Wizard into the cast submenu; an optional

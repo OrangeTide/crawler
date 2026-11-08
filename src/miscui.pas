@@ -24,6 +24,8 @@ procedure VictoryRender;
 procedure VictoryKeyDown(scancode: longint);
 procedure LearnRender;
 procedure LearnKeyDown(scancode: longint);
+procedure LearnSkillRender;
+procedure LearnSkillKeyDown(scancode: longint);
 procedure CharSheetRender;
 procedure CharSheetKeyDown(scancode: longint);
 
@@ -33,7 +35,7 @@ uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
   exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
   party, chardata, spelldb, spellbook, rules, items, pcportrait, spellicon,
-  fieldcast;
+  fieldcast, skilldb, skillbook, skillicon;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -518,6 +520,89 @@ begin
   end;
 end;
 
+{ The learn-a-skill screen: a member spends banked proficiency slots on skills
+  its class may train, raising a known skill's rank or learning a new one. Opened
+  with T from the character sheet; closes back to it. }
+procedure LearnSkillRender;
+const ROWS = 9;
+var
+  total, firstRow, r, si2, skIdx, y, rank: longint;
+  tag: string;
+begin
+  ClearFB(RGB(10, 10, 16));
+  if (skillActor < 0) or (skillActor > High(Roster)) then begin
+    State := gsCharSheet; exit;
+  end;
+  DrawText(12, 10, 'TRAIN A SKILL  (slots '
+    + IntToStr(Roster[skillActor].skillSlots) + ')', RGB(230, 210, 130));
+  DrawText(12, 22, Roster[skillActor].name + ' the '
+    + ClassDefs[Roster[skillActor].klass].name, RGB(150, 170, 190));
+  total := LearnableCount(Roster[skillActor]);
+  if skillTrainSel >= total then skillTrainSel := total - 1;
+  if skillTrainSel < 0 then skillTrainSel := 0;
+  if total = 0 then begin
+    DrawText(16, 44, 'No skills left to train.', RGB(150, 150, 130));
+    DrawText(16, 160, 'ESC DONE', RGB(130, 140, 110));
+    exit;
+  end;
+  firstRow := (skillTrainSel div ROWS) * ROWS;
+  y := 40;
+  for r := 0 to ROWS - 1 do begin
+    si2 := firstRow + r;
+    if si2 >= total then break;
+    skIdx := LearnableNth(Roster[skillActor], si2);
+    if skIdx < 0 then break;
+    rank := SkillRank(Roster[skillActor], skIdx);
+    if rank < 0 then tag := '  new' else tag := '  R' + IntToStr(rank) + '->'
+      + IntToStr(rank + 1);
+    if si2 = skillTrainSel then
+      FillRectBlend(12, y - 1, 184, 11, RGB(44, 44, 66), 230);
+    DrawSkillIcon(14, y, 9, 9, SkillDefs[skIdx].icon);
+    if si2 = skillTrainSel then
+      DrawText(26, y + 1, SkillDefs[skIdx].name + tag, RGB(244, 230, 150))
+    else
+      DrawText(26, y + 1, SkillDefs[skIdx].name + tag, RGB(190, 195, 180));
+    inc(y, 11);
+  end;
+  DrawText(16, 150, IntToStr(skillTrainSel + 1) + ' of ' + IntToStr(total),
+    RGB(120, 130, 110));
+  DrawText(16, 160, 'UP/DN CHOOSE   ENTER TRAIN   ESC DONE', RGB(130, 140, 110));
+
+  skIdx := LearnableNth(Roster[skillActor], skillTrainSel);
+  if skIdx >= 0 then begin
+    FrameRect(8, 172, FBW - 16, FBH - 172 - 4, RGB(90, 84, 70));
+    DrawText(16, 178, SkillDefs[skIdx].name + '   ('
+      + ArenaName(SkillDefs[skIdx].arena) + ', '
+      + ABIL_NAME[TAbility(SkillDefs[skIdx].ability)] + ')', RGB(230, 210, 140));
+    DrawWrapped(16, 190, 48, SkillDefs[skIdx].effectText, RGB(200, 200, 185));
+  end;
+end;
+
+procedure LearnSkillKeyDown(scancode: longint);
+var total, skIdx: longint;
+begin
+  if (skillActor < 0) or (skillActor > High(Roster)) then begin
+    State := gsCharSheet; exit;
+  end;
+  total := LearnableCount(Roster[skillActor]);
+  case scancode of
+    SDL_SCANCODE_UP:
+      if skillTrainSel > 0 then dec(skillTrainSel);
+    SDL_SCANCODE_DOWN:
+      if skillTrainSel < total - 1 then inc(skillTrainSel);
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE:
+      begin
+        skIdx := LearnableNth(Roster[skillActor], skillTrainSel);
+        if skIdx >= 0 then begin
+          if LearnSkill(Roster[skillActor], skIdx) then PlaySfx(SFX_SELECT)
+          else PlaySfx(SFX_MISS);
+        end;
+        if Roster[skillActor].skillSlots = 0 then State := gsCharSheet;
+      end;
+    SDL_SCANCODE_T, SDL_SCANCODE_ESCAPE: State := gsCharSheet;
+  end;
+end;
+
 { The character sheet: one party member at a time, the full stat block beside
   the portrait, with the left and right keys paging between members. Opened
   with I from the world, it reuses the former inventory state. }
@@ -632,8 +717,13 @@ begin
   DrawText(16, 216, 'LT ' + SheetGearName(Roster[si].equip[eqLight].def),
     RGB(180, 185, 170));
 
-  { the spell browser, right column, for a caster }
+  { unspent proficiency slots, offered for training from here }
+  if Roster[si].skillSlots > 0 then
+    DrawText(COLX, 90, 'SLOTS ' + IntToStr(Roster[si].skillSlots)
+      + '   T TRAIN', RGB(210, 190, 120));
+
   if CharIsCaster(Roster[si]) then begin
+    { the spell browser, right column, for a caster }
     kn := SheetKnownList(Roster[si], known);
     if sheetSpellSel < 0 then sheetSpellSel := 0;
     if sheetSpellSel > kn - 1 then sheetSpellSel := kn - 1;
@@ -670,10 +760,50 @@ begin
       if not SpellDefs[cat].castable then st := st + '   UTILITY';
       DrawText(COLX, FBH - 24, st, RGB(150, 160, 190));
     end;
+  end else begin
+    { the skills list, right column, for a non-caster }
+    kn := KnownSkillCount(Roster[si]);
+    if sheetSpellSel < 0 then sheetSpellSel := 0;
+    if sheetSpellSel > kn - 1 then sheetSpellSel := kn - 1;
+    if sheetSpellSel < 0 then sheetSpellSel := 0;
+
+    DrawText(COLX, 100, 'SKILLS (' + IntToStr(kn) + ')', RGB(200, 190, 130));
+    first := 0;
+    if sheetSpellSel >= VIS then first := sheetSpellSel - VIS + 1;
+    for i := 0 to VIS - 1 do begin
+      idx := first + i;
+      if idx >= kn then break;
+      cat := KnownSkillNth(Roster[si], idx);
+      if cat < 0 then break;
+      ry := 114 + i * 15;
+      if idx = sheetSpellSel then
+        FillRect(COLX, ry - 1, FBW - 8 - COLX, 14, RGB(44, 40, 60));
+      FrameRect(COLX, ry, 14, 14, RGB(60, 56, 44));
+      DrawSkillIcon(COLX, ry, 14, 14, SkillDefs[cat].icon);
+      nm := SkillDefs[cat].name;
+      if Length(nm) > 16 then nm := Copy(nm, 1, 16);
+      DrawText(COLX + 18, ry + 3, nm, RGB(210, 210, 190));
+      DrawText(FBW - 26, ry + 3, 'R' + IntToStr(SkillRank(Roster[si], cat)),
+        RGB(160, 180, 150));
+    end;
+
+    { the selected skill's arena, ability and rank on the foot line }
+    if kn > 0 then begin
+      cat := KnownSkillNth(Roster[si], sheetSpellSel);
+      if cat >= 0 then
+        DrawText(COLX, FBH - 24, UpperCase(ArenaName(SkillDefs[cat].arena)) + '  '
+          + ABIL_NAME[TAbility(SkillDefs[cat].ability)] + '  R'
+          + IntToStr(SkillRank(Roster[si], cat)), RGB(150, 160, 190));
+    end else
+      DrawText(COLX, 116, 'No skills trained.', RGB(150, 150, 130));
   end;
 
-  DrawText(12, FBH - 11, 'UP/DN SPELL  L/R MEMBER  P FACE  I/ESC CLOSE',
-    RGB(130, 140, 110));
+  if Roster[si].skillSlots > 0 then
+    DrawText(12, FBH - 11, 'U/D LIST  L/R MEMBER  P FACE  T TRAIN  ESC CLOSE',
+      RGB(130, 140, 110))
+  else
+    DrawText(12, FBH - 11, 'UP/DN LIST  L/R MEMBER  P FACE  I/ESC CLOSE',
+      RGB(130, 140, 110));
 end;
 
 procedure CharSheetKeyDown(scancode: longint);
@@ -694,6 +824,10 @@ begin
         p := Roster[sheetSel].portrait + 1;
         if p >= PCPortraitCount then p := 0;
         Roster[sheetSel].portrait := p;
+      end;
+    SDL_SCANCODE_T:
+      if (n > 0) and (Roster[sheetSel].skillSlots > 0) then begin
+        skillActor := sheetSel; skillTrainSel := 0; State := gsLearnSkill;
       end;
     SDL_SCANCODE_I, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;

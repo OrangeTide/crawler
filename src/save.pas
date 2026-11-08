@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 13;
+  SAVE_VERSION = 14;
 
 var
   LoadedMapName: string;
@@ -113,6 +113,13 @@ begin
   WI32(s, Length(c.known));
   for i := 0 to High(c.known) do WStr(s, c.known[i]);
   s.WriteByte(c.portrait);
+  WI32(s, Length(c.skills));
+  for i := 0 to High(c.skills) do begin
+    WStr(s, c.skills[i].id);
+    s.WriteByte(c.skills[i].rank);
+  end;
+  s.WriteByte(c.skillSlots);
+  s.WriteByte(ord(c.mended));
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -141,6 +148,14 @@ begin
   SetLength(RChar.known, n);
   for i := 0 to n - 1 do RChar.known[i] := RStr(s);
   RChar.portrait := s.ReadByte;
+  n := RI32(s);
+  SetLength(RChar.skills, n);
+  for i := 0 to n - 1 do begin
+    RChar.skills[i].id := RStr(s);
+    RChar.skills[i].rank := s.ReadByte;
+  end;
+  RChar.skillSlots := s.ReadByte;
+  RChar.mended := s.ReadByte <> 0;
   RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;
 

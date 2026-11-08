@@ -34,6 +34,11 @@ type
     identified: boolean;
   end;
 
+  TSkillInst = record
+    id: string[16];       { catalog id of a trained skill }
+    rank: byte;           { 0 = just learned; each rank adds to its check }
+  end;
+
   TCharacter = record
     name: string[15];
     gender: TGender;      { how the character identifies; default unspecified }
@@ -60,6 +65,9 @@ type
     wage: smallint;      { their recruitment cost, also the monthly upkeep }
     known: array of string[16]; { catalog ids of the spells this caster knows }
     portrait: byte;      { index into the PC portrait pool, shown in the strip }
+    skills: array of TSkillInst; { the skills this character has trained }
+    skillSlots: byte;    { unspent proficiency slots, spent to learn skills }
+    mended: boolean;     { first aid already used this scene, cleared by rest }
   end;
 
 var
@@ -89,6 +97,9 @@ function CharCapacity(const c: TCharacter): longint;
 function CharEncumbered(const c: TCharacter): boolean;
 function CharTrack(const c: TCharacter): longint;
 function CharSpellPoints(const c: TCharacter): longint;
+{ Total skill (proficiency) slots a character of this class has earned by the
+  given level. The thief kit trains fast; everyone else trains slowly. }
+function CharSkillSlots(const c: TCharacter; level: longint): longint;
 function CharWeaponDie(const c: TCharacter): longint;
 
 procedure RollAbilities(out a: TAbilityScores);
@@ -310,6 +321,15 @@ begin
     CharSpellPoints := 0;
 end;
 
+function CharSkillSlots(const c: TCharacter; level: longint): longint;
+begin
+  if level < 1 then level := 1;
+  if ClassDefs[c.klass].kit = KIT_THIEF then
+    CharSkillSlots := 2 + level            { L1 = 3, +1 every level }
+  else
+    CharSkillSlots := 1 + (level - 1) div 3;  { L1 = 1, +1 at 4, 7, 10 }
+end;
+
 procedure RollAbilities(out a: TAbilityScores);
 var
   ab: TAbility;
@@ -365,6 +385,9 @@ begin
   c.sp := CharSpellPoints(c);   { a full spell pool, restored later by rest }
   c.known := nil;
   c.portrait := 0;
+  c.skills := nil;
+  c.skillSlots := CharSkillSlots(c, 1);
+  c.mended := false;
   for s := eqMain to eqLight do
     c.equip[s] := EmptyInst;
   c.pack := nil;
@@ -425,6 +448,7 @@ begin
     inc(c.level);
     c.hpMax := MaxHPDie(ClassDefs[c.klass].hitDie, c.abil[abCON], c.level);
     c.sp := CharSpellPoints(c);   { a new level widens the spell pool }
+    inc(c.skillSlots, CharSkillSlots(c, c.level) - CharSkillSlots(c, c.level - 1));
   end;
 end;
 
@@ -436,6 +460,7 @@ begin
     if Roster[i].alive then begin
       Roster[i].downed := false;
       Roster[i].guarding := false;
+      Roster[i].mended := false;   { first aid is available again after a rest }
       Roster[i].sp := CharSpellPoints(Roster[i]);  { the night refills spells }
       Roster[i].poison := 0;   { acute poison passes with the night }
       if Roster[i].disease > 0 then begin
