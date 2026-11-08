@@ -31,6 +31,7 @@ const
   SPD_CLERIC = 0;
   SPD_DRUID  = 1;
   SPD_MAGE   = 2;
+  SPD_NONE   = 255;  { a class that draws from no domain }
 
   { saving throws }
   SSV_NONE  = 0;
@@ -67,6 +68,10 @@ function LoadSpells(const p: TPak): boolean;
 
 function SpellDefCount: longint;
 function SpellByID(const id: string): longint;   { index, or -1 }
+function DomainSpellCount(domain: longint): longint;
+{ Walk the spells of one domain in level order: pass -1 to start, then the
+  last index returned, to get each in turn; returns -1 at the end. }
+function NextInDomain(domain, after: longint): longint;
 { The engine element this damage type maps to, thematically. }
 function SpellElement(dtype: byte): byte;
 function DomainName(d: byte): string;
@@ -195,6 +200,23 @@ begin
   for i := 0 to High(SpellDefs) do
     if SpellDefs[i].id = id then begin SpellByID := i; exit; end;
   SpellByID := -1;
+end;
+
+function DomainSpellCount(domain: longint): longint;
+var i, c: longint;
+begin
+  c := 0;
+  for i := 0 to High(SpellDefs) do
+    if SpellDefs[i].domain = domain then inc(c);
+  DomainSpellCount := c;
+end;
+
+function NextInDomain(domain, after: longint): longint;
+var i: longint;
+begin
+  for i := after + 1 to High(SpellDefs) do
+    if SpellDefs[i].domain = domain then begin NextInDomain := i; exit; end;
+  NextInDomain := -1;
 end;
 
 function SpellElement(dtype: byte): byte;

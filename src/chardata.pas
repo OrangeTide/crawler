@@ -52,6 +52,7 @@ type
     hitDie: byte;
     prime: byte;          { ability ordinal 0..5 }
     kit: byte;
+    domain: byte;         { spell domain: spelldb SPD_*, 255 (SPD_NONE) if none }
   end;
 
   TBackgroundDef = record
@@ -72,6 +73,8 @@ function EncodeBackgrounds(const defs: array of TBackgroundDef): TByteArray;
 function LoadCharData(const p: TPak): boolean;
 function ClassIndex(const id: string): longint;
 function SpeciesIndex(const id: string): longint;
+{ The spell domain a class draws from (spelldb SPD_*), or 255 (SPD_NONE). }
+function ClassDomain(idx: longint): byte;
 
 implementation
 
@@ -128,6 +131,7 @@ begin
     PutB(a, n, defs[i].hitDie);
     PutB(a, n, defs[i].prime);
     PutB(a, n, defs[i].kit);
+    PutB(a, n, defs[i].domain);
   end;
   SetLength(a, n);
   EncodeClasses := a;
@@ -204,6 +208,7 @@ begin
     ClassDefs[i].hitDie := blob[pos]; inc(pos);
     ClassDefs[i].prime := blob[pos]; inc(pos);
     ClassDefs[i].kit := blob[pos]; inc(pos);
+    ClassDefs[i].domain := blob[pos]; inc(pos);
   end;
   LoadClasses := true;
 end;
@@ -243,6 +248,12 @@ begin
   for i := 0 to High(SpeciesDefs) do
     if SpeciesDefs[i].id = id then begin SpeciesIndex := i; exit; end;
   SpeciesIndex := -1;
+end;
+
+function ClassDomain(idx: longint): byte;
+begin
+  if (idx < 0) or (idx > High(ClassDefs)) then ClassDomain := 255
+  else ClassDomain := ClassDefs[idx].domain;
 end;
 
 end.

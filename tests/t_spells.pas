@@ -7,7 +7,7 @@ program t_spells;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, monsters, spelldb, testing;
+  sysutils, pak, monsters, spelldb, chardata, testing;
 
 var
   p: TPak;
@@ -69,6 +69,27 @@ begin
   Check(SpellElement(SDT_FORCE) = EL_PHYS, 'force falls back to physical');
   Check(SpellElement(SDT_POISON) = EL_PHYS, 'poison falls back to physical');
   Check(SpellElement(SDT_NONE) = 0, 'an untyped spell has no element');
+
+  { the domain count helper agrees with the per-domain tallies }
+  Check(DomainSpellCount(SPD_CLERIC) = 47, 'the Cleric domain counts 47');
+  Check(DomainSpellCount(SPD_DRUID) = 51, 'the Druid domain counts 51');
+  Check(DomainSpellCount(SPD_MAGE) = 72, 'the Magic-User domain counts 72');
+
+  { NextInDomain walks a domain in order and terminates }
+  i := NextInDomain(SPD_CLERIC, -1);
+  Check(i >= 0, 'the first Cleric spell is reachable');
+  Check(SpellDefs[i].domain = SPD_CLERIC, 'the walk stays in the domain');
+  j := 0;
+  while i >= 0 do begin inc(j); i := NextInDomain(SPD_CLERIC, i); end;
+  Check(j = 47, 'the walk visits every Cleric spell once');
+
+  { the caster classes draw from their domains, non-casters from none }
+  Check(LoadCharData(p), 'the class tables load');
+  Check(ClassDomain(ClassIndex('WIZARD')) = SPD_MAGE, 'the Wizard is a Magic-User');
+  Check(ClassDomain(ClassIndex('FRIAR')) = SPD_CLERIC, 'the Friar is a Cleric');
+  Check(ClassDomain(ClassIndex('FORESTAL')) = SPD_DRUID, 'the Forestal is a Druid');
+  Check(ClassDomain(ClassIndex('FIGHTER')) = SPD_NONE, 'the Fighter casts nothing');
+  Check(ClassDomain(-1) = SPD_NONE, 'an unknown class has no domain');
 
   TestSummary('spells');
   halt(TestExit);

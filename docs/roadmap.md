@@ -139,13 +139,26 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   elements thematically (acid, force and poison fall back to physical). Combat
   is not wired to the catalog yet. Covered by t_spells. Provenance is in
   CREDITS. This is the foundation for the caster-class work below.
-- [gap] Give the caster classes their known spells, spell schools and domains.
-  Today classes carry only a caster track (mage, priest) and a spell-point
-  pool (CharSpellPoints, MF_MAGE), with no actual spell lists. The Magic-User,
-  Priest/Cleric and Druid should each draw from their own domains: arcane
-  schools for the Magic-User, divine domains for the Priest/Cleric, and the
-  natural domain for the Druid. Record each class's accessible schools and the
-  spells known or prepared, and let combat and exploration cast from them.
+- [partial] Give the caster classes their domains, schools, and known spells.
+  Each class now names a spell domain in classes.txt (cleric, druid, magicuser
+  or none), carried on the class record as a byte and read with ClassDomain.
+  The priest-track classes draw from the Cleric list, the mage-track from the
+  Magic-User list, and the Forestal from the Druid list; the rest cast nothing.
+  A SPELLS tab on the meta screen lists a caster's whole domain in level order
+  with the highlighted spell's prose, paged and switched between the party's
+  casters. Still open: arcane schools as sub-domains of the Magic-User list,
+  per-class known-or-prepared subsets rather than the whole domain, and wiring
+  combat and exploration to cast these spells (today combat still casts the
+  seven mechanical built-ins; the catalog is prose, so a castable spell needs
+  thematic mechanics first).
+- [gap] Port the hardcoded party and class data to content files. Several
+  designer-tunable tables still live in Pascal literals, against the
+  data-driven rule: the quick-start / pregen party (its classes, names, and
+  species in titleui.BuildPregenParty), the random name pool (NAME_POOL in
+  gamestate), the char-creation default class, and the seven built-in combat
+  spells (SpellTable in combatcore). Move each into a content/*.txt lump with a
+  parser, the way classes, monsters, and spells already load, so none of this
+  content is baked into branches.
 
 ### D. Reference, meta, and quality-of-life
 
@@ -352,10 +365,11 @@ If the recent AI thread is the live interest, 0.20.0 has the most momentum and
 the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is the
 one unfinished milestone on the books.
 
-A third thread is now live in theme C: the caster classes have a spell-point
-pool but no spells, schools, or domains yet. The axx-rpg spell list is now
-imported into content/spells.txt and loaded by the spelldb unit, so the catalog
-exists. What remains is giving the Magic-User, Priest and Druid their own
-domains over it and letting combat and exploration cast from them. This is
-self-contained, leans on the data-driven content pipeline, and fills an obvious
-gap in the character system. It depends on neither open milestone.
+A third thread is now live in theme C. The axx-rpg spell list is imported into
+content/spells.txt and loaded by the spelldb unit, and each caster class now
+names its spell domain in classes.txt, surfaced on a SPELLS tab that lists a
+caster's whole domain. What remains is narrowing the domains into schools and
+known-or-prepared subsets, and letting combat and exploration actually cast
+these spells (the catalog is prose, so that needs thematic mechanics first).
+This leans on the data-driven content pipeline and depends on neither open
+milestone.

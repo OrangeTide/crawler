@@ -27,7 +27,7 @@ function ParseBackgrounds(const fn: string; out defs: array of TBackgroundDef;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, spelldb;
 
 procedure QTokenize(const line: string; out tok: array of string; out n: longint);
 var
@@ -62,6 +62,15 @@ begin
   else if s = 'specialist' then TrackCode := TRK_SPECIALIST
   else if s = 'mage' then TrackCode := TRK_MAGE
   else TrackCode := -1;
+end;
+
+function DomainCode(const s: string): longint;
+begin
+  if s = 'none' then DomainCode := SPD_NONE
+  else if s = 'cleric' then DomainCode := SPD_CLERIC
+  else if s = 'druid' then DomainCode := SPD_DRUID
+  else if s = 'magicuser' then DomainCode := SPD_MAGE
+  else DomainCode := -1;
 end;
 
 function KitCode(const s: string): longint;
@@ -129,7 +138,7 @@ function ParseClasses(const fn: string; out defs: array of TClassDef;
   out count: longint; out err: string): boolean;
 var
   lines: TStringList;
-  li, n, tc, pc, kc: longint;
+  li, n, tc, pc, kc, dc: longint;
   tok: array[0 .. 15] of string;
   line: string;
   d: TClassDef;
@@ -150,12 +159,18 @@ begin
       if (tc < 0) or (pc < 0) or (kc < 0) then begin
         err := 'line ' + IntToStr(li + 1) + ': bad track/prime/kit'; exit;
       end;
+      { domain is optional: a seventh column, defaulting to none }
+      if n >= 8 then dc := DomainCode(tok[7]) else dc := SPD_NONE;
+      if dc < 0 then begin
+        err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[7]; exit;
+      end;
       d.id := tok[1];
       d.name := tok[2];
       d.track := tc;
       d.hitDie := StrToInt(tok[4]);
       d.prime := pc;
       d.kit := kc;
+      d.domain := dc;
       if count > High(defs) then begin err := 'too many classes'; exit; end;
       defs[count] := d; inc(count);
     end;

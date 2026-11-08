@@ -62,7 +62,7 @@ var
   titleSel: longint;
   kbSel: longint;          { selected row on the key-bindings screen }
   kbCapturing: boolean;    { waiting for the next key to bind it }
-  menuTab: longint;        { the open tab on the meta screen: 0 journal, 1 bestiary }
+  menuTab: longint;        { meta-screen tab: 0 journal, 1 bestiary, 2 spells }
 
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }

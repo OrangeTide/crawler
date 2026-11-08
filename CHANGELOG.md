@@ -10,6 +10,15 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Spell domains for the caster classes. Each class names a spell domain in
+  classes.txt (cleric, druid, magicuser, or none), carried on the class record
+  and read with ClassDomain. The priest-track classes draw from the Cleric
+  list, the mage-track from the Magic-User list, and the Forestal from the
+  Druid list. A SPELLS tab joins the journal and bestiary on the meta screen
+  (J): it lists a caster's whole domain in level order, paged, with the
+  highlighted spell's prose shown in full, and the left and right keys switch
+  between the party's casters. Combat still casts its own built-in spells; this
+  is the readable catalog, not yet the combat wiring.
 - An imported spell catalog. All 170 spells from the AX&X lists (Cleric,
   Druid, and Magic-User across six levels) are compiled from content/spells.txt
   into a SPEL lump and loaded at runtime by a new spelldb unit, with a

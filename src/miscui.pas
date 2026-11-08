@@ -27,7 +27,12 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
-  exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind;
+  exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
+  party, chardata, spelldb;
+
+var
+  spellCaster: longint = 0;   { which party caster the spells tab shows }
+  spellSel: longint = 0;      { highlighted spell within that caster's domain }
 
 function PinColor(kind: byte): TColor;
 begin
@@ -164,23 +169,127 @@ begin
   end;
 end;
 
+{ Fill idx with the roster slots that draw from a spell domain; the count. }
+function CasterList(out idx: array of longint): longint;
+var i, n: longint;
+begin
+  n := 0;
+  for i := 0 to High(Roster) do
+    if (ClassDomain(Roster[i].klass) <> SPD_NONE) and (n <= High(idx)) then begin
+      idx[n] := i; inc(n);
+    end;
+  CasterList := n;
+end;
+
+procedure SpellsBody;
+const
+  ROWS = 10;
+var
+  casters: array[0 .. 15] of longint;
+  nc, cm, dom, total, firstRow, r, si, i, y, spIdx: longint;
+  meta: string;
+begin
+  nc := CasterList(casters);
+  if nc = 0 then begin
+    DrawText(16, 40, 'No one in the party weaves spells.', RGB(150, 150, 130));
+    exit;
+  end;
+  { clamp the selection, writing back so the keys cannot run off the ends }
+  if spellCaster >= nc then spellCaster := nc - 1;
+  if spellCaster < 0 then spellCaster := 0;
+  cm := casters[spellCaster];
+  dom := ClassDomain(Roster[cm].klass);
+  total := DomainSpellCount(dom);
+  if spellSel >= total then spellSel := total - 1;
+  if spellSel < 0 then spellSel := 0;
+
+  { header: the caster, their class, their domain and spell-point pool }
+  DrawText(16, 24, Roster[cm].name + ' the ' + ClassDefs[Roster[cm].klass].name,
+    RGB(230, 210, 140));
+  DrawText(16, 34, DomainName(dom) + ' spells   SP '
+    + IntToStr(CharSpellPoints(Roster[cm])), RGB(150, 170, 190));
+  if nc > 1 then DrawText(210, 24, 'L/R MEMBER', RGB(130, 140, 110));
+  DrawText(210, 34, 'UP/DN SPELL', RGB(130, 140, 110));
+
+  { the domain's spells, one page at a time, in level order }
+  firstRow := (spellSel div ROWS) * ROWS;
+  spIdx := -1;
+  for i := 1 to firstRow do spIdx := NextInDomain(dom, spIdx);
+  y := 50;
+  for r := 0 to ROWS - 1 do begin
+    spIdx := NextInDomain(dom, spIdx);
+    if spIdx < 0 then break;
+    si := firstRow + r;
+    if si = spellSel then begin
+      FillRectBlend(12, y - 1, 184, 10, RGB(44, 44, 66), 230);
+      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name, RGB(244, 230, 150));
+    end else
+      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name, RGB(190, 195, 180));
+    inc(y, 10);
+  end;
+  DrawText(16, 160, IntToStr(spellSel + 1) + ' of ' + IntToStr(total),
+    RGB(120, 130, 110));
+
+  { the highlighted spell in full: its prose is the real behaviour }
+  spIdx := -1;
+  for i := 0 to spellSel do spIdx := NextInDomain(dom, spIdx);
+  if spIdx >= 0 then begin
+    FrameRect(8, 172, FBW - 16, FBH - 172 - 4, RGB(90, 84, 70));
+    DrawText(16, 178, SpellDefs[spIdx].name, RGB(230, 210, 140));
+    meta := 'level ' + IntToStr(SpellDefs[spIdx].level);
+    if SpellDefs[spIdx].save <> SSV_NONE then
+      meta := meta + '    save ' + SaveName(SpellDefs[spIdx].save);
+    if SpellDefs[spIdx].dtype <> SDT_NONE then
+      meta := meta + '    ' + DTypeName(SpellDefs[spIdx].dtype);
+    DrawText(16, 188, meta, RGB(150, 170, 190));
+    DrawWrapped(16, 200, 48, SpellDefs[spIdx].effect, RGB(200, 200, 185));
+  end;
+end;
+
 procedure JournalRender;
 begin
   ClearFB(RGB(10, 10, 16));
-  { the two tabs, the open one lit }
+  { the three tabs, the open one lit }
   if menuTab = 0 then DrawText(12, 10, 'JOURNAL', RGB(230, 210, 130))
   else DrawText(12, 10, 'JOURNAL', RGB(120, 120, 110));
-  if menuTab = 1 then DrawText(120, 10, 'BESTIARY', RGB(230, 210, 130))
-  else DrawText(120, 10, 'BESTIARY', RGB(120, 120, 110));
-  if menuTab = 1 then BestiaryBody else JournalBody;
-  DrawText(12, FBH - 14, 'TAB SWITCH   J/ESC CLOSE', RGB(130, 140, 110));
+  if menuTab = 1 then DrawText(100, 10, 'BESTIARY', RGB(230, 210, 130))
+  else DrawText(100, 10, 'BESTIARY', RGB(120, 120, 110));
+  if menuTab = 2 then DrawText(196, 10, 'SPELLS', RGB(230, 210, 130))
+  else DrawText(196, 10, 'SPELLS', RGB(120, 120, 110));
+  case menuTab of
+    1: BestiaryBody;
+    2: SpellsBody;
+  else
+    JournalBody;
+  end;
+  { the spells tab fills the foot with its detail box, so hide the hint there }
+  if menuTab <> 2 then
+    DrawText(12, FBH - 14, 'TAB SWITCH   J/ESC CLOSE', RGB(130, 140, 110));
 end;
 
 procedure JournalKeyDown(scancode: longint);
 begin
   case scancode of
-    SDL_SCANCODE_TAB, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT:
-      menuTab := 1 - menuTab;
+    SDL_SCANCODE_TAB:
+      menuTab := (menuTab + 1) mod 3;
+    SDL_SCANCODE_LEFT:
+      if menuTab = 2 then begin
+        if spellCaster > 0 then dec(spellCaster);
+        spellSel := 0;
+      end else
+        menuTab := (menuTab + 2) mod 3;
+    SDL_SCANCODE_RIGHT:
+      if menuTab = 2 then begin
+        inc(spellCaster);   { clamped on render }
+        spellSel := 0;
+      end else
+        menuTab := (menuTab + 1) mod 3;
+    SDL_SCANCODE_UP:
+      if (menuTab = 2) and (spellSel > 0) then dec(spellSel);
+    SDL_SCANCODE_DOWN:
+      if menuTab = 2 then inc(spellSel);   { clamped on render }
     SDL_SCANCODE_J, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;

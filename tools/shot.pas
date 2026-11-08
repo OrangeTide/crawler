@@ -12,6 +12,7 @@ program shot;
     shot <out.ppm> title
     shot <out.ppm> combat [DEPTH]
     shot <out.ppm> world
+    shot <out.ppm> menu [TAB]   (0 journal, 1 bestiary, 2 spells)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -99,6 +100,11 @@ begin
   end
   else if scene = 'world' then
     QuickStart
+  else if scene = 'menu' then begin
+    QuickStart;             { a party, so the spells tab has casters }
+    State := gsMenu;
+    if ParamCount >= 3 then menuTab := StrToInt(ParamStr(3)) else menuTab := 0;
+  end
   else if (scene = 'map') or (scene = 'foe') then begin
     if ParamCount < 6 then begin
       writeln(StdErr, 'usage: shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>');
