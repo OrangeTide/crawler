@@ -152,16 +152,18 @@ end;
 
 procedure DrawPartyStrip;
 const
-  FACE = 16;   { the thumbnail square at the left of each slot }
+  FACE = 24;      { the thumbnail square at the left of each slot }
+  STRIP = 28;     { the strip's height, tall enough to hold the face }
 var
-  i, n, slotW, x, tx, barW: longint;
+  i, n, slotW, x, tx, fy, barW: longint;
   c: TColor;
   nm: string;
 begin
   n := Length(Roster);
   if n = 0 then exit;
   slotW := (FBW - 16) div 4;
-  FillRectBlend(8, FBH - 26, FBW - 16, 18, RGB(12, 10, 10), 160);
+  fy := FBH - 8 - STRIP + (STRIP - FACE) div 2;   { the face's top, centred }
+  FillRectBlend(8, FBH - 8 - STRIP, FBW - 16, STRIP, RGB(12, 10, 10), 160);
   for i := 0 to n - 1 do begin
     x := 8 + i * slotW + 2;
     if not Roster[i].alive then c := RGB(150, 70, 70)
@@ -171,16 +173,16 @@ begin
     else if Roster[i].hireling then c := RGB(205, 180, 125)  { a hired blade }
     else c := RGB(200, 205, 180);
     { the portrait thumbnail, then the name and HP bar beside it }
-    DrawPCPortraitScaled(x, FBH - 25, FACE, FACE, Roster[i].portrait);
-    FrameRect(x, FBH - 25, FACE, FACE, RGB(70, 64, 54));
-    tx := x + FACE + 2;
+    DrawPCPortraitScaled(x, fy, FACE, FACE, Roster[i].portrait);
+    FrameRect(x, fy, FACE, FACE, RGB(70, 64, 54));
+    tx := x + FACE + 3;
     nm := Copy(Roster[i].name, 1, 6);
-    DrawText(tx, FBH - 24, nm, c);
-    { HP bar }
-    barW := slotW - 8 - FACE - 2;
-    FillRect(tx, FBH - 14, barW, 3, RGB(50, 20, 20));
+    DrawText(tx, fy + 2, nm, c);
+    { HP bar, aligned to the foot of the face }
+    barW := slotW - 8 - FACE - 3;
+    FillRect(tx, fy + FACE - 5, barW, 3, RGB(50, 20, 20));
     if Roster[i].hpMax > 0 then
-      FillRect(tx, FBH - 14,
+      FillRect(tx, fy + FACE - 5,
         (barW * Roster[i].hp) div Roster[i].hpMax, 3, RGB(70, 170, 70));
   end;
 end;
@@ -201,7 +203,7 @@ begin
   if IsFullMoon then mc := RGB(245, 240, 205) else mc := RGB(130, 140, 160);
   DrawText(10, 19, MoonPhaseName, mc);
   Str(fps, s);
-  DrawText(12, FBH - 34, 'FPS ' + s, RGB(120, 150, 120));
+  DrawText(12, FBH - 46, 'FPS ' + s, RGB(120, 150, 120));
 end;
 
 procedure FullMapLayout(out cell, ox, oy: longint);
