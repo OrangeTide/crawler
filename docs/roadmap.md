@@ -345,6 +345,18 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   shared atlas per tileset, UV-mapped per piece and baked once, so a whole
   modular room costs one texture. This is the PS1-friendly path and the kits
   already ship this way, with a plain and a handpainted trim sheet each.
+- [gap] (0.26.0) Per-biome split palette: give each biome or theme its own
+  palette that spends most of the 256 entries, 128 or 192, on that biome's
+  textures so the quantized trim sheets smooth out and stop sharing one generic
+  cube, while reserving the remaining band, 64 or 128 entries, for the character
+  sprites and the UI so those stay stable across biomes and never reshade when
+  the scene palette swaps. This extends the full-screen `gfx.UsePalette` swap to
+  a partial one: the texture band is per biome, the reserved band is fixed. It
+  needs the inverse lookup split by band (textures quantize into the texture
+  band, sprites and UI index the reserved band) and a per-tileset palette baked
+  alongside the trim sheet. Lands with or just after the trim-sheet item, since
+  it is what makes the per-tileset textures read well. Sprite art may need
+  pre-indexing into the reserved band rather than re-quantizing at load.
 - [gap] (0.26.0) Bake a first modular room: import a hand-placed set of kit
   pieces as instanced meshes in the polygon renderer, drawn over the existing
   grid, to prove the look and the budget before the map format changes. This
