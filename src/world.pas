@@ -17,7 +17,7 @@ unit world;
 interface
 
 uses
-  textures, mapfmt, gfx;
+  textures, mapfmt, gfx, models;
 
 const
   MAXMAP = 64;
@@ -425,9 +425,24 @@ begin
     IsWallTile := true;
 end;
 
+function PropSolidAt(mx, my: longint): boolean;
+{** Whether a solid prop (furniture, not a walk-over decoration) stands on
+  this tile. Passable props, the current barrels and doorways, never match. }
+var
+  i: longint;
+begin
+  PropSolidAt := false;
+  for i := 0 to High(CurMap.props) do
+    if (CurMap.props[i].x = mx) and (CurMap.props[i].y = my)
+      and ModelSolid(CurMap.props[i].name) then begin
+      PropSolidAt := true; exit;
+    end;
+end;
+
 function IsBlocking(mx, my: longint): boolean;
 begin
-  IsBlocking := NpcTileOccupied(mx, my) or IsWallTile(mx, my);
+  IsBlocking := NpcTileOccupied(mx, my) or IsWallTile(mx, my)
+    or PropSolidAt(mx, my);
 end;
 
 function MotionBusy: boolean;

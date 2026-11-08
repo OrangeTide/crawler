@@ -35,6 +35,12 @@ begin
 
   Check(ModelSetFitsVram(['BARREL', 'DOORWAY']), 'the prop set fits VRAM');
 
+  { prop solidity: the current props are walk-over decorations (loot sits under
+    a barrel, a doorway is an arch), so neither blocks movement }
+  Check(not ModelSolid('BARREL'), 'a barrel is a walk-over, not solid');
+  Check(not ModelSolid('DOORWAY'), 'a doorway arch is passable');
+  Check(not ModelSolid('NOSUCH'), 'an unknown prop is passable');
+
   { gating to a subset unloads the rest }
   LoadModelSet(p, ['BARREL']);
   Check(FindModel('BARREL') >= 0, 'a gated set loads its models');

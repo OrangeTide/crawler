@@ -97,8 +97,14 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
 - [partial] (0.19.0) Draw the remaining light-source glows in the polygon path
   that the raycaster already shows.
 - [gap] (0.19.0) Vertex snap and ordered dither for the PSX look.
-- [gap] (0.19.0) Decide and apply prop collision: props do not block movement
-  yet, which may be intentional for decorations but wrong for furniture.
+- [done] Prop collision: props are passable decorations by default, with an
+  opt-in solid flag per model (models.ModelDef.solid, checked by
+  world.PropSolidAt in IsBlocking). The current props stay passable, which the
+  maps rely on: a barrel sits on a tile that also holds loot, so blocking it
+  would strand the loot, and a doorway is an arch to walk through. Furniture the
+  theme G kit brings (coffins, crates) sets solid to block. Route planning does
+  not yet read solid props, the same blind spot as NPCs and locked doors in
+  theme B.
 - [gap] (0.19.0) Reach parity with the raycaster, then make the polygon renderer
   the default and keep the raycaster as a compile-time fallback. This is the
   gate that unblocks theme G.

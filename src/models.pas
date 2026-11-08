@@ -48,6 +48,11 @@ function LoadModelSet(const p: TPak; const names: array of string): boolean;
 { Index of a model by name, or -1. }
 function FindModel(const name: string): longint;
 
+{ Whether a prop of this model blocks movement onto its tile. Decorations and
+  walk-over props (a barrel with loot under it, a doorway arch) are passable;
+  furniture marks itself solid. Unknown names are passable. }
+function ModelSolid(const name: string): boolean;
+
 { The VRAM cost of one model by name, or 0 if it is not loaded. }
 function ModelVramCost(const name: string): longint;
 
@@ -68,13 +73,16 @@ type
   TModelDef = record
     name: string[12];
     targetHeight: double;   { how tall the model should stand, in tiles }
+    solid: boolean;         { blocks movement onto its tile }
   end;
 
 const
-  { Prop meshes only. Monsters and NPCs are billboard sprites now. }
+  { Prop meshes only. Monsters and NPCs are billboard sprites now. The barrel
+    is a walk-over (loot sits under it) and the doorway is an arch to pass
+    through, so both stay passable; furniture added later sets solid. }
   ModelDefs: array[0 .. 1] of TModelDef = (
-    (name: 'BARREL';  targetHeight: 0.7),
-    (name: 'DOORWAY'; targetHeight: 1.7)
+    (name: 'BARREL';  targetHeight: 0.7; solid: false),
+    (name: 'DOORWAY'; targetHeight: 1.7; solid: false)
   );
 
 { The model's height in its own units, to derive a scale. }
@@ -175,6 +183,16 @@ begin
   for i := 0 to High(ModelReg) do
     if ModelReg[i].loaded and (ModelReg[i].name = name) then begin
       FindModel := i; exit;
+    end;
+end;
+
+function ModelSolid(const name: string): boolean;
+var i: longint;
+begin
+  ModelSolid := false;
+  for i := 0 to High(ModelDefs) do
+    if ModelDefs[i].name = name then begin
+      ModelSolid := ModelDefs[i].solid; exit;
     end;
 end;
 
