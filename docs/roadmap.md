@@ -130,13 +130,18 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   shelter behind one big one (up to eight tiny behind a single large). This
   gates the combat MOVE between ranks and the initial encounter layout.
 
-- [gap] A skills system. Design task first: what a skill is (an active or
-  passive non-spell ability a character gains and uses), the available list,
-  how skills are gained (by class, level, or training) and spent in and out of
-  combat, and how they sit beside spells in the data and the save. Loosely map
-  the available "250 WARRIOR ICONS" art (~/Documents/sprites-free) to the list
-  so martial classes get iconography the way casters get spell icons. Needs its
-  own plan before any code; the icon UI work is tracked under section D.
+- [done] A skills system, the martial counterpart to spells. A skill is a
+  non-spell ability trained with proficiency slots (2e NWP style): a character
+  banks slots at creation and on level-up, generous for the thief kit, and
+  spends them on a learn-a-skill screen to learn a skill or rank one up.
+  Skills split by arena. Exploration skills roll a d20 check in the world (pick
+  locks, find traps, move silently, first aid); combat maneuvers resolve in a
+  fight through a SKILL command and cost no resource, the strongest limited to
+  a few uses per encounter (power attack, disarm, shield bash, aimed shot,
+  rally). Data-driven in content/skills.txt, baked to a SKIL lump by the
+  skilltext parser and loaded by the skilldb unit; the rules live in skillbook.
+  Skills and unspent slots are saved per character (save version 14). The
+  "250 WARRIOR ICONS" art is mapped per skill, tracked under section D below.
 
 - [done] Imported the axx-rpg spell lists. All 170 spells from
   ~/Vibe/axx-rpg/src/sup/spells.csv (Cleric, Druid, Magic-User across six
@@ -227,14 +232,15 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   and for a caster a spell browser that lists its known spells with icons. The
   combat party panel now shows each member's face beside its name and bars, and
   P on the character sheet repicks a member's face in play.
-- [partial] Spell and skill icons, and the UI that uses them. Done: every spell
-  in the catalog names a per-spell icon from the Batareya "MAGE ICONS BIG PACK"
-  (an icon line in spells.txt, baked to SI<NN> lumps), and the icons now draw
-  everywhere a caster meets its spells: the character sheet's spell browser, the
-  SPELLS tab, the learn-a-spell screen, and the combat cast menu. Still open:
-  the skill side, the "250 WARRIOR ICONS" pack per skill, which waits on the
-  skills system below. The mage-pack license is still to be confirmed against
-  its itch.io page.
+- [done] Spell and skill icons, and the UI that uses them. Every spell in the
+  catalog names a per-spell icon from the Batareya "MAGE ICONS BIG PACK" (an
+  icon line in spells.txt, baked to SI<NN> lumps), drawn everywhere a caster
+  meets its spells: the character sheet's spell browser, the SPELLS tab, the
+  learn-a-spell screen, and the combat cast menu. Each skill likewise names an
+  icon from the Batareya "250 WARRIOR ICONS" pack (baked to WI<N> lumps),
+  drawn on the character sheet's skills list, the learn-a-skill screen, and the
+  combat SKILL menu. Both pack licenses are still to be confirmed against their
+  itch.io pages before release.
 
 ### E. Shipping targets (design sections 23 and 24)
 

@@ -10,6 +10,21 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A skills system, the martial counterpart to spells. Characters train
+  non-spell abilities with proficiency slots, banked at creation and on
+  level-up and generous for the thief kit, and spent on a learn-a-skill screen
+  reached with T on the character sheet. Spending a slot on a known skill ranks
+  it up. Exploration skills work in the world: a party lockpick opens a locked
+  door, a trapfinder disarms a trap before it springs, a quiet party slips past
+  a wandering foe, and First Aid mends a wounded member between rests. Combat
+  maneuvers work in a fight, through a new SKILL command: Power Attack trades
+  accuracy for a heavier blow, Disarm knocks a foe off balance, Shield Bash can
+  stun, Aimed Shot steadies a ranged attack, and Rally lifts the party's fear.
+  Maneuvers cost no resource, faithful to AD&D: the strongest are limited to a
+  few uses per fight, reset each encounter. Skills are data-driven in
+  skills.txt, baked to a SKIL lump, with per-skill icons from the "250 WARRIOR
+  ICONS" pack baked to WI<N> lumps. The save format carries each character's
+  trained skills and unspent slots (version 14).
 - Casting outside combat. From the SPELLS tab a caster can now work a spell's
   out-of-combat effect while exploring: heal and raise a hurt member, lift
   poison, disease and curses, refuel the party light, read the magic on carried

@@ -98,6 +98,17 @@ spells and bows strike over them.
   barred from its opposition schools but for Lesser Divination, knowing one
   extra spell, and casting its own school at a steeper save. The Wizard and the
   other mage classes stay generalists with the whole list.
+- A skills system, the martial side of spells. A character trains non-spell
+  abilities with proficiency slots, banked at creation and on level-up and
+  generous for the thief kit, spent on a learn-a-skill screen (press T on the
+  character sheet) to learn a skill or rank it up. Exploration skills roll a
+  d20 check in the world: a party lockpick opens a locked door, a trapfinder
+  disarms a trap before it springs, a quiet party slips past a wandering foe,
+  and First Aid mends a member between rests. Combat maneuvers resolve in a
+  fight through a SKILL command and cost no resource: Power Attack, Disarm,
+  Shield Bash, Aimed Shot, and Rally, with the strongest limited to a few uses
+  per encounter. Each skill carries a pixel icon, shown on the sheet, the learn
+  screen, and the combat menu. Trained skills and unspent slots are saved.
 - Save and load of the whole game, including the party, gold, flags, journal,
   position and the explored fog of every visited map.
 - Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The
@@ -206,6 +217,7 @@ The platform layer and core:
 | `src/pic.pas` | Custom image codec (PackBits, direct or indexed colour). |
 | `src/pcportrait.pas` | Player-character portrait pool: cache and keyed blits. |
 | `src/spellicon.pas` | Spell icon pool: cache and scaled keyed blits. |
+| `src/skillicon.pas` | Skill icon pool: cache and scaled keyed blits. |
 | `src/game.pas` | Top-level state machine: routes input, update and render. |
 | `src/gamestate.pas` | Shared cross-state globals for the UI units. |
 
@@ -258,6 +270,8 @@ Gameplay systems and content tables (each `*text` unit is the tool-side parser):
 | `src/dialog.pas` / `src/dialogtext.pas` | Conversation data, decoder and runtime. |
 | `src/spelldb.pas` / `src/spelltext.pas` | Spell catalog, decoder and table codec. |
 | `src/spellbook.pas` | Known spells: the per-caster learned list and its rules. |
+| `src/skilldb.pas` / `src/skilltext.pas` | Skill catalog, decoder and table codec. |
+| `src/skillbook.pas` | Trained skills: proficiency slots, ranks and checks. |
 | `src/flags.pas` | Story flags and the quest journal. |
 | `src/codex.pas` | Bestiary and item identification knowledge. |
 | `src/save.pas` | Save and load of the whole game to a file. |

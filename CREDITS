@@ -75,6 +75,17 @@ License: Batareya's asset packs are offered for free personal and commercial
 use; confirm the exact terms for this pack against its itch.io page before a
 release. See content/icons/LICENSE.txt for the spell-to-icon mapping.
 
+Skill icons
+-----------
+
+Source: "250 WARRIOR ICONS" by Batareya (batareya.itch.io). The art is 64x64
+pixel icons distributed at an upscale. The icons under content/skillicons are
+the subset that content/skills.txt names, scaled back to their native 64x64.
+License: Batareya's asset packs are offered for free personal and commercial
+use; confirm the exact terms for this pack against its itch.io page before a
+release. The skill-to-icon mapping is the icon line on each entry in
+content/skills.txt.
+
 Spell catalog
 -------------
 
