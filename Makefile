@@ -42,6 +42,11 @@ SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 PORTRAITNAMES = port_elder port_barkeep port_apothecary port_ranger \
                 port_hunter port_dockhand
 PORTRAITSRC = $(foreach n,$(PORTRAITNAMES),content/portraits/$(n).ppm)
+# Player-character portrait pool: pc00..pcNN in content/portraits, baked the
+# same way to PORT_PC<NN> lumps. A new character cycles through these at
+# creation, and the chosen face shows in the party strip.
+PCPORTRAITIDS = $(shell seq -w 0 23)
+PCPORTRAITSRC = $(foreach i,$(PCPORTRAITIDS),content/portraits/pc$(i).ppm)
 # Title background: a 320x240 scene (from Jon's photo) and its own 256-colour
 # palette, baked to TITLE_BG and TITLE_PAL PIC lumps via the sprite path. The
 # title swaps this palette in, PlayStation 8-bit-CLUT style, for a smooth scene.
@@ -52,11 +57,12 @@ MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:comba
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SPELLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) \
-            $(SPRITESRC) $(PORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
+            $(SPRITESRC) $(PORTRAITSRC) $(PCPORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
+PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)
 TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm \
              sprite TITLE_PAL content/title/title_pal.ppm
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
@@ -100,7 +106,7 @@ build/tools/shot: tools/shot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(TITLEBGARG) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(TITLEBGARG) $(MUSICARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
