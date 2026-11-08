@@ -162,6 +162,10 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   be greater than or equal to the back rank's, which lets several small
   creatures shelter behind one big one (up to eight tiny behind a single large).
   This gates the combat MOVE between ranks and the initial encounter layout.
+  Combat does not enforce this yet: ActMove swaps a member's rank freely and the
+  encounter builder caps the front line at three bodies without weighing size,
+  so the back-rank cover rule the user specified is unimplemented. Needs a size
+  field on the monster and character records to drive the summed-bulk check.
 - [gap] (0.30.0) Port the remaining hardcoded party and class data to content
   files. Against the data-driven rule, a few designer-tunable tables still live
   in Pascal literals: the quick-start / pregen party (its classes, names, and
@@ -216,6 +220,15 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   from another project. The DOS original's hard limit was a tiny palette; our
   content is mostly 32 colours or fewer, so that constraint is not a real
   blocker.
+- [gap] (0.19.0) Remove the AI-generated exit and prop art. The six exit
+  billboards (content/sprites/exit_door, exit_up, exit_down, exit_ladder,
+  exit_cave, exit_shaft) and the doorway and barrel prop models
+  (content/models/doorway.*, barrel.*) were image-generated and look poor; none
+  carry a CREDITS entry, unlike the CC0 source art, which always does. Replace
+  them with CC0 source art (the SigilsVault kit in theme G ships doors and
+  arches, and the public-domain Dungeon Crawl set has stairs, ladders and cave
+  features) or fold the exits into the theme G modular-tile geometry. Generate
+  no replacement art; see the cross-cutting constraint below.
 - [done] Swapped the six NPC portraits to the Batareya "500 Fantasy Pixel Art
   Portraits" pack (free for personal and commercial use, no redistribution
   limit), scaled to the 64x64 dialog format. The previous licensed portrait art
@@ -492,6 +505,10 @@ These hold across every milestone and are the reason for the choices above.
   keeps this: generated sector maps rebuild identically from a seed.
 - No FPU on the targets. New hot-path math is written so it can move to the
   16.16 fixed-point layer.
+- No AI-generated art. Art comes from CC0 or licensed source packs, or from
+  procedural generation in code (the wall, floor and door textures are
+  procedural). Image generation is not used: it does not hold up at this scale,
+  and the earlier generated exit and prop art is being removed (theme D).
 - Turn-based grid movement and sprite billboards are kept through the map
   rework. The sector geometry is a presentation layer over a logical grid, not a
   change to how the party moves or how beings are drawn.
