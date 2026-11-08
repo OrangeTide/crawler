@@ -1,6 +1,9 @@
 # Spell catalog, imported from the axx-rpg lists. One block per
 # spell. See spelltext.pas for the format:
 #   spell ID "Name" DOMAIN LEVEL SAVE DTYPE [SCHOOL]
+#     icon N                       (optional spell-icon number)
+#     cast COST MODE EFFECT XdY [inflict STATUS]   (optional combat line)
+#     field KIND [arg]             (optional out-of-combat effect)
 #     "the effect prose, which is the real behaviour"
 #     comp "material components"   (optional)
 # DOMAIN cleric|druid|magicuser  SAVE none|body|dodge|will
@@ -9,6 +12,12 @@
 #   abjuration|conjuration|divination|enchantment|evocation|
 #   illusion|necromancy|transmutation
 #   A specialist mage is barred from its school's opposition schools.
+# FIELD out-of-combat effect, cast from the SPELLS tab while exploring:
+#   curepoison|curedisease|removecurse  clear a condition on one member
+#   light N      refuel the party light by N torch-loads (party)
+#   identify     name the party's carried unknown item kinds (party)
+#   reveal N     lift the fog within N tiles of the party (party)
+#   An ally heal cast line is itself a field heal, so needs no field line.
 
 spell C_BLESS "Bless" cleric 1 none none
   icon 34
@@ -27,14 +36,17 @@ spell C_CURELIGHTWOUND "Cure Light Wounds" cleric 1 none none
 
 spell C_DETECTEVIL "Detect Evil" cleric 1 none none
   icon 106
+  field reveal 6
   "Sense Chaotic creatures and cursed things within 60 ft for 6 turns."
 
 spell C_DETECTMAGIC "Detect Magic" cleric 1 none none
   icon 110
+  field identify
   "Sense magic within 30 ft for 6 turns."
 
 spell C_LIGHT "Light" cleric 1 none none
   icon 32
+  field light 1
   "30 ft of light for 6 turns. Reverses to Darkness."
 
 spell C_PROTECTIONFROM "Protection from Evil" cleric 1 none none
@@ -81,6 +93,7 @@ spell C_SILENCE "Silence" cleric 2 none none
 
 spell C_SLOWPOISON "Slow Poison" cleric 2 none none
   icon 94
+  field curepoison
   "Halts a Poisoned condition for an hour, buying time for a cure."
 
 spell C_SPEAKWITHANIMA "Speak with Animals" cleric 2 none none
@@ -100,11 +113,13 @@ spell C_ANIMATEDEAD "Animate Dead" cleric 3 none none
 
 spell C_CONTINUALLIGHT "Continual Light" cleric 3 body none
   icon 36
+  field light 4
   "A permanent bright light, or blind a creature's eyes until dispelled (Body save)."
   comp "a firefly or a pinch of phosphorus"
 
 spell C_CUREDISEASE "Cure Disease" cleric 3 none none
   icon 66
+  field curedisease
   "Ends the Diseased condition and lifts a mummy's rot or a wasting sickness. Reverses to Cause Disease: touch, Body save or struck with a wasting disease, Diseased and failing on a death Count of CON modifier + 10 days; when it fills, death as Poisoned. Only Cure Disease stays it."
 
 spell C_CURESERIOUSWOU "Cure Serious Wounds" cleric 3 none none
@@ -127,6 +142,7 @@ spell C_PRAYER "Prayer" cleric 3 none none
 
 spell C_REMOVECURSE "Remove Curse" cleric 3 none none
   icon 244
+  field removecurse
   "Ends one curse, Charmed, or a cursed item's grip. Reverses to Bestow Curse."
 
 spell M_BURNINGHANDS "Burning Hands" magicuser 1 dodge fire evocation
@@ -145,6 +161,7 @@ spell M_COMPREHENDLANG "Comprehend Languages" magicuser 1 none none divination
 
 spell M_DETECTMAGIC "Detect Magic" magicuser 1 none none divination
   icon 110
+  field identify
   "Sense magic within 30 ft for 6 turns."
 
 spell M_ENLARGE "Enlarge" magicuser 1 body none transmutation
@@ -166,6 +183,7 @@ spell M_HOLDPORTAL "Hold Portal" magicuser 1 none none transmutation
 
 spell M_LIGHT "Light" magicuser 1 none none transmutation
   icon 32
+  field light 1
   "30 ft of light for 6 turns."
 
 spell M_MAGICMISSILE "Magic Missile" magicuser 1 none force evocation
@@ -202,6 +220,7 @@ spell M_UNSEENSERVANT "Unseen Servant" magicuser 1 none none conjuration
 
 spell M_CONTINUALLIGHT "Continual Light" magicuser 2 body none transmutation
   icon 36
+  field light 4
   "A permanent bright light, or blind a creature (Body save)."
   comp "a firefly or a pinch of phosphorus"
 
@@ -211,6 +230,7 @@ spell M_DARKNESS15FT "Darkness 15 ft" magicuser 2 none none transmutation
 
 spell M_DETECTINVISIBI "Detect Invisibility" magicuser 2 none none divination
   icon 77
+  field reveal 6
   "See invisible, hidden, and phased things within 30 ft for 6 turns."
 
 spell M_ESP "ESP" magicuser 2 will none divination
@@ -407,6 +427,7 @@ spell D_ANIMALFRIENDSH "Animal Friendship" druid 1 none none
 
 spell D_DETECTSNARESAN "Detect Snares and Pits" druid 1 none none
   icon 113
+  field reveal 6
   "Sense deadfalls, pits, and crude or natural traps, and unsafe footing, within 40 ft for 6 turns."
 
 spell D_INVISIBILITYTO "Invisibility to Animals" druid 1 none none
@@ -455,10 +476,12 @@ spell D_TRIP "Trip" druid 2 dodge none
 
 spell D_CUREDISEASE "Cure Disease" druid 3 none none
   icon 66
+  field curedisease
   "A touch ends one disease or rot. Reverses to Cause Disease, the same wasting death as the Cleric spell."
 
 spell D_NEUTRALIZEPOIS "Neutralize Poison" druid 3 none none
   icon 230
+  field curepoison
   "Draw the venom from one creature or dose: ends Poisoned, or renders a poison inert. Can instead foul good food."
 
 spell D_PYROTECHNICS "Pyrotechnics" druid 3 dodge none
@@ -495,6 +518,7 @@ spell C_MAGICSTONE "Magic Stone" cleric 1 none none
 
 spell C_DETECTPOISON "Detect Poison" cleric 1 none none
   icon 90
+  field reveal 6
   "Tell whether a dish, draught, or blade is poisoned, and how badly, for 6 turns."
 
 spell C_AUGURY "Augury" cleric 2 none none
@@ -557,6 +581,7 @@ spell M_MONSTERSUMMONI "Monster Summoning I" magicuser 3 none none conjuration
 
 spell D_DETECTMAGIC "Detect Magic" druid 1 none none
   icon 110
+  field identify
   "Sense magic within 30 ft for 6 turns."
 
 spell D_FLAMEBLADE "Flame Blade" druid 2 none fire
@@ -656,6 +681,7 @@ spell C_CURECRITICALWO "Cure Critical Wounds" cleric 4 none none
 
 spell C_NEUTRALIZEPOIS "Neutralize Poison" cleric 4 none none
   icon 230
+  field curepoison
   "Draw the venom from one creature or dose: ends Poisoned, or renders a poison inert. A creature newly slain by poison may yet be saved. Can instead foul good food."
 
 spell C_CIRCLEOFPROTEC "Circle of Protection" cleric 4 none none
