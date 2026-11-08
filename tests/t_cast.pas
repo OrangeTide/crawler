@@ -73,6 +73,9 @@ begin
   Roster[0].level := 5; ResetSpellList;
   Check(MenuIndexOf('M_FIREBALL') >= 0, 'at level 5 Fireball (L3) opens up');
   Check(SpellInfo(MenuIndexOf('M_FIREBALL')).element = EL_FIRE, 'Fireball burns');
+  Check(MenuIndexOf('M_DISINTEGRATE') < 0, 'Disintegrate (L6) is still far off');
+  Roster[0].level := 11; ResetSpellList;
+  Check(MenuIndexOf('M_DISINTEGRATE') >= 0, 'at high level Disintegrate (L6) opens up');
 
   { spell points gate the cast }
   mm := MenuIndexOf('M_MAGICMISSILE');

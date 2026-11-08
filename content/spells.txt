@@ -435,9 +435,11 @@ spell D_FLAMEBLADE "Flame Blade" druid 2 none fire
 
 spell M_ICESTORM "Ice Storm" magicuser 4 dodge cold
   "Hail and sleet batter a 20 ft space for 6d6 cold, Dodge for half, and leave the ground slick and the footing treacherous for one fight."
+  cast 4 rank damage 4d6
 
 spell M_WALLOFFIRE "Wall of Fire" magicuser 4 none fire
   "A sheet of flame up to 40 ft long, or a ring, stands for one fight. Crossing it is 2d6 fire; undead and the cold-born take double. One face burns, your choice."
+  cast 4 rank damage 2d6
 
 spell M_DIMENSIONDOOR "Dimension Door" magicuser 4 none none
   "Step at once to any spot you can see or clearly picture within 400 ft. You arrive ready to act."
@@ -447,9 +449,11 @@ spell M_POLYMORPH "Polymorph" magicuser 4 body none
 
 spell M_CONFUSION "Confusion" magicuser 4 will none
   "Up to 1d4 creatures plus one per three Levels in a Near space act at random each round, a Will save each round to shake it. One fight."
+  cast 4 rank damage 0d0 inflict stun
 
 spell M_FEAR "Fear" magicuser 4 will none
   "All in a 30 ft cone flee as fast as they can for 1d4 rounds, Will save negates. Some drop what they hold."
+  cast 4 rank damage 0d0 inflict fear
 
 spell M_STONESKIN "Stoneskin" magicuser 4 none none
   "Your skin turns stone-hard. Shrug off the next 1d4 plus one per two Levels weapon blows before the ward is spent."
@@ -459,16 +463,19 @@ spell M_CHARMMONSTER "Charm Monster" magicuser 4 will none
 
 spell M_CONEOFCOLD "Cone of Cold" magicuser 5 dodge cold
   "A blast of killing cold in a 60 ft cone, 8d6, Dodge for half."
+  cast 5 rank damage 5d6
   comp "a crystal or glass cone"
 
 spell M_CLOUDKILL "Cloudkill" magicuser 5 body poison
   "A roiling green fog drifts away from you for one fight. Creatures of 4 HD or less within die; stronger ones take 1d10 a round and must flee, Body save for half and to move freely. It sinks and fills low ground."
+  cast 5 rank damage 2d6 inflict fear
 
 spell M_TELEPORT "Teleport" magicuser 5 none none
   "You and up to one other per two Levels vanish and arrive at a place you know well, a mile off or a hundred. A place known only in passing risks arriving off the mark, high, or low, at the GM's call."
 
 spell M_HOLDMONSTER "Hold Monster" magicuser 5 body none
   "Up to 1d4 creatures of any kind freeze in place, Body save negates; the held are Paralyzed 1d4 rounds."
+  cast 5 rank damage 0d0 inflict paral
 
 spell M_WALLOFSTONE "Wall of Stone" magicuser 5 none none
   "Raise a wall of solid stone, a span across and up to a foot thick per two Levels. It must rest on something able to bear it. Permanent until broken."
@@ -478,13 +485,16 @@ spell M_PASSWALL "Passwall" magicuser 5 none none
 
 spell M_DISINTEGRATE "Disintegrate" magicuser 6 body none
   "A thin green ray reduces a creature or a wagon-sized span of matter to fine dust, Body save negates. Wards turn it, and it fails against a wall of force."
+  cast 6 enemy damage 8d6
   comp "a lodestone and a pinch of dust"
 
 spell M_CHAINLIGHTNING "Chain Lightning" magicuser 6 dodge lightning
   "A bolt strikes one target for 10d6, then leaps to the next nearest and the next, one arc per Level, each at half the last. Dodge for half."
+  cast 6 rank damage 6d6
 
 spell M_FLESHTOSTONE "Flesh to Stone" magicuser 6 body none
   "A creature turns to lifeless stone, Body save negates. Petrified is permanent short of the reverse or a like cure. Reverses to Stone to Flesh, which frees one so turned."
+  cast 6 enemy damage 0d0 inflict paral
   comp "lime, water, and earth"
 
 spell M_GLOBEOFINVULNE "Globe of Invulnerability" magicuser 6 none none
@@ -492,12 +502,14 @@ spell M_GLOBEOFINVULNE "Globe of Invulnerability" magicuser 6 none none
 
 spell C_CURECRITICALWO "Cure Critical Wounds" cleric 4 none none
   "Restores 4d8 HP and ends one lingering hurt, as blindness or a crippled limb the GM allows. Reverses to Cause Critical Wounds."
+  cast 4 ally heal 4d8
 
 spell C_NEUTRALIZEPOIS "Neutralize Poison" cleric 4 none none
   "Draw the venom from one creature or dose: ends Poisoned, or renders a poison inert. A creature newly slain by poison may yet be saved. Can instead foul good food."
 
 spell C_CIRCLEOFPROTEC "Circle of Protection" cleric 4 none none
   "A 10 ft ward moves with you for one fight: those inside gain +2 AC and saves against Chaotic creatures, which cannot cross the circle to strike by hand."
+  cast 4 party bless 0d0
   comp "a line of powdered silver"
 
 spell C_FREEACTION "Free Action" cleric 4 none none
@@ -511,6 +523,7 @@ spell C_RAISEDEAD "Raise Dead" cleric 5 none none
 
 spell C_FLAMESTRIKE "Flame Strike" cleric 5 dodge fire
   "A column of divine fire falls on a Near space for 8d6, Dodge for half."
+  cast 5 rank damage 4d6
 
 spell C_TRUESEEING "True Seeing" cleric 5 none none
   "For 6 turns a touched creature sees all things as they are: through illusion, invisibility, disguise, and shapeshifting, and the true bent of what it beholds."
@@ -518,12 +531,15 @@ spell C_TRUESEEING "True Seeing" cleric 5 none none
 
 spell C_INSECTPLAGUE "Insect Plague" cleric 5 none none
   "A vast droning swarm fills a wide space for one fight and longer. Those within take 1 a round, fight at -2, and any under 2 HD flee. It beds down the ground and breaks a foe's morale."
+  cast 5 rank damage 1d4 inflict fear
 
 spell C_HEAL "Heal" cleric 6 none none
   "A touch restores a creature to full HP and ends blindness, disease, and feeblemind. Reverses to Harm: touch, Body save or brought to a single HP and left Diseased."
+  cast 6 ally heal 6d8
 
 spell C_BLADEBARRIER "Blade Barrier" cleric 6 dodge none
   "A wall or ring of whirling blades stands for one fight. Crossing it is 7d6, Dodge for half; few will brave it."
+  cast 6 rank damage 5d6
 
 spell C_WORDOFRECALL "Word of Recall" cleric 6 none none
   "Speak a word and return at once to a sanctuary set beforehand, with up to one other per three Levels in hand."
@@ -551,15 +567,18 @@ spell D_CONTROLWINDS "Control Winds" druid 5 none none
 
 spell D_WALLOFTHORNS "Wall of Thorns" druid 5 none none
   "A thicket of barbed briar springs up, a span across and as deep. Forcing it is slow and costs 1d6 a round; it stands one fight and longer, until hacked or burned clear."
+  cast 5 rank damage 1d6 inflict slow
 
 spell D_ANIMALGROWTH "Animal Growth" druid 5 none none
   "Up to one beast per two Levels swells to twice its size for one fight: double damage, a step of toughness, and the weight to match. Reverses to shrink them."
 
 spell D_TRANSMUTEROCKT "Transmute Rock to Mud" druid 6 none none
   "A wide span of rock or earth turns to deep, sucking mud, or mud to rock. Those caught sink and cannot move off, as from webs, and a set wall or floor may give way. Reverses to the other."
+  cast 6 rank damage 0d0 inflict paral
 
 spell D_FIRESEEDS "Fire Seeds" druid 6 dodge fire
   "Up to four acorns become hurled firebombs for 2d8 each, or holly berries that burst into flame at your word for 1d8, Dodge for half. They hold their charge for a Day."
+  cast 6 rank damage 2d8
 
 spell D_SUMMONELEMENTA "Summon Elemental" druid 6 none none
   "Call a creature of earth, fire, water, or air of up to 8 HD to serve for one fight. Hold it with your full attention; lose that and it may turn on all nearby."

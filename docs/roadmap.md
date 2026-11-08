@@ -151,12 +151,11 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   resolved with the ability from its class prime, and the old seven-spell
   built-in table is gone. A spell becomes castable by carrying an optional
   thematic combat line in spells.txt (cost, target mode, effect, dice, element
-  from its damage type). The combat-shaped spells at levels 1 to 3 across all
-  three domains are statted (about thirty), the in-combat menu is level-ordered
-  and scrolls when the list outgrows its box. Still open: statting the level 4
-  to 6 combat spells, arcane schools as sub-domains of the Magic-User list,
-  per-class known-or-prepared subsets rather than the whole domain, and casting
-  from exploration.
+  from its damage type). The combat-shaped spells across all six levels in all
+  three domains are statted (about fifty), the in-combat menu is level-ordered
+  and scrolls when the list outgrows its box. Still open: arcane schools as
+  sub-domains of the Magic-User list, per-class known-or-prepared subsets
+  rather than the whole domain, and casting from exploration.
 - [gap] Port the remaining hardcoded party and class data to content files.
   Against the data-driven rule, a few designer-tunable tables still live in
   Pascal literals: the quick-start / pregen party (its classes, names, and
