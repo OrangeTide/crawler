@@ -505,10 +505,12 @@ These hold across every milestone and are the reason for the choices above.
   keeps this: generated sector maps rebuild identically from a seed.
 - No FPU on the targets. New hot-path math is written so it can move to the
   16.16 fixed-point layer.
-- No AI-generated art. Art comes from CC0 or licensed source packs, or from
-  procedural generation in code (the wall, floor and door textures are
-  procedural). Image generation is not used: it does not hold up at this scale,
-  and the earlier generated exit and prop art is being removed (theme D).
+- Generated art only as a tracked placeholder. Final art comes from CC0 or
+  licensed source packs, or from procedural generation in code (the wall, floor
+  and door textures are procedural by design). Image-generated art may stand in
+  temporarily to fill a slot, but every such placeholder must carry a roadmap
+  entry scheduling its replacement with source art. The earlier generated exit
+  and prop art is tracked for replacement under theme D.
 - Turn-based grid movement and sprite billboards are kept through the map
   rework. The sector geometry is a presentation layer over a logical grid, not a
   change to how the party moves or how beings are drawn.
