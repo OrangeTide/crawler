@@ -96,8 +96,11 @@ whose development history is summarized in docs/roadmap.md.
   and resolved with the ability modifier from its class prime. A catalog spell
   becomes castable by carrying an optional thematic combat line in spells.txt
   (spell-point cost, target mode, effect, dice, with the element taken from its
-  damage type); a signature few per domain are statted so far, and the old
-  seven hardcoded combat spells are retired. Foe spellcasting is unchanged.
+  damage type); the combat-shaped spells at levels 1 to 3 across all three
+  domains are statted (about thirty), and the old seven hardcoded combat spells
+  are retired. The in-combat spell menu is ordered by level and scrolls a
+  window when a caster knows more spells than fit. Foe spellcasting is
+  unchanged.
 - Renamed the game to "Cities of the Sunless Depths" (was "Shadows of the
   Deep"). The title logo and the window caption carry the new name.
 - Generated dungeon levels now choose stairs or a ladder for each vertical

@@ -386,7 +386,7 @@ begin
 end;
 
 procedure BuildList(actor: longint);
-var dom, i: longint;
+var dom, i, j, tmp: longint;
 begin
   gListActor := actor;
   SetLength(gList, 0);
@@ -399,6 +399,14 @@ begin
       SetLength(gList, Length(gList) + 1);
       gList[High(gList)] := i;
     end;
+  { order the menu by spell level; the catalog keeps some spells out of order }
+  for i := 1 to High(gList) do begin
+    tmp := gList[i]; j := i - 1;
+    while (j >= 0) and (SpellDefs[gList[j]].level > SpellDefs[tmp].level) do begin
+      gList[j + 1] := gList[j]; dec(j);
+    end;
+    gList[j + 1] := tmp;
+  end;
 end;
 
 procedure EnsureList(actor: longint);

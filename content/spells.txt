@@ -12,6 +12,7 @@ spell C_BLESS "Bless" cleric 1 none none
 
 spell C_COMMAND "Command" cleric 1 will none
   "One word a target must obey for a round: halt, flee, drop, kneel. Will save resists."
+  cast 1 enemy damage 0d0 inflict fear
 
 spell C_CURELIGHTWOUND "Cure Light Wounds" cleric 1 none none
   "Restores 1d8 HP and ends Poisoned. Reverses to Cause, 1d8 on a touch."
@@ -47,6 +48,7 @@ spell C_FINDTRAPS "Find Traps" cleric 2 none none
 
 spell C_HOLDPERSON "Hold Person" cleric 2 body none
   "Up to 3 people, Body save or Paralyzed 1d4 rounds."
+  cast 2 rank damage 0d0 inflict paral
 
 spell C_KNOWALIGNMENT "Know Alignment" cleric 2 none none
   "Read one creature's alignment."
@@ -81,6 +83,7 @@ spell C_CUREDISEASE "Cure Disease" cleric 3 none none
 
 spell C_CURESERIOUSWOU "Cure Serious Wounds" cleric 3 none none
   "Restores 2d8 HP. Reverses to Cause Serious Wounds."
+  cast 3 ally heal 2d8
 
 spell C_DISPELMAGIC "Dispel Magic" cleric 3 none none
   "Ends ongoing spells up to your Level in a 20 ft area, or counters one as it is cast."
@@ -90,6 +93,7 @@ spell C_LOCATEOBJECT "Locate Object" cleric 3 none none
 
 spell C_PRAYER "Prayer" cleric 3 none none
   "The party gains +1 and enemies take -1 to attacks and saves for one fight."
+  cast 3 party bless 0d0
 
 spell C_REMOVECURSE "Remove Curse" cleric 3 none none
   "Ends one curse, Charmed, or a cursed item's grip. Reverses to Bestow Curse."
@@ -140,6 +144,7 @@ spell M_SHOCKINGGRASP "Shocking Grasp" magicuser 1 none lightning
 
 spell M_SLEEP "Sleep" magicuser 1 none none
   "2d4 HD of creatures of 4 HD or less fall Asleep, no save."
+  cast 1 rank damage 0d0 inflict paral
   comp "a pinch of fine sand"
 
 spell M_SPIDERCLIMB "Spider Climb" magicuser 1 none none
@@ -178,18 +183,22 @@ spell M_MIRRORIMAGE "Mirror Image" magicuser 2 none none
 
 spell M_RAYOFENFEEBLEM "Ray of Enfeeblement" magicuser 2 body none
   "A ray saps a target: -2 to its attacks and damage (Body save), one fight."
+  cast 2 enemy damage 0d0 inflict offbal
 
 spell M_SCARE "Scare" magicuser 2 will none
   "A target of 4 HD or less is Frightened (Will save)."
+  cast 2 enemy damage 0d0 inflict fear
 
 spell M_STINKINGCLOUD "Stinking Cloud" magicuser 2 body none
   "A 20 ft cloud: Body save or retch helplessly for 1d4 rounds."
+  cast 2 rank damage 0d0 inflict stun
 
 spell M_STRENGTH "Strength" magicuser 2 none none
   "An ally gains a step of STR, +1 to attack and damage, for one fight."
 
 spell M_WEB "Web" magicuser 2 dodge none
   "20 ft, Dodge save or stuck 1d4 rounds. Burns away in a round."
+  cast 2 rank damage 0d0 inflict paral
 
 spell M_BLINK "Blink" magicuser 3 none none
   "You flicker out and in: attacks against you at -2, and you may step 10 ft each round."
@@ -202,6 +211,7 @@ spell M_DISPELMAGIC "Dispel Magic" magicuser 3 none none
 
 spell M_FIREBALL "Fireball" magicuser 3 dodge fire
   "5d6 in a 20 ft burst, Dodge save for half."
+  cast 3 rank damage 3d6
   comp "a pinch of bat guano and sulfur"
 
 spell M_FLAMEARROW "Flame Arrow" magicuser 3 none fire
@@ -218,12 +228,14 @@ spell M_HASTE "Haste" magicuser 3 none none
 
 spell M_HOLDPERSON "Hold Person" magicuser 3 body none
   "Up to four people, Body save or Paralyzed 1d4 rounds."
+  cast 3 rank damage 0d0 inflict paral
 
 spell M_INVISIBILITY10 "Invisibility 10 ft" magicuser 3 none none
   "You and all within 10 ft turn invisible until one attacks or casts."
 
 spell M_LIGHTNINGBOLT "Lightning Bolt" magicuser 3 dodge lightning
   "5d6 in a 60 ft line, Dodge save for half."
+  cast 3 rank damage 3d6
   comp "a scrap of fur and a glass rod"
 
 spell M_PHANTASMALFORC "Phantasmal Force" magicuser 3 will none
@@ -234,6 +246,7 @@ spell M_PROTECTIONFROM "Protection from Normal Missiles" magicuser 3 none none
 
 spell M_SLOW "Slow" magicuser 3 dodge none
   "Up to one creature per Level acts at half (Dodge save), one fight. Undoes Haste."
+  cast 3 rank damage 0d0 inflict slow
 
 spell M_SUGGESTION "Suggestion" magicuser 3 will none
   "A reasonable command the target follows (Will save) until done or the day ends."
@@ -244,6 +257,7 @@ spell M_WATERBREATHING "Water Breathing" magicuser 3 none none
 
 spell D_ENTANGLE "Entangle" druid 1 dodge none
   "Grass and root seize everyone in a Near patch. A Dodge save or held fast, with a new save each round to tear free. One fight."
+  cast 1 rank damage 0d0 inflict slow
 
 spell D_FAERIEFIRE "Faerie Fire" druid 1 none none
   "Ring a target in pale light for one fight. Attacks against it gain +1 and it cannot hide."
@@ -264,6 +278,7 @@ spell D_GOODBERRY "Goodberry" druid 1 none none
 
 spell D_BARKSKIN "Barkskin" druid 2 none none
   "A target's skin turns to bark: +2 AC for 6 turns."
+  cast 2 party bless 0d0
 
 spell D_PRODUCEFLAME "Produce Flame" druid 2 none fire
   "A flame sits in your palm for 6 turns. Hurl it to Near as an attack for 1d6 fire, and it sets tinder alight."
@@ -271,15 +286,18 @@ spell D_PRODUCEFLAME "Produce Flame" druid 2 none fire
 
 spell D_HEATMETAL "Heat Metal" druid 2 none fire
   "Metal a target wears turns scalding for 1d4 rounds: 1d4 a round until dropped. Great mass or cold iron resists."
+  cast 2 enemy damage 1d4
 
 spell D_WARPWOOD "Warp Wood" druid 2 none none
   "Bend and split wooden items within Near, one per two Levels: a spear shaft, a bow, a plank, a door."
 
 spell D_HOLDANIMAL "Hold Animal" druid 2 will none
   "Freeze up to 1d4 natural beasts. Each rolls a Will save; the held are Helpless for 1d4 rounds."
+  cast 2 rank damage 0d0 inflict paral
 
 spell D_CALLLIGHTNING "Call Lightning" druid 3 dodge lightning
   "Under a storm sky, call a bolt once a round for 6 turns: Near, 1d6 per two Levels, Dodge for half. Needs a storm overhead."
+  cast 3 enemy damage 2d6
 
 spell D_PLANTGROWTH "Plant Growth" druid 3 none none
   "Brush and briar burst across a wide space, near impassable. Lasts until cut back."
@@ -289,6 +307,7 @@ spell D_PROTECTIONFROM "Protection from Fire" druid 3 none none
 
 spell D_SUMMONSWARM "Summon Swarm" druid 3 none none
   "A swarm of biting insects fills a Near space for one fight. Those within take 1 a round and act at -2."
+  cast 3 rank damage 1d4 inflict offbal
 
 spell D_ANIMALFRIENDSH "Animal Friendship" druid 1 none none
   "Over a day of feeding and care, win a wild beast as a loyal companion. Keep one such beast per two Levels."
@@ -381,6 +400,7 @@ spell C_WATERWALK "Water Walk" cleric 3 none none
 
 spell M_COLORSPRAY "Color Spray" magicuser 1 will none
   "A fan of clashing color: creatures of 5 HD or less in a 15 ft cone are Blinded 1d4 rounds, Will save negates. The weakest may fall Asleep at the GM's call."
+  cast 1 rank damage 0d0 inflict stun
 
 spell M_GREASE "Grease" magicuser 1 dodge none
   "A 10 ft patch turns slick, or one held item greasy. A creature caught there saves Dodge or falls prone; a greased grip drops what it holds."

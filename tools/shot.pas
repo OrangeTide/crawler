@@ -107,11 +107,13 @@ begin
     if ParamCount >= 3 then menuTab := StrToInt(ParamStr(3)) else menuTab := 0;
   end
   else if scene = 'castmenu' then begin
-    { a quick battle, then drive the Wizard into the cast submenu }
+    { a quick battle, then drive the Wizard into the cast submenu; an optional
+      level argument raises the Wizard so more spell levels open up }
     QuickBattle;
     if High(Roster) >= 3 then begin
       CurActor := 3;          { the pregen Wizard }
-      Roster[3].sp := 5;
+      if ParamCount >= 3 then Roster[3].level := StrToInt(ParamStr(3));
+      Roster[3].sp := 20;
     end;
     CombatKeyDown(SDL_SCANCODE_DOWN);     { ATTACK -> CAST }
     CombatKeyDown(SDL_SCANCODE_RETURN);   { open the spell list }

@@ -167,6 +167,7 @@ const
   CMDBOX_X = 6;
   CMDBOX_W = 104;
   CMDBOX_Y = 140;      { top of the bottom window band }
+  SPELL_VIS = 6;       { spell rows the command box shows before it scrolls }
 
 { The FF-style command window at the lower left, one list per phase. The
   cursor moves vertically; target and ally picks drive a chevron out on
@@ -211,7 +212,7 @@ end;
 
 procedure DrawCombatMenu;
 var
-  i, y, y0, bh, row: longint;
+  i, y, y0, bh, row, n, first: longint;
   sp: TSpell;
   c: TColor;
   any: boolean;
@@ -246,9 +247,19 @@ begin
         end else
           DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(170, 165, 140));
       end;
-    CB_SPELL:
-      for i := 0 to SpellCount - 1 do begin
-        y := y0 + i * 11;
+    CB_SPELL: begin
+      { the list can outrun the box, so show a window of SPELL_VIS around the
+        selection and mark that more lie above or below }
+      n := SpellCount;
+      first := 0;
+      if n > SPELL_VIS then begin
+        if spellSel >= SPELL_VIS then first := spellSel - SPELL_VIS + 1;
+        if first > n - SPELL_VIS then first := n - SPELL_VIS;
+      end;
+      for row := 0 to SPELL_VIS - 1 do begin
+        i := first + row;
+        if i >= n then break;
+        y := y0 + row * 11;
         sp := SpellInfo(i);
         if i = spellSel then c := RGB(185, 215, 245)
         else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
@@ -257,6 +268,11 @@ begin
         DrawText(CMDBOX_X + 15, y, Copy(sp.name, 1, 12), c);
         DrawText(CMDBOX_X + CMDBOX_W - 12, y, IntToStr(sp.cost), c);
       end;
+      { a count footer when the list is longer than the window }
+      if n > SPELL_VIS then
+        DrawText(CMDBOX_X + 15, y0 + SPELL_VIS * 11,
+          IntToStr(spellSel + 1) + '/' + IntToStr(n), RGB(120, 130, 150));
+    end;
     CB_TARGET: begin
       DrawText(CMDBOX_X + 6, y0, 'TARGET', RGB(240, 220, 130));
       if (CurTarget >= 0) and (CurTarget <= High(Foes)) then

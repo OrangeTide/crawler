@@ -47,8 +47,9 @@ begin
   CurActor := 0;
   Roster[0].level := 1; ResetSpellList;
   Roster[0].sp := 5;
-  Check(SpellCount = 3, 'a level-1 Wizard lists three L1 Magic-User spells');
+  Check(SpellCount = 5, 'a level-1 Wizard lists its five L1 Magic-User spells');
   Check(MenuIndexOf('M_MAGICMISSILE') >= 0, 'Magic Missile is castable');
+  Check(MenuIndexOf('M_SLEEP') >= 0, 'Sleep is castable at level 1');
   Check(MenuIndexOf('M_ACIDARROW') < 0, 'Acid Arrow (L2) is gated out at level 1');
   Check(SpellInfo(MenuIndexOf('M_MAGICMISSILE')).mode = TGT_ENEMY,
     'Magic Missile hits one enemy');
@@ -56,14 +57,22 @@ begin
     'Burning Hands hits a rank');
   Check(SpellInfo(MenuIndexOf('M_SHOCKINGGRASP')).element = EL_SHOCK,
     'Shocking Grasp carries the shock element');
+  Check(SpellInfo(MenuIndexOf('M_SLEEP')).mode = TGT_ENEMY_RANK,
+    'Sleep blankets a whole rank');
+  Check(SpellInfo(MenuIndexOf('M_SLEEP')).inflict = ST_PARAL,
+    'Sleep lays a holding status');
   Check(CasterMod(0) = AbilMod(Roster[0].abil[abINT]),
     'the Wizard casts off Intelligence');
   Check(CasterMod(0) <> AbilMod(Roster[0].abil[abWIS]),
     'the Wizard does not cast off Wisdom');
 
-  { level 3 opens the level-2 spells }
+  { level 3 opens the level-2 spells, level 5 the level-3 spells }
   Roster[0].level := 3; ResetSpellList;
   Check(MenuIndexOf('M_ACIDARROW') >= 0, 'at level 3 Acid Arrow (L2) opens up');
+  Check(MenuIndexOf('M_FIREBALL') < 0, 'Fireball (L3) is still out of reach');
+  Roster[0].level := 5; ResetSpellList;
+  Check(MenuIndexOf('M_FIREBALL') >= 0, 'at level 5 Fireball (L3) opens up');
+  Check(SpellInfo(MenuIndexOf('M_FIREBALL')).element = EL_FIRE, 'Fireball burns');
 
   { spell points gate the cast }
   mm := MenuIndexOf('M_MAGICMISSILE');
