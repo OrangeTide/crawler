@@ -94,6 +94,10 @@ function PortalKind(mx, my: longint): longint;     { -1 none, else PK_* }
 function SkyColorAt(y, horizon: longint): TColor;
 function LightTileKind(mx, my: longint): longint;  { -1 none, else LIGHT_* }
 function TileLightAt(mx, my: longint): longint;    { 0..256 cast light }
+{ The glow colour and mix weight an emissive tile casts over its own floor,
+  false for a tile that does not glow. Shared by both renderers so the floor
+  tint matches; the weight follows the time of day for sky and moon wells. }
+function LightGlow(kind: longint; out col: TColor; out weight: longint): boolean;
 function NpcAt(mx, my: longint; out dialogName, npcName: string): boolean;
 function TrapAt(mx, my: longint; out dmg, dc, element: longint): boolean;
 function LootAt(mx, my: longint; out gold, qty: longint; out item: string): boolean;
@@ -312,6 +316,21 @@ begin
     TileLightAt := 0
   else
     TileLightAt := TileLight[my][mx];
+end;
+
+function LightGlow(kind: longint; out col: TColor; out weight: longint): boolean;
+begin
+  LightGlow := true;
+  case kind of
+    LIGHT_SKYLIGHT: begin col := TColor($FFFFF5D2); weight := 40 + (SkyLightLevel shr 1); end;
+    LIGHT_MOONWELL: begin col := TColor($FF96BEFF); weight := 40 + (MoonLightLevel shr 1); end;
+    LIGHT_BIOLUME:  begin col := TColor($FF50FFB4); weight := 120; end;
+    LIGHT_GASVENT:  begin col := TColor($FF8CE0FF); weight := 90; end;
+    LIGHT_BRAZIER, LIGHT_TORCH, LIGHT_BONFIRE:
+                    begin col := TColor($FFFFA030); weight := 170; end;
+  else
+    col := 0; weight := 0; LightGlow := false;
+  end;
 end;
 
 procedure PlaceAtMarker(const name: string);

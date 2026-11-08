@@ -121,7 +121,8 @@ var
   tx, ty, x0, y0, x1, y1: longint;
   cx, cy, dist, fwd, light, fcx, fcy, fd: double;
   cyaw, syaw: double;
-  ftex: longint;
+  ftex, gk, gw: longint;
+  gcol: TColor;
   shor, syy, sxx: longint;
   sb: byte;
 begin
@@ -189,9 +190,13 @@ begin
         end;
       end else begin
         light := TileLight(tx, ty, dist);
-        { floor }
+        { floor, with an emissive tile's glow tint mixed in, as the raycaster
+          does for a light well, brazier or vent }
+        gw := 0; gcol := 0;
+        gk := LightTileKind(tx, ty);
+        if gk >= 0 then LightGlow(gk, gcol, gw);
         DrawTexQuad(mc, tx, ty, 0,  tx + 1, ty, 0,  tx + 1, ty + 1, 0,  tx, ty + 1, 0,
-          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
+          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
         { ceiling, unless this is an open-air surface map }
         if not CurMapSurface then
           DrawTexQuad(mc, tx, ty + 1, 1,  tx + 1, ty + 1, 1,  tx + 1, ty, 1,  tx, ty, 1,

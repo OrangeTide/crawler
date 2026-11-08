@@ -41,11 +41,14 @@ procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
 
 { Draw one textured quad given four world-space corners (wound in order)
   and their texture coordinates. tex points at tw*th palette indices.
-  The quad is not backface culled; the depth buffer sorts it. }
+  The quad is not backface culled; the depth buffer sorts it. An optional
+  glow colour mixed in at glowW/256 tints an emissive tile's surface, the
+  way the raycaster glows a light-well or brazier floor. }
 procedure DrawTexQuad(const cam: TMeshCam;
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
-  tex: PByte; tw, th: longint; light: double);
+  tex: PByte; tw, th: longint; light: double;
+  glow: TColor = 0; glowW: longint = 0);
 
 { Draw a front-facing billboard: a camera-facing quad standing on the floor
   at world (wx,wy), wscale wide and hscale tall in tiles, textured with the
@@ -107,7 +110,8 @@ begin
 end;
 
 { Affine textured, z-buffered span fill of one screen triangle. }
-procedure FillTriTex(const t0, t1, t2: TCorner; tex: PByte; tw, th: longint; light: double);
+procedure FillTriTex(const t0, t1, t2: TCorner; tex: PByte; tw, th: longint;
+  light: double; glow: TColor = 0; glowW: longint = 0);
 var
   p: array[0 .. 2] of TCorner;
   tmp: TCorner;
@@ -116,6 +120,7 @@ var
   fy0, fy1, fy2: double;
   litI, tsx, tsy: longint;
   idx: byte;
+  glowS, c: TColor;
 
   procedure Edge(ay, by, ax, bx, au, bu, av, bv, az, bz, yy: double;
     out ox, ou, ov, oz: double);
@@ -139,6 +144,7 @@ begin
   if fy2 - fy0 < 0.001 then exit;
 
   litI := round(light);
+  if glowW > 0 then glowS := Shade(glow, litI);   { tint, shaded like the tile }
   iy0 := round(fy0); iy1 := round(fy2);
   if iy0 < 0 then iy0 := 0;
   if iy1 > FBH - 1 then iy1 := FBH - 1;
@@ -177,7 +183,10 @@ begin
       tsy := ((tsy mod th) + th) mod th;
       idx := tex[tsy * tw + tsx];
       ZBuf[fbo + x] := z;
-      if litI >= 256 then
+      if glowW > 0 then begin
+        if litI >= 256 then c := Palette[idx] else c := Shade(Palette[idx], litI);
+        FB[fbo + x] := DitherQuant(MixColor(c, glowS, glowW), x, y);
+      end else if litI >= 256 then
         FB[fbo + x] := idx
       else
         FB[fbo + x] := DitherQuant(Shade(Palette[idx], litI), x, y);
@@ -188,7 +197,8 @@ end;
 procedure DrawTexQuad(const cam: TMeshCam;
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
-  tex: PByte; tw, th: longint; light: double);
+  tex: PByte; tw, th: longint; light: double;
+  glow: TColor = 0; glowW: longint = 0);
 var
   c0, c1, c2, c3: TCorner;
 begin
@@ -198,8 +208,8 @@ begin
   if not Project(cam, x3, y3, z3, c3) then exit;
   c0.u := u0; c0.v := v0; c1.u := u1; c1.v := v1;
   c2.u := u2; c2.v := v2; c3.u := u3; c3.v := v3;
-  FillTriTex(c0, c1, c2, tex, tw, th, light);
-  FillTriTex(c0, c2, c3, tex, tw, th, light);
+  FillTriTex(c0, c1, c2, tex, tw, th, light, glow, glowW);
+  FillTriTex(c0, c2, c3, tex, tw, th, light, glow, glowW);
 end;
 
 { Affine z-buffered span fill of one screen triangle from an ARGB image,

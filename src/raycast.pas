@@ -24,11 +24,6 @@ const
   FOG_NEAR_F = 1 * FONE + FONE div 2;        { 1.5 }
   FOG_FAR_F  = 9 * FONE;                      { 9.0 }
   FOG_SPAN_F = FOG_FAR_F - FOG_NEAR_F;
-  SKY_GLOW    = $FFFFF5D2;   { warm shaft on a skylight tile }
-  MOON_GLOW   = $FF96BEFF;   { pale beam on a moonwell tile }
-  BIO_GLOW    = $FF50FFB4;   { bioluminescent growth }
-  GAS_GLOW    = $FF8CE0FF;   { a gas vent flame }
-  FIRE_GLOW   = $FFFFA030;   { brazier, torch or bonfire }
 
 var
   { Perpendicular wall distance per screen column, in world tiles, filled by
@@ -88,8 +83,8 @@ var
   tx, ty: longint;
   texId: longint;
   fog: longint;
-  cF, cC: TColor;
-  cxi, cyi, lk, shF: longint;
+  cF, cC, gcol: TColor;
+  cxi, cyi, lk, shF, gw: longint;
   skyb: byte;
 begin
   cfPosX := FixF(Cam.posX); cfPosY := FixF(Cam.posY);
@@ -141,14 +136,8 @@ begin
         { light wells and emissive sources glow; an exit now stands as a
           billboard, so its tile carries no coloured floor pad }
         lk := LightTileKind(cxi, cyi);
-        case lk of
-          LIGHT_SKYLIGHT: cF := MixColor(cF, Shade(SKY_GLOW, shF), 40 + (SkyLightLevel shr 1));
-          LIGHT_MOONWELL: cF := MixColor(cF, Shade(MOON_GLOW, shF), 40 + (MoonLightLevel shr 1));
-          LIGHT_BIOLUME:  cF := MixColor(cF, Shade(BIO_GLOW, shF), 120);
-          LIGHT_GASVENT:  cF := MixColor(cF, Shade(GAS_GLOW, shF), 90);
-          LIGHT_BRAZIER, LIGHT_TORCH, LIGHT_BONFIRE:
-            cF := MixColor(cF, Shade(FIRE_GLOW, shF), 170);
-        end;
+        if (lk >= 0) and LightGlow(lk, gcol, gw) then
+          cF := MixColor(cF, Shade(gcol, shF), gw);
         FB[y * FBW + x] := Quantize(cF);
       end else begin
         cC := Shade(Tex[texId][ty * TEXW + tx], shF);
