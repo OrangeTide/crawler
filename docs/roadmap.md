@@ -332,14 +332,15 @@ and its data format change. The polygon renderer (theme A) is the foundation,
 so this thread opens once that renderer is the default. The whole thread keeps
 one eye on the PS1: the modular kits are chosen and budgeted for it.
 
-- [gap] (0.26.0) Evaluate the SigilsVault CC0 kits (REF/sigilsvault.itch.io: the
-  Modular Dungeon and Modular Cathedral kits, 90+ pieces each, CC0 by Kevin
-  Barany, a 1-metre grid, trim-sheet textured, GLB and FBX) for PS1 feasibility.
-  Measure polygon and vertex counts per piece against the model VRAM budget, the
-  256x256 trim sheet against the texture budget, and the decimation each piece
-  needs to sit inside a PS1 scene (the kits are GameCube/PS2-era low-poly, a
-  step above PS1). Assess importing GLB/FBX into the meshtools pipeline. Produce
-  a go/no-go with a target poly budget per tile.
+- [done] (0.26.0) Evaluated the SigilsVault CC0 kits for PS1 feasibility, written
+  up in `docs/kit-evaluation.md`. Verdict: GO for the Modular Dungeon kit, a
+  conditional go for the Modular Cathedral kit. Measured face counts over every
+  GLB piece (dungeon mean 135, max 584; cathedral mean 345, max 1962), proved the
+  meshtools pipeline ingests a kit piece end to end (GLB to OBJ to a palette PPM
+  to a CMSH lump to a framebuffer render), and set a per-tile budget: 128
+  triangles for structural tiles, 256 for hero tiles, 150 for prop meshes, and
+  one resident 256x256 8-bit trim sheet per tileset. GLB is the import format;
+  the shared trim sheet maps onto the one-resident-tileset model.
 - [gap] (0.26.0) Trim-sheet texturing in the asset and mesh pipeline: a single
   shared atlas per tileset, UV-mapped per piece and baked once, so a whole
   modular room costs one texture. This is the PS1-friendly path and the kits
@@ -451,12 +452,13 @@ a spell and skill browser.
 
 ### 0.26.0 Modular tiles and PS1 kit evaluation (M)
 
-Theme G, the groundwork. Evaluate the SigilsVault CC0 kits for PS1 feasibility
-and settle a per-tile poly budget, bring trim-sheet texturing into the asset and
-mesh pipeline, and bake a first hand-placed modular room drawn over the existing
-grid to prove the look and the budget. No map-format change yet: this de-risks
-the rework and produces the go/no-go before the format churns. Depends on the
-polygon renderer being the default (0.19.0).
+Theme G, the groundwork. The kit evaluation is done: GO for the Modular Dungeon
+kit, with a per-tile poly budget settled in `docs/kit-evaluation.md`. The two
+remaining pieces are implementation: bring trim-sheet texturing into the asset
+and mesh pipeline, and bake a first hand-placed modular room drawn over the
+existing grid to prove the look and the budget. No map-format change yet: this
+de-risks the rework before the format churns. Depends on the polygon renderer
+being the default (0.19.0).
 
 ### 0.27.0 Sector map format (L)
 
@@ -536,13 +538,15 @@ These hold across every milestone and are the reason for the choices above.
 
 ## Recommended next
 
-0.19.0 is complete: the polygon renderer is the default and its hot path runs
-in fixed point, so its gate on the rest of the work is cleared and the order is:
+0.19.0 is complete and the 0.26.0 kit evaluation returned GO for the Modular
+Dungeon kit (see `docs/kit-evaluation.md`), so the sector thread is unblocked
+and the order is:
 
-- Open the sector thread with 0.26.0 (the kit evaluation), the next real step.
-  It is low-risk and produces the go/no-go that tells us whether the SigilsVault
-  modular geometry can reach the PS1. Do this before the format churns in
-  0.27.0. The polygon renderer it builds on is in place.
+- Continue 0.26.0 with its two implementation pieces now that the kit is
+  cleared: trim-sheet texturing in the asset and mesh pipeline (one resident
+  256x256 tileset per modular set), then a first hand-placed modular room drawn
+  over the existing grid to prove the look and the per-tile budget before the
+  map format churns in 0.27.0. The polygon renderer they build on is in place.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
