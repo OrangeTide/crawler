@@ -32,7 +32,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
   exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
-  party, chardata, spelldb, spellbook, rules, items, pcportrait;
+  party, chardata, spelldb, spellbook, rules, items, pcportrait, spellicon;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -400,11 +400,41 @@ begin
   if v >= 0 then SheetSign := '+' + IntToStr(v) else SheetSign := IntToStr(v);
 end;
 
+{ Fill known[] with the catalog indices of the member's known spells, sorted
+  by level then name, and return how many. Caps at the array size. }
+function SheetKnownList(const c: TCharacter; out known: array of longint): longint;
+var i, j, cat, kn: longint; tmp: longint;
+begin
+  kn := 0;
+  for i := 0 to High(c.known) do begin
+    cat := SpellByID(c.known[i]);
+    if (cat >= 0) and (kn <= High(known)) then begin
+      known[kn] := cat; inc(kn);
+    end;
+  end;
+  { insertion sort by (level, name) }
+  for i := 1 to kn - 1 do begin
+    tmp := known[i]; j := i - 1;
+    while (j >= 0) and
+      ((SpellDefs[known[j]].level > SpellDefs[tmp].level) or
+       ((SpellDefs[known[j]].level = SpellDefs[tmp].level) and
+        (SpellDefs[known[j]].name > SpellDefs[tmp].name))) do begin
+      known[j + 1] := known[j]; dec(j);
+    end;
+    known[j + 1] := tmp;
+  end;
+  SheetKnownList := kn;
+end;
+
 procedure CharSheetRender;
+const
+  VIS = 7;           { spell rows shown before the list scrolls }
+  COLX = 158;        { the spell browser's left edge }
 var
-  n, si, y, m: longint;
+  n, si, y, m, i, kn, first, idx, cat, ry: longint;
   a: TAbility;
-  modStr, st: string;
+  modStr, st, nm: string;
+  known: array[0 .. 63] of longint;
 begin
   ClearFB(RGB(10, 10, 16));
   n := Length(Roster);
@@ -418,51 +448,22 @@ begin
     RGB(140, 150, 120));
 
   { the portrait, framed }
-  FillRect(12, 26, 64, 64, RGB(0, 0, 0));
-  DrawPCPortrait(12, 26, Roster[si].portrait);
-  FrameRect(12, 26, 64, 64, RGB(120, 110, 90));
+  FillRect(12, 24, 64, 64, RGB(0, 0, 0));
+  DrawPCPortrait(12, 24, Roster[si].portrait);
+  FrameRect(12, 24, 64, 64, RGB(120, 110, 90));
 
   { identity block beside the face }
-  DrawText(86, 28, Roster[si].name, RGB(230, 210, 140));
-  DrawText(86, 42, SpeciesDefs[Roster[si].species].name + '  '
+  DrawText(86, 26, Roster[si].name, RGB(230, 210, 140));
+  DrawText(86, 40, SpeciesDefs[Roster[si].species].name + '  '
     + ClassDefs[Roster[si].klass].name, RGB(200, 200, 180));
   if Roster[si].background >= 0 then
-    DrawText(86, 54, BackgroundDefs[Roster[si].background].name,
+    DrawText(86, 52, BackgroundDefs[Roster[si].background].name,
       RGB(170, 175, 150));
-  DrawText(86, 66, 'LEVEL ' + IntToStr(Roster[si].level) + '    XP '
+  DrawText(86, 64, 'LEVEL ' + IntToStr(Roster[si].level) + '    XP '
     + IntToStr(Roster[si].xp), RGB(190, 190, 160));
-  DrawText(86, 78, 'HP ' + IntToStr(Roster[si].hp) + '/'
+  DrawText(86, 76, 'HP ' + IntToStr(Roster[si].hp) + '/'
     + IntToStr(Roster[si].hpMax) + '   AC ' + IntToStr(CharAC(Roster[si]))
     + '   ATK ' + SheetSign(CharAttack(Roster[si], true)), RGB(200, 185, 150));
-
-  { ability scores, left column }
-  y := 104;
-  for a := abSTR to abCHA do begin
-    m := AbilMod(Roster[si].abil[a]);
-    if m >= 0 then modStr := '+' + IntToStr(m) else modStr := IntToStr(m);
-    DrawText(16, y, ABIL_NAME[a] + ' ' + IntToStr(Roster[si].abil[a])
-      + '  (' + modStr + ')', RGB(185, 190, 170));
-    inc(y, 12);
-  end;
-
-  { gear, right column }
-  DrawText(150, 92, 'GEAR', RGB(200, 190, 130));
-  DrawText(150, 104, 'MAIN  ' + SheetGearName(Roster[si].equip[eqMain].def),
-    RGB(180, 185, 170));
-  DrawText(150, 116, 'OFF   ' + SheetGearName(Roster[si].equip[eqOff].def),
-    RGB(180, 185, 170));
-  DrawText(150, 128, 'ARMOR ' + SheetGearName(Roster[si].equip[eqArmor].def),
-    RGB(180, 185, 170));
-  DrawText(150, 140, 'LIGHT ' + SheetGearName(Roster[si].equip[eqLight].def),
-    RGB(180, 185, 170));
-
-  { caster line: how many spells are known, and the specialty if any }
-  if CharIsCaster(Roster[si]) then begin
-    st := IntToStr(Length(Roster[si].known)) + ' SPELLS KNOWN';
-    if ClassSchool(Roster[si].klass) <> SCH_NONE then
-      st := st + '   ' + SchoolName(ClassSchool(Roster[si].klass));
-    DrawText(150, 156, st, RGB(170, 180, 200));
-  end;
 
   { a status line only when something is amiss }
   st := '';
@@ -475,9 +476,71 @@ begin
     else if Roster[si].lycan then st := st + 'CURSED ';
     if Roster[si].hireling then st := st + 'HIRED ';
   end;
-  if st <> '' then DrawText(16, 182, st, RGB(205, 160, 140));
+  if st <> '' then DrawText(86, 88, st, RGB(205, 160, 140));
 
-  DrawText(12, FBH - 14, 'LEFT/RIGHT MEMBER   I OR ESC CLOSE', RGB(130, 140, 110));
+  { ability scores, left column }
+  y := 102;
+  for a := abSTR to abCHA do begin
+    m := AbilMod(Roster[si].abil[a]);
+    if m >= 0 then modStr := '+' + IntToStr(m) else modStr := IntToStr(m);
+    DrawText(16, y, ABIL_NAME[a] + ' ' + IntToStr(Roster[si].abil[a])
+      + '  (' + modStr + ')', RGB(185, 190, 170));
+    inc(y, 11);
+  end;
+
+  { gear, left column below the abilities }
+  DrawText(16, 172, 'GEAR', RGB(200, 190, 130));
+  DrawText(16, 183, 'MN ' + SheetGearName(Roster[si].equip[eqMain].def),
+    RGB(180, 185, 170));
+  DrawText(16, 194, 'OF ' + SheetGearName(Roster[si].equip[eqOff].def),
+    RGB(180, 185, 170));
+  DrawText(16, 205, 'AR ' + SheetGearName(Roster[si].equip[eqArmor].def),
+    RGB(180, 185, 170));
+  DrawText(16, 216, 'LT ' + SheetGearName(Roster[si].equip[eqLight].def),
+    RGB(180, 185, 170));
+
+  { the spell browser, right column, for a caster }
+  if CharIsCaster(Roster[si]) then begin
+    kn := SheetKnownList(Roster[si], known);
+    if sheetSpellSel < 0 then sheetSpellSel := 0;
+    if sheetSpellSel > kn - 1 then sheetSpellSel := kn - 1;
+    if sheetSpellSel < 0 then sheetSpellSel := 0;
+
+    st := 'SPELLS (' + IntToStr(kn) + ')';
+    if ClassSchool(Roster[si].klass) <> SCH_NONE then
+      st := st + '  ' + SchoolName(ClassSchool(Roster[si].klass));
+    DrawText(COLX, 100, st, RGB(200, 190, 130));
+
+    first := 0;
+    if sheetSpellSel >= VIS then first := sheetSpellSel - VIS + 1;
+    for i := 0 to VIS - 1 do begin
+      idx := first + i;
+      if idx >= kn then break;
+      cat := known[idx];
+      ry := 114 + i * 15;
+      if idx = sheetSpellSel then
+        FillRect(COLX, ry - 1, FBW - 8 - COLX, 14, RGB(44, 40, 60));
+      FrameRect(COLX, ry, 14, 14, RGB(60, 56, 44));
+      DrawSpellIcon(COLX, ry, 14, 14, SpellDefs[cat].icon);
+      nm := SpellDefs[cat].name;
+      if Length(nm) > 20 then nm := Copy(nm, 1, 20);
+      if SpellDefs[cat].castable then DrawText(COLX + 18, ry + 3, nm, RGB(210, 210, 190))
+      else DrawText(COLX + 18, ry + 3, nm, RGB(150, 150, 135));
+    end;
+
+    { the selected spell's level and school on the foot line }
+    if kn > 0 then begin
+      cat := known[sheetSpellSel];
+      st := 'LVL ' + IntToStr(SpellDefs[cat].level);
+      if SpellDefs[cat].school <> SCH_NONE then
+        st := st + '   ' + SchoolName(SpellDefs[cat].school);
+      if not SpellDefs[cat].castable then st := st + '   UTILITY';
+      DrawText(COLX, FBH - 24, st, RGB(150, 160, 190));
+    end;
+  end;
+
+  DrawText(12, FBH - 11, 'UP/DN SPELL  L/R MEMBER  I/ESC CLOSE',
+    RGB(130, 140, 110));
 end;
 
 procedure CharSheetKeyDown(scancode: longint);
@@ -486,9 +549,13 @@ begin
   n := Length(Roster);
   case scancode of
     SDL_SCANCODE_LEFT:
-      if (n > 0) and (sheetSel > 0) then dec(sheetSel);
+      if (n > 0) and (sheetSel > 0) then begin dec(sheetSel); sheetSpellSel := 0; end;
     SDL_SCANCODE_RIGHT:
-      if (n > 0) and (sheetSel < n - 1) then inc(sheetSel);
+      if (n > 0) and (sheetSel < n - 1) then begin inc(sheetSel); sheetSpellSel := 0; end;
+    SDL_SCANCODE_UP:
+      if sheetSpellSel > 0 then dec(sheetSpellSel);
+    SDL_SCANCODE_DOWN:
+      inc(sheetSpellSel);   { clamped on render }
     SDL_SCANCODE_I, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;

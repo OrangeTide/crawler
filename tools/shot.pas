@@ -33,7 +33,7 @@ program shot;
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
-  dialog, charcreateui;
+  dialog, charcreateui, spellbook;
 
 procedure DumpPPM(const fn: string);
 var
@@ -115,9 +115,16 @@ begin
       for mi := 1 to StrToInt(ParamStr(3)) do CCKeyDown(SDL_SCANCODE_P);
   end
   else if scene = 'sheet' then begin
-    { the character sheet for a party member (default the first). }
+    { the character sheet for a party member (default the first). An optional
+      level raises that member and relearns, to fill the spell browser. }
     QuickStart;
     if ParamCount >= 3 then sheetSel := StrToInt(ParamStr(3)) else sheetSel := 0;
+    if (ParamCount >= 4) and (sheetSel <= High(Roster)) then begin
+      Roster[sheetSel].level := StrToInt(ParamStr(4));
+      SetLength(Roster[sheetSel].known, 0);
+      AutoLearn(Roster[sheetSel]);
+    end;
+    sheetSpellSel := 0;
     State := gsCharSheet;
   end
   else if scene = 'menu' then begin

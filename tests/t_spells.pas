@@ -93,6 +93,14 @@ begin
   Check(SpellElement(SDT_POISON) = EL_PHYS, 'poison falls back to physical');
   Check(SpellElement(SDT_NONE) = 0, 'an untyped spell has no element');
 
+  { every spell carries a spell icon, and a few resolve to the expected one }
+  j := 0;
+  for i := 0 to SpellDefCount - 1 do if SpellDefs[i].icon > 0 then inc(j);
+  Check(j = SpellDefCount, 'every spell names an icon');
+  Check(SpellDefs[SpellByID('M_FIREBALL')].icon = 238, 'Fireball keeps its icon');
+  Check(SpellDefs[SpellByID('M_MAGICMISSILE')].icon = 52, 'Magic Missile keeps its icon');
+  Check(SpellDefs[SpellByID('C_BLESS')].icon = 34, 'Bless keeps its icon');
+
   { the domain count helper agrees with the per-domain tallies }
   Check(DomainSpellCount(SPD_CLERIC) = 47, 'the Cleric domain counts 47');
   Check(DomainSpellCount(SPD_DRUID) = 51, 'the Druid domain counts 51');

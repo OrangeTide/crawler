@@ -65,6 +65,7 @@ var
   kbCapturing: boolean;    { waiting for the next key to bind it }
   menuTab: longint;        { meta-screen tab: 0 journal, 1 bestiary, 2 spells }
   sheetSel: longint;       { which party member the character sheet shows }
+  sheetSpellSel: longint;  { highlighted spell in the sheet's spell browser }
 
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }

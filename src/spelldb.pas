@@ -91,6 +91,7 @@ type
     castSides: byte;
     castInflict: byte;  { a monsters ST_* a damaging hit may lay, 0 = none }
     school: byte;       { SCH_*, SCH_NONE for cleric, druid and untagged }
+    icon: byte;         { PORT_SI<NN> spell icon, 0 = none }
   end;
 
 var
@@ -170,6 +171,7 @@ begin
     PutB(a, n, ss[si].castSides);
     PutB(a, n, ss[si].castInflict);
     PutB(a, n, ss[si].school);
+    PutB(a, n, ss[si].icon);
   end;
   SetLength(a, n);
   EncodeSpells := a;
@@ -236,6 +238,7 @@ begin
     SpellDefs[si].castSides := RB;
     SpellDefs[si].castInflict := RB;
     SpellDefs[si].school := RB;
+    SpellDefs[si].icon := RB;
   end;
   LoadSpells := true;
 end;

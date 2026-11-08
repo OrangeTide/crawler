@@ -180,6 +180,7 @@ begin
         ss[cur].castSides := 0;
         ss[cur].castInflict := 0;
         ss[cur].school := SCH_NONE;
+        ss[cur].icon := 0;
         if not DomainOf(tok[3], ss[cur].domain) then begin
           err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[3]; exit;
         end;
@@ -219,6 +220,9 @@ begin
           if not StatusOf(tok[6], ss[cur].castInflict) then begin
             err := 'line ' + IntToStr(li + 1) + ': bad inflict ' + tok[6]; exit;
           end;
+      end else if tok[0] = 'icon' then begin
+        if cur < 0 then begin err := 'icon before spell'; exit; end;
+        ss[cur].icon := StrToIntDef(tok[1], 0);
       end else if line[1] = '"' then begin
         if cur < 0 then begin err := 'effect before spell'; exit; end;
         ss[cur].effect := tok[0];
