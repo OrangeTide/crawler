@@ -28,7 +28,7 @@ const
 
 var
   GridTex: array[0 .. TEX_COUNT - 1] of array of byte;   { palette indices }
-  gtReady: boolean = false;
+  gtTileset: longint = -1;   { which tileset GridTex holds, -1 none }
 
 procedure BuildGridTex;
 var t, i: longint;
@@ -37,7 +37,7 @@ begin
     SetLength(GridTex[t], TEXSIZE);
     for i := 0 to TEXSIZE - 1 do GridTex[t][i] := Quantize(Tex[t][i]);
   end;
-  gtReady := true;
+  gtTileset := CurTileset;   { Tex holds only one tileset; rebuild when it swaps }
 end;
 
 function WallTexId(tile: byte): longint;
@@ -126,7 +126,7 @@ var
   shor, syy, sxx: longint;
   sb: byte;
 begin
-  if not gtReady then BuildGridTex;
+  if gtTileset <> CurTileset then BuildGridTex;
   RasterCX := FBW / 2; RasterCY := FBH / 2;
   RasterBeginFrame;
   if CurMapSurface then begin
