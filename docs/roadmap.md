@@ -213,8 +213,10 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   was then scrubbed from the whole commit history with a git filter-repo
   rewrite, both the image blobs and the text references. The rewrite is local;
   the remotes still carry the old history.
-- [gap] Add a party-character portrait, drawing from the same Batareya pack, so
-  the character sheet can show a face per member.
+- [done] Added a party-character portrait. A new character cycles a pool of
+  twenty-four Batareya faces at creation (P key), the choice is saved, and the
+  face shows as a thumbnail in the party strip. Generated parties and hirelings
+  draw varied faces.
 - [gap] Spell and skill icons, and the UI that uses them. Bake the Batareya
   "MAGE ICONS BIG PACk" as per-spell icons and "250 WARRIOR ICONS" as per-skill
   icons (both 512x512 in ~/Documents/sprites-free, license to be located). Then

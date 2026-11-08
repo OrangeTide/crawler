@@ -10,6 +10,14 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A portrait for each party member. A new character cycles through a pool of
+  baked portrait faces at creation with the P key, and the chosen face is kept
+  on the character and in the save. The face shows as a small thumbnail beside
+  each member's name and health in the party strip, so the roster reads at a
+  glance. Generated starting parties and tavern hirelings each draw a varied
+  face. The pool is twenty-four portraits from the Batareya pack, decoded into
+  a small cache of their own rather than the world-billboard budget. The save
+  format version is bumped to carry the portrait index.
 - Arcane schools for the Magic-User list. Every Magic-User spell now names one
   of the eight schools (abjuration, conjuration, divination, enchantment,
   evocation, illusion, necromancy, transmutation), tagged in spells.txt and

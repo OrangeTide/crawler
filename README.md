@@ -201,6 +201,7 @@ The platform layer and core:
 | `src/rng.pas` | Deterministic xorshift PRNG with independent streams. |
 | `src/pak.pas` | Pack archive reader, plus a writer for the tools. |
 | `src/pic.pas` | Custom image codec (PackBits, direct or indexed colour). |
+| `src/pcportrait.pas` | Player-character portrait pool: cache and keyed blits. |
 | `src/game.pas` | Top-level state machine: routes input, update and render. |
 | `src/gamestate.pas` | Shared cross-state globals for the UI units. |
 

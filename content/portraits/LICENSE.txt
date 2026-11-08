@@ -7,7 +7,7 @@ Portraits" by Batareya, obtained from batareya.itch.io:
   https://batareya.itch.io/500-fantasy-pixel-art-portraits-a-world-of-characters-for-your-projects
 
 Each file is one portrait from that pack, scaled to the game's 64x64
-format. The pack is numbered; the portraits used here are, by dialog id:
+format. The pack is numbered. The NPC portraits used here are, by dialog id:
 
   port_elder       136
   port_barkeep     459
@@ -15,6 +15,15 @@ format. The pack is numbered; the portraits used here are, by dialog id:
   port_ranger      454
   port_hunter      217
   port_dockhand    208
+
+The player-character portrait pool, pc00 through pc23, maps to pack entries:
+
+  pc00 1    pc06 85   pc12 245  pc18 434
+  pc01 9    pc07 108  pc13 278  pc19 480
+  pc02 23   pc08 119  pc14 293  pc20 500
+  pc03 31   pc09 141  pc15 306  pc21 213
+  pc04 45   pc10 160  pc16 356  pc22 358
+  pc05 74   pc11 212  pc17 420  pc23 362
 
 License terms as provided by the author:
 
