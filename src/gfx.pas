@@ -26,6 +26,12 @@ var
 
 procedure InitGfx;                  { build the palette and inverse lookup }
 function Quantize(c: TColor): byte; inline;        { color to nearest index }
+{ Quantize with a 4x4 ordered (Bayer) dither keyed on the screen pixel, so a
+  shaded gradient breaks into a dot pattern instead of banding at the palette
+  cube's coarse steps. The offset is applied equally to the three channels, so
+  it dithers brightness and keeps the hue. This is the PSX look the polygon
+  renderer shades with. }
+function DitherQuant(c: TColor; x, y: longint): byte;
 procedure PalExpand(dst: PColorArray);             { indices to ARGB for SDL }
 procedure UsePalette(const cols: array of TColor); { swap in a scene palette }
 procedure UseGamePalette;                          { restore the game palette }
@@ -170,6 +176,27 @@ function Quantize(c: TColor): byte;
 begin
   Quantize := InvLUT[(((c shr 19) and 31) shl 10)
     or (((c shr 11) and 31) shl 5) or ((c shr 3) and 31)];
+end;
+
+const
+  { 4x4 Bayer matrix, 0..15, the classic ordered-dither threshold pattern. }
+  BAYER4: array[0 .. 3, 0 .. 3] of longint =
+    ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5));
+  { Offset span, about half the 6x6x6 cube step (51), so a value halfway
+    between two cube levels scatters evenly to both. }
+  DITHER_AMP = 3;
+
+function DitherQuant(c: TColor; x, y: longint): byte;
+var r, g, b, o: longint;
+begin
+  o := (BAYER4[y and 3][x and 3] - 8) * DITHER_AMP;   { about -24..+21 }
+  r := ((c shr 16) and $FF) + o;
+  g := ((c shr 8) and $FF) + o;
+  b := (c and $FF) + o;
+  if r < 0 then r := 0 else if r > 255 then r := 255;
+  if g < 0 then g := 0 else if g > 255 then g := 255;
+  if b < 0 then b := 0 else if b > 255 then b := 255;
+  DitherQuant := InvLUT[((r shr 3) shl 10) or ((g shr 3) shl 5) or (b shr 3)];
 end;
 
 procedure PalExpand(dst: PColorArray);

@@ -133,9 +133,13 @@ begin
       floor quads, matching the raycaster's surface view }
     shor := round(FBH / 2 + Cam.pitch);
     for syy := 0 to FBH - 1 do begin
-      if syy < shor then sb := Quantize(SkyColorAt(syy, shor))
-      else sb := Quantize(RGB(6, 6, 10));
-      for sxx := 0 to FBW - 1 do FB[syy * FBW + sxx] := sb;
+      if syy < shor then
+        for sxx := 0 to FBW - 1 do
+          FB[syy * FBW + sxx] := DitherQuant(SkyColorAt(syy, shor), sxx, syy)
+      else begin
+        sb := Quantize(RGB(6, 6, 10));
+        for sxx := 0 to FBW - 1 do FB[syy * FBW + sxx] := sb;
+      end;
     end;
   end else
     ClearFB(RGB(6, 6, 10));

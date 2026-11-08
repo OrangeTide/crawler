@@ -278,6 +278,11 @@ begin
     writeln(StdErr, 'shot: unknown scene ', scene); halt(2);
   end;
 
+  { any 'poly' argument draws the world view through the polygon renderer
+    instead of the raycaster, to frame the PSX-style rasterizer headlessly }
+  for mi := 2 to ParamCount do
+    if LowerCase(ParamStr(mi)) = 'poly' then UsePoly := true;
+
   GameRender(60);
   DumpPPM(outPath);
   writeln('wrote ', outPath, ' (', scene, ')');

@@ -60,6 +60,10 @@ implementation
 const
   NEAR  = 0.05;
   FOCAL = (FBW / 2) / 0.66;   { matches the raycaster field of view }
+  { PSX vertex snap: project to a coarse screen grid so vertices wobble the way
+    the PlayStation's integer GTE output did. 1 snaps to whole pixels, 2 to
+    half pixels. Shared world corners snap alike, so adjacent faces stay seamed.}
+  VSNAP = 1.0;
 
 type
   TCorner = record
@@ -94,6 +98,10 @@ begin
   if depth <= NEAR then exit;
   c.sx := RasterCX + (side / depth) * FOCAL;
   c.sy := RasterCY - (vup / depth) * FOCAL;
+  if VSNAP > 0 then begin
+    c.sx := round(c.sx * VSNAP) / VSNAP;
+    c.sy := round(c.sy * VSNAP) / VSNAP;
+  end;
   c.iz := 1.0 / depth;
   Project := true;
 end;
@@ -172,7 +180,7 @@ begin
       if litI >= 256 then
         FB[fbo + x] := idx
       else
-        FB[fbo + x] := Quantize(Shade(Palette[idx], litI));
+        FB[fbo + x] := DitherQuant(Shade(Palette[idx], litI), x, y);
     end;
   end;
 end;
@@ -271,7 +279,7 @@ begin
       if litI >= 256 then
         FB[fbo + x] := Quantize(src)
       else
-        FB[fbo + x] := Quantize(Shade(src, litI));
+        FB[fbo + x] := DitherQuant(Shade(src, litI), x, y);
     end;
   end;
 end;
