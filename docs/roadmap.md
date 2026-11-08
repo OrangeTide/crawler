@@ -30,14 +30,16 @@ the six zones in skeleton, rest, traps, poison, options for volume, the seeded
 overworld and biomes, vertical space and the Sunless Depths, and the time,
 day-night, and moon systems with lycanthropy and the light-well puzzles.
 
-Milestone 0.19.0 (the PSX-style polygon renderer) is in progress: the
+Milestone 0.19.0 (the PSX-style polygon renderer) is nearly complete: the
 rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, and
-instanced props all exist. The raycaster is still the default. Monsters and
-NPCs are no longer meshes: they draw as front-facing billboard sprites, in
-combat slots and in the world view, so only the props remain as meshes. Map
-exits (doors, stairs, ladders, cave mouths, shafts) also draw as billboards in
-both renderers, replacing the old coloured floor pads, and surface maps open
-onto a gradient sky instead of a ceiling.
+instanced props all exist, and the polygon renderer is now the default view,
+with the raycaster kept as a P-toggle fallback. It carries the PSX look (vertex
+snap and ordered dither), emissive-tile floor glows, and the 3D props the
+raycaster cannot draw. Monsters and NPCs are front-facing billboard sprites in
+both the combat slots and the world view; map exits draw as floor-anchored
+billboards, replacing the old coloured floor pads; and surface maps open onto a
+gradient sky instead of a ceiling. The one piece left in 0.19.0 is porting the
+rasterizer's hot path to fixed point, which is shared with theme E.
 
 The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
 navigation work: survival systems (light, food, status breadth), options and
@@ -105,9 +107,12 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   theme G kit brings (coffins, crates) sets solid to block. Route planning does
   not yet read solid props, the same blind spot as NPCs and locked doors in
   theme B.
-- [gap] (0.19.0) Reach parity with the raycaster, then make the polygon renderer
-  the default and keep the raycaster as a compile-time fallback. This is the
-  gate that unblocks theme G.
+- [done] Reached parity with the raycaster and made the polygon renderer the
+  default (UsePoly true at startup; P toggles the raycaster, kept as a
+  fallback). A parity sweep across the zones fixed a stale texture cache on
+  tileset swap and billboards sinking into the floor at range, and confirmed the
+  polygon path draws the 3D props the raycaster cannot. This unblocks theme G.
+  The raycaster retires once the sector level format lands.
 - [partial] (0.19.0) Port the rasterizer hot path to fixed point (the camera
   still uses a few floats per frame; see theme E).
 
@@ -364,13 +369,14 @@ value and by what it unblocks. Sizes are rough: S a few days, M a week or two,
 L longer. The sector thread (0.26.0 to 0.28.0) is the one hard dependency chain:
 it needs the polygon renderer promoted to default in 0.19.0.
 
-### 0.19.0 Finish the polygon renderer (M) [in progress]
+### 0.19.0 Finish the polygon renderer (M) [nearly done]
 
-Theme A. Glows in the polygon path, vertex snap and dither, the prop-collision
-decision, then promote the polygon renderer to default with the raycaster as a
-fallback, and port the rasterizer hot path to fixed point. This closes the
-in-progress milestone, makes the target-shaped renderer the one the game runs,
-and is the gate the whole theme G map rework depends on.
+Theme A. Done: glows in the polygon path, vertex snap and ordered dither, the
+prop-collision decision, and the promote to default (parity reached, the
+polygon renderer is the view the game runs, the raycaster is a P-toggle
+fallback). This made the target-shaped renderer the one the game runs and
+opened the theme G map rework. The one piece left is porting the rasterizer hot
+path to fixed point, which overlaps theme E and can finish on that track.
 
 ### 0.20.0 Navigation and AI consolidation (M)
 
@@ -523,17 +529,16 @@ These hold across every milestone and are the reason for the choices above.
 
 ## Recommended next
 
-The whole forward direction now funnels through the polygon renderer, so the
-order is clearer than before:
+The polygon renderer is now the default, so its gate on the rest of the work is
+cleared and the order is:
 
-- Finish 0.19.0 (the polygon renderer) first. It closes the one in-progress
-  milestone, makes the target-shaped renderer the default, and is the hard gate
-  for the theme G map rework. Nothing in the late-90s sector direction can start
-  until it lands.
-- Then the sector thread can open with 0.26.0 (the kit evaluation), which is
-  low-risk and produces the go/no-go that tells us whether the SigilsVault
+- Open the sector thread with 0.26.0 (the kit evaluation), the next real step.
+  It is low-risk and produces the go/no-go that tells us whether the SigilsVault
   modular geometry can reach the PS1. Do this before the format churns in
-  0.27.0.
+  0.27.0. The polygon renderer it builds on is in place.
+- Finish the one piece left in 0.19.0, the rasterizer's fixed-point hot path,
+  on the theme E track whenever the target build is attempted. It no longer
+  blocks anything, since the renderer is already the default.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
