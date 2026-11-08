@@ -15,6 +15,7 @@ program shot;
     shot <out.ppm> menu [TAB]   (0 journal, 1 bestiary, 2 spells)
     shot <out.ppm> castmenu     (a quick battle with the Wizard's spell list open)
     shot <out.ppm> learn        (the level-up learn-a-spell screen for a caster)
+    shot <out.ppm> dialog <ID>  (an NPC dialog, to frame its portrait)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -29,7 +30,8 @@ program shot;
 
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
-  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata;
+  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
+  dialog;
 
 procedure DumpPPM(const fn: string);
 var
@@ -133,6 +135,18 @@ begin
       SetLength(Roster[3].known, 0);
     end;
     State := gsLearnSpell;
+  end
+  else if scene = 'dialog' then begin
+    { a party and a started world, then open the named NPC conversation so its
+      PORT_<ID> portrait is framed in the dialog box. }
+    if ParamCount < 3 then begin
+      writeln(StdErr, 'usage: shot <out.ppm> dialog <ID>'); halt(2);
+    end;
+    QuickStart;
+    DialogStart(UpperCase(ParamStr(3)));
+    dlgId := UpperCase(ParamStr(3));
+    dlgNpcName := UpperCase(ParamStr(3));
+    State := gsDialog;
   end
   else if (scene = 'map') or (scene = 'foe') then begin
     if ParamCount < 6 then begin

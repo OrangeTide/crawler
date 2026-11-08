@@ -54,15 +54,15 @@ the supplemental set.
 NPC dialog portraits
 --------------------
 
-Source: "a portrait pack" and "a portrait pack" by
-a third-party artist (a third-party source).
-License: used by permission for free and commercial projects, modification
-allowed, standalone redistribution and resale not allowed. The full terms
-are in content/portraits/LICENSE.txt. Credit is not required by the license,
-but is given here as the author appreciates it.
+Source: "500 Fantasy Pixel Art Portraits" by Batareya (batareya.itch.io,
+https://batareya.itch.io/500-fantasy-pixel-art-portraits-a-world-of-characters-for-your-projects).
+License: 100 percent free for personal and commercial use, attribution not
+required. The portraits were produced with AI assistance by the author. The
+full terms are in content/portraits/LICENSE.txt. Attribution is given here
+because the author appreciates it.
 
-These are not CC0. They are bundled for use within this game only, not for
-redistribution as a standalone asset pack.
+Six portraits from the pack were scaled to the game's 64x64 format, one per
+interactible NPC.
 
 Spell catalog
 -------------

@@ -1,22 +1,23 @@
 NPC portrait art
 ================
 
-The portrait PNGs in this directory are third-party art by a third-party artist,
-obtained from a third-party source. They are bundled here for use within
-this game, not for standalone redistribution.
+The portrait PNGs in this directory are from "500 Fantasy Pixel Art
+Portraits" by Batareya, obtained from batareya.itch.io:
 
-port_elder, port_barkeep, port_apothecary, port_ranger, port_hunter come
-from the "a portrait pack". port_dockhand comes from the "Old
-Villager Portrait" pack.
+  https://batareya.itch.io/500-fantasy-pixel-art-portraits-a-world-of-characters-for-your-projects
+
+Each file is one portrait from that pack, scaled to the game's 64x64
+format. The pack is numbered; the portraits used here are, by dialog id:
+
+  port_elder       136
+  port_barkeep     459
+  port_apothecary  457
+  port_ranger      454
+  port_hunter      217
+  port_dockhand    208
 
 License terms as provided by the author:
 
-- We want you to have the freedom to use this asset pack in both your free
-  and commercial projects.
-- Feel free to modify the assets to suit your unique needs. While credit is
-  not required, we genuinely appreciate any attribution given.
-- You may not redistribute or resell the assets on their own, that includes
-  NFT/images asset compilations.
-
-Created using a local generative tool for rough concepts, then refined by
-hand for consistency and quality.
+- 100% free for personal and commercial use. Attribution is not required
+  but always appreciated.
+- The portraits were crafted with AI assistance for variety and creativity.
