@@ -345,7 +345,7 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   shared atlas per tileset, UV-mapped per piece and baked once, so a whole
   modular room costs one texture. This is the PS1-friendly path and the kits
   already ship this way, with a plain and a handpainted trim sheet each.
-- [gap] (0.26.0) Per-biome split palette: give each biome or theme its own
+- [gap] (0.32.0) Per-biome split palette: give each biome or theme its own
   palette that spends most of the 256 entries, 128 or 192, on that biome's
   textures so the quantized trim sheets smooth out and stop sharing one generic
   cube, while reserving the remaining band, 64 or 128 entries, for the character
@@ -354,9 +354,10 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   a partial one: the texture band is per biome, the reserved band is fixed. It
   needs the inverse lookup split by band (textures quantize into the texture
   band, sprites and UI index the reserved band) and a per-tileset palette baked
-  alongside the trim sheet. Lands with or just after the trim-sheet item, since
-  it is what makes the per-tileset textures read well. Sprite art may need
-  pre-indexing into the reserved band rather than re-quantizing at load.
+  alongside the trim sheet. Its own milestone after the tileset and sector work,
+  since it is a quality pass over textures that already read correctly. Sprite
+  art may need pre-indexing into the reserved band rather than re-quantizing at
+  load.
 - [gap] (0.26.0) Bake a first modular room: import a hand-placed set of kit
   pieces as instanced meshes in the polygon renderer, drawn over the existing
   grid, to prove the look and the budget before the map format changes. This
@@ -513,6 +514,17 @@ renderer backend seam with the Linux software rasterizer as one backend, and
 confirm every third-party asset license before release. Gated on the sector
 evaluation (0.26.0, which sets whether the modular geometry fits the PS1) and on
 the fixed-point and memory work from earlier milestones.
+
+### 0.32.0 Per-biome split palette (S/M)
+
+Theme G, a texture-quality pass. Split the 256-colour palette per biome: most of
+it, 128 or 192 entries, holds that biome's texture colours so the trim sheets
+smooth out, and the rest stays reserved for the character sprites and the UI so
+they hold steady across biomes. This turns the full-screen `gfx.UsePalette` swap
+into a partial one, splits the inverse lookup by band, and bakes a palette with
+each tileset. It is a refinement, not a gate: it comes after the tilesets
+(0.26.0) and the sector biomes (0.27.0) are real and reading correctly, and it
+sharpens how the kit textures look on the PS1 target (0.31.0).
 
 ### Parallel track: the hardware push (theme E)
 
