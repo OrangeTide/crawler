@@ -147,7 +147,7 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   elements thematically (acid, force and poison fall back to physical). Combat
   is not wired to the catalog yet. Covered by t_spells. Provenance is in
   CREDITS. This is the foundation for the caster-class work below.
-- [partial] Give the caster classes their domains, schools, and known spells.
+- [done] Give the caster classes their domains, schools, and known spells.
   Each class now names a spell domain in classes.txt (cleric, druid, magicuser
   or none), carried on the class record as a byte and read with ClassDomain.
   The priest-track classes draw from the Cleric list, the mage-track from the
@@ -170,8 +170,12 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   sub-domain of the Magic-User list: every arcane spell names one of the eight
   schools, and a specialist mage (eight of them ship) focuses on one, barred
   from its opposition schools but for Lesser Divination, knowing one extra
-  spell and casting its school at a steeper save. Still open: casting from
-  exploration.
+  spell and casting its school at a steeper save. Casters also cast out of
+  combat from the SPELLS tab: heals and status cures on a chosen member, and
+  party-wide light, read-magic and sense-the-area utility, each spell carrying
+  an optional field line in spells.txt. With that, spell points became a
+  persistent pool: combat no longer refills them at the start of a fight, and
+  rest restores them, so a caster depletes across a delve.
 - [gap] Port the remaining hardcoded party and class data to content files.
   Against the data-driven rule, a few designer-tunable tables still live in
   Pascal literals: the quick-start / pregen party (its classes, names, and
@@ -409,11 +413,12 @@ If the recent AI thread is the live interest, 0.20.0 has the most momentum and
 the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is the
 one unfinished milestone on the books.
 
-A third thread is well along in theme C. The axx-rpg spell list is imported
-into content/spells.txt, each caster class names its spell domain in
-classes.txt, a SPELLS tab lists a caster's domain, and combat now casts from
-the catalog: a caster's menu is its domain, gated by level and spell points.
-A signature few spells per domain carry thematic combat stats so far. What
-remains is statting more of the combat-shaped spells, narrowing the domains
-into schools and known-or-prepared subsets, and casting from exploration. This
-leans on the data-driven content pipeline and depends on neither open milestone.
+The caster thread in theme C is essentially complete. The axx-rpg spell list is
+imported into content/spells.txt, each caster class names its spell domain in
+classes.txt, specialist mages split the arcane list into schools, a SPELLS tab
+lists a caster's learned spells, and casting works both in combat (a caster's
+menu is its castable domain, gated by level and a now-persistent spell-point
+pool) and out of it (heals, cures, and utility from the SPELLS tab). What is
+left is optional depth: statting more of the combat-shaped spells, and a
+prepared-spell subset on top of the known list. This leans on the data-driven
+content pipeline and depends on neither open milestone.

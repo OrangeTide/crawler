@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Casting outside combat. From the SPELLS tab a caster can now work a spell's
+  out-of-combat effect while exploring: heal and raise a hurt member, lift
+  poison, disease and curses, refuel the party light, read the magic on carried
+  loot, and sense the ground around the party. A spell declares its field effect
+  with a field line in spells.txt; an ally heal is a field heal already. With
+  this, spell points became a persistent pool: a fight no longer refills them,
+  and rest restores them, so a caster spends down across a delve.
 - Spell icons across the rest of the spell screens, and the party face in
   combat. The per-spell icons now draw on the SPELLS tab, the learn-a-spell
   screen, and the combat cast menu, not only the character sheet. Each party

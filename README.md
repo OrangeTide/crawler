@@ -88,7 +88,10 @@ spells and bows strike over them.
   levels, on a learn screen, and the choices are kept in the save. A spells tab
   on the meta screen lists a caster's known spells by level with each one's
   full effect. In combat its spell menu is the learned, reachable spells, gated
-  by level and spell points.
+  by level and spell points. Out of combat the SPELLS tab casts too: heals and
+  status cures on a chosen member, and party-wide light, read-magic, and
+  sense-the-area utility. Spell points are a pool restored by rest, so a caster
+  spends down across a delve rather than refilling each fight.
 - Arcane schools for the Magic-User list. Each arcane spell belongs to one of
   the eight schools, and a specialist mage (Abjurer, Conjurer, Diviner,
   Enchanter, Invoker, Illusionist, Necronimus, Transmuter) focuses on one:
