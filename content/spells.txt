@@ -1,10 +1,14 @@
 # Spell catalog, imported from the axx-rpg lists. One block per
 # spell. See spelltext.pas for the format:
-#   spell ID "Name" DOMAIN LEVEL SAVE DTYPE
+#   spell ID "Name" DOMAIN LEVEL SAVE DTYPE [SCHOOL]
 #     "the effect prose, which is the real behaviour"
 #     comp "material components"   (optional)
 # DOMAIN cleric|druid|magicuser  SAVE none|body|dodge|will
 # DTYPE  none|acid|cold|fire|force|lightning|poison  (thematic element)
+# SCHOOL arcane school, Magic-User only (omit on cleric and druid):
+#   abjuration|conjuration|divination|enchantment|evocation|
+#   illusion|necromancy|transmutation
+#   A specialist mage is barred from its school's opposition schools.
 
 spell C_BLESS "Bless" cleric 1 none none
   "+1 to the party's attacks and saves for one fight."
@@ -98,160 +102,160 @@ spell C_PRAYER "Prayer" cleric 3 none none
 spell C_REMOVECURSE "Remove Curse" cleric 3 none none
   "Ends one curse, Charmed, or a cursed item's grip. Reverses to Bestow Curse."
 
-spell M_BURNINGHANDS "Burning Hands" magicuser 1 dodge fire
+spell M_BURNINGHANDS "Burning Hands" magicuser 1 dodge fire evocation
   "A fan of flame: 1d3 per Level in a 10 ft cone, Dodge save for half."
   cast 1 rank damage 1d6
 
-spell M_CHARMPERSON "Charm Person" magicuser 1 will none
+spell M_CHARMPERSON "Charm Person" magicuser 1 will none enchantment
   "Will save or Charmed."
 
-spell M_COMPREHENDLANG "Comprehend Languages" magicuser 1 none none
+spell M_COMPREHENDLANG "Comprehend Languages" magicuser 1 none none divination
   "Read or understand one unknown tongue or script for 6 turns."
   comp "a pinch of soot and salt"
 
-spell M_DETECTMAGIC "Detect Magic" magicuser 1 none none
+spell M_DETECTMAGIC "Detect Magic" magicuser 1 none none divination
   "Sense magic within 30 ft for 6 turns."
 
-spell M_ENLARGE "Enlarge" magicuser 1 body none
+spell M_ENLARGE "Enlarge" magicuser 1 body none transmutation
   "Grow a creature half again, +1 damage and a step of STR, or shrink it (Body save). One fight."
 
-spell M_FEATHERFALL "Feather Fall" magicuser 1 none none
+spell M_FEATHERFALL "Feather Fall" magicuser 1 none none transmutation
   "You and those near you drift safely down from any fall for a round."
 
-spell M_FINDFAMILIAR "Find Familiar" magicuser 1 none none
+spell M_FINDFAMILIAR "Find Familiar" magicuser 1 none none conjuration
   "Call a small animal bound to you: it shares your senses and lends 1 HP per Level, but its death wounds you."
   comp "incense and rare herbs worth 25 GP, burned"
 
-spell M_HOLDPORTAL "Hold Portal" magicuser 1 none none
+spell M_HOLDPORTAL "Hold Portal" magicuser 1 none none transmutation
   "A door stays shut for 6 turns."
 
-spell M_LIGHT "Light" magicuser 1 none none
+spell M_LIGHT "Light" magicuser 1 none none transmutation
   "30 ft of light for 6 turns."
 
-spell M_MAGICMISSILE "Magic Missile" magicuser 1 none force
+spell M_MAGICMISSILE "Magic Missile" magicuser 1 none force evocation
   "1d4+1 damage, never misses. One more dart at Levels 3 and 5."
   cast 1 enemy damage 1d4
 
-spell M_READMAGIC "Read Magic" magicuser 1 none none
+spell M_READMAGIC "Read Magic" magicuser 1 none none divination
   "Decipher arcane script and scrolls so you can cast or copy them."
 
-spell M_SHIELD "Shield" magicuser 1 none none
+spell M_SHIELD "Shield" magicuser 1 none none abjuration
   "+4 AC for one fight."
 
-spell M_SHOCKINGGRASP "Shocking Grasp" magicuser 1 none lightning
+spell M_SHOCKINGGRASP "Shocking Grasp" magicuser 1 none lightning evocation
   "Your next touch this round delivers 1d8 plus your Level in lightning."
   cast 1 enemy damage 1d8
 
-spell M_SLEEP "Sleep" magicuser 1 none none
+spell M_SLEEP "Sleep" magicuser 1 none none enchantment
   "2d4 HD of creatures of 4 HD or less fall Asleep, no save."
   cast 1 rank damage 0d0 inflict paral
   comp "a pinch of fine sand"
 
-spell M_SPIDERCLIMB "Spider Climb" magicuser 1 none none
+spell M_SPIDERCLIMB "Spider Climb" magicuser 1 none none transmutation
   "Climb walls and ceilings like a spider for 6 turns."
 
-spell M_UNSEENSERVANT "Unseen Servant" magicuser 1 none none
+spell M_UNSEENSERVANT "Unseen Servant" magicuser 1 none none conjuration
   "An invisible force fetches, carries, and does simple tasks for an hour."
 
-spell M_CONTINUALLIGHT "Continual Light" magicuser 2 body none
+spell M_CONTINUALLIGHT "Continual Light" magicuser 2 body none transmutation
   "A permanent bright light, or blind a creature (Body save)."
   comp "a firefly or a pinch of phosphorus"
 
-spell M_DARKNESS15FT "Darkness 15 ft" magicuser 2 none none
+spell M_DARKNESS15FT "Darkness 15 ft" magicuser 2 none none transmutation
   "A 15 ft globe of dark that no sight in the dark pierces, 6 turns."
 
-spell M_DETECTINVISIBI "Detect Invisibility" magicuser 2 none none
+spell M_DETECTINVISIBI "Detect Invisibility" magicuser 2 none none divination
   "See invisible, hidden, and phased things within 30 ft for 6 turns."
 
-spell M_ESP "ESP" magicuser 2 will none
+spell M_ESP "ESP" magicuser 2 will none divination
   "Hear the surface thoughts of creatures within 60 ft (Will save to shield a mind)."
 
-spell M_FORGET "Forget" magicuser 2 will none
+spell M_FORGET "Forget" magicuser 2 will none enchantment
   "Up to four creatures forget the last few minutes (Will save)."
 
-spell M_INVISIBILITY "Invisibility" magicuser 2 none none
+spell M_INVISIBILITY "Invisibility" magicuser 2 none none illusion
   "Unseen until you attack or cast."
 
-spell M_KNOCK "Knock" magicuser 2 none none
+spell M_KNOCK "Knock" magicuser 2 none none transmutation
   "Opens one lock or stuck door."
 
-spell M_LEVITATE "Levitate" magicuser 2 none none
+spell M_LEVITATE "Levitate" magicuser 2 none none transmutation
   "Rise and sink in the air by will for 6 turns. No sideways push."
 
-spell M_MIRRORIMAGE "Mirror Image" magicuser 2 none none
+spell M_MIRRORIMAGE "Mirror Image" magicuser 2 none none illusion
   "1d4 copies of you, each absorbing one hit meant for you."
 
-spell M_RAYOFENFEEBLEM "Ray of Enfeeblement" magicuser 2 body none
+spell M_RAYOFENFEEBLEM "Ray of Enfeeblement" magicuser 2 body none necromancy
   "A ray saps a target: -2 to its attacks and damage (Body save), one fight."
   cast 2 enemy damage 0d0 inflict offbal
 
-spell M_SCARE "Scare" magicuser 2 will none
+spell M_SCARE "Scare" magicuser 2 will none necromancy
   "A target of 4 HD or less is Frightened (Will save)."
   cast 2 enemy damage 0d0 inflict fear
 
-spell M_STINKINGCLOUD "Stinking Cloud" magicuser 2 body none
+spell M_STINKINGCLOUD "Stinking Cloud" magicuser 2 body none evocation
   "A 20 ft cloud: Body save or retch helplessly for 1d4 rounds."
   cast 2 rank damage 0d0 inflict stun
 
-spell M_STRENGTH "Strength" magicuser 2 none none
+spell M_STRENGTH "Strength" magicuser 2 none none transmutation
   "An ally gains a step of STR, +1 to attack and damage, for one fight."
 
-spell M_WEB "Web" magicuser 2 dodge none
+spell M_WEB "Web" magicuser 2 dodge none conjuration
   "20 ft, Dodge save or stuck 1d4 rounds. Burns away in a round."
   cast 2 rank damage 0d0 inflict paral
 
-spell M_BLINK "Blink" magicuser 3 none none
+spell M_BLINK "Blink" magicuser 3 none none transmutation
   "You flicker out and in: attacks against you at -2, and you may step 10 ft each round."
 
-spell M_CLAIRVOYANCE "Clairvoyance" magicuser 3 none none
+spell M_CLAIRVOYANCE "Clairvoyance" magicuser 3 none none divination
   "See a known or nearby place at a distance for 6 turns."
 
-spell M_DISPELMAGIC "Dispel Magic" magicuser 3 none none
+spell M_DISPELMAGIC "Dispel Magic" magicuser 3 none none abjuration
   "Ends ongoing spells up to your Level in a 20 ft area."
 
-spell M_FIREBALL "Fireball" magicuser 3 dodge fire
+spell M_FIREBALL "Fireball" magicuser 3 dodge fire evocation
   "5d6 in a 20 ft burst, Dodge save for half."
   cast 3 rank damage 3d6
   comp "a pinch of bat guano and sulfur"
 
-spell M_FLAMEARROW "Flame Arrow" magicuser 3 none fire
+spell M_FLAMEARROW "Flame Arrow" magicuser 3 none fire evocation
   "Touched arrows or bolts burn for +1d6 fire, one per Level, one fight."
 
-spell M_FLY "Fly" magicuser 3 none none
+spell M_FLY "Fly" magicuser 3 none none transmutation
   "You fly for 6 turns."
 
-spell M_GUSTOFWIND "Gust of Wind" magicuser 3 none none
+spell M_GUSTOFWIND "Gust of Wind" magicuser 3 none none transmutation
   "A blast of wind scatters missiles, clouds, and small flyers in a line."
 
-spell M_HASTE "Haste" magicuser 3 none none
+spell M_HASTE "Haste" magicuser 3 none none transmutation
   "Up to one creature per Level acts twice or moves double, one fight."
 
-spell M_HOLDPERSON "Hold Person" magicuser 3 body none
+spell M_HOLDPERSON "Hold Person" magicuser 3 body none enchantment
   "Up to four people, Body save or Paralyzed 1d4 rounds."
   cast 3 rank damage 0d0 inflict paral
 
-spell M_INVISIBILITY10 "Invisibility 10 ft" magicuser 3 none none
+spell M_INVISIBILITY10 "Invisibility 10 ft" magicuser 3 none none illusion
   "You and all within 10 ft turn invisible until one attacks or casts."
 
-spell M_LIGHTNINGBOLT "Lightning Bolt" magicuser 3 dodge lightning
+spell M_LIGHTNINGBOLT "Lightning Bolt" magicuser 3 dodge lightning evocation
   "5d6 in a 60 ft line, Dodge save for half."
   cast 3 rank damage 3d6
   comp "a scrap of fur and a glass rod"
 
-spell M_PHANTASMALFORC "Phantasmal Force" magicuser 3 will none
+spell M_PHANTASMALFORC "Phantasmal Force" magicuser 3 will none illusion
   "A silent illusion up to a 20 ft cube. A viewer who disbelieves sees through it (Will save)."
 
-spell M_PROTECTIONFROM "Protection from Normal Missiles" magicuser 3 none none
+spell M_PROTECTIONFROM "Protection from Normal Missiles" magicuser 3 none none abjuration
   "Nonmagical arrows, bolts, and stones cannot hit you for one fight."
 
-spell M_SLOW "Slow" magicuser 3 dodge none
+spell M_SLOW "Slow" magicuser 3 dodge none transmutation
   "Up to one creature per Level acts at half (Dodge save), one fight. Undoes Haste."
   cast 3 rank damage 0d0 inflict slow
 
-spell M_SUGGESTION "Suggestion" magicuser 3 will none
+spell M_SUGGESTION "Suggestion" magicuser 3 will none enchantment
   "A reasonable command the target follows (Will save) until done or the day ends."
 
-spell M_WATERBREATHING "Water Breathing" magicuser 3 none none
+spell M_WATERBREATHING "Water Breathing" magicuser 3 none none transmutation
   "You and those near you breathe water for a day."
   comp "a short hollow reed"
 
@@ -398,32 +402,32 @@ spell C_GLYPHOFWARDING "Glyph of Warding" cleric 3 dodge none
 spell C_WATERWALK "Water Walk" cleric 3 none none
   "Up to one creature per Level stride across water, mud, or snow as on firm ground for 6 turns."
 
-spell M_COLORSPRAY "Color Spray" magicuser 1 will none
+spell M_COLORSPRAY "Color Spray" magicuser 1 will none illusion
   "A fan of clashing color: creatures of 5 HD or less in a 15 ft cone are Blinded 1d4 rounds, Will save negates. The weakest may fall Asleep at the GM's call."
   cast 1 rank damage 0d0 inflict stun
 
-spell M_GREASE "Grease" magicuser 1 dodge none
+spell M_GREASE "Grease" magicuser 1 dodge none conjuration
   "A 10 ft patch turns slick, or one held item greasy. A creature caught there saves Dodge or falls prone; a greased grip drops what it holds."
 
-spell M_IDENTIFY "Identify" magicuser 1 none none
+spell M_IDENTIFY "Identify" magicuser 1 none none divination
   "Learn one property of a magic item handled for a turn. Taxing: you cast at -1 to saves until you have slept."
   comp "a pearl worth 100 GP, consumed"
 
-spell M_ACIDARROW "Acid Arrow" magicuser 2 none acid
+spell M_ACIDARROW "Acid Arrow" magicuser 2 none acid conjuration
   "A dart of acid strikes at range for 2d4, and again for 2d4 at the start of the next round, one more round per three Levels."
   cast 2 enemy damage 2d4
   comp "powdered rhubarb and an adder's stomach"
 
-spell M_FOGCLOUD "Fog Cloud" magicuser 2 none none
+spell M_FOGCLOUD "Fog Cloud" magicuser 2 none none transmutation
   "A bank of thick fog fills a Near space for 6 turns. Past 5 ft, sight and missiles fail. A strong wind scatters it."
 
-spell M_SHATTER "Shatter" magicuser 2 body none
+spell M_SHATTER "Shatter" magicuser 2 body none transmutation
   "A ringing note shivers brittle, nonliving matter near a point: glass, crockery, crystal, a light weapon. A held or magic item saves Body."
 
-spell M_VAMPIRICTOUCH "Vampiric Touch" magicuser 3 none none
+spell M_VAMPIRICTOUCH "Vampiric Touch" magicuser 3 none none necromancy
   "Your touch deals 1d6 per two Levels and heals you that much. The stolen HP fade at next dawn."
 
-spell M_MONSTERSUMMONI "Monster Summoning I" magicuser 3 none none
+spell M_MONSTERSUMMONI "Monster Summoning I" magicuser 3 none none conjuration
   "Call 1d3 small monsters of about 2 HD to fight for you for one fight. The GM sets what answers."
 
 spell D_DETECTMAGIC "Detect Magic" druid 1 none none
@@ -433,71 +437,71 @@ spell D_FLAMEBLADE "Flame Blade" druid 2 none fire
   "A blade of fire springs from your hand for 6 turns. It strikes at your attack bonus for 1d4 plus half your Level in fire, and lights tinder."
   cast 2 enemy damage 1d4
 
-spell M_ICESTORM "Ice Storm" magicuser 4 dodge cold
+spell M_ICESTORM "Ice Storm" magicuser 4 dodge cold evocation
   "Hail and sleet batter a 20 ft space for 6d6 cold, Dodge for half, and leave the ground slick and the footing treacherous for one fight."
   cast 4 rank damage 4d6
 
-spell M_WALLOFFIRE "Wall of Fire" magicuser 4 none fire
+spell M_WALLOFFIRE "Wall of Fire" magicuser 4 none fire evocation
   "A sheet of flame up to 40 ft long, or a ring, stands for one fight. Crossing it is 2d6 fire; undead and the cold-born take double. One face burns, your choice."
   cast 4 rank damage 2d6
 
-spell M_DIMENSIONDOOR "Dimension Door" magicuser 4 none none
+spell M_DIMENSIONDOOR "Dimension Door" magicuser 4 none none transmutation
   "Step at once to any spot you can see or clearly picture within 400 ft. You arrive ready to act."
 
-spell M_POLYMORPH "Polymorph" magicuser 4 body none
+spell M_POLYMORPH "Polymorph" magicuser 4 body none transmutation
   "Take the shape of a beast you have seen, up to your own Hit Dice, with its movement and attacks but not its mind. One fight, or until slain in that form. Forced on another, Body save negates."
 
-spell M_CONFUSION "Confusion" magicuser 4 will none
+spell M_CONFUSION "Confusion" magicuser 4 will none enchantment
   "Up to 1d4 creatures plus one per three Levels in a Near space act at random each round, a Will save each round to shake it. One fight."
   cast 4 rank damage 0d0 inflict stun
 
-spell M_FEAR "Fear" magicuser 4 will none
+spell M_FEAR "Fear" magicuser 4 will none necromancy
   "All in a 30 ft cone flee as fast as they can for 1d4 rounds, Will save negates. Some drop what they hold."
   cast 4 rank damage 0d0 inflict fear
 
-spell M_STONESKIN "Stoneskin" magicuser 4 none none
+spell M_STONESKIN "Stoneskin" magicuser 4 none none transmutation
   "Your skin turns stone-hard. Shrug off the next 1d4 plus one per two Levels weapon blows before the ward is spent."
 
-spell M_CHARMMONSTER "Charm Monster" magicuser 4 will none
+spell M_CHARMMONSTER "Charm Monster" magicuser 4 will none enchantment
   "One creature, or several weak ones, take you for a trusted friend, Will save negates. It lasts until you harm them or, for the mighty, a stretch of days the GM sets."
 
-spell M_CONEOFCOLD "Cone of Cold" magicuser 5 dodge cold
+spell M_CONEOFCOLD "Cone of Cold" magicuser 5 dodge cold evocation
   "A blast of killing cold in a 60 ft cone, 8d6, Dodge for half."
   cast 5 rank damage 5d6
   comp "a crystal or glass cone"
 
-spell M_CLOUDKILL "Cloudkill" magicuser 5 body poison
+spell M_CLOUDKILL "Cloudkill" magicuser 5 body poison evocation
   "A roiling green fog drifts away from you for one fight. Creatures of 4 HD or less within die; stronger ones take 1d10 a round and must flee, Body save for half and to move freely. It sinks and fills low ground."
   cast 5 rank damage 2d6 inflict fear
 
-spell M_TELEPORT "Teleport" magicuser 5 none none
+spell M_TELEPORT "Teleport" magicuser 5 none none transmutation
   "You and up to one other per two Levels vanish and arrive at a place you know well, a mile off or a hundred. A place known only in passing risks arriving off the mark, high, or low, at the GM's call."
 
-spell M_HOLDMONSTER "Hold Monster" magicuser 5 body none
+spell M_HOLDMONSTER "Hold Monster" magicuser 5 body none enchantment
   "Up to 1d4 creatures of any kind freeze in place, Body save negates; the held are Paralyzed 1d4 rounds."
   cast 5 rank damage 0d0 inflict paral
 
-spell M_WALLOFSTONE "Wall of Stone" magicuser 5 none none
+spell M_WALLOFSTONE "Wall of Stone" magicuser 5 none none transmutation
   "Raise a wall of solid stone, a span across and up to a foot thick per two Levels. It must rest on something able to bear it. Permanent until broken."
 
-spell M_PASSWALL "Passwall" magicuser 5 none none
+spell M_PASSWALL "Passwall" magicuser 5 none none transmutation
   "Open a passage through up to 10 ft of ordinary wall or rock for 6 turns, then it seals. Any caught in it as it closes is forced to the nearer side."
 
-spell M_DISINTEGRATE "Disintegrate" magicuser 6 body none
+spell M_DISINTEGRATE "Disintegrate" magicuser 6 body none transmutation
   "A thin green ray reduces a creature or a wagon-sized span of matter to fine dust, Body save negates. Wards turn it, and it fails against a wall of force."
   cast 6 enemy damage 8d6
   comp "a lodestone and a pinch of dust"
 
-spell M_CHAINLIGHTNING "Chain Lightning" magicuser 6 dodge lightning
+spell M_CHAINLIGHTNING "Chain Lightning" magicuser 6 dodge lightning evocation
   "A bolt strikes one target for 10d6, then leaps to the next nearest and the next, one arc per Level, each at half the last. Dodge for half."
   cast 6 rank damage 6d6
 
-spell M_FLESHTOSTONE "Flesh to Stone" magicuser 6 body none
+spell M_FLESHTOSTONE "Flesh to Stone" magicuser 6 body none transmutation
   "A creature turns to lifeless stone, Body save negates. Petrified is permanent short of the reverse or a like cure. Reverses to Stone to Flesh, which frees one so turned."
   cast 6 enemy damage 0d0 inflict paral
   comp "lime, water, and earth"
 
-spell M_GLOBEOFINVULNE "Globe of Invulnerability" magicuser 6 none none
+spell M_GLOBEOFINVULNE "Globe of Invulnerability" magicuser 6 none none abjuration
   "A shimmering globe about you turns aside every spell of 3rd level and lower for one fight. Higher spells pass through."
 
 spell C_CURECRITICALWO "Cure Critical Wounds" cleric 4 none none

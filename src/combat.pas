@@ -25,8 +25,8 @@ unit combat;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata, encounters, codex,
-  combatstate, combatcore, combatai;
+  sysutils, rng, rules, items, monsters, party, chardata, spelldb, encounters,
+  codex, combatstate, combatcore, combatai;
 
 { Start a fight at a dungeon depth. tableNum selects the weighted encounter
   table to draw foes from; an empty or unknown table draws from every
@@ -654,7 +654,7 @@ end;
 procedure ActCast(spellIdx, target: longint);
 var
   sp: TSpell;
-  amt, m, i, rk: longint;
+  amt, m, i, rk, edge: longint;
 begin
   if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
   if not ActorCanCast(CurActor, spellIdx) then begin
@@ -664,6 +664,10 @@ begin
   sp := SpellInfo(spellIdx);
   dec(Roster[CurActor].sp, sp.cost);
   m := CasterMod(CurActor);
+  { a specialist casting in its favored school presses the save harder }
+  edge := 0;
+  if (sp.school <> SCH_NONE)
+    and (ClassSchool(Roster[CurActor].klass) = sp.school) then edge := 1;
 
   case sp.mode of
     TGT_ENEMY: begin
@@ -673,7 +677,7 @@ begin
       CombatLog(Roster[CurActor].name + ' casts ' + sp.name + '.');
       DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
       if Foes[target].alive and (sp.inflict <> 0) then
-        AfflictFoe(target, sp.inflict, 3);
+        AfflictFoe(target, sp.inflict, 3, edge);
     end;
     TGT_ENEMY_RANK: begin
       if (target < 0) or (target > High(Foes)) or (not Foes[target].alive) then
@@ -685,7 +689,7 @@ begin
         if Foes[i].alive and (Foes[i].rank = rk) then begin
           DamageFoe(i, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
           if Foes[i].alive and (sp.inflict <> 0) then
-            AfflictFoe(i, sp.inflict, 3);
+            AfflictFoe(i, sp.inflict, 3, edge);
         end;
     end;
     TGT_ALLY: begin

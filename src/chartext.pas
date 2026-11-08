@@ -73,6 +73,20 @@ begin
   else DomainCode := -1;
 end;
 
+function SchoolCode(const s: string): longint;
+begin
+  if s = 'none' then SchoolCode := SCH_NONE
+  else if s = 'abjuration' then SchoolCode := SCH_ABJUR
+  else if s = 'conjuration' then SchoolCode := SCH_CONJ
+  else if s = 'divination' then SchoolCode := SCH_DIVIN
+  else if s = 'enchantment' then SchoolCode := SCH_ENCHANT
+  else if s = 'evocation' then SchoolCode := SCH_EVOKE
+  else if s = 'illusion' then SchoolCode := SCH_ILLUS
+  else if s = 'necromancy' then SchoolCode := SCH_NECRO
+  else if s = 'transmutation' then SchoolCode := SCH_TRANS
+  else SchoolCode := -1;
+end;
+
 function KitCode(const s: string): longint;
 begin
   if s = 'soldier' then KitCode := KIT_SOLDIER
@@ -138,7 +152,7 @@ function ParseClasses(const fn: string; out defs: array of TClassDef;
   out count: longint; out err: string): boolean;
 var
   lines: TStringList;
-  li, n, tc, pc, kc, dc: longint;
+  li, n, tc, pc, kc, dc, sc: longint;
   tok: array[0 .. 15] of string;
   line: string;
   d: TClassDef;
@@ -164,6 +178,11 @@ begin
       if dc < 0 then begin
         err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[7]; exit;
       end;
+      { school is optional: an eighth column, defaulting to none }
+      if n >= 9 then sc := SchoolCode(tok[8]) else sc := SCH_NONE;
+      if sc < 0 then begin
+        err := 'line ' + IntToStr(li + 1) + ': bad school ' + tok[8]; exit;
+      end;
       d.id := tok[1];
       d.name := tok[2];
       d.track := tc;
@@ -171,6 +190,7 @@ begin
       d.prime := pc;
       d.kit := kc;
       d.domain := dc;
+      d.school := sc;
       if count > High(defs) then begin err := 'too many classes'; exit; end;
       defs[count] := d; inc(count);
     end;

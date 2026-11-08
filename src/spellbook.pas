@@ -19,6 +19,11 @@ uses party, chardata, spelldb;
 function MaxSpellLevel(const c: TCharacter): longint;
 { True when the character's class draws from a spell domain. }
 function CharIsCaster(const c: TCharacter): boolean;
+{ Whether a caster may learn or cast a catalog spell. A specialist mage is
+  barred from its school's opposition schools, except Lesser Divination (any
+  divination spell of level 4 or lower), which every mage keeps. Generalists
+  and non-arcane casters allow everything in their domain. }
+function SpellAllowed(const c: TCharacter; cat: longint): boolean;
 { How many spells a caster of this level is meant to know. }
 function SpellsKnownTarget(const c: TCharacter): longint;
 { Whether the character already knows a spell, by catalog id or index. }
@@ -55,10 +60,26 @@ begin
   CharIsCaster := ClassDomain(c.klass) <> SPD_NONE;
 end;
 
+function SpellAllowed(const c: TCharacter; cat: longint): boolean;
+var fav: byte;
+begin
+  SpellAllowed := false;
+  if (cat < 0) or (cat >= SpellDefCount) then exit;
+  SpellAllowed := true;
+  if SpellDefs[cat].domain <> SPD_MAGE then exit;   { schools gate arcane only }
+  fav := ClassSchool(c.klass);
+  if fav = SCH_NONE then exit;                       { a generalist draws all }
+  { Lesser Divination stays open to every mage }
+  if (SpellDefs[cat].school = SCH_DIVIN) and (SpellDefs[cat].level <= 4) then exit;
+  if SchoolOpposes(fav, SpellDefs[cat].school) then SpellAllowed := false;
+end;
+
 function SpellsKnownTarget(const c: TCharacter): longint;
 begin
   { one spell at creation plus one for each level gained }
   SpellsKnownTarget := c.level + 1;
+  { a specialist mage knows one extra for its focus }
+  if ClassSchool(c.klass) <> SCH_NONE then inc(SpellsKnownTarget);
 end;
 
 function CharKnowsID(const c: TCharacter; const id: string): boolean;
@@ -95,7 +116,7 @@ begin
   lvl := MaxSpellLevel(c);
   for i := 0 to SpellDefCount - 1 do
     if (SpellDefs[i].domain = dom) and (SpellDefs[i].level <= lvl)
-      and not CharKnows(c, i) then begin
+      and SpellAllowed(c, i) and not CharKnows(c, i) then begin
       if cnt > High(arr) then break;
       arr[cnt] := i;
       inc(cnt);

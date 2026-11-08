@@ -53,6 +53,7 @@ type
     prime: byte;          { ability ordinal 0..5 }
     kit: byte;
     domain: byte;         { spell domain: spelldb SPD_*, 255 (SPD_NONE) if none }
+    school: byte;         { favored arcane school: spelldb SCH_*, 255 none }
   end;
 
   TBackgroundDef = record
@@ -75,6 +76,8 @@ function ClassIndex(const id: string): longint;
 function SpeciesIndex(const id: string): longint;
 { The spell domain a class draws from (spelldb SPD_*), or 255 (SPD_NONE). }
 function ClassDomain(idx: longint): byte;
+{ The favored arcane school of a class (spelldb SCH_*), or 255 for none. }
+function ClassSchool(idx: longint): byte;
 
 implementation
 
@@ -132,6 +135,7 @@ begin
     PutB(a, n, defs[i].prime);
     PutB(a, n, defs[i].kit);
     PutB(a, n, defs[i].domain);
+    PutB(a, n, defs[i].school);
   end;
   SetLength(a, n);
   EncodeClasses := a;
@@ -209,6 +213,7 @@ begin
     ClassDefs[i].prime := blob[pos]; inc(pos);
     ClassDefs[i].kit := blob[pos]; inc(pos);
     ClassDefs[i].domain := blob[pos]; inc(pos);
+    ClassDefs[i].school := blob[pos]; inc(pos);
   end;
   LoadClasses := true;
 end;
@@ -254,6 +259,12 @@ function ClassDomain(idx: longint): byte;
 begin
   if (idx < 0) or (idx > High(ClassDefs)) then ClassDomain := 255
   else ClassDomain := ClassDefs[idx].domain;
+end;
+
+function ClassSchool(idx: longint): byte;
+begin
+  if (idx < 0) or (idx > High(ClassDefs)) then ClassSchool := 255
+  else ClassSchool := ClassDefs[idx].school;
 end;
 
 end.

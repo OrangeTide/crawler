@@ -39,6 +39,18 @@ const
   SSV_DODGE = 2;
   SSV_WILL  = 3;
 
+  { arcane schools: only Magic-User spells carry one, the rest stay SCH_NONE.
+    The order is fixed; the codec and the parser depend on it. }
+  SCH_ABJUR   = 0;   { abjuration: protection and warding }
+  SCH_CONJ    = 1;   { conjuration and summoning }
+  SCH_DIVIN   = 2;   { divination: knowledge and foresight }
+  SCH_ENCHANT = 3;   { enchantment and charm: minds }
+  SCH_EVOKE   = 4;   { evocation and invocation: raw energy }
+  SCH_ILLUS   = 5;   { illusion and phantasm: deception }
+  SCH_NECRO   = 6;   { necromancy: life force and undeath }
+  SCH_TRANS   = 7;   { transmutation (AD&D Alteration): change }
+  SCH_NONE    = 255; { not an arcane school spell }
+
   { source damage types (faithful to axx-rpg) }
   SDT_NONE      = 0;
   SDT_ACID      = 1;
@@ -78,6 +90,7 @@ type
     castDice: byte;
     castSides: byte;
     castInflict: byte;  { a monsters ST_* a damaging hit may lay, 0 = none }
+    school: byte;       { SCH_*, SCH_NONE for cleric, druid and untagged }
   end;
 
 var
@@ -97,6 +110,10 @@ function SpellElement(dtype: byte): byte;
 function DomainName(d: byte): string;
 function SaveName(s: byte): string;
 function DTypeName(d: byte): string;
+function SchoolName(s: byte): string;
+{ Whether a specialist of the favored school is barred from the other school
+  (its AD&D opposition). A school never opposes itself. }
+function SchoolOpposes(favored, other: byte): boolean;
 
 implementation
 
@@ -152,6 +169,7 @@ begin
     PutB(a, n, ss[si].castDice);
     PutB(a, n, ss[si].castSides);
     PutB(a, n, ss[si].castInflict);
+    PutB(a, n, ss[si].school);
   end;
   SetLength(a, n);
   EncodeSpells := a;
@@ -217,6 +235,7 @@ begin
     SpellDefs[si].castDice := RB;
     SpellDefs[si].castSides := RB;
     SpellDefs[si].castInflict := RB;
+    SpellDefs[si].school := RB;
   end;
   LoadSpells := true;
 end;
@@ -301,6 +320,44 @@ begin
   else
     DTypeName := 'none';
   end;
+end;
+
+function SchoolName(s: byte): string;
+begin
+  case s of
+    SCH_ABJUR:   SchoolName := 'abjuration';
+    SCH_CONJ:    SchoolName := 'conjuration';
+    SCH_DIVIN:   SchoolName := 'divination';
+    SCH_ENCHANT: SchoolName := 'enchantment';
+    SCH_EVOKE:   SchoolName := 'evocation';
+    SCH_ILLUS:   SchoolName := 'illusion';
+    SCH_NECRO:   SchoolName := 'necromancy';
+    SCH_TRANS:   SchoolName := 'transmutation';
+  else
+    SchoolName := 'none';
+  end;
+end;
+
+{ The AD&D 2e opposition matrix, simplified to our single Divination school.
+  A specialist cannot learn or cast spells of a school that opposes its own.
+  The Lesser Divination exemption (always-available low divination) is applied
+  by the caller, not here. }
+function SchoolOpposes(favored, other: byte): boolean;
+const
+  OPP: array[SCH_ABJUR .. SCH_TRANS] of set of byte = (
+    { abjur     } [SCH_TRANS, SCH_ILLUS],
+    { conj      } [SCH_DIVIN, SCH_EVOKE],
+    { divin     } [SCH_CONJ],
+    { enchant   } [SCH_ILLUS, SCH_EVOKE],
+    { evoke     } [SCH_ENCHANT, SCH_CONJ],
+    { illus     } [SCH_ABJUR, SCH_TRANS, SCH_NECRO],
+    { necro     } [SCH_ILLUS, SCH_ENCHANT],
+    { trans     } [SCH_ABJUR, SCH_NECRO]);
+begin
+  SchoolOpposes := false;
+  if favored > SCH_TRANS then exit;        { generalist or invalid favors none }
+  if other > SCH_TRANS then exit;
+  SchoolOpposes := other in OPP[favored];
 end;
 
 end.

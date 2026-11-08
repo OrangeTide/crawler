@@ -63,6 +63,7 @@ type
     dice, sides: byte;  { for damage or healing }
     element: byte;      { EL_* of the damage it deals }
     inflict: byte;      { ST_* a damaging hit may apply, 0 = none }
+    school: byte;       { spelldb SCH_*, for the specialist save edge }
   end;
 
   TFoe = record

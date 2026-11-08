@@ -1,8 +1,12 @@
-# Class table. class ID "Name" TRACK HITDIE PRIME KIT DOMAIN
+# Class table. class ID "Name" TRACK HITDIE PRIME KIT DOMAIN [SCHOOL]
 # TRACK:  warrior priest specialist mage
 # PRIME:  STR DEX CON INT WIS CHA
 # KIT:    soldier heavy archer priest thief mage
 # DOMAIN: none cleric druid magicuser (the spell list the class draws from)
+# SCHOOL: a favored arcane school makes a mage a specialist, barred from its
+#   opposition schools (Lesser Divination always allowed). Omit for a
+#   generalist. abjuration conjuration divination enchantment evocation
+#   illusion necromancy transmutation
 class FIGHTER    "Fighter"         warrior     8 STR soldier none
 class BERSERKER  "Berserker"       warrior    10 STR heavy   none
 class KNIGHT     "Knight"          warrior     8 STR soldier none
@@ -34,5 +38,11 @@ class WARLOCK    "Warlock"         mage        4 INT mage    magicuser
 class WISEONE    "Wise-One"        mage        4 WIS mage    magicuser
 class FAEMAGE    "Fae-Mage"        mage        4 INT mage    magicuser
 class FORESTAL   "Forestal"        mage        4 WIS mage    druid
-class ILLUSION   "Illusionist"     mage        4 INT mage    magicuser
-class NECRONIM   "Necronimus"      mage        4 INT mage    magicuser
+class ILLUSION   "Illusionist"     mage        4 INT mage    magicuser illusion
+class NECRONIM   "Necronimus"      mage        4 INT mage    magicuser necromancy
+class ABJURER    "Abjurer"         mage        4 INT mage    magicuser abjuration
+class CONJURER   "Conjurer"        mage        4 INT mage    magicuser conjuration
+class DIVINER    "Diviner"         mage        4 INT mage    magicuser divination
+class ENCHANTER  "Enchanter"       mage        4 INT mage    magicuser enchantment
+class INVOKER    "Invoker"         mage        4 INT mage    magicuser evocation
+class TRANSMUTER "Transmuter"      mage        4 INT mage    magicuser transmutation

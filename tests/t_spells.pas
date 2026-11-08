@@ -12,6 +12,7 @@ uses
 var
   p: TPak;
   i, j, cleric, druid, mage, withComp, badLevel, emptyId, emptyEff, dupId: longint;
+  schooled, nonMageSchool: longint;
 
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -60,6 +61,28 @@ begin
   Check(SpellDefs[i].dtype = SDT_NONE, 'Bless deals no typed damage');
   Check(Copy(SpellDefs[i].effect, 1, 2) = '+1', 'Bless keeps its effect text');
   Check(SpellByID('NO_SUCH_SPELL') = -1, 'an unknown id is not found');
+
+  { every Magic-User spell carries an arcane school, and no other does }
+  schooled := 0; nonMageSchool := 0;
+  for i := 0 to SpellDefCount - 1 do
+    if SpellDefs[i].domain = SPD_MAGE then begin
+      if SpellDefs[i].school <> SCH_NONE then inc(schooled);
+    end else
+      if SpellDefs[i].school <> SCH_NONE then inc(nonMageSchool);
+  Check(schooled = 72, 'every Magic-User spell is tagged with a school');
+  Check(nonMageSchool = 0, 'cleric and druid spells carry no school');
+  Check(SpellDefs[SpellByID('M_FIREBALL')].school = SCH_EVOKE,
+    'Fireball is an evocation');
+  Check(SpellDefs[SpellByID('M_INVISIBILITY')].school = SCH_ILLUS,
+    'Invisibility is an illusion');
+  Check(SpellDefs[SpellByID('M_SLEEP')].school = SCH_ENCHANT,
+    'Sleep is an enchantment');
+
+  { the opposition matrix is symmetric-free of self-opposition and matches AD&D }
+  Check(not SchoolOpposes(SCH_EVOKE, SCH_EVOKE), 'a school never opposes itself');
+  Check(SchoolOpposes(SCH_ILLUS, SCH_NECRO), 'illusion opposes necromancy');
+  Check(SchoolOpposes(SCH_NECRO, SCH_ILLUS), 'necromancy opposes illusion');
+  Check(not SchoolOpposes(SCH_NONE, SCH_EVOKE), 'a generalist opposes nothing');
 
   { the damage type maps onto an engine element, thematically }
   Check(SpellElement(SDT_FIRE) = EL_FIRE, 'fire maps to the fire element');

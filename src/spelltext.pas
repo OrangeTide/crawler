@@ -81,6 +81,21 @@ begin
   else DTypeOf := false;
 end;
 
+function SchoolOf(const s: string; out v: byte): boolean;
+begin
+  SchoolOf := true;
+  if s = 'abjuration' then v := SCH_ABJUR
+  else if s = 'conjuration' then v := SCH_CONJ
+  else if s = 'divination' then v := SCH_DIVIN
+  else if s = 'enchantment' then v := SCH_ENCHANT
+  else if s = 'evocation' then v := SCH_EVOKE
+  else if s = 'illusion' then v := SCH_ILLUS
+  else if s = 'necromancy' then v := SCH_NECRO
+  else if s = 'transmutation' then v := SCH_TRANS
+  else if s = 'none' then v := SCH_NONE
+  else SchoolOf := false;
+end;
+
 function ModeOf(const s: string; out v: byte): boolean;
 begin
   ModeOf := true;
@@ -164,6 +179,7 @@ begin
         ss[cur].castDice := 0;
         ss[cur].castSides := 0;
         ss[cur].castInflict := 0;
+        ss[cur].school := SCH_NONE;
         if not DomainOf(tok[3], ss[cur].domain) then begin
           err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[3]; exit;
         end;
@@ -173,6 +189,11 @@ begin
         if not DTypeOf(tok[6], ss[cur].dtype) then begin
           err := 'line ' + IntToStr(li + 1) + ': bad damage type ' + tok[6]; exit;
         end;
+        { optional seventh column: the arcane school, Magic-User only }
+        if n >= 8 then
+          if not SchoolOf(tok[7], ss[cur].school) then begin
+            err := 'line ' + IntToStr(li + 1) + ': bad school ' + tok[7]; exit;
+          end;
       end else if tok[0] = 'comp' then begin
         if cur < 0 then begin err := 'comp before spell'; exit; end;
         ss[cur].components := tok[1];

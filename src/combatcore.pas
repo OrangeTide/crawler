@@ -49,8 +49,9 @@ procedure DamageFoe(fi, baseAmount, element: longint);
 function ResistedHit(mi, dmg, element: longint): longint;
 { Apply damage to a party member, resolving a brush with death on a drop. }
 procedure HurtMember(mi, dmg: longint);
-{ Try to lay a status on a foe; immunity blocks it, a save resists it. }
-procedure AfflictFoe(fi, st, turns: longint);
+{ Try to lay a status on a foe; immunity blocks it, a save resists it. The
+  optional dcBonus raises the save difficulty (a specialist's school edge). }
+procedure AfflictFoe(fi, st, turns: longint; dcBonus: longint = 0);
 { Try to lay a status on a party member; a save shrugs it. }
 procedure AfflictMember(mi, st, turns: longint);
 { Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
@@ -255,12 +256,12 @@ begin
 end;
 
 { Try to lay a status on a foe: blocked by immunity, resisted by a save. }
-procedure AfflictFoe(fi, st, turns: longint);
+procedure AfflictFoe(fi, st, turns: longint; dcBonus: longint = 0);
 begin
   if st = 0 then exit;
   if st = ST_DISEASE then exit;   { illness is a party burden, not a foe's }
   if (MonDefs[Foes[fi].def].statusImm and st) <> 0 then exit;
-  if SaveThrow(GameRng, 0, MonDefs[Foes[fi].def].hd, STATUS_DC) then exit;
+  if SaveThrow(GameRng, 0, MonDefs[Foes[fi].def].hd, STATUS_DC + dcBonus) then exit;
   SetStatus(FoeStatus[fi], st, turns);
   CombatLog(MonDefs[Foes[fi].def].name + ' is ' + StatusName(st) + '.');
   PushPop(0, fi, POPC_MISS, StatusName(st));
@@ -391,6 +392,7 @@ begin
   for i := 0 to SpellDefCount - 1 do
     if SpellDefs[i].castable and (SpellDefs[i].domain = dom)
       and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor]))
+      and SpellAllowed(Roster[actor], i)
       and CharKnows(Roster[actor], i) then begin
       SetLength(gList, Length(gList) + 1);
       gList[High(gList)] := i;
@@ -442,6 +444,7 @@ begin
   SpellFromCatalog.sides := d.castSides;
   SpellFromCatalog.element := SpellElement(d.dtype);
   SpellFromCatalog.inflict := d.castInflict;
+  SpellFromCatalog.school := d.school;
 end;
 
 function SpellCount: longint;
