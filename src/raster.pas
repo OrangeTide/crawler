@@ -16,7 +16,7 @@ unit raster;
 interface
 
 uses
-  meshfmt, gfx, pic;
+  meshfmt, gfx, pic, fixedpt;
 
 type
   TMeshCam = record
@@ -76,7 +76,10 @@ type
   end;
 
 var
-  ZBuf: array[0 .. FBW * FBH - 1] of single;
+  { the depth buffer holds inverse view depth in 16.16 fixed point, so the
+    per-pixel span loops compare and store depth without the FPU the DOS and
+    PS1 targets lack }
+  ZBuf: array[0 .. FBW * FBH - 1] of TFix;
 
 procedure RasterBeginFrame;
 var i: longint;
@@ -116,7 +119,9 @@ var
   p: array[0 .. 2] of TCorner;
   tmp: TCorner;
   y, iy0, iy1, ix0, ix1, x, fbo: longint;
-  xa, ua, va, za, xb, ub, vb, zb, tx, u, v, z: double;
+  xa, ua, va, za, xb, ub, vb, zb, tx: double;
+  spanw, du, dv, dz, tstart: double;
+  uf, vf, zf, duf, dvf, dzf: TFix;
   fy0, fy1, fy2: double;
   litI, tsx, tsy: longint;
   idx: byte;
@@ -171,25 +176,35 @@ begin
     if ix0 < 0 then ix0 := 0;
     if ix1 > FBW - 1 then ix1 := FBW - 1;
     fbo := y * FBW;
+    { set the span's fixed-point interpolants once, then step them per pixel
+      with adds, so the inner loop needs no float for the FPU-less targets }
+    spanw := xb - xa;
+    if spanw < 0.001 then begin
+      du := 0; dv := 0; dz := 0; tstart := 0;
+    end else begin
+      du := (ub - ua) / spanw; dv := (vb - va) / spanw; dz := (zb - za) / spanw;
+      tstart := ix0 - xa;
+    end;
+    uf := FixF(ua + du * tstart); vf := FixF(va + dv * tstart); zf := FixF(za + dz * tstart);
+    duf := FixF(du); dvf := FixF(dv); dzf := FixF(dz);
     for x := ix0 to ix1 do begin
-      if xb - xa < 0.001 then tx := 0 else tx := (x - xa) / (xb - xa);
-      if tx < 0 then tx := 0 else if tx > 1 then tx := 1;
-      z := za + (zb - za) * tx;
-      if z <= ZBuf[fbo + x] then continue;   { something nearer is here }
-      u := ua + (ub - ua) * tx;
-      v := va + (vb - va) * tx;
-      tsx := round(u * tw); tsy := round((1.0 - v) * th);
-      tsx := ((tsx mod tw) + tw) mod tw;
-      tsy := ((tsy mod th) + th) mod th;
-      idx := tex[tsy * tw + tsx];
-      ZBuf[fbo + x] := z;
-      if glowW > 0 then begin
-        if litI >= 256 then c := Palette[idx] else c := Shade(Palette[idx], litI);
-        FB[fbo + x] := DitherQuant(MixColor(c, glowS, glowW), x, y);
-      end else if litI >= 256 then
-        FB[fbo + x] := idx
-      else
-        FB[fbo + x] := DitherQuant(Shade(Palette[idx], litI), x, y);
+      if zf > ZBuf[fbo + x] then begin   { nearer than what stands here }
+        { +FONE biases the coordinate up by one whole texture before the shift,
+          which a wrap leaves unchanged, so the shift always acts on a positive
+          value and the lone mod wraps it into the page }
+        tsx := (((int64(uf) + FONE) * tw + FHALF) shr FBITS) mod tw;
+        tsy := (((int64(FONE - vf) + FONE) * th + FHALF) shr FBITS) mod th;
+        idx := tex[tsy * tw + tsx];
+        ZBuf[fbo + x] := zf;
+        if glowW > 0 then begin
+          if litI >= 256 then c := Palette[idx] else c := Shade(Palette[idx], litI);
+          FB[fbo + x] := DitherQuant(MixColor(c, glowS, glowW), x, y);
+        end else if litI >= 256 then
+          FB[fbo + x] := idx
+        else
+          FB[fbo + x] := DitherQuant(Shade(Palette[idx], litI), x, y);
+      end;
+      inc(uf, duf); inc(vf, dvf); inc(zf, dzf);
     end;
   end;
 end;
@@ -220,7 +235,9 @@ var
   p: array[0 .. 2] of TCorner;
   tmp: TCorner;
   y, iy0, iy1, ix0, ix1, x, fbo: longint;
-  xa, ua, va, za, xb, ub, vb, zb, tx, u, v, z: double;
+  xa, ua, va, za, xb, ub, vb, zb, tx: double;
+  spanw, du, dv, dz, tstart: double;
+  uf, vf, zf, duf, dvf, dzf, uu, vv: TFix;
   fy0, fy1, fy2: double;
   litI, tsx, tsy: longint;
   src: TColor;
@@ -273,23 +290,35 @@ begin
     if ix0 < 0 then ix0 := 0;
     if ix1 > FBW - 1 then ix1 := FBW - 1;
     fbo := y * FBW;
+    spanw := xb - xa;
+    if spanw < 0.001 then begin
+      du := 0; dv := 0; dz := 0; tstart := 0;
+    end else begin
+      du := (ub - ua) / spanw; dv := (vb - va) / spanw; dz := (zb - za) / spanw;
+      tstart := ix0 - xa;
+    end;
+    uf := FixF(ua + du * tstart); vf := FixF(va + dv * tstart); zf := FixF(za + dz * tstart);
+    duf := FixF(du); dvf := FixF(dv); dzf := FixF(dz);
     for x := ix0 to ix1 do begin
-      if xb - xa < 0.001 then tx := 0 else tx := (x - xa) / (xb - xa);
-      if tx < 0 then tx := 0 else if tx > 1 then tx := 1;
-      z := za + (zb - za) * tx;
-      if z <= ZBuf[fbo + x] then continue;   { something nearer is here }
-      u := ua + (ub - ua) * tx;
-      v := va + (vb - va) * tx;
-      tsx := round(u * tw); tsy := round((1.0 - v) * th);
-      if tsx < 0 then tsx := 0 else if tsx > tw - 1 then tsx := tw - 1;
-      if tsy < 0 then tsy := 0 else if tsy > th - 1 then tsy := th - 1;
-      src := pix[tsy * tw + tsx];
-      if (src shr 24) < 128 then continue;   { transparent texel }
-      ZBuf[fbo + x] := z;
-      if litI >= 256 then
-        FB[fbo + x] := Quantize(src)
-      else
-        FB[fbo + x] := DitherQuant(Shade(src, litI), x, y);
+      if zf > ZBuf[fbo + x] then begin   { nearer than what stands here }
+        { a sprite does not tile, so clamp the coordinate into [0,1] before the
+          shift, which keeps it positive and holds the edge texel }
+        uu := uf; if uu < 0 then uu := 0 else if uu > FONE then uu := FONE;
+        vv := FONE - vf; if vv < 0 then vv := 0 else if vv > FONE then vv := FONE;
+        tsx := (int64(uu) * tw + FHALF) shr FBITS;
+        tsy := (int64(vv) * th + FHALF) shr FBITS;
+        if tsx > tw - 1 then tsx := tw - 1;
+        if tsy > th - 1 then tsy := th - 1;
+        src := pix[tsy * tw + tsx];
+        if (src shr 24) >= 128 then begin   { opaque texel: it shows and occludes }
+          ZBuf[fbo + x] := zf;
+          if litI >= 256 then
+            FB[fbo + x] := Quantize(src)
+          else
+            FB[fbo + x] := DitherQuant(Shade(src, litI), x, y);
+        end;
+      end;
+      inc(uf, duf); inc(vf, dvf); inc(zf, dzf);
     end;
   end;
 end;
