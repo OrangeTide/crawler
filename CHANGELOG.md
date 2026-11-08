@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A character sheet. Pressing I in the world opens a per-member sheet: the
+  portrait at full size beside the name, species, class, and past, then level
+  and experience, hit points, armour class, attack, the six ability scores with
+  their modifiers, the equipped gear, and for a caster the number of spells
+  known and its arcane specialty. The left and right keys page through the
+  party, and I or escape closes it. It reuses the state that was reserved for
+  an inventory screen but never used.
 - A portrait for each party member. A new character cycles through a pool of
   baked portrait faces at creation with the P key, and the chosen face is kept
   on the character and in the save. The face shows as a small thumbnail beside
