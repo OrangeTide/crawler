@@ -296,9 +296,18 @@ end;
 
 procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
   wx, wy, wscale, hscale, light: double);
+const
+  { A billboard shares the floor's depth buffer, and its base is coplanar with
+    the floor of the tile it stands on, so at distance the floor wins the
+    z-test and eats the sprite's lower body. Bias the sprite's depth toward the
+    camera by part of a tile, less than one so a wall in front still occludes
+    it, enough to win the fight with its own floor. The screen position and
+    size stay as projected; only the z-buffer depth shifts. }
+  DEPTH_BIAS = 0.45;
 var
-  rx, ry, hw: double;
+  rx, ry, hw, d: double;
   c: array[0 .. 3] of TCorner;
+  k: longint;
   ok: boolean;
 begin
   if Length(img.pix) = 0 then exit;
@@ -310,6 +319,12 @@ begin
   ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, hscale, c[2]);  { top right }
   ok := ok and Project(cam, wx - rx * hw, wy - ry * hw, hscale, c[3]);  { top left }
   if not ok then exit;
+  { pull each corner's depth toward the camera for the z-test only }
+  for k := 0 to 3 do begin
+    d := 1.0 / c[k].iz - DEPTH_BIAS;
+    if d < NEAR then d := NEAR;
+    c[k].iz := 1.0 / d;
+  end;
   c[0].u := 0; c[0].v := 0;
   c[1].u := 1; c[1].v := 0;
   c[2].u := 1; c[2].v := 1;
