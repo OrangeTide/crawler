@@ -38,8 +38,9 @@ snap and ordered dither), emissive-tile floor glows, and the 3D props the
 raycaster cannot draw. Monsters and NPCs are front-facing billboard sprites in
 both the combat slots and the world view; map exits draw as floor-anchored
 billboards, replacing the old coloured floor pads; and surface maps open onto a
-gradient sky instead of a ceiling. The one piece left in 0.19.0 is porting the
-rasterizer's hot path to fixed point, which is shared with theme E.
+gradient sky instead of a ceiling. The rasterizer's per-pixel hot path now runs
+in fixed point too, so 0.19.0 is complete; only the per-vertex camera and edge
+math still floats, converting last on the theme E hardware track.
 
 The gameplay milestones 0.21.0 through 0.24.0 landed ahead of the renderer and
 navigation work: survival systems (light, food, status breadth), options and
@@ -113,8 +114,10 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   tileset swap and billboards sinking into the floor at range, and confirmed the
   polygon path draws the 3D props the raycaster cannot. This unblocks theme G.
   The raycaster retires once the sector level format lands.
-- [partial] (0.19.0) Port the rasterizer hot path to fixed point (the camera
-  still uses a few floats per frame; see theme E).
+- [done] Ported the rasterizer's per-pixel hot path to 16.16 fixed point: the
+  depth buffer is fixed, and each span steps its texture and depth interpolants
+  with integer adds and compares. Projection and the scanline edge walk stay in
+  float as the boundary, the same split the raycaster uses (see theme E).
 
 ### B. Navigation and AI (continues the recent track, 0.20.0)
 
@@ -249,9 +252,12 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
 
 ### E. Shipping targets (design sections 23 and 24)
 
-- [partial] (0.31.0, parallel) Finish the fixed-point conversion: the camera
-  vectors, and the polygon hot path, still use `double`. The raycaster already
-  runs in fixed point and the framebuffer is 8-bit paletted.
+- [partial] (0.31.0, parallel) Finish the fixed-point conversion. The polygon
+  rasterizer's per-pixel hot path now runs in fixed point, as the raycaster
+  already did, and the framebuffer is 8-bit paletted. What still uses `double`
+  is the per-frame, per-vertex boundary: the camera vectors and projection, and
+  the scanline edge walk. These are a handful of operations per vertex, not per
+  pixel, and convert last when a real DOS or PS1 build needs the FPU gone.
 - [gap] (0.31.0) The renderer backend seam for DOS mode 13h and the PS1 GPU,
   with the Linux software rasterizer as one backend behind it.
 - [gap] (0.20.0) Resident-memory instrumentation and caps: the overworld cell
@@ -369,14 +375,15 @@ value and by what it unblocks. Sizes are rough: S a few days, M a week or two,
 L longer. The sector thread (0.26.0 to 0.28.0) is the one hard dependency chain:
 it needs the polygon renderer promoted to default in 0.19.0.
 
-### 0.19.0 Finish the polygon renderer (M) [nearly done]
+### 0.19.0 Finish the polygon renderer (M) [done]
 
-Theme A. Done: glows in the polygon path, vertex snap and ordered dither, the
-prop-collision decision, and the promote to default (parity reached, the
-polygon renderer is the view the game runs, the raycaster is a P-toggle
-fallback). This made the target-shaped renderer the one the game runs and
-opened the theme G map rework. The one piece left is porting the rasterizer hot
-path to fixed point, which overlaps theme E and can finish on that track.
+Theme A. Glows in the polygon path, vertex snap and ordered dither, the
+prop-collision decision, the promote to default (parity reached, the polygon
+renderer is the view the game runs, the raycaster is a P-toggle fallback), and
+the rasterizer's per-pixel hot path ported to fixed point. This made the
+target-shaped renderer the one the game runs and opened the theme G map rework.
+Only the per-vertex camera and edge math still floats, the boundary that
+converts last on the theme E hardware track.
 
 ### 0.20.0 Navigation and AI consolidation (M)
 
@@ -529,16 +536,13 @@ These hold across every milestone and are the reason for the choices above.
 
 ## Recommended next
 
-The polygon renderer is now the default, so its gate on the rest of the work is
-cleared and the order is:
+0.19.0 is complete: the polygon renderer is the default and its hot path runs
+in fixed point, so its gate on the rest of the work is cleared and the order is:
 
 - Open the sector thread with 0.26.0 (the kit evaluation), the next real step.
   It is low-risk and produces the go/no-go that tells us whether the SigilsVault
   modular geometry can reach the PS1. Do this before the format churns in
   0.27.0. The polygon renderer it builds on is in place.
-- Finish the one piece left in 0.19.0, the rasterizer's fixed-point hot path,
-  on the theme E track whenever the target build is attempted. It no longer
-  blocks anything, since the renderer is already the default.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
