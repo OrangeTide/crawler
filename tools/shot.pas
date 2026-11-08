@@ -29,7 +29,7 @@ program shot;
 
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
-  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party;
+  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata;
 
 procedure DumpPPM(const fn: string);
 var
@@ -121,9 +121,17 @@ begin
   end
   else if scene = 'learn' then begin
     { a party, then wipe the Wizard's learned spells so it owes picks and the
-      level-up learn screen opens for it }
+      level-up learn screen opens for it. An optional CLASS reclasses that
+      member (e.g. ILLUSION) to show a specialist's filtered learn list. }
     QuickStart;
-    if High(Roster) >= 3 then SetLength(Roster[3].known, 0);
+    if High(Roster) >= 3 then begin
+      if ParamCount >= 3 then begin
+        mi := ClassIndex(UpperCase(ParamStr(3)));
+        if mi >= 0 then Roster[3].klass := mi;
+        Roster[3].level := 11;   { reach every spell level }
+      end;
+      SetLength(Roster[3].known, 0);
+    end;
     State := gsLearnSpell;
   end
   else if (scene = 'map') or (scene = 'foe') then begin

@@ -211,6 +211,9 @@ begin
     RGB(230, 210, 140));
   DrawText(16, 34, DomainName(dom) + ' spells   SP '
     + IntToStr(CharSpellPoints(Roster[cm])), RGB(150, 170, 190));
+  if ClassSchool(Roster[cm].klass) <> SCH_NONE then
+    DrawText(210, 44, SchoolName(ClassSchool(Roster[cm].klass)),
+      RGB(170, 150, 190));
   if nc > 1 then DrawText(210, 24, 'L/R MEMBER', RGB(130, 140, 110));
   DrawText(210, 34, 'UP/DN SPELL', RGB(130, 140, 110));
 
@@ -249,6 +252,8 @@ begin
       meta := meta + '    save ' + SaveName(SpellDefs[spIdx].save);
     if SpellDefs[spIdx].dtype <> SDT_NONE then
       meta := meta + '    ' + DTypeName(SpellDefs[spIdx].dtype);
+    if SpellDefs[spIdx].school <> SCH_NONE then
+      meta := meta + '    ' + SchoolName(SpellDefs[spIdx].school);
     DrawText(16, 188, meta, RGB(150, 170, 190));
     DrawWrapped(16, 200, 48, SpellDefs[spIdx].effect, RGB(200, 200, 185));
   end;
@@ -348,7 +353,11 @@ begin
   spIdx := LearnableNth(Roster[actor], learnSel);
   if spIdx >= 0 then begin
     FrameRect(8, 172, FBW - 16, FBH - 172 - 4, RGB(90, 84, 70));
-    DrawText(16, 178, SpellDefs[spIdx].name, RGB(230, 210, 140));
+    if SpellDefs[spIdx].school <> SCH_NONE then
+      DrawText(16, 178, SpellDefs[spIdx].name + '  ('
+        + SchoolName(SpellDefs[spIdx].school) + ')', RGB(230, 210, 140))
+    else
+      DrawText(16, 178, SpellDefs[spIdx].name, RGB(230, 210, 140));
     DrawWrapped(16, 190, 48, SpellDefs[spIdx].effect, RGB(200, 200, 185));
   end;
 end;
