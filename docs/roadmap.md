@@ -219,17 +219,17 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   draw varied faces.
 - [partial] Build further on the party-character portrait. The character sheet
   screen is in (press I in the world): one member's face at full size beside
-  the full stat block and gear, with the left and right keys paging the party.
-  Still open: the spell and skill icon browser belongs on this sheet, the face
-  could sit on the combat party panel, and a character could repick its face in
-  play rather than only at creation.
-- [gap] Spell and skill icons, and the UI that uses them. Bake the Batareya
-  "MAGE ICONS BIG PACk" as per-spell icons and "250 WARRIOR ICONS" as per-skill
-  icons (both 512x512 in ~/Documents/sprites-free, license to be located). Then
-  add the UI where an icon is meaningful: the SPELLS tab and a spell-book
-  browser on the character sheet, the learn-a-spell screen, and the combat cast
-  menu. An icon keys off the spell or skill id. Depends on the skills system
-  below for the skill side.
+  the full stat block and gear, with the left and right keys paging the party,
+  and for a caster a spell browser that lists its known spells with icons. Still
+  open: the face could sit on the combat party panel, and a character could
+  repick its face in play rather than only at creation.
+- [partial] Spell and skill icons, and the UI that uses them. Done: every spell
+  in the catalog names a per-spell icon from the Batareya "MAGE ICONS BIG PACK"
+  (an icon line in spells.txt, baked to SI<NN> lumps), and the character sheet's
+  spell browser draws them. Still open: show the icons on the SPELLS tab, the
+  learn-a-spell screen, and the combat cast menu; and the skill side, the "250
+  WARRIOR ICONS" pack per skill, which waits on the skills system below. The
+  mage-pack license is still to be confirmed against its itch.io page.
 
 ### E. Shipping targets (design sections 23 and 24)
 

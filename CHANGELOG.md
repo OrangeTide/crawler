@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Spell icons, and a spell browser on the character sheet. Every spell in the
+  catalog now names a pixel icon, carried on an icon line in spells.txt. A
+  caster's character sheet lists its known spells with those icons, sorted by
+  level and scrolled with the up and down keys, and shows the selected spell's
+  level and school. The icons are a per-spell selection from the Batareya
+  mage-icon pack, baked to lumps of their own and decoded into a dedicated
+  cache, so they stay clear of the world-billboard budget.
 - A character sheet. Pressing I in the world opens a per-member sheet: the
   portrait at full size beside the name, species, class, and past, then level
   and experience, hit points, armour class, attack, the six ability scores with
