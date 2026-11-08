@@ -15,7 +15,8 @@ program mkassets;
 uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
-  encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext;
+  encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
+  skilldb, skilltext;
 
 var
   w: TPakWriter;
@@ -189,6 +190,22 @@ begin
   writeln('  spells (', n, ') from ', fn);
 end;
 
+procedure AddSkills(const fn: string);
+var
+  cs: array[0 .. 255] of TSkillDef;
+  dyn: array of TSkillDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseSkills(fn, cs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := cs[k];
+  PakWAdd(w, 'SKIL', EncodeSkills(dyn));
+  writeln('  skills (', n, ') from ', fn);
+end;
+
 procedure AddShops(const fn: string);
 var
   cs: array[0 .. 31] of TShopDef;
@@ -346,6 +363,8 @@ begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'spells' then begin
       AddSpells(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'skills' then begin
+      AddSkills(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'shops' then begin
       AddShops(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'encounters' then begin

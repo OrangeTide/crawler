@@ -1,0 +1,57 @@
+# Skill catalog. One block per skill. See skilltext.pas for the format:
+#   skill ID "Name" ARENA EFFECT ABILITY TARGET GATE
+#     uses N           (combat uses per encounter; default 0 = at-will)
+#     dice XdY         (effect magnitude; default 0d0)
+#     icon N           (skill icon number; default 0)
+#     "the effect prose"
+# ARENA   explore | combat
+# EFFECT  picklock|findtraps|movesilent|mend            (explore)
+#         powerattack|disarm|bash|aimedshot|rally       (combat)
+# ABILITY str|dex|con|int|wis|cha   TARGET d20 difficulty at rank 0
+# GATE    any | thief | martial     who may spend a slot to learn it
+# Exploration skills roll d20 + ability + level/2 + 2*rank vs TARGET.
+# Combat skills cost the turn's action and resolve by an attack roll; the
+# strongest carry a per-encounter uses cap (reset each fight).
+
+skill SK_PICKLOCK "Pick Locks" explore picklock dex 13 thief
+  icon 60
+  "Coax a locked door open with picks and patience. The nimblest thief tries."
+
+skill SK_FINDTRAPS "Find Traps" explore findtraps dex 12 thief
+  icon 201
+  "Spot and disarm a trap before it springs, sparing the party its bite."
+
+skill SK_MOVESILENT "Move Silently" explore movesilent dex 13 thief
+  icon 57
+  "Pad quietly through the dark, slipping past what would otherwise find you."
+
+skill SK_MEND "First Aid" explore mend wis 10 any
+  dice 1d6
+  icon 85
+  "Bind wounds and splint breaks, restoring a little health without magic."
+
+skill SK_POWERATTACK "Power Attack" combat powerattack str 0 martial
+  dice 1d6
+  icon 79
+  "A heavier swing that bites deeper but swings wilder, trading aim for force."
+
+skill SK_DISARM "Disarm" combat disarm dex 0 martial
+  uses 2
+  icon 95
+  "A twisting strike that knocks a foe off balance, fouling its next blow."
+
+skill SK_BASH "Shield Bash" combat bash str 0 martial
+  uses 2
+  icon 133
+  "Slam a shield into a foe to stagger it. Needs a shield in hand."
+
+skill SK_AIMEDSHOT "Aimed Shot" combat aimedshot dex 0 martial
+  uses 2
+  dice 1d6
+  icon 227
+  "A patient shot for the gap in the armour. Needs a bow or sling."
+
+skill SK_RALLY "Rally" combat rally cha 0 any
+  uses 1
+  icon 14
+  "A shout that steadies the line, lifting fear from the whole party."

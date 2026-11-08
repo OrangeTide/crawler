@@ -22,6 +22,7 @@ CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 DIALOGS   = content/dialogs.txt
 SPELLS    = content/spells.txt
+SKILLS    = content/skills.txt
 SHOPS     = content/shops.txt
 ENCOUNTERS = content/encounters.txt
 WORLD     = content/world.txt
@@ -52,6 +53,10 @@ PCPORTRAITSRC = $(foreach i,$(PCPORTRAITIDS),content/portraits/pc$(i).ppm)
 # PNGs are present in content/icons.
 SPELLICONPNG = $(wildcard content/icons/si*.png)
 SPELLICONSRC = $(SPELLICONPNG:.png=.ppm)
+# Skill icons: the Batareya warrior-icon faces that content/skills.txt names,
+# one wi<N>.png per icon in content/skillicons, baked to WI<N> lumps.
+SKILLICONPNG = $(wildcard content/skillicons/wi*.png)
+SKILLICONSRC = $(SKILLICONPNG:.png=.ppm)
 # Title background: a 320x240 scene (from Jon's photo) and its own 256-colour
 # palette, baked to TITLE_BG and TITLE_PAL PIC lumps via the sprite path. The
 # title swaps this palette in, PlayStation 8-bit-CLUT style, for a smooth scene.
@@ -61,22 +66,24 @@ TITLEBGSRC = content/title/title_bg.ppm content/title/title_pal.ppm
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(SPELLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) \
-            $(SPRITESRC) $(PORTRAITSRC) $(PCPORTRAITSRC) $(SPELLICONSRC) \
-            $(TITLEBGSRC) $(MUSICSRC)
+            $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) \
+            $(MODELSRC) $(SPRITESRC) $(PORTRAITSRC) $(PCPORTRAITSRC) \
+            $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)
 SPELLICONARGS = $(foreach f,$(SPELLICONPNG),sprite $(basename $(notdir $(f))) $(f:.png=.ppm))
+SKILLICONARGS = $(foreach f,$(SKILLICONPNG),sprite $(basename $(notdir $(f))) $(f:.png=.ppm))
 TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm \
              sprite TITLE_PAL content/title/title_pal.ppm
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
-            spells $(SPELLS) shops $(SHOPS) encounters $(ENCOUNTERS) world $(WORLD)
+            spells $(SPELLS) skills $(SKILLS) shops $(SHOPS) \
+            encounters $(ENCOUNTERS) world $(WORLD)
 
 .PHONY: all run clean tools meshtools shottool test
 
@@ -113,7 +120,7 @@ build/tools/shot: tools/shot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(TITLEBGARG) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
@@ -129,6 +136,10 @@ content/portraits/%.ppm: content/portraits/%.png
 
 # Spell icon source: a 64x64 PNG, opaque, passed through like a portrait.
 content/icons/%.ppm: content/icons/%.png
+	convert $< -alpha on -channel A -threshold 50% +channel \
+	  -background '#FF00FF' -flatten -depth 8 ppm:$@
+
+content/skillicons/%.ppm: content/skillicons/%.png
 	convert $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
