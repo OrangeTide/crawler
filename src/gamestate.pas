@@ -18,7 +18,7 @@ uses
 
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
-                gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
+                gsDialog, gsShop, gsFullMap, gsCharSheet, gsMenu,
                 gsGameOver, gsVictory, gsOptions, gsKeybind, gsOverworld,
                 gsLearnSpell);
 
@@ -64,6 +64,7 @@ var
   kbSel: longint;          { selected row on the key-bindings screen }
   kbCapturing: boolean;    { waiting for the next key to bind it }
   menuTab: longint;        { meta-screen tab: 0 journal, 1 bestiary, 2 spells }
+  sheetSel: longint;       { which party member the character sheet shows }
 
   { coarse overworld travel: the cursor cell and how many cells it has
     moved from where the party stood when travel began }

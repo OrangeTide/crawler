@@ -24,13 +24,15 @@ procedure VictoryRender;
 procedure VictoryKeyDown(scancode: longint);
 procedure LearnRender;
 procedure LearnKeyDown(scancode: longint);
+procedure CharSheetRender;
+procedure CharSheetKeyDown(scancode: longint);
 
 implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
   exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
-  party, chardata, spelldb, spellbook;
+  party, chardata, spelldb, spellbook, rules, items, pcportrait;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -380,6 +382,114 @@ begin
         learnSel := 0;
         if NextLearner < 0 then State := gsExplore;
       end;
+  end;
+end;
+
+{ The character sheet: one party member at a time, the full stat block beside
+  the portrait, with the left and right keys paging between members. Opened
+  with I from the world, it reuses the former inventory state. }
+
+function SheetGearName(def: longint): string;
+begin
+  if def >= 0 then SheetGearName := ItemDefs[def].name
+  else SheetGearName := '-';
+end;
+
+function SheetSign(v: longint): string;
+begin
+  if v >= 0 then SheetSign := '+' + IntToStr(v) else SheetSign := IntToStr(v);
+end;
+
+procedure CharSheetRender;
+var
+  n, si, y, m: longint;
+  a: TAbility;
+  modStr, st: string;
+begin
+  ClearFB(RGB(10, 10, 16));
+  n := Length(Roster);
+  if n = 0 then begin State := gsExplore; exit; end;
+  if sheetSel < 0 then sheetSel := 0;
+  if sheetSel > n - 1 then sheetSel := n - 1;
+  si := sheetSel;
+
+  DrawText(12, 10, 'CHARACTER', RGB(230, 210, 130));
+  DrawText(FBW - 120, 10, 'MEMBER ' + IntToStr(si + 1) + ' OF ' + IntToStr(n),
+    RGB(140, 150, 120));
+
+  { the portrait, framed }
+  FillRect(12, 26, 64, 64, RGB(0, 0, 0));
+  DrawPCPortrait(12, 26, Roster[si].portrait);
+  FrameRect(12, 26, 64, 64, RGB(120, 110, 90));
+
+  { identity block beside the face }
+  DrawText(86, 28, Roster[si].name, RGB(230, 210, 140));
+  DrawText(86, 42, SpeciesDefs[Roster[si].species].name + '  '
+    + ClassDefs[Roster[si].klass].name, RGB(200, 200, 180));
+  if Roster[si].background >= 0 then
+    DrawText(86, 54, BackgroundDefs[Roster[si].background].name,
+      RGB(170, 175, 150));
+  DrawText(86, 66, 'LEVEL ' + IntToStr(Roster[si].level) + '    XP '
+    + IntToStr(Roster[si].xp), RGB(190, 190, 160));
+  DrawText(86, 78, 'HP ' + IntToStr(Roster[si].hp) + '/'
+    + IntToStr(Roster[si].hpMax) + '   AC ' + IntToStr(CharAC(Roster[si]))
+    + '   ATK ' + SheetSign(CharAttack(Roster[si], true)), RGB(200, 185, 150));
+
+  { ability scores, left column }
+  y := 104;
+  for a := abSTR to abCHA do begin
+    m := AbilMod(Roster[si].abil[a]);
+    if m >= 0 then modStr := '+' + IntToStr(m) else modStr := IntToStr(m);
+    DrawText(16, y, ABIL_NAME[a] + ' ' + IntToStr(Roster[si].abil[a])
+      + '  (' + modStr + ')', RGB(185, 190, 170));
+    inc(y, 12);
+  end;
+
+  { gear, right column }
+  DrawText(150, 92, 'GEAR', RGB(200, 190, 130));
+  DrawText(150, 104, 'MAIN  ' + SheetGearName(Roster[si].equip[eqMain].def),
+    RGB(180, 185, 170));
+  DrawText(150, 116, 'OFF   ' + SheetGearName(Roster[si].equip[eqOff].def),
+    RGB(180, 185, 170));
+  DrawText(150, 128, 'ARMOR ' + SheetGearName(Roster[si].equip[eqArmor].def),
+    RGB(180, 185, 170));
+  DrawText(150, 140, 'LIGHT ' + SheetGearName(Roster[si].equip[eqLight].def),
+    RGB(180, 185, 170));
+
+  { caster line: how many spells are known, and the specialty if any }
+  if CharIsCaster(Roster[si]) then begin
+    st := IntToStr(Length(Roster[si].known)) + ' SPELLS KNOWN';
+    if ClassSchool(Roster[si].klass) <> SCH_NONE then
+      st := st + '   ' + SchoolName(ClassSchool(Roster[si].klass));
+    DrawText(150, 156, st, RGB(170, 180, 200));
+  end;
+
+  { a status line only when something is amiss }
+  st := '';
+  if not Roster[si].alive then st := 'SLAIN'
+  else begin
+    if Roster[si].downed then st := st + 'DOWNED ';
+    if Roster[si].poison > 0 then st := st + 'POISONED ';
+    if Roster[si].disease > 0 then st := st + 'ILL ';
+    if Roster[si].wereform then st := st + 'WERE '
+    else if Roster[si].lycan then st := st + 'CURSED ';
+    if Roster[si].hireling then st := st + 'HIRED ';
+  end;
+  if st <> '' then DrawText(16, 182, st, RGB(205, 160, 140));
+
+  DrawText(12, FBH - 14, 'LEFT/RIGHT MEMBER   I OR ESC CLOSE', RGB(130, 140, 110));
+end;
+
+procedure CharSheetKeyDown(scancode: longint);
+var n: longint;
+begin
+  n := Length(Roster);
+  case scancode of
+    SDL_SCANCODE_LEFT:
+      if (n > 0) and (sheetSel > 0) then dec(sheetSel);
+    SDL_SCANCODE_RIGHT:
+      if (n > 0) and (sheetSel < n - 1) then inc(sheetSel);
+    SDL_SCANCODE_I, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;
 

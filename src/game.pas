@@ -117,6 +117,7 @@ begin
           gsDialog:   DialogKeyDown(ev.key.keysym.scancode);
           gsShop:     ShopKeyDown(ev.key.keysym.scancode);
           gsMenu:     JournalKeyDown(ev.key.keysym.scancode);
+          gsCharSheet: CharSheetKeyDown(ev.key.keysym.scancode);
           gsCombat:   CombatKeyDown(ev.key.keysym.scancode);
           gsGameOver: GameOverKeyDown(ev.key.keysym.scancode);
           gsVictory:  VictoryKeyDown(ev.key.keysym.scancode);
@@ -184,6 +185,7 @@ begin
     gsDialog:   DialogRender;
     gsShop:     ShopRender;
     gsMenu:     JournalRender;
+    gsCharSheet: CharSheetRender;
     gsCombat:   CombatRender;
     gsGameOver: GameOverRender;
     gsVictory:  VictoryRender;

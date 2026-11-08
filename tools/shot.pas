@@ -17,6 +17,7 @@ program shot;
     shot <out.ppm> learn        (the level-up learn-a-spell screen for a caster)
     shot <out.ppm> dialog <ID>  (an NPC dialog, to frame its portrait)
     shot <out.ppm> create       (the character-creation screen)
+    shot <out.ppm> sheet [N]    (the character sheet for party member N)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -112,6 +113,12 @@ begin
     State := gsNewParty;
     if ParamCount >= 3 then
       for mi := 1 to StrToInt(ParamStr(3)) do CCKeyDown(SDL_SCANCODE_P);
+  end
+  else if scene = 'sheet' then begin
+    { the character sheet for a party member (default the first). }
+    QuickStart;
+    if ParamCount >= 3 then sheetSel := StrToInt(ParamStr(3)) else sheetSel := 0;
+    State := gsCharSheet;
   end
   else if scene = 'menu' then begin
     QuickStart;             { a party, so the spells tab has casters }

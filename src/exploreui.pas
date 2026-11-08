@@ -307,6 +307,8 @@ begin
     SDL_SCANCODE_M:      showMap := not showMap;
     SDL_SCANCODE_P:      UsePoly := not UsePoly;   { A/B the renderers }
     SDL_SCANCODE_J:      State := gsMenu;
+    SDL_SCANCODE_I:
+      if Length(Roster) > 0 then begin sheetSel := 0; State := gsCharSheet; end;
     SDL_SCANCODE_C:      if Length(Roster) > 0 then StartCombat(1);
     SDL_SCANCODE_F5: begin
       if SaveGame(SavePath) then saveMsg := 'GAME SAVED'
