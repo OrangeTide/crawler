@@ -35,7 +35,7 @@ uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
   dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
-  skilldb, skillbook;
+  skilldb, skillbook, rules;
 
 procedure DumpPPM(const fn: string);
 var
@@ -177,11 +177,16 @@ begin
     LearnSkill(Roster[ci], SkillByID('SK_FINDTRAPS'));
     LearnSkill(Roster[ci], SkillByID('SK_MOVESILENT'));
     LearnSkill(Roster[ci], SkillByID('SK_MEND'));
+    LearnSkill(Roster[ci], SkillByID('SK_MEND'));   { rank it so aid lands }
+    LearnSkill(Roster[ci], SkillByID('SK_MEND'));
+    Roster[ci].abil[abWIS] := 18;
+    Roster[ci].hp := 3;   { wounded, so First Aid has something to mend }
     sheetSel := ci; sheetSpellSel := 0;
+    State := gsCharSheet;
     if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'train') then begin
       skillActor := ci; skillTrainSel := 0; State := gsLearnSkill;
-    end else
-      State := gsCharSheet;
+    end else if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'aid') then
+      CharSheetKeyDown(SDL_SCANCODE_A);   { tend the wounded member }
   end
   else if scene = 'castmenu' then begin
     { a quick battle, then drive the Wizard into the cast submenu; an optional

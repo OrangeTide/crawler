@@ -37,10 +37,18 @@ function LearnableNth(const c: TCharacter; n: longint): longint;
 function KnownSkillCount(const c: TCharacter): longint;
 function KnownSkillNth(const c: TCharacter; n: longint): longint;
 
+{ The living party member best at a skill of the given effect, with the skill's
+  catalog index, or false when no conscious member has one. }
+function BestSkillHolder(effect: byte; out who, skillIdx: longint): boolean;
+{ Roll the party's best holder of this skill effect against the skill's
+  difficulty. memberIdx returns that holder, or -1 when the party has none
+  (in which case the result is false). }
+function PartySkillRoll(effect: byte; out memberIdx: longint): boolean;
+
 implementation
 
 uses
-  rules, chardata;
+  rules, chardata, rng;
 
 function SkillRank(const c: TCharacter; skillIdx: longint): longint;
 var i: longint; id: string;
@@ -135,6 +143,35 @@ begin
   KnownSkillNth := -1;
   if (n < 0) or (n > High(c.skills)) then exit;
   KnownSkillNth := SkillByID(c.skills[n].id);
+end;
+
+function BestSkillHolder(effect: byte; out who, skillIdx: longint): boolean;
+var i, j, cat, mods, best: longint;
+begin
+  BestSkillHolder := false;
+  best := 0;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) then
+      for j := 0 to High(Roster[i].skills) do begin
+        cat := SkillByID(Roster[i].skills[j].id);
+        if (cat >= 0) and (SkillDefs[cat].effect = effect) then begin
+          mods := SkillCheckMods(Roster[i], cat);
+          if (not BestSkillHolder) or (mods > best) then begin
+            BestSkillHolder := true; best := mods; who := i; skillIdx := cat;
+          end;
+        end;
+      end;
+end;
+
+function PartySkillRoll(effect: byte; out memberIdx: longint): boolean;
+var who, sk: longint;
+begin
+  memberIdx := -1;
+  PartySkillRoll := false;
+  if not BestSkillHolder(effect, who, sk) then exit;
+  memberIdx := who;
+  PartySkillRoll := Check(GameRng, SkillCheckMods(Roster[who], sk),
+    SkillDefs[sk].target);
 end;
 
 end.

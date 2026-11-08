@@ -13,7 +13,7 @@ var
   ab: TAbilityScores;
   a: TAbility;
   thief, fighter, wizard: TCharacter;
-  lock, power, mend, before, i: longint;
+  lock, power, mend, before, i, who: longint;
 
 function Idx(const id: string): longint;
 begin
@@ -88,6 +88,27 @@ begin
   before := SkillCheckMods(thief, lock);
   thief.level := 6;
   Check(SkillCheckMods(thief, lock) > before, 'level raises the check');
+
+  { ---- party-wide resolution ---- }
+  for a := abSTR to abCHA do ab[a] := 12;
+  ab[abDEX] := 18;
+  SetLength(Roster, 2);
+  MakeCharacter(Roster[0], 'Sly', SpeciesIndex('HUMAN'), ClassIndex('THIEF'), -1, ab);
+  MakeCharacter(Roster[1], 'Ox', SpeciesIndex('HUMAN'), ClassIndex('FIGHTER'), -1, ab);
+  Roster[0].level := 10;
+  Roster[0].skillSlots := 10;
+  LearnSkill(Roster[0], lock);
+  LearnSkill(Roster[0], lock);
+  LearnSkill(Roster[0], lock);   { a high-DEX, high-level, ranked lockpick }
+
+  Check(BestSkillHolder(SKE_PICKLOCK, i, before) and (i = 0),
+    'the thief is the party lockpick');
+  Check(not BestSkillHolder(SKE_FINDTRAPS, i, before),
+    'no one in the party finds traps');
+  Check(PartySkillRoll(SKE_PICKLOCK, who) and (who = 0),
+    'the ranked lockpick never fails this easy lock');
+  Check((not PartySkillRoll(SKE_FINDTRAPS, who)) and (who = -1),
+    'a skill no one knows cannot be rolled');
 
   TestSummary('skills');
   halt(TestExit);

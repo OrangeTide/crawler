@@ -35,7 +35,7 @@ uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
   exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
   party, chardata, spelldb, spellbook, rules, items, pcportrait, spellicon,
-  fieldcast, skilldb, skillbook, skillicon;
+  fieldcast, skilldb, skillbook, skillicon, rng;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -799,11 +799,43 @@ begin
   end;
 
   if Roster[si].skillSlots > 0 then
-    DrawText(12, FBH - 11, 'U/D LIST  L/R MEMBER  P FACE  T TRAIN  ESC CLOSE',
+    DrawText(12, FBH - 11, 'L/R MEM  P FACE  A AID  T TRAIN  ESC',
       RGB(130, 140, 110))
   else
-    DrawText(12, FBH - 11, 'UP/DN LIST  L/R MEMBER  P FACE  I/ESC CLOSE',
+    DrawText(12, FBH - 11, 'U/D LIST  L/R MEM  P FACE  A AID  I/ESC',
       RGB(130, 140, 110));
+end;
+
+{ First Aid from the sheet: the party's best medic tends the viewed member. A
+  binding attempt, pass or fail, spent until the next rest, so the check bites. }
+procedure SheetFirstAid;
+var tgt, who, mendCat, amt, rank: longint;
+begin
+  tgt := sheetSel;
+  if (tgt < 0) or (tgt > High(Roster)) then exit;
+  if (not Roster[tgt].alive) or Roster[tgt].mended then begin
+    PlaySfx(SFX_MISS); exit;
+  end;
+  if (Roster[tgt].hp >= Roster[tgt].hpMax) and (not Roster[tgt].downed) then begin
+    PlaySfx(SFX_MISS); exit;   { nothing to tend }
+  end;
+  if not BestSkillHolder(SKE_MEND, who, mendCat) then begin
+    PlaySfx(SFX_MISS); exit;   { no one knows first aid }
+  end;
+  Roster[tgt].mended := true;
+  if not Check(GameRng, SkillCheckMods(Roster[who], mendCat),
+    SkillDefs[mendCat].target) then begin
+    PlaySfx(SFX_MISS); exit;   { the attempt fails }
+  end;
+  rank := SkillRank(Roster[who], mendCat);
+  if rank < 0 then rank := 0;
+  amt := RngRoll(GameRng, SkillDefs[mendCat].dice, SkillDefs[mendCat].sides)
+    + AbilMod(Roster[who].abil[abWIS]) + rank;
+  if amt < 1 then amt := 1;
+  if Roster[tgt].downed then Roster[tgt].downed := false;
+  Roster[tgt].hp := Roster[tgt].hp + amt;
+  if Roster[tgt].hp > Roster[tgt].hpMax then Roster[tgt].hp := Roster[tgt].hpMax;
+  PlaySfx(SFX_SELECT);
 end;
 
 procedure CharSheetKeyDown(scancode: longint);
@@ -829,6 +861,8 @@ begin
       if (n > 0) and (Roster[sheetSel].skillSlots > 0) then begin
         skillActor := sheetSel; skillTrainSel := 0; State := gsLearnSkill;
       end;
+    SDL_SCANCODE_A:
+      if n > 0 then SheetFirstAid;
     SDL_SCANCODE_I, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;

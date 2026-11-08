@@ -81,6 +81,9 @@ procedure FreeLook(dyaw, dpitch: double);
 
 procedure ToggleDoor(tx, ty: longint);
 procedure OpenDoorAhead;
+function DoorIsLocked(mx, my: longint): boolean;
+{ Open a door regardless of its lock, used when a lock is picked. }
+procedure ForceOpenDoor(tx, ty: longint);
 function PickTile(camX, maxDist: double; out tx, ty: longint): boolean;
 function PortalAt(mx, my: longint; out target, marker: string): boolean;
 function IsPortalTile(mx, my: longint): boolean;
@@ -532,6 +535,13 @@ begin
   if TileAt(tx, ty) <> TILE_DOOR then exit;
   if (not DoorOpen[ty][tx]) and DoorIsLocked(tx, ty) then exit;
   DoorOpen[ty][tx] := not DoorOpen[ty][tx];
+end;
+
+procedure ForceOpenDoor(tx, ty: longint);
+begin
+  if (tx < 0) or (tx >= MapW) or (ty < 0) or (ty >= MapH) then exit;
+  if TileAt(tx, ty) <> TILE_DOOR then exit;
+  DoorOpen[ty][tx] := true;
 end;
 
 procedure OpenDoorAhead;

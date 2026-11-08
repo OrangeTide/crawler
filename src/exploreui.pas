@@ -32,7 +32,7 @@ uses
   sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, items, encounters, monsters, audio,
   gamestate, worldload, combatui, save, pathfind, maproute, pursuit,
-  overworldui, keymap, mappins;
+  overworldui, keymap, mappins, skilldb, skillbook;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
@@ -261,6 +261,26 @@ begin
   end;
 end;
 
+procedure TryPickLock(mx, my: longint);
+{** Attempt a locked door with the party's best lockpick. Success opens it for
+  good (the open state rides in the map snapshot); a thief who fails may try
+  again. With no lockpick in the party, the door simply stays shut. }
+var who: longint;
+begin
+  if PartySkillRoll(SKE_PICKLOCK, who) then begin
+    ForceOpenDoor(mx, my);
+    PlaySfx(SFX_DOOR);
+    saveMsg := Roster[who].name + ' PICKS THE LOCK';
+  end else if who >= 0 then begin
+    PlaySfx(SFX_MISS);
+    saveMsg := 'THE LOCK RESISTS ' + Roster[who].name;
+  end else begin
+    PlaySfx(SFX_MISS);
+    saveMsg := 'THE DOOR IS LOCKED';
+  end;
+  saveMsgT := 2.0;
+end;
+
 procedure InteractAhead;
 {** Space: talk to an NPC directly ahead, else open a door. }
 var
@@ -270,6 +290,10 @@ begin
   ForwardDelta(dx, dy);
   if NpcAt(TileX + dx, TileY + dy, dlg, nm) then
     StartDialog(dlg, nm)
+  else if (TileAt(TileX + dx, TileY + dy) = TILE_DOOR)
+    and (not DoorOpen[TileY + dy][TileX + dx])
+    and DoorIsLocked(TileX + dx, TileY + dy) then
+    TryPickLock(TileX + dx, TileY + dy)
   else begin
     OpenDoorAhead;
     PlaySfx(SFX_DOOR);
@@ -405,13 +429,19 @@ procedure TrapCheck;
   and on a failure the party takes damage and the lead is poisoned. A member
   whose worn gear wards against the trap's element takes half. }
 var
-  dmg, dc, elem, lead, i, hit: longint;
+  dmg, dc, elem, lead, i, hit, who: longint;
   sprung: string;
 begin
   if not TrapAt(TileX, TileY, dmg, dc, elem) then exit;
   sprung := 'TRAP_' + CurMapName + '_' + IntToStr(TileX) + '_' + IntToStr(TileY);
   if FlagHas(sprung) then exit;
   FlagSet(sprung);
+  { a trapfinder spots and disarms it before it can spring }
+  if PartySkillRoll(SKE_FINDTRAPS, who) then begin
+    saveMsg := Roster[who].name + ' DISARMS A TRAP';
+    saveMsgT := 2.0;
+    exit;
+  end;
   lead := FirstConscious;
   if lead < 0 then exit;
   if SaveThrow(GameRng, AbilMod(Roster[lead].abil[abDEX]), Roster[lead].level, dc) then begin
@@ -519,11 +549,12 @@ procedure TrySpawnHunter;
 {** Now and then in a dangerous area a monster picks up the party's trail
   and starts hunting from a reachable tile some way off. }
 var
-  mon, tries, tx, ty: longint;
+  mon, tries, tx, ty, who: longint;
 begin
   if EncTableEmpty(CurEncTable) then exit;        { safe ground, no hunters }
   if ActivePursuerCount >= MAX_HUNTERS then exit;
   if Range(1, HUNTER_SPAWN_ODDS) <> 1 then exit;
+  if PartySkillRoll(SKE_MOVESILENT, who) then exit;  { a quiet party is not found }
   mon := PickAreaMonster;
   if mon < 0 then exit;
   for tries := 1 to 24 do begin
@@ -617,6 +648,7 @@ procedure CheckTileEvents;
   trap, tick poison, advance any hunters, then roll for a wandering monster. }
 var
   target, marker: string;
+  who: longint;
 begin
   if (TileX = lastTX) and (TileY = lastTY) then
     exit;
@@ -650,11 +682,17 @@ begin
   else
     TrySpawnHunter;
 
-  { the older instant wandering-monster roll, elsewhere than safe areas. }
+  { the older instant wandering-monster roll, elsewhere than safe areas. A
+    party that moves silently may slip past a roll that would start a fight. }
   if (not EncTableEmpty(CurEncTable)) then
     if Range(1, 18) = 1 then begin
-      CancelAutoTravel;
-      if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
+      if PartySkillRoll(SKE_MOVESILENT, who) then begin
+        saveMsg := 'YOU SLIP PAST UNSEEN';
+        saveMsgT := 1.5;
+      end else begin
+        CancelAutoTravel;
+        if CurDepth > 0 then StartCombat(CurDepth) else StartCombat(1);
+      end;
     end;
 end;
 
