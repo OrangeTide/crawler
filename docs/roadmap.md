@@ -217,6 +217,11 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   twenty-four Batareya faces at creation (P key), the choice is saved, and the
   face shows as a thumbnail in the party strip. Generated parties and hirelings
   draw varied faces.
+- [gap] Build further on the party-character portrait. A character sheet screen
+  (the unused gsInventory state) would show one member's face at full size
+  beside the full stat block, which also gives the spell and skill icon browser
+  below a place to live. The face could sit on the combat party panel too, and
+  a character could repick its face in play rather than only at creation.
 - [gap] Spell and skill icons, and the UI that uses them. Bake the Batareya
   "MAGE ICONS BIG PACk" as per-spell icons and "250 WARRIOR ICONS" as per-skill
   icons (both 512x512 in ~/Documents/sprites-free, license to be located). Then
