@@ -63,3 +63,16 @@ but is given here as the author appreciates it.
 
 These are not CC0. They are bundled for use within this game only, not for
 redistribution as a standalone asset pack.
+
+Spell catalog
+-------------
+
+Source: the AX&X spell lists (the author's own two-page OSR ruleset, a refit
+of the classic 1st Edition advanced rules). content/spells.txt is imported
+from that project's spells.csv: the Cleric, Druid, and Magic-User lists across
+six spell levels, with each spell's terse effect prose kept as the behaviour.
+The spell names follow the long-standing lineage AX&X refits.
+
+The crawler reads the prose as the real behaviour and maps each spell's damage
+type onto its own five elements thematically, so combat that wires a spell up
+approximates the intent rather than reproducing exact tabletop mechanics.

@@ -10,6 +10,16 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- An imported spell catalog. All 170 spells from the AX&X lists (Cleric,
+  Druid, and Magic-User across six levels) are compiled from content/spells.txt
+  into a SPEL lump and loaded at runtime by a new spelldb unit, with a
+  spelltext parser and a t_spells round-trip. Each spell keeps its level, save,
+  damage type, material components, and the effect prose that defines its
+  behaviour; a helper maps the damage type onto the engine's five elements
+  thematically, so a spell later wired into combat approximates the intent
+  rather than reproducing exact tabletop mechanics. Combat does not cast from
+  the catalog yet; this is the data foundation for per-class spell domains. See
+  CREDITS for provenance.
 - A title screen in place of the plain text menu: a mountain photo under a
   two-line logo with birds drifting across its sky and the menu in a framed
   box. The scene carries its own optimised 256-colour palette, swapped in while

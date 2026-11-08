@@ -1,0 +1,537 @@
+# Spell catalog, imported from the axx-rpg lists. One block per
+# spell. See spelltext.pas for the format:
+#   spell ID "Name" DOMAIN LEVEL SAVE DTYPE
+#     "the effect prose, which is the real behaviour"
+#     comp "material components"   (optional)
+# DOMAIN cleric|druid|magicuser  SAVE none|body|dodge|will
+# DTYPE  none|acid|cold|fire|force|lightning|poison  (thematic element)
+
+spell C_BLESS "Bless" cleric 1 none none
+  "+1 to the party's attacks and saves for one fight."
+
+spell C_COMMAND "Command" cleric 1 will none
+  "One word a target must obey for a round: halt, flee, drop, kneel. Will save resists."
+
+spell C_CURELIGHTWOUND "Cure Light Wounds" cleric 1 none none
+  "Restores 1d8 HP and ends Poisoned. Reverses to Cause, 1d8 on a touch."
+
+spell C_DETECTEVIL "Detect Evil" cleric 1 none none
+  "Sense Chaotic creatures and cursed things within 60 ft for 6 turns."
+
+spell C_DETECTMAGIC "Detect Magic" cleric 1 none none
+  "Sense magic within 30 ft for 6 turns."
+
+spell C_LIGHT "Light" cleric 1 none none
+  "30 ft of light for 6 turns. Reverses to Darkness."
+
+spell C_PROTECTIONFROM "Protection from Evil" cleric 1 none none
+  "+2 AC and saves against Chaotic creatures for one fight."
+  comp "a line of powdered silver"
+
+spell C_PURIFYFOODANDW "Purify Food and Water" cleric 1 none none
+  "Makes a day's spoiled rations or fouled water safe."
+
+spell C_REMOVEFEAR "Remove Fear" cleric 1 none none
+  "Ends Frightened on an ally, or grants +4 to resist it for one fight."
+
+spell C_RESISTCOLD "Resist Cold" cleric 1 none none
+  "An ally is immune to natural cold and takes half from cold attacks, one fight."
+
+spell C_SANCTUARY "Sanctuary" cleric 1 will none
+  "For 1d4 rounds enemies need a Will save to attack you; you may not attack in turn."
+
+spell C_FINDTRAPS "Find Traps" cleric 2 none none
+  "Traps within 30 ft glow to your sight for 6 turns."
+
+spell C_HOLDPERSON "Hold Person" cleric 2 body none
+  "Up to 3 people, Body save or Paralyzed 1d4 rounds."
+
+spell C_KNOWALIGNMENT "Know Alignment" cleric 2 none none
+  "Read one creature's alignment."
+
+spell C_RESISTFIRE "Resist Fire" cleric 2 none none
+  "An ally is immune to natural fire and takes half from fire attacks, one fight."
+
+spell C_SILENCE "Silence" cleric 2 none none
+  "15 ft radius, no sound or casting, 6 turns."
+
+spell C_SLOWPOISON "Slow Poison" cleric 2 none none
+  "Halts a Poisoned condition for an hour, buying time for a cure."
+
+spell C_SPEAKWITHANIMA "Speak with Animals" cleric 2 none none
+  "Talk with natural beasts for 6 turns; they may answer or aid."
+
+spell C_SPIRITUALHAMME "Spiritual Hammer" cleric 2 none none
+  "A floating hammer of force fights for you at your attack bonus, 1d4, one fight."
+  comp "the caster's holy symbol"
+
+spell C_ANIMATEDEAD "Animate Dead" cleric 3 none none
+  "Raise HD of skeletons or zombies up to your Level to serve until destroyed. A Chaotic act."
+  comp "bone dust and a black pearl worth 100 GP, consumed"
+
+spell C_CONTINUALLIGHT "Continual Light" cleric 3 body none
+  "A permanent bright light, or blind a creature's eyes until dispelled (Body save)."
+  comp "a firefly or a pinch of phosphorus"
+
+spell C_CUREDISEASE "Cure Disease" cleric 3 none none
+  "Ends the Diseased condition and lifts a mummy's rot or a wasting sickness. Reverses to Cause Disease: touch, Body save or struck with a wasting disease, Diseased and failing on a death Count of CON modifier + 10 days; when it fills, death as Poisoned. Only Cure Disease stays it."
+
+spell C_CURESERIOUSWOU "Cure Serious Wounds" cleric 3 none none
+  "Restores 2d8 HP. Reverses to Cause Serious Wounds."
+
+spell C_DISPELMAGIC "Dispel Magic" cleric 3 none none
+  "Ends ongoing spells up to your Level in a 20 ft area, or counters one as it is cast."
+
+spell C_LOCATEOBJECT "Locate Object" cleric 3 none none
+  "Point toward a known object within a mile for 6 turns."
+
+spell C_PRAYER "Prayer" cleric 3 none none
+  "The party gains +1 and enemies take -1 to attacks and saves for one fight."
+
+spell C_REMOVECURSE "Remove Curse" cleric 3 none none
+  "Ends one curse, Charmed, or a cursed item's grip. Reverses to Bestow Curse."
+
+spell M_BURNINGHANDS "Burning Hands" magicuser 1 dodge fire
+  "A fan of flame: 1d3 per Level in a 10 ft cone, Dodge save for half."
+
+spell M_CHARMPERSON "Charm Person" magicuser 1 will none
+  "Will save or Charmed."
+
+spell M_COMPREHENDLANG "Comprehend Languages" magicuser 1 none none
+  "Read or understand one unknown tongue or script for 6 turns."
+  comp "a pinch of soot and salt"
+
+spell M_DETECTMAGIC "Detect Magic" magicuser 1 none none
+  "Sense magic within 30 ft for 6 turns."
+
+spell M_ENLARGE "Enlarge" magicuser 1 body none
+  "Grow a creature half again, +1 damage and a step of STR, or shrink it (Body save). One fight."
+
+spell M_FEATHERFALL "Feather Fall" magicuser 1 none none
+  "You and those near you drift safely down from any fall for a round."
+
+spell M_FINDFAMILIAR "Find Familiar" magicuser 1 none none
+  "Call a small animal bound to you: it shares your senses and lends 1 HP per Level, but its death wounds you."
+  comp "incense and rare herbs worth 25 GP, burned"
+
+spell M_HOLDPORTAL "Hold Portal" magicuser 1 none none
+  "A door stays shut for 6 turns."
+
+spell M_LIGHT "Light" magicuser 1 none none
+  "30 ft of light for 6 turns."
+
+spell M_MAGICMISSILE "Magic Missile" magicuser 1 none force
+  "1d4+1 damage, never misses. One more dart at Levels 3 and 5."
+
+spell M_READMAGIC "Read Magic" magicuser 1 none none
+  "Decipher arcane script and scrolls so you can cast or copy them."
+
+spell M_SHIELD "Shield" magicuser 1 none none
+  "+4 AC for one fight."
+
+spell M_SHOCKINGGRASP "Shocking Grasp" magicuser 1 none lightning
+  "Your next touch this round delivers 1d8 plus your Level in lightning."
+
+spell M_SLEEP "Sleep" magicuser 1 none none
+  "2d4 HD of creatures of 4 HD or less fall Asleep, no save."
+  comp "a pinch of fine sand"
+
+spell M_SPIDERCLIMB "Spider Climb" magicuser 1 none none
+  "Climb walls and ceilings like a spider for 6 turns."
+
+spell M_UNSEENSERVANT "Unseen Servant" magicuser 1 none none
+  "An invisible force fetches, carries, and does simple tasks for an hour."
+
+spell M_CONTINUALLIGHT "Continual Light" magicuser 2 body none
+  "A permanent bright light, or blind a creature (Body save)."
+  comp "a firefly or a pinch of phosphorus"
+
+spell M_DARKNESS15FT "Darkness 15 ft" magicuser 2 none none
+  "A 15 ft globe of dark that no sight in the dark pierces, 6 turns."
+
+spell M_DETECTINVISIBI "Detect Invisibility" magicuser 2 none none
+  "See invisible, hidden, and phased things within 30 ft for 6 turns."
+
+spell M_ESP "ESP" magicuser 2 will none
+  "Hear the surface thoughts of creatures within 60 ft (Will save to shield a mind)."
+
+spell M_FORGET "Forget" magicuser 2 will none
+  "Up to four creatures forget the last few minutes (Will save)."
+
+spell M_INVISIBILITY "Invisibility" magicuser 2 none none
+  "Unseen until you attack or cast."
+
+spell M_KNOCK "Knock" magicuser 2 none none
+  "Opens one lock or stuck door."
+
+spell M_LEVITATE "Levitate" magicuser 2 none none
+  "Rise and sink in the air by will for 6 turns. No sideways push."
+
+spell M_MIRRORIMAGE "Mirror Image" magicuser 2 none none
+  "1d4 copies of you, each absorbing one hit meant for you."
+
+spell M_RAYOFENFEEBLEM "Ray of Enfeeblement" magicuser 2 body none
+  "A ray saps a target: -2 to its attacks and damage (Body save), one fight."
+
+spell M_SCARE "Scare" magicuser 2 will none
+  "A target of 4 HD or less is Frightened (Will save)."
+
+spell M_STINKINGCLOUD "Stinking Cloud" magicuser 2 body none
+  "A 20 ft cloud: Body save or retch helplessly for 1d4 rounds."
+
+spell M_STRENGTH "Strength" magicuser 2 none none
+  "An ally gains a step of STR, +1 to attack and damage, for one fight."
+
+spell M_WEB "Web" magicuser 2 dodge none
+  "20 ft, Dodge save or stuck 1d4 rounds. Burns away in a round."
+
+spell M_BLINK "Blink" magicuser 3 none none
+  "You flicker out and in: attacks against you at -2, and you may step 10 ft each round."
+
+spell M_CLAIRVOYANCE "Clairvoyance" magicuser 3 none none
+  "See a known or nearby place at a distance for 6 turns."
+
+spell M_DISPELMAGIC "Dispel Magic" magicuser 3 none none
+  "Ends ongoing spells up to your Level in a 20 ft area."
+
+spell M_FIREBALL "Fireball" magicuser 3 dodge fire
+  "5d6 in a 20 ft burst, Dodge save for half."
+  comp "a pinch of bat guano and sulfur"
+
+spell M_FLAMEARROW "Flame Arrow" magicuser 3 none fire
+  "Touched arrows or bolts burn for +1d6 fire, one per Level, one fight."
+
+spell M_FLY "Fly" magicuser 3 none none
+  "You fly for 6 turns."
+
+spell M_GUSTOFWIND "Gust of Wind" magicuser 3 none none
+  "A blast of wind scatters missiles, clouds, and small flyers in a line."
+
+spell M_HASTE "Haste" magicuser 3 none none
+  "Up to one creature per Level acts twice or moves double, one fight."
+
+spell M_HOLDPERSON "Hold Person" magicuser 3 body none
+  "Up to four people, Body save or Paralyzed 1d4 rounds."
+
+spell M_INVISIBILITY10 "Invisibility 10 ft" magicuser 3 none none
+  "You and all within 10 ft turn invisible until one attacks or casts."
+
+spell M_LIGHTNINGBOLT "Lightning Bolt" magicuser 3 dodge lightning
+  "5d6 in a 60 ft line, Dodge save for half."
+  comp "a scrap of fur and a glass rod"
+
+spell M_PHANTASMALFORC "Phantasmal Force" magicuser 3 will none
+  "A silent illusion up to a 20 ft cube. A viewer who disbelieves sees through it (Will save)."
+
+spell M_PROTECTIONFROM "Protection from Normal Missiles" magicuser 3 none none
+  "Nonmagical arrows, bolts, and stones cannot hit you for one fight."
+
+spell M_SLOW "Slow" magicuser 3 dodge none
+  "Up to one creature per Level acts at half (Dodge save), one fight. Undoes Haste."
+
+spell M_SUGGESTION "Suggestion" magicuser 3 will none
+  "A reasonable command the target follows (Will save) until done or the day ends."
+
+spell M_WATERBREATHING "Water Breathing" magicuser 3 none none
+  "You and those near you breathe water for a day."
+  comp "a short hollow reed"
+
+spell D_ENTANGLE "Entangle" druid 1 dodge none
+  "Grass and root seize everyone in a Near patch. A Dodge save or held fast, with a new save each round to tear free. One fight."
+
+spell D_FAERIEFIRE "Faerie Fire" druid 1 none none
+  "Ring a target in pale light for one fight. Attacks against it gain +1 and it cannot hide."
+
+spell D_SPEAKWITHANIMA "Speak with Animals" druid 1 none none
+  "Talk with natural beasts for 6 turns. They answer as their nature allows and may grant a small favor on a good reaction."
+
+spell D_PASSWITHOUTTRA "Pass Without Trace" druid 1 none none
+  "You and your band leave no track or scent for 6 turns, +4 to shake pursuit in the wild."
+
+spell D_SHILLELAGH "Shillelagh" druid 1 none none
+  "A staff or club becomes a magic weapon, +1 to hit and 1d8 damage, for one fight."
+
+spell D_GOODBERRY "Goodberry" druid 1 none none
+  "1d6 berries, each heals 1 HP and feeds a traveler for a day. They spoil at next dawn."
+
+spell D_BARKSKIN "Barkskin" druid 2 none none
+  "A target's skin turns to bark: +2 AC for 6 turns."
+
+spell D_PRODUCEFLAME "Produce Flame" druid 2 none fire
+  "A flame sits in your palm for 6 turns. Hurl it to Near as an attack for 1d6 fire, and it sets tinder alight."
+
+spell D_HEATMETAL "Heat Metal" druid 2 none fire
+  "Metal a target wears turns scalding for 1d4 rounds: 1d4 a round until dropped. Great mass or cold iron resists."
+
+spell D_WARPWOOD "Warp Wood" druid 2 none none
+  "Bend and split wooden items within Near, one per two Levels: a spear shaft, a bow, a plank, a door."
+
+spell D_HOLDANIMAL "Hold Animal" druid 2 will none
+  "Freeze up to 1d4 natural beasts. Each rolls a Will save; the held are Helpless for 1d4 rounds."
+
+spell D_CALLLIGHTNING "Call Lightning" druid 3 dodge lightning
+  "Under a storm sky, call a bolt once a round for 6 turns: Near, 1d6 per two Levels, Dodge for half. Needs a storm overhead."
+
+spell D_PLANTGROWTH "Plant Growth" druid 3 none none
+  "Brush and briar burst across a wide space, near impassable. Lasts until cut back."
+
+spell D_PROTECTIONFROM "Protection from Fire" druid 3 none none
+  "A target ignores ordinary fire and halves magical fire for 6 turns, until it soaks 12 damage."
+
+spell D_SUMMONSWARM "Summon Swarm" druid 3 none none
+  "A swarm of biting insects fills a Near space for one fight. Those within take 1 a round and act at -2."
+
+spell D_ANIMALFRIENDSH "Animal Friendship" druid 1 none none
+  "Over a day of feeding and care, win a wild beast as a loyal companion. Keep one such beast per two Levels."
+
+spell D_DETECTSNARESAN "Detect Snares and Pits" druid 1 none none
+  "Sense deadfalls, pits, and crude or natural traps, and unsafe footing, within 40 ft for 6 turns."
+
+spell D_INVISIBILITYTO "Invisibility to Animals" druid 1 none none
+  "Natural beasts cannot see, hear, or smell the warded creature for 6 turns, unless it attacks."
+
+spell D_LOCATEANIMALSO "Locate Animals or Plants" druid 1 none none
+  "Sense the nearest of a named beast or plant within a mile, and its direction, for 6 turns."
+
+spell D_PREDICTWEATHER "Predict Weather" druid 1 none none
+  "Know the coming day's weather for a few miles around, as sure as the season allows."
+
+spell D_PURIFYWATER "Purify Water" druid 1 none none
+  "Make a barrel of foul water or a day's spoiled rations clean and safe, or foul them."
+
+spell D_CHARMMAMMAL "Charm Mammal" druid 2 will none
+  "A warm-blooded beast takes you for a friend. Will save resists; a failed one lasts until you harm it or a day passes."
+
+spell D_CREATEWATER "Create Water" druid 2 none none
+  "Call clean water from the air, enough for a party and its mounts for a day."
+
+spell D_FEIGNDEATH "Feign Death" druid 2 none none
+  "A willing creature falls into a deathlike trance for 6 turns, stiff and cold, taking half from blows and immune to drain while under."
+
+spell D_FIRETRAP "Fire Trap" druid 2 dodge fire
+  "Ward a box, door, or body. The next to open it unbidden takes 1d4 + Level fire, Dodge for half. Holds until sprung."
+
+spell D_OBSCURINGMIST "Obscuring Mist" druid 2 none none
+  "A damp fog fills a Near space for 6 turns. Past 5 ft, sight and missiles fail."
+
+spell D_SPEAKWITHPLANT "Speak with Plants" druid 2 none none
+  "For 6 turns, question the local growth. It answers simply and may part a path or tangle a foe."
+
+spell D_TRIP "Trip" druid 2 dodge none
+  "A vine, root, or your staff whips out: a moving target in reach saves Dodge or falls prone."
+
+spell D_CUREDISEASE "Cure Disease" druid 3 none none
+  "A touch ends one disease or rot. Reverses to Cause Disease, the same wasting death as the Cleric spell."
+
+spell D_NEUTRALIZEPOIS "Neutralize Poison" druid 3 none none
+  "Draw the venom from one creature or dose: ends Poisoned, or renders a poison inert. Can instead foul good food."
+
+spell D_PYROTECHNICS "Pyrotechnics" druid 3 dodge none
+  "Spend a nearby fire as blinding fireworks (watchers Dodge or blind a round) or a choking smoke cloud."
+
+spell D_SNARE "Snare" druid 3 dodge none
+  "Weave a cord, vine, or root into a near-invisible trap. The first to tread it is bound or yanked up, Dodge negates. Holds until sprung."
+
+spell D_STONESHAPE "Stone Shape" druid 3 none none
+  "Mold a block of stone no larger than you like clay: a rough door, a niche, a crude span. One shaping."
+
+spell D_TREE "Tree" druid 3 none none
+  "Take the seeming of a tree for up to a Day, aware and unharmed by ordinary notice. End it at will."
+
+spell D_WATERBREATHING "Water Breathing" druid 3 none none
+  "Up to two creatures breathe water for 6 turns, or you breathe air underwater the same span."
+
+spell D_HOLDPLANT "Hold Plant" druid 3 will none
+  "Shamblers, vine horrors, and like growth within Near stop still. Each rolls a Will save; the held are Helpless for 1d4 rounds."
+
+spell C_CREATEWATER "Create Water" cleric 1 none none
+  "Call clean water from the air, enough for a party and its mounts for a day."
+
+spell C_MAGICSTONE "Magic Stone" cleric 1 none none
+  "Bless up to three sling stones or pebbles. Each throws as a +1 weapon for 1d4, one fight."
+
+spell C_DETECTPOISON "Detect Poison" cleric 1 none none
+  "Tell whether a dish, draught, or blade is poisoned, and how badly, for 6 turns."
+
+spell C_AUGURY "Augury" cleric 2 none none
+  "Ask whether a course taken now ends in weal or woe. The GM answers for a short span ahead, less surely the further it reaches."
+  comp "marked bones or sticks"
+
+spell C_AID "Aid" cleric 2 none none
+  "Bless an ally with +1 to attacks and saves and 1d8 added HP for one fight. The added HP fade first."
+
+spell C_SPEAKWITHDEAD "Speak with Dead" cleric 3 none none
+  "Put a few short questions to a corpse whose head and jaw remain. It answers grudging, as it knew in life."
+
+spell C_GLYPHOFWARDING "Glyph of Warding" cleric 3 dodge none
+  "Ward a door, book, or threshold with a hidden sigil. The next to cross it unbidden takes 2d8, Dodge for half, or springs a 1st-level Cleric spell set in the glyph. Holds until sprung."
+
+spell C_WATERWALK "Water Walk" cleric 3 none none
+  "Up to one creature per Level stride across water, mud, or snow as on firm ground for 6 turns."
+
+spell M_COLORSPRAY "Color Spray" magicuser 1 will none
+  "A fan of clashing color: creatures of 5 HD or less in a 15 ft cone are Blinded 1d4 rounds, Will save negates. The weakest may fall Asleep at the GM's call."
+
+spell M_GREASE "Grease" magicuser 1 dodge none
+  "A 10 ft patch turns slick, or one held item greasy. A creature caught there saves Dodge or falls prone; a greased grip drops what it holds."
+
+spell M_IDENTIFY "Identify" magicuser 1 none none
+  "Learn one property of a magic item handled for a turn. Taxing: you cast at -1 to saves until you have slept."
+  comp "a pearl worth 100 GP, consumed"
+
+spell M_ACIDARROW "Acid Arrow" magicuser 2 none acid
+  "A dart of acid strikes at range for 2d4, and again for 2d4 at the start of the next round, one more round per three Levels."
+  comp "powdered rhubarb and an adder's stomach"
+
+spell M_FOGCLOUD "Fog Cloud" magicuser 2 none none
+  "A bank of thick fog fills a Near space for 6 turns. Past 5 ft, sight and missiles fail. A strong wind scatters it."
+
+spell M_SHATTER "Shatter" magicuser 2 body none
+  "A ringing note shivers brittle, nonliving matter near a point: glass, crockery, crystal, a light weapon. A held or magic item saves Body."
+
+spell M_VAMPIRICTOUCH "Vampiric Touch" magicuser 3 none none
+  "Your touch deals 1d6 per two Levels and heals you that much. The stolen HP fade at next dawn."
+
+spell M_MONSTERSUMMONI "Monster Summoning I" magicuser 3 none none
+  "Call 1d3 small monsters of about 2 HD to fight for you for one fight. The GM sets what answers."
+
+spell D_DETECTMAGIC "Detect Magic" druid 1 none none
+  "Sense magic within 30 ft for 6 turns."
+
+spell D_FLAMEBLADE "Flame Blade" druid 2 none fire
+  "A blade of fire springs from your hand for 6 turns. It strikes at your attack bonus for 1d4 plus half your Level in fire, and lights tinder."
+
+spell M_ICESTORM "Ice Storm" magicuser 4 dodge cold
+  "Hail and sleet batter a 20 ft space for 6d6 cold, Dodge for half, and leave the ground slick and the footing treacherous for one fight."
+
+spell M_WALLOFFIRE "Wall of Fire" magicuser 4 none fire
+  "A sheet of flame up to 40 ft long, or a ring, stands for one fight. Crossing it is 2d6 fire; undead and the cold-born take double. One face burns, your choice."
+
+spell M_DIMENSIONDOOR "Dimension Door" magicuser 4 none none
+  "Step at once to any spot you can see or clearly picture within 400 ft. You arrive ready to act."
+
+spell M_POLYMORPH "Polymorph" magicuser 4 body none
+  "Take the shape of a beast you have seen, up to your own Hit Dice, with its movement and attacks but not its mind. One fight, or until slain in that form. Forced on another, Body save negates."
+
+spell M_CONFUSION "Confusion" magicuser 4 will none
+  "Up to 1d4 creatures plus one per three Levels in a Near space act at random each round, a Will save each round to shake it. One fight."
+
+spell M_FEAR "Fear" magicuser 4 will none
+  "All in a 30 ft cone flee as fast as they can for 1d4 rounds, Will save negates. Some drop what they hold."
+
+spell M_STONESKIN "Stoneskin" magicuser 4 none none
+  "Your skin turns stone-hard. Shrug off the next 1d4 plus one per two Levels weapon blows before the ward is spent."
+
+spell M_CHARMMONSTER "Charm Monster" magicuser 4 will none
+  "One creature, or several weak ones, take you for a trusted friend, Will save negates. It lasts until you harm them or, for the mighty, a stretch of days the GM sets."
+
+spell M_CONEOFCOLD "Cone of Cold" magicuser 5 dodge cold
+  "A blast of killing cold in a 60 ft cone, 8d6, Dodge for half."
+  comp "a crystal or glass cone"
+
+spell M_CLOUDKILL "Cloudkill" magicuser 5 body poison
+  "A roiling green fog drifts away from you for one fight. Creatures of 4 HD or less within die; stronger ones take 1d10 a round and must flee, Body save for half and to move freely. It sinks and fills low ground."
+
+spell M_TELEPORT "Teleport" magicuser 5 none none
+  "You and up to one other per two Levels vanish and arrive at a place you know well, a mile off or a hundred. A place known only in passing risks arriving off the mark, high, or low, at the GM's call."
+
+spell M_HOLDMONSTER "Hold Monster" magicuser 5 body none
+  "Up to 1d4 creatures of any kind freeze in place, Body save negates; the held are Paralyzed 1d4 rounds."
+
+spell M_WALLOFSTONE "Wall of Stone" magicuser 5 none none
+  "Raise a wall of solid stone, a span across and up to a foot thick per two Levels. It must rest on something able to bear it. Permanent until broken."
+
+spell M_PASSWALL "Passwall" magicuser 5 none none
+  "Open a passage through up to 10 ft of ordinary wall or rock for 6 turns, then it seals. Any caught in it as it closes is forced to the nearer side."
+
+spell M_DISINTEGRATE "Disintegrate" magicuser 6 body none
+  "A thin green ray reduces a creature or a wagon-sized span of matter to fine dust, Body save negates. Wards turn it, and it fails against a wall of force."
+  comp "a lodestone and a pinch of dust"
+
+spell M_CHAINLIGHTNING "Chain Lightning" magicuser 6 dodge lightning
+  "A bolt strikes one target for 10d6, then leaps to the next nearest and the next, one arc per Level, each at half the last. Dodge for half."
+
+spell M_FLESHTOSTONE "Flesh to Stone" magicuser 6 body none
+  "A creature turns to lifeless stone, Body save negates. Petrified is permanent short of the reverse or a like cure. Reverses to Stone to Flesh, which frees one so turned."
+  comp "lime, water, and earth"
+
+spell M_GLOBEOFINVULNE "Globe of Invulnerability" magicuser 6 none none
+  "A shimmering globe about you turns aside every spell of 3rd level and lower for one fight. Higher spells pass through."
+
+spell C_CURECRITICALWO "Cure Critical Wounds" cleric 4 none none
+  "Restores 4d8 HP and ends one lingering hurt, as blindness or a crippled limb the GM allows. Reverses to Cause Critical Wounds."
+
+spell C_NEUTRALIZEPOIS "Neutralize Poison" cleric 4 none none
+  "Draw the venom from one creature or dose: ends Poisoned, or renders a poison inert. A creature newly slain by poison may yet be saved. Can instead foul good food."
+
+spell C_CIRCLEOFPROTEC "Circle of Protection" cleric 4 none none
+  "A 10 ft ward moves with you for one fight: those inside gain +2 AC and saves against Chaotic creatures, which cannot cross the circle to strike by hand."
+  comp "a line of powdered silver"
+
+spell C_FREEACTION "Free Action" cleric 4 none none
+  "A touched ally moves and fights unhindered for one fight, free of paralysis and webs, of grasping hands and the drag of deep water, and immune to Slow."
+
+spell C_TONGUES "Tongues" cleric 4 none none
+  "Speak and understand any living tongue for 6 turns. Reverses to sow confusion, so none nearby can grasp another's speech."
+
+spell C_RAISEDEAD "Raise Dead" cleric 5 none none
+  "Call one slain creature back to life, dead no longer than a day per Level and whole enough to live. It returns Weakened and must rest a week before it can adventure. Reverses to Slay Living: touch, Body save or slain."
+
+spell C_FLAMESTRIKE "Flame Strike" cleric 5 dodge fire
+  "A column of divine fire falls on a Near space for 8d6, Dodge for half."
+
+spell C_TRUESEEING "True Seeing" cleric 5 none none
+  "For 6 turns a touched creature sees all things as they are: through illusion, invisibility, disguise, and shapeshifting, and the true bent of what it beholds."
+  comp "an ointment of rare herbs"
+
+spell C_INSECTPLAGUE "Insect Plague" cleric 5 none none
+  "A vast droning swarm fills a wide space for one fight and longer. Those within take 1 a round, fight at -2, and any under 2 HD flee. It beds down the ground and breaks a foe's morale."
+
+spell C_HEAL "Heal" cleric 6 none none
+  "A touch restores a creature to full HP and ends blindness, disease, and feeblemind. Reverses to Harm: touch, Body save or brought to a single HP and left Diseased."
+
+spell C_BLADEBARRIER "Blade Barrier" cleric 6 dodge none
+  "A wall or ring of whirling blades stands for one fight. Crossing it is 7d6, Dodge for half; few will brave it."
+
+spell C_WORDOFRECALL "Word of Recall" cleric 6 none none
+  "Speak a word and return at once to a sanctuary set beforehand, with up to one other per three Levels in hand."
+
+spell D_DISPELMAGIC "Dispel Magic" druid 4 none none
+  "Ends ongoing spells up to your Level in a 20 ft area, or counters one as it is cast."
+
+spell D_HALLUCINATORYT "Hallucinatory Terrain" druid 4 none none
+  "Cloak a wide stretch of open land as other ground: a bog as a meadow, a road as a thicket. It holds until touched with intent or dispelled, and a close study may see through it."
+
+spell D_GIANTINSECT "Giant Insect" druid 4 none none
+  "Grow a handful of ordinary insects to the size of dogs or ponies, loyal to you for one fight and longer. The greater the beast, the fewer you raise."
+
+spell D_PROTECTIONFR2 "Protection from Lightning" druid 4 none none
+  "A touched creature ignores ordinary lightning and halves magical lightning for 6 turns, until it soaks 12 damage."
+
+spell D_CONTROLTEMPERA "Control Temperature" druid 4 none none
+  "Raise or lower the heat of a wide space by a season's worth for one fight, enough to wilt a field or ward off killing cold."
+
+spell D_COMMUNEWITHNAT "Commune with Nature" druid 5 none none
+  "Stand still a turn and know the land about you for miles: its waters, ways, and beasts, and where they bend, as the wild itself would tell it."
+
+spell D_CONTROLWINDS "Control Winds" druid 5 none none
+  "Raise or still the wind over a wide space for 6 turns: scatter missiles and small flyers, drive off cloud and fog, or whip a gale that halts advance."
+
+spell D_WALLOFTHORNS "Wall of Thorns" druid 5 none none
+  "A thicket of barbed briar springs up, a span across and as deep. Forcing it is slow and costs 1d6 a round; it stands one fight and longer, until hacked or burned clear."
+
+spell D_ANIMALGROWTH "Animal Growth" druid 5 none none
+  "Up to one beast per two Levels swells to twice its size for one fight: double damage, a step of toughness, and the weight to match. Reverses to shrink them."
+
+spell D_TRANSMUTEROCKT "Transmute Rock to Mud" druid 6 none none
+  "A wide span of rock or earth turns to deep, sucking mud, or mud to rock. Those caught sink and cannot move off, as from webs, and a set wall or floor may give way. Reverses to the other."
+
+spell D_FIRESEEDS "Fire Seeds" druid 6 dodge fire
+  "Up to four acorns become hurled firebombs for 2d8 each, or holly berries that burst into flame at your word for 1d8, Dodge for half. They hold their charge for a Day."
+
+spell D_SUMMONELEMENTA "Summon Elemental" druid 6 none none
+  "Call a creature of earth, fire, water, or air of up to 8 HD to serve for one fight. Hold it with your full attention; lose that and it may turn on all nearby."
+
+spell D_REINCARNATE "Reincarnate" druid 6 none none
+  "Bring one lately dead back in a new body the wild provides, its kindred the luck of the draw. It keeps who it was, not what it last wore or carried."
+

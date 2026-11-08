@@ -24,7 +24,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
-  monsters, dialog, shops, encounters, worldfmt, overworld, gamestate,
+  monsters, dialog, spelldb, shops, encounters, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
@@ -76,6 +76,7 @@ begin
     exit;
   end;
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
+  LoadSpells(GamePak);    { optional; the imported spell catalog }
   LoadShops(GamePak);     { optional; shop stock lists }
   LoadEncounters(GamePak); { optional; per-area encounter tables }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }

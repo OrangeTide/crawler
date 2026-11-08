@@ -21,6 +21,7 @@ SPECIES   = content/species.txt
 CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 DIALOGS   = content/dialogs.txt
+SPELLS    = content/spells.txt
 SHOPS     = content/shops.txt
 ENCOUNTERS = content/encounters.txt
 WORLD     = content/world.txt
@@ -50,8 +51,8 @@ TITLEBGSRC = content/title/title_bg.ppm content/title/title_pal.ppm
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) $(SPRITESRC) \
-            $(PORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
+            $(SPELLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) \
+            $(SPRITESRC) $(PORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
@@ -62,7 +63,7 @@ MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
-            shops $(SHOPS) encounters $(ENCOUNTERS) world $(WORLD)
+            spells $(SPELLS) shops $(SHOPS) encounters $(ENCOUNTERS) world $(WORLD)
 
 .PHONY: all run clean tools meshtools shottool test
 

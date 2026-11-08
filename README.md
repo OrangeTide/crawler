@@ -238,6 +238,7 @@ Gameplay systems and content tables (each `*text` unit is the tool-side parser):
 | `src/encounters.pas` / `src/enctext.pas` | Encounter tables. |
 | `src/shops.pas` / `src/shoptext.pas` | Shop stock tables. |
 | `src/dialog.pas` / `src/dialogtext.pas` | Conversation data, decoder and runtime. |
+| `src/spelldb.pas` / `src/spelltext.pas` | Spell catalog, decoder and table codec. |
 | `src/flags.pas` | Story flags and the quest journal. |
 | `src/codex.pas` | Bestiary and item identification knowledge. |
 | `src/save.pas` | Save and load of the whole game to a file. |

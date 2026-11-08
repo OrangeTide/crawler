@@ -15,7 +15,7 @@ program mkassets;
 uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
-  encounters, enctext, worldfmt, worldtext, meshfmt, models;
+  encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext;
 
 var
   w: TPakWriter;
@@ -173,6 +173,22 @@ begin
   writeln('  dialogs (', n, ') from ', fn);
 end;
 
+procedure AddSpells(const fn: string);
+var
+  cs: array[0 .. 255] of TSpellDef;
+  dyn: array of TSpellDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseSpells(fn, cs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := cs[k];
+  PakWAdd(w, 'SPEL', EncodeSpells(dyn));
+  writeln('  spells (', n, ') from ', fn);
+end;
+
 procedure AddShops(const fn: string);
 var
   cs: array[0 .. 31] of TShopDef;
@@ -328,6 +344,8 @@ begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'spells' then begin
+      AddSpells(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'shops' then begin
       AddShops(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'encounters' then begin

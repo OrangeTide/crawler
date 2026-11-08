@@ -130,12 +130,15 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   shelter behind one big one (up to eight tiny behind a single large). This
   gates the combat MOVE between ranks and the initial encounter layout.
 
-- [gap] Import the spell lists from axx-rpg, which was recently expanded with
-  many new spells. The source is ~/Vibe/axx-rpg/src/sup/spells.csv (name,
-  class, level, save, damage_type, effect, components; about 170 rows, keyed by
-  class such as Cleric). Bring them into a content spell table for the crawler,
-  mapping the axx classes and levels onto ours. Pairs with the caster-class
-  work below.
+- [done] Imported the axx-rpg spell lists. All 170 spells from
+  ~/Vibe/axx-rpg/src/sup/spells.csv (Cleric, Druid, Magic-User across six
+  levels) now live in content/spells.txt as a data-driven catalog, baked into a
+  SPEL lump by a spelltext parser and loaded at runtime by the spelldb unit.
+  Each spell keeps its level, save, damage type and effect prose; the prose is
+  the behaviour, and SpellElement maps the damage type onto the engine's five
+  elements thematically (acid, force and poison fall back to physical). Combat
+  is not wired to the catalog yet. Covered by t_spells. Provenance is in
+  CREDITS. This is the foundation for the caster-class work below.
 - [gap] Give the caster classes their known spells, spell schools and domains.
   Today classes carry only a caster track (mage, priest) and a spell-point
   pool (CharSpellPoints, MF_MAGE), with no actual spell lists. The Magic-User,
@@ -350,7 +353,9 @@ the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is th
 one unfinished milestone on the books.
 
 A third thread is now live in theme C: the caster classes have a spell-point
-pool but no spells, schools, or domains yet. Importing the expanded axx-rpg
-spell list and giving the Magic-User, Priest and Druid their own domains is
+pool but no spells, schools, or domains yet. The axx-rpg spell list is now
+imported into content/spells.txt and loaded by the spelldb unit, so the catalog
+exists. What remains is giving the Magic-User, Priest and Druid their own
+domains over it and letting combat and exploration cast from them. This is
 self-contained, leans on the data-driven content pipeline, and fills an obvious
 gap in the character system. It depends on neither open milestone.

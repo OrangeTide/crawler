@@ -1,0 +1,250 @@
+unit spelldb;
+
+{** Spell catalog, imported from the axx-rpg lists.
+
+  A spell carries its domain, level, saving throw, source damage type, the
+  effect prose that is the real behaviour, and optional material components.
+  Spells are authored as text, compiled into a SPEL lump and decoded here.
+  The record type, the encoder (used by the asset tool) and the decoder live
+  together so the tool and the runtime agree.
+
+  The damage type is kept faithful to the source; SpellElement maps it onto the
+  engine's five elements thematically (acid, force and poison fall back to
+  physical) for any combat that later wires a spell up.
+
+  SPEL layout:
+    magic 'SPEL' u32, spellCount u16
+    spell: id[16], name(str), domain u8, level u8, save u8, dtype u8,
+           effect(str), components(str) }
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  pak, monsters;
+
+const
+  SPEL_MAGIC = $4C455053;  { 'SPEL' }
+
+  { domains }
+  SPD_CLERIC = 0;
+  SPD_DRUID  = 1;
+  SPD_MAGE   = 2;
+
+  { saving throws }
+  SSV_NONE  = 0;
+  SSV_BODY  = 1;
+  SSV_DODGE = 2;
+  SSV_WILL  = 3;
+
+  { source damage types (faithful to axx-rpg) }
+  SDT_NONE      = 0;
+  SDT_ACID      = 1;
+  SDT_COLD      = 2;
+  SDT_FIRE      = 3;
+  SDT_FORCE     = 4;
+  SDT_LIGHTNING = 5;
+  SDT_POISON    = 6;
+
+type
+  TSpellDef = record
+    id: string[16];
+    name: string;
+    domain: byte;       { SPD_* }
+    level: byte;        { 1 .. 6 }
+    save: byte;         { SSV_* }
+    dtype: byte;        { SDT_* }
+    effect: string;     { the prose that defines what the spell does }
+    components: string; { material components, or empty }
+  end;
+
+var
+  SpellDefs: array of TSpellDef;
+
+function EncodeSpells(const ss: array of TSpellDef): TByteArray;
+function LoadSpells(const p: TPak): boolean;
+
+function SpellDefCount: longint;
+function SpellByID(const id: string): longint;   { index, or -1 }
+{ The engine element this damage type maps to, thematically. }
+function SpellElement(dtype: byte): byte;
+function DomainName(d: byte): string;
+function SaveName(s: byte): string;
+function DTypeName(d: byte): string;
+
+implementation
+
+{ ---- encode (used by the tool) ---- }
+
+procedure PutB(var a: TByteArray; var n: longint; v: byte);
+begin
+  if n >= Length(a) then SetLength(a, (n + 1) * 2);
+  a[n] := v; inc(n);
+end;
+
+procedure PutU16(var a: TByteArray; var n: longint; v: word);
+begin
+  PutB(a, n, v and $FF); PutB(a, n, (v shr 8) and $FF);
+end;
+
+procedure PutStr(var a: TByteArray; var n: longint; const s: string);
+var i: longint;
+begin
+  PutU16(a, n, Length(s));
+  for i := 1 to Length(s) do PutB(a, n, ord(s[i]));
+end;
+
+procedure PutFixed(var a: TByteArray; var n: longint; const s: string; len: longint);
+var i: longint;
+begin
+  for i := 1 to len do
+    if i <= Length(s) then PutB(a, n, ord(s[i])) else PutB(a, n, 0);
+end;
+
+function EncodeSpells(const ss: array of TSpellDef): TByteArray;
+var
+  a: TByteArray;
+  n, si: longint;
+begin
+  SetLength(a, 0); n := 0;
+  PutU16(a, n, SPEL_MAGIC and $FFFF);
+  PutU16(a, n, (SPEL_MAGIC shr 16) and $FFFF);
+  PutU16(a, n, Length(ss));
+  for si := 0 to High(ss) do begin
+    PutFixed(a, n, ss[si].id, 16);
+    PutStr(a, n, ss[si].name);
+    PutB(a, n, ss[si].domain);
+    PutB(a, n, ss[si].level);
+    PutB(a, n, ss[si].save);
+    PutB(a, n, ss[si].dtype);
+    PutStr(a, n, ss[si].effect);
+    PutStr(a, n, ss[si].components);
+  end;
+  SetLength(a, n);
+  EncodeSpells := a;
+end;
+
+{ ---- decode ---- }
+
+var
+  rp: longint;
+  rd: TByteArray;
+
+function RB: byte;
+begin
+  if rp < Length(rd) then begin RB := rd[rp]; inc(rp); end else RB := 0;
+end;
+
+function RU16: word;
+var lo, hi: byte;
+begin lo := RB; hi := RB; RU16 := lo or (hi shl 8); end;
+
+function RStr: string;
+var len, i: longint; s: string;
+begin
+  len := RU16; s := '';
+  for i := 1 to len do s := s + chr(RB);
+  RStr := s;
+end;
+
+function RFixed(len: longint): string;
+var i: longint; s: string; b: byte;
+begin
+  s := '';
+  for i := 1 to len do begin b := RB; if b <> 0 then s := s + chr(b); end;
+  RFixed := s;
+end;
+
+function LoadSpells(const p: TPak): boolean;
+var
+  count, si: longint;
+  magicLo, magicHi: word;
+begin
+  LoadSpells := false;
+  SpellDefs := nil;
+  if not PakGet(p, 'SPEL', rd) then exit;
+  rp := 0;
+  magicLo := RU16; magicHi := RU16;
+  if (magicLo or (magicHi shl 16)) <> SPEL_MAGIC then exit;
+  count := RU16;
+  SetLength(SpellDefs, count);
+  for si := 0 to count - 1 do begin
+    SpellDefs[si].id := RFixed(16);
+    SpellDefs[si].name := RStr;
+    SpellDefs[si].domain := RB;
+    SpellDefs[si].level := RB;
+    SpellDefs[si].save := RB;
+    SpellDefs[si].dtype := RB;
+    SpellDefs[si].effect := RStr;
+    SpellDefs[si].components := RStr;
+  end;
+  LoadSpells := true;
+end;
+
+{ ---- queries ---- }
+
+function SpellDefCount: longint;
+begin
+  SpellDefCount := Length(SpellDefs);
+end;
+
+function SpellByID(const id: string): longint;
+var i: longint;
+begin
+  for i := 0 to High(SpellDefs) do
+    if SpellDefs[i].id = id then begin SpellByID := i; exit; end;
+  SpellByID := -1;
+end;
+
+function SpellElement(dtype: byte): byte;
+begin
+  case dtype of
+    SDT_FIRE:      SpellElement := EL_FIRE;
+    SDT_COLD:      SpellElement := EL_FROST;
+    SDT_LIGHTNING: SpellElement := EL_SHOCK;
+    { acid, force and poison have no element of their own: physical is the
+      closest thematic fit, and the prose still carries the real flavour }
+    SDT_ACID, SDT_FORCE, SDT_POISON: SpellElement := EL_PHYS;
+  else
+    SpellElement := 0;
+  end;
+end;
+
+function DomainName(d: byte): string;
+begin
+  case d of
+    SPD_CLERIC: DomainName := 'Cleric';
+    SPD_DRUID:  DomainName := 'Druid';
+    SPD_MAGE:   DomainName := 'Magic-User';
+  else
+    DomainName := '?';
+  end;
+end;
+
+function SaveName(s: byte): string;
+begin
+  case s of
+    SSV_BODY:  SaveName := 'Body';
+    SSV_DODGE: SaveName := 'Dodge';
+    SSV_WILL:  SaveName := 'Will';
+  else
+    SaveName := 'none';
+  end;
+end;
+
+function DTypeName(d: byte): string;
+begin
+  case d of
+    SDT_ACID:      DTypeName := 'acid';
+    SDT_COLD:      DTypeName := 'cold';
+    SDT_FIRE:      DTypeName := 'fire';
+    SDT_FORCE:     DTypeName := 'force';
+    SDT_LIGHTNING: DTypeName := 'lightning';
+    SDT_POISON:    DTypeName := 'poison';
+  else
+    DTypeName := 'none';
+  end;
+end;
+
+end.
