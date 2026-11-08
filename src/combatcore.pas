@@ -13,7 +13,8 @@ unit combatcore;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata, spelldb, combatstate;
+  sysutils, rng, rules, items, monsters, party, chardata, spelldb, spellbook,
+  combatstate;
 
 { The party casts from the spell catalog (spelldb): a caster draws the castable
   spells of its class domain that its level reaches. SpellCount, SpellInfo and
@@ -377,14 +378,6 @@ var
   gListActor: longint = -1;   { whose list gList currently holds }
   gList: array of longint;    { catalog indices this caster may cast }
 
-{ The highest spell level a caster of this character level reaches. }
-function MaxSpellLevel(const c: TCharacter): longint;
-begin
-  MaxSpellLevel := (c.level + 1) div 2;
-  if MaxSpellLevel < 1 then MaxSpellLevel := 1;
-  if MaxSpellLevel > 6 then MaxSpellLevel := 6;
-end;
-
 procedure BuildList(actor: longint);
 var dom, i, j, tmp: longint;
 begin
@@ -393,9 +386,12 @@ begin
   if (actor < 0) or (actor > High(Roster)) then exit;
   dom := ClassDomain(Roster[actor].klass);
   if dom = SPD_NONE then exit;
+  { the castable spells of the domain the caster has learned and its level
+    reaches, so the combat menu holds only known, reachable spells }
   for i := 0 to SpellDefCount - 1 do
     if SpellDefs[i].castable and (SpellDefs[i].domain = dom)
-      and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor])) then begin
+      and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor]))
+      and CharKnows(Roster[actor], i) then begin
       SetLength(gList, Length(gList) + 1);
       gList[High(gList)] := i;
     end;

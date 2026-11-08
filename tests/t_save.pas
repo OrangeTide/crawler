@@ -37,6 +37,10 @@ begin
   RollAbilities(ab); MakeCharacter(Roster[0], 'Alice', 0, 0, -1, ab);
   RollAbilities(ab); MakeCharacter(Roster[1], 'Bob', 0, 1, -1, ab);
   Roster[0].lycan := true;
+  Roster[0].known := nil;
+  SetLength(Roster[0].known, 2);
+  Roster[0].known[0] := 'M_MAGICMISSILE';
+  Roster[0].known[1] := 'M_SLEEP';
   Roster[1].disease := 2;
   Roster[1].hireling := true;
   Roster[1].wage := 90;
@@ -79,6 +83,9 @@ begin
   CheckEqI(Length(Roster), 2, 'party size restored');
   Check((Length(Roster) >= 1) and (Roster[0].name = 'Alice'), 'name restored');
   Check((Length(Roster) >= 1) and Roster[0].lycan, 'lycanthropy restored');
+  Check((Length(Roster) >= 1) and (Length(Roster[0].known) = 2)
+    and (Roster[0].known[0] = 'M_MAGICMISSILE')
+    and (Roster[0].known[1] = 'M_SLEEP'), 'known spells restored');
   Check((Length(Roster) >= 2) and (Roster[1].disease = 2), 'disease restored');
   CheckEqI(PartyGold, 137, 'gold restored');
   Check(FlagHas('QUEST_X'), 'flag restored');

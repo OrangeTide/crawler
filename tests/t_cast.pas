@@ -8,13 +8,23 @@ program t_cast;
 
 uses
   sysutils, pak, rng, rules, items, chardata, monsters, party, spelldb,
-  combat, combatstate, combatcore, testing;
+  spellbook, combat, combatstate, combatcore, testing;
 
 var
   p: TPak;
   ab: TAbilityScores;
   a: TAbility;
   mm: longint;
+
+{ Learn every spell of the character's domain, so the level and spell-point
+  gates (not the known filter) are what this test exercises. }
+procedure LearnWholeDomain(var c: TCharacter);
+var i, dom: longint;
+begin
+  dom := ClassDomain(c.klass);
+  for i := 0 to SpellDefCount - 1 do
+    if SpellDefs[i].domain = dom then CharLearn(c, i);
+end;
 
 { The menu index of a spell by id in the current actor's list, or -1. }
 function MenuIndexOf(const id: string): longint;
@@ -42,6 +52,8 @@ begin
   SetLength(Roster, 2);
   MakeCharacter(Roster[0], 'Wren', SpeciesIndex('HUMAN'), ClassIndex('WIZARD'), -1, ab);
   MakeCharacter(Roster[1], 'Maeve', SpeciesIndex('HUMAN'), ClassIndex('FRIAR'), -1, ab);
+  LearnWholeDomain(Roster[0]);
+  LearnWholeDomain(Roster[1]);
 
   { a level-1 Wizard: the three L1 Magic-User combat spells, no L2 yet }
   CurActor := 0;

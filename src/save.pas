@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 11;
+  SAVE_VERSION = 12;
 
 var
   LoadedMapName: string;
@@ -110,6 +110,8 @@ begin
   s.WriteByte(ord(c.lycan));
   s.WriteByte(ord(c.hireling));
   WI32(s, c.wage);
+  WI32(s, Length(c.known));
+  for i := 0 to High(c.known) do WStr(s, c.known[i]);
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -134,6 +136,9 @@ begin
   RChar.lycan := s.ReadByte <> 0;
   RChar.hireling := s.ReadByte <> 0;
   RChar.wage := RI32(s);
+  n := RI32(s);
+  SetLength(RChar.known, n);
+  for i := 0 to n - 1 do RChar.known[i] := RStr(s);
   RChar.wereform := false;   { recomputed from the moon on the next frame }
 end;
 
