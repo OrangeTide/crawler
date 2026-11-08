@@ -232,14 +232,16 @@ begin
     if si >= total then break;
     spIdx := KnownNth(Roster[cm], si);
     if spIdx < 0 then break;
-    if si = spellSel then begin
-      FillRectBlend(12, y - 1, 184, 10, RGB(44, 44, 66), 230);
-      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
-        + SpellDefs[spIdx].name, RGB(244, 230, 150));
-    end else
-      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+    if si = spellSel then
+      FillRectBlend(12, y - 1, 184, 11, RGB(44, 44, 66), 230);
+    DrawSpellIcon(14, y, 9, 9, SpellDefs[spIdx].icon);
+    if si = spellSel then
+      DrawText(26, y + 1, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name, RGB(244, 230, 150))
+    else
+      DrawText(26, y + 1, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
         + SpellDefs[spIdx].name, RGB(190, 195, 180));
-    inc(y, 10);
+    inc(y, 11);
   end;
   DrawText(16, 160, IntToStr(spellSel + 1) + ' of ' + IntToStr(total),
     RGB(120, 130, 110));
@@ -338,14 +340,16 @@ begin
     if spIdx < 0 then break;
     tag := '';
     if not SpellDefs[spIdx].castable then tag := '  (util)';
-    if si = learnSel then begin
-      FillRectBlend(12, y - 1, 184, 10, RGB(44, 44, 66), 230);
-      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
-        + SpellDefs[spIdx].name + tag, RGB(244, 230, 150));
-    end else
-      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+    if si = learnSel then
+      FillRectBlend(12, y - 1, 184, 11, RGB(44, 44, 66), 230);
+    DrawSpellIcon(14, y, 9, 9, SpellDefs[spIdx].icon);
+    if si = learnSel then
+      DrawText(26, y + 1, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name + tag, RGB(244, 230, 150))
+    else
+      DrawText(26, y + 1, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
         + SpellDefs[spIdx].name + tag, RGB(190, 195, 180));
-    inc(y, 10);
+    inc(y, 11);
   end;
   DrawText(16, 150, IntToStr(learnSel + 1) + ' of ' + IntToStr(total),
     RGB(120, 130, 110));
@@ -539,12 +543,12 @@ begin
     end;
   end;
 
-  DrawText(12, FBH - 11, 'UP/DN SPELL  L/R MEMBER  I/ESC CLOSE',
+  DrawText(12, FBH - 11, 'UP/DN SPELL  L/R MEMBER  P FACE  I/ESC CLOSE',
     RGB(130, 140, 110));
 end;
 
 procedure CharSheetKeyDown(scancode: longint);
-var n: longint;
+var n, p: longint;
 begin
   n := Length(Roster);
   case scancode of
@@ -556,6 +560,12 @@ begin
       if sheetSpellSel > 0 then dec(sheetSpellSel);
     SDL_SCANCODE_DOWN:
       inc(sheetSpellSel);   { clamped on render }
+    SDL_SCANCODE_P:
+      if (n > 0) and (PCPortraitCount > 0) then begin
+        p := Roster[sheetSel].portrait + 1;
+        if p >= PCPortraitCount then p := 0;
+        Roster[sheetSel].portrait := p;
+      end;
     SDL_SCANCODE_I, SDL_SCANCODE_ESCAPE: State := gsExplore;
   end;
 end;

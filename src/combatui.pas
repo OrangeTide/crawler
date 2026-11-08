@@ -25,7 +25,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pic, sprites, party, chardata, items,
   monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
-  rng, flags;
+  rng, flags, pcportrait, spellicon;
 
 var
   BossRewardFlag: string;   { set a story flag when the current boss is beaten }
@@ -264,8 +264,11 @@ begin
         if i = spellSel then c := RGB(185, 215, 245)
         else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
         else c := RGB(95, 95, 110);
-        if i = spellSel then DrawText(CMDBOX_X + 5, y, '>', c);
-        DrawText(CMDBOX_X + 15, y, Copy(sp.name, 1, 12), c);
+        if i = spellSel then
+          FillRectBlend(CMDBOX_X + 2, y - 1, CMDBOX_W - 4, 10,
+            RGB(40, 44, 66), 200);
+        DrawSpellIcon(CMDBOX_X + 3, y, 9, 9, sp.icon);
+        DrawText(CMDBOX_X + 14, y, Copy(sp.name, 1, 11), c);
         DrawText(CMDBOX_X + CMDBOX_W - 12, y, IntToStr(sp.cost), c);
       end;
       { a count footer when the list is longer than the window }
@@ -370,7 +373,7 @@ const
   PTY_BACK_Y  = 116;
   PANEL_Y     = 140;
 var
-  i, n, living, slot, cx, cy, x, mi, rk, half, col, ny: longint;
+  i, n, living, slot, cx, cy, x, tx, mi, rk, half, col, ny: longint;
   c, body: TColor;
   s: string;
 begin
@@ -442,6 +445,7 @@ begin
     for i := 0 to n - 1 do begin
       if Roster[i].rank <> rk then continue;
       x := 16 + col * slot;
+      tx := x + 18;   { text clears the portrait thumbnail on the left }
       if (i = CurActor) and (CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(245, 230, 140));
       if (cbMenu = CB_ALLY) and (i = allySel) and (CombatPhase = CP_INPUT) then
@@ -450,17 +454,19 @@ begin
       else if Roster[i].downed then c := RGB(175, 135, 85)
       else if (i = CurActor) and (CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
-      DrawText(x, ny, Copy(Roster[i].name, 1, 8), c);
+      FrameRect(x, ny, 16, 16, RGB(50, 46, 38));
+      DrawPCPortraitScaled(x, ny, 16, 16, Roster[i].portrait);
+      DrawText(tx, ny, Copy(Roster[i].name, 1, 8), c);
       if (i <= High(PartyStatus)) and Roster[i].alive and (not Roster[i].downed) then begin
         s := StatusTag(PartyStatus[i]);
-        if s <> '' then DrawText(x + 50, ny, s, RGB(190, 120, 215));
+        if s <> '' then DrawText(tx + 50, ny, s, RGB(190, 120, 215));
       end;
       if not Roster[i].alive then
-        DrawText(x, ny + 9, 'SLAIN', RGB(190, 90, 90))
+        DrawText(tx, ny + 9, 'SLAIN', RGB(190, 90, 90))
       else if Roster[i].downed then
-        DrawText(x, ny + 9, 'DOWN', RGB(190, 140, 90))
+        DrawText(tx, ny + 9, 'DOWN', RGB(190, 140, 90))
       else begin
-        DrawText(x, ny + 9, IntToStr(Roster[i].hp) + '/'
+        DrawText(tx, ny + 9, IntToStr(Roster[i].hp) + '/'
           + IntToStr(Roster[i].hpMax), RGB(170, 175, 160));
         if Roster[i].guarding then DrawText(x + slot - 24, ny, 'GRD', RGB(150, 170, 210));
         if Roster[i].sp > 0 then

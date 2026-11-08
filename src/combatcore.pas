@@ -445,6 +445,7 @@ begin
   SpellFromCatalog.element := SpellElement(d.dtype);
   SpellFromCatalog.inflict := d.castInflict;
   SpellFromCatalog.school := d.school;
+  SpellFromCatalog.icon := d.icon;
 end;
 
 function SpellCount: longint;
