@@ -207,17 +207,14 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   off-line tools and support libraries, especially when porting from another
   project. The DOS original's hard limit was a tiny palette; our content is
   mostly 32 colours or fewer, so that constraint is not a real blocker.
-- [gap] Scrub the current portrait art from the commit history. The
-  a third-party artist portraits under content/portraits would be removed from every
-  commit with a git filter-repo rewrite, likely as part of a licensing swap for
-  the new portrait pack. This rewrites shared history, so confirm the scope and
-  the reason before running it, and rotate nothing is needed (art, not
-  secrets). Pairs with adopting the replacement pack below.
-- [gap] Adopt the Batareya "BIG PACK PORTRAITS1" set (500 portraits, 512x512,
-  in ~/Documents/sprites-free). Resize and bake to PIC lumps, wire to the
-  talking NPCs and to a new party-character portrait, and update CREDITS once
-  the license is located (no license file ships in the pack). Supersedes the
-  current portrait art once the history scrub lands.
+- [done] Swapped the six NPC portraits to the Batareya "500 Fantasy Pixel Art
+  Portraits" pack (free for personal and commercial use, no redistribution
+  limit), scaled to the 64x64 dialog format. The previous licensed portrait art
+  was then scrubbed from the whole commit history with a git filter-repo
+  rewrite, both the image blobs and the text references. The rewrite is local;
+  the remotes still carry the old history.
+- [gap] Add a party-character portrait, drawing from the same Batareya pack, so
+  the character sheet can show a face per member.
 - [gap] Spell and skill icons, and the UI that uses them. Bake the Batareya
   "MAGE ICONS BIG PACk" as per-spell icons and "250 WARRIOR ICONS" as per-skill
   icons (both 512x512 in ~/Documents/sprites-free, license to be located). Then
