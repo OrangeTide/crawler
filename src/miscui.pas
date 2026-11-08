@@ -22,17 +22,20 @@ procedure KeybindRender;
 procedure KeybindKeyDown(scancode: longint);
 procedure VictoryRender;
 procedure VictoryKeyDown(scancode: longint);
+procedure LearnRender;
+procedure LearnKeyDown(scancode: longint);
 
 implementation
 
 uses
   sysutils, sdl2min, gfx, flags, audio, uihelp, gamestate, world, hud,
   exploreui, pursuit, settings, keymap, codex, monsters, mappins, pathfind,
-  party, chardata, spelldb;
+  party, chardata, spelldb, spellbook;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
   spellSel: longint = 0;      { highlighted spell within that caster's domain }
+  learnSel: longint = 0;      { highlighted spell in the learn-a-spell screen }
 
 function PinColor(kind: byte): TColor;
 begin
@@ -186,7 +189,7 @@ const
   ROWS = 10;
 var
   casters: array[0 .. 15] of longint;
-  nc, cm, dom, total, firstRow, r, si, i, y, spIdx: longint;
+  nc, cm, dom, total, firstRow, r, si, y, spIdx: longint;
   meta: string;
 begin
   nc := CasterList(casters);
@@ -199,7 +202,7 @@ begin
   if spellCaster < 0 then spellCaster := 0;
   cm := casters[spellCaster];
   dom := ClassDomain(Roster[cm].klass);
-  total := DomainSpellCount(dom);
+  total := KnownCount(Roster[cm]);
   if spellSel >= total then spellSel := total - 1;
   if spellSel < 0 then spellSel := 0;
 
@@ -211,15 +214,19 @@ begin
   if nc > 1 then DrawText(210, 24, 'L/R MEMBER', RGB(130, 140, 110));
   DrawText(210, 34, 'UP/DN SPELL', RGB(130, 140, 110));
 
-  { the domain's spells, one page at a time, in level order }
+  if total = 0 then begin
+    DrawText(16, 54, 'Knows no spells yet.', RGB(150, 150, 130));
+    exit;
+  end;
+
+  { the spells this caster has learned, one page at a time, in level order }
   firstRow := (spellSel div ROWS) * ROWS;
-  spIdx := -1;
-  for i := 1 to firstRow do spIdx := NextInDomain(dom, spIdx);
   y := 50;
   for r := 0 to ROWS - 1 do begin
-    spIdx := NextInDomain(dom, spIdx);
-    if spIdx < 0 then break;
     si := firstRow + r;
+    if si >= total then break;
+    spIdx := KnownNth(Roster[cm], si);
+    if spIdx < 0 then break;
     if si = spellSel then begin
       FillRectBlend(12, y - 1, 184, 10, RGB(44, 44, 66), 230);
       DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
@@ -233,8 +240,7 @@ begin
     RGB(120, 130, 110));
 
   { the highlighted spell in full: its prose is the real behaviour }
-  spIdx := -1;
-  for i := 0 to spellSel do spIdx := NextInDomain(dom, spIdx);
+  spIdx := KnownNth(Roster[cm], spellSel);
   if spIdx >= 0 then begin
     FrameRect(8, 172, FBW - 16, FBH - 172 - 4, RGB(90, 84, 70));
     DrawText(16, 178, SpellDefs[spIdx].name, RGB(230, 210, 140));
@@ -291,6 +297,80 @@ begin
     SDL_SCANCODE_DOWN:
       if menuTab = 2 then inc(spellSel);   { clamped on render }
     SDL_SCANCODE_J, SDL_SCANCODE_ESCAPE: State := gsExplore;
+  end;
+end;
+
+{ The learn-a-spell screen: a caster picks which spell it learns when it gains
+  a slot, at creation and on each level that owes it one. The update loop opens
+  this state while any caster has a pending pick; it closes once none do. }
+procedure LearnRender;
+const ROWS = 9;
+var actor, total, pend, firstRow, r, si, y, spIdx: longint; tag: string;
+begin
+  ClearFB(RGB(10, 10, 16));
+  actor := NextLearner;
+  if actor < 0 then exit;   { nothing left to pick; the update loop will leave }
+  pend := PendingLearns(Roster[actor]);
+  DrawText(12, 10, 'LEARN A SPELL  (pick ' + IntToStr(pend) + ')',
+    RGB(230, 210, 130));
+  DrawText(12, 22, Roster[actor].name + ' the '
+    + ClassDefs[Roster[actor].klass].name, RGB(150, 170, 190));
+  total := LearnableCount(Roster[actor]);
+  if learnSel >= total then learnSel := total - 1;
+  if learnSel < 0 then learnSel := 0;
+  if total = 0 then begin
+    DrawText(16, 44, 'No new spells within reach.', RGB(150, 150, 130));
+    exit;
+  end;
+  firstRow := (learnSel div ROWS) * ROWS;
+  y := 40;
+  for r := 0 to ROWS - 1 do begin
+    si := firstRow + r;
+    if si >= total then break;
+    spIdx := LearnableNth(Roster[actor], si);
+    if spIdx < 0 then break;
+    tag := '';
+    if not SpellDefs[spIdx].castable then tag := '  (util)';
+    if si = learnSel then begin
+      FillRectBlend(12, y - 1, 184, 10, RGB(44, 44, 66), 230);
+      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name + tag, RGB(244, 230, 150));
+    end else
+      DrawText(16, y, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
+        + SpellDefs[spIdx].name + tag, RGB(190, 195, 180));
+    inc(y, 10);
+  end;
+  DrawText(16, 150, IntToStr(learnSel + 1) + ' of ' + IntToStr(total),
+    RGB(120, 130, 110));
+  DrawText(16, 160, 'UP/DN CHOOSE   ENTER LEARN', RGB(130, 140, 110));
+
+  { the highlighted spell in full: its prose is what it does }
+  spIdx := LearnableNth(Roster[actor], learnSel);
+  if spIdx >= 0 then begin
+    FrameRect(8, 172, FBW - 16, FBH - 172 - 4, RGB(90, 84, 70));
+    DrawText(16, 178, SpellDefs[spIdx].name, RGB(230, 210, 140));
+    DrawWrapped(16, 190, 48, SpellDefs[spIdx].effect, RGB(200, 200, 185));
+  end;
+end;
+
+procedure LearnKeyDown(scancode: longint);
+var actor, total, spIdx: longint;
+begin
+  actor := NextLearner;
+  if actor < 0 then begin State := gsExplore; exit; end;
+  total := LearnableCount(Roster[actor]);
+  case scancode of
+    SDL_SCANCODE_UP:
+      if learnSel > 0 then dec(learnSel);
+    SDL_SCANCODE_DOWN:
+      if learnSel < total - 1 then inc(learnSel);
+    SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE:
+      begin
+        spIdx := LearnableNth(Roster[actor], learnSel);
+        if spIdx >= 0 then CharLearn(Roster[actor], spIdx);
+        learnSel := 0;
+        if NextLearner < 0 then State := gsExplore;
+      end;
   end;
 end;
 

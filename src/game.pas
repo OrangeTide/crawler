@@ -24,7 +24,8 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
-  monsters, dialog, spelldb, shops, encounters, worldfmt, overworld, gamestate,
+  monsters, dialog, spelldb, spellbook, shops, encounters, worldfmt,
+  overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
@@ -122,6 +123,7 @@ begin
           gsOptions:  OptionsKeyDown(ev.key.keysym.scancode);
           gsKeybind:  KeybindKeyDown(ev.key.keysym.scancode);
           gsOverworld: OverworldKeyDown(ev.key.keysym.scancode);
+          gsLearnSpell: LearnKeyDown(ev.key.keysym.scancode);
         end;
       SDL_MOUSEMOTION:
         case State of
@@ -144,6 +146,8 @@ end;
 procedure GameUpdate(dt: double);
 begin
   UpdateLycanthropy;   { the moon acts in every state }
+  { a caster that has gained spell slots picks them before play resumes }
+  if (State = gsExplore) and (NextLearner >= 0) then State := gsLearnSpell;
   case State of
     gsExplore: ExploreUpdate(dt);
     gsCombat:  CombatAutoTurn(dt);
@@ -186,6 +190,7 @@ begin
     gsOptions:  OptionsRender;
     gsKeybind:  KeybindRender;
     gsOverworld: OverworldRender;
+    gsLearnSpell: LearnRender;
   end;
 end;
 

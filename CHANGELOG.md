@@ -10,6 +10,17 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Known spells, chosen at level-up. A caster no longer commands its whole
+  domain. It learns a growing list of spells, one at creation and one for each
+  level it gains, picked by the player on a learn-a-spell screen that opens
+  before play resumes whenever a caster is owed a choice. The screen lists the
+  domain spells the caster's level reaches, marks the non-combat ones, and
+  shows each spell's full effect. The known list is kept on the character and
+  in the save, so the combat menu and the spells tab show only what a caster
+  has learned. A new spellbook unit holds the rules (the known target, the
+  learnable and known queries, and the pick trigger); generated parties and
+  hirelings learn automatically so they never stop for the screen. The save
+  format version is bumped to carry the known list.
 - Spell domains for the caster classes. Each class names a spell domain in
   classes.txt (cleric, druid, magicuser, or none), carried on the class record
   and read with ClassDomain. The priest-track classes draw from the Cleric
@@ -91,8 +102,9 @@ whose development history is summarized in docs/roadmap.md.
 
 ### Changed
 - Combat now casts from the spell catalog instead of a fixed built-in table. A
-  caster's command menu is the castable spells of its class domain, gated by
-  character level (higher levels reach higher spell levels) and spell points,
+  caster's command menu is the castable spells it has learned from its class
+  domain, gated by character level (higher levels reach higher spell levels)
+  and spell points,
   and resolved with the ability modifier from its class prime. A catalog spell
   becomes castable by carrying an optional thematic combat line in spells.txt
   (spell-point cost, target mode, effect, dice, with the element taken from its

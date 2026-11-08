@@ -19,7 +19,8 @@ uses
 type
   TGameState = (gsTitle, gsNewParty, gsExplore, gsCombat,
                 gsDialog, gsShop, gsFullMap, gsInventory, gsMenu,
-                gsGameOver, gsVictory, gsOptions, gsKeybind, gsOverworld);
+                gsGameOver, gsVictory, gsOptions, gsKeybind, gsOverworld,
+                gsLearnSpell);
 
   TKeyArray = array[0 .. SDL_NUM_SCANCODES - 1] of UInt8;
   PKeyArray = ^TKeyArray;

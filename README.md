@@ -83,9 +83,12 @@ spells and bows strike over them.
   codex records monsters met and item kinds known: a bestiary lists foes with
   their weaknesses, and mystery loot hides its name until used or identified.
 - A spell catalog of 170 spells across the Cleric, Druid, and Magic-User
-  domains. Each caster class draws from its domain, and a spells tab on the
-  meta screen lists a caster's spells by level with each one's full effect. In
-  combat a caster's spell menu is its domain, gated by level and spell points.
+  domains. Each caster class draws from its domain, but a caster commands only
+  the spells it has learned: it picks new spells from its domain as it gains
+  levels, on a learn screen, and the choices are kept in the save. A spells tab
+  on the meta screen lists a caster's known spells by level with each one's
+  full effect. In combat its spell menu is the learned, reachable spells, gated
+  by level and spell points.
 - Save and load of the whole game, including the party, gold, flags, journal,
   position and the explored fog of every visited map.
 - Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The
@@ -243,6 +246,7 @@ Gameplay systems and content tables (each `*text` unit is the tool-side parser):
 | `src/shops.pas` / `src/shoptext.pas` | Shop stock tables. |
 | `src/dialog.pas` / `src/dialogtext.pas` | Conversation data, decoder and runtime. |
 | `src/spelldb.pas` / `src/spelltext.pas` | Spell catalog, decoder and table codec. |
+| `src/spellbook.pas` | Known spells: the per-caster learned list and its rules. |
 | `src/flags.pas` | Story flags and the quest journal. |
 | `src/codex.pas` | Bestiary and item identification knowledge. |
 | `src/save.pas` | Save and load of the whole game to a file. |

@@ -14,6 +14,7 @@ program shot;
     shot <out.ppm> world
     shot <out.ppm> menu [TAB]   (0 journal, 1 bestiary, 2 spells)
     shot <out.ppm> castmenu     (a quick battle with the Wizard's spell list open)
+    shot <out.ppm> learn        (the level-up learn-a-spell screen for a caster)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -117,6 +118,13 @@ begin
     end;
     CombatKeyDown(SDL_SCANCODE_DOWN);     { ATTACK -> CAST }
     CombatKeyDown(SDL_SCANCODE_RETURN);   { open the spell list }
+  end
+  else if scene = 'learn' then begin
+    { a party, then wipe the Wizard's learned spells so it owes picks and the
+      level-up learn screen opens for it }
+    QuickStart;
+    if High(Roster) >= 3 then SetLength(Roster[3].known, 0);
+    State := gsLearnSpell;
   end
   else if (scene = 'map') or (scene = 'foe') then begin
     if ParamCount < 6 then begin

@@ -153,9 +153,13 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   thematic combat line in spells.txt (cost, target mode, effect, dice, element
   from its damage type). The combat-shaped spells across all six levels in all
   three domains are statted (about fifty), the in-combat menu is level-ordered
-  and scrolls when the list outgrows its box. Still open: arcane schools as
-  sub-domains of the Magic-User list, per-class known-or-prepared subsets
-  rather than the whole domain, and casting from exploration.
+  and scrolls when the list outgrows its box. Casters now command only the
+  spells they have learned: a character picks new spells from its domain as it
+  levels, on a learn screen that opens before play resumes, and the known list
+  is kept on the character and in the save (version bumped). Combat and the
+  SPELLS tab both read that list, and generated parties and hirelings learn
+  automatically. The rules live in a spellbook unit. Still open: arcane schools
+  as sub-domains of the Magic-User list, and casting from exploration.
 - [gap] Port the remaining hardcoded party and class data to content files.
   Against the data-driven rule, a few designer-tunable tables still live in
   Pascal literals: the quick-start / pregen party (its classes, names, and
