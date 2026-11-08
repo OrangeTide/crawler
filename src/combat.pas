@@ -25,8 +25,8 @@ unit combat;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata, spelldb, encounters,
-  codex, combatstate, combatcore, combatai;
+  sysutils, rng, rules, items, monsters, party, chardata, spelldb, skilldb,
+  skillbook, encounters, codex, combatstate, combatcore, combatai;
 
 { Start a fight at a dungeon depth. tableNum selects the weighted encounter
   table to draw foes from; an empty or unknown table draws from every
@@ -59,6 +59,10 @@ procedure CombatSettle;
 { Cast spellIdx from the current actor. target is a foe index for enemy
   modes, an ally index for TGT_ALLY, and ignored for TGT_PARTY. }
 procedure ActCast(spellIdx, target: longint);
+
+{ Use the i-th combat maneuver from the current actor's skill menu. target is
+  the foe for the attacking maneuvers, ignored for the party-wide rally. }
+procedure ActSkill(skillIdx, target: longint);
 
 implementation
 
@@ -354,7 +358,7 @@ procedure BuildEncounter(depth, tableNum, leadMon: longint);
   foes are drawn from the area table. With leadMon = -1 the draw is
   identical to a plain random encounter. }
 var
-  pick, count, i, front, npool, e, mi, wrep: longint;
+  pick, count, i, j, front, npool, e, mi, wrep: longint;
   pool: array of longint;
 begin
   SetLength(Foes, 0);
@@ -434,6 +438,15 @@ begin
   SetLength(PartyStatus, Length(Roster));
   for i := 0 to High(FoeStatus) do FillChar(FoeStatus[i], SizeOf(TStatus), 0);
   for i := 0 to High(PartyStatus) do FillChar(PartyStatus[i], SizeOf(TStatus), 0);
+
+  { reset the per-fight maneuver tallies and the cached skill menu, so each
+    fight starts with every limited maneuver's uses restored }
+  ResetSkillMenu;
+  SetLength(SkillUse, Length(Roster));
+  for i := 0 to High(SkillUse) do begin
+    SetLength(SkillUse[i], SkillDefCount);
+    for j := 0 to High(SkillUse[i]) do SkillUse[i][j] := 0;
+  end;
   CombatSfxCue := CUE_NONE;
 
   { the party now meets these foes: record them in the bestiary }
@@ -711,6 +724,54 @@ begin
       CombatLog(Roster[CurActor].name + ' blesses the party.');
     end;
   end;
+
+  FinishSubAction(false);
+end;
+
+procedure ActSkill(skillIdx, target: longint);
+var
+  sk: TSkillDef;
+  rk, bonus, i: longint;
+begin
+  if CombatOver or (CurActor < 0) or (CombatPhase <> CP_INPUT) then exit;
+  if not ActorCanManeuver(CurActor, skillIdx) then begin
+    CombatLog(Roster[CurActor].name + ' cannot do that.');
+    exit;
+  end;
+  sk := CombatSkillInfo(skillIdx);
+  rk := SkillRank(Roster[CurActor], CombatSkillCat(skillIdx));
+  if rk < 0 then rk := 0;
+  bonus := 0;
+  if sk.dice > 0 then bonus := RngRoll(GameRng, sk.dice, sk.sides);
+  SpendManeuver(CurActor, skillIdx);
+  CombatLog(Roster[CurActor].name + ' uses ' + sk.name + '.');
+
+  case sk.effect of
+    SKE_POWERATTACK:
+      { a heavy swing: harder to land, heavier when it does }
+      ResolvePartyAttack(CurActor, target, -2, bonus + rk);
+    SKE_DISARM:
+      { a precise strike that throws the foe off balance }
+      ResolvePartyAttack(CurActor, target, -1, 0, ST_OFFBAL);
+    SKE_BASH:
+      { a shield slam that can stun }
+      ResolvePartyAttack(CurActor, target, -1, 0, ST_STUN);
+    SKE_AIMEDSHOT:
+      { a careful shot: surer, and keener with training }
+      ResolvePartyAttack(CurActor, target, 2 + rk, bonus);
+    SKE_RALLY: begin
+      { steady the party: fear lifts and a short blessing takes hold }
+      for i := 0 to High(Roster) do
+        if Roster[i].alive then PartyStatus[i].fear := 0;
+      PartyBless := 1;
+      CombatLog(Roster[CurActor].name + ' rallies the party.');
+    end;
+  end;
+
+  { the struck foe may have fallen; aim the cursor at a living one }
+  if (CurTarget > High(Foes)) or (CurTarget < 0)
+     or (not Foes[CurTarget].alive) then
+    CurTarget := FirstLivingFoe;
 
   FinishSubAction(false);
 end;

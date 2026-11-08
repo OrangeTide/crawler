@@ -14,7 +14,7 @@ interface
 
 uses
   sysutils, rng, rules, items, monsters, party, chardata, spelldb, spellbook,
-  combatstate;
+  skilldb, skillbook, combatstate;
 
 { The party casts from the spell catalog (spelldb): a caster draws the castable
   spells of its class domain that its level reaches. SpellCount, SpellInfo and
@@ -54,8 +54,12 @@ procedure HurtMember(mi, dmg: longint);
 procedure AfflictFoe(fi, st, turns: longint; dcBonus: longint = 0);
 { Try to lay a status on a party member; a save shrugs it. }
 procedure AfflictMember(mi, st, turns: longint);
-{ Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
-procedure ResolvePartyAttack(actor, foe: longint);
+{ Resolve one party melee or ranged attack; off balance rolls at disadvantage.
+  hitMod and dmgMod bend a maneuver's swing (power attack trades hit for
+  damage, an aimed shot buys hit); inflict lays a status on the foe when the
+  blow lands (a disarm knocks it off balance, a bash stuns). }
+procedure ResolvePartyAttack(actor, foe: longint;
+  hitMod: longint = 0; dmgMod: longint = 0; inflict: longint = 0);
 
 { Drop the cached per-actor spell list so it rebuilds; call at fight start. }
 procedure ResetSpellList;
@@ -64,6 +68,23 @@ function SpellInfo(i: longint): TSpell;
 function ActorCanCast(actor, spellIdx: longint): boolean;
 { The spell ability modifier: the caster's class prime ability. }
 function CasterMod(actor: longint): longint;
+
+{ Combat maneuvers (skilldb, arena SKA_COMBAT): CurActor's known combat skills,
+  rebuilt on demand, with per-fight use limits tracked in SkillUse. The queries
+  mirror the spell list above. }
+procedure ResetSkillMenu;
+function CombatSkillCount: longint;
+{ The catalog index of the i-th combat skill in the current actor's menu, -1
+  when out of range. }
+function CombatSkillCat(i: longint): longint;
+function CombatSkillInfo(i: longint): TSkillDef;
+{ Uses left this fight for the i-th skill: -1 means at will (no limit). }
+function CombatSkillUsesLeft(actor, i: longint): longint;
+{ Whether the actor may use the i-th maneuver now: alive, its gear requirement
+  met, and a use left this fight. }
+function ActorCanManeuver(actor, i: longint): boolean;
+{ Count one use of the i-th maneuver against its per-fight limit. }
+procedure SpendManeuver(actor, i: longint);
 
 implementation
 
@@ -483,7 +504,8 @@ end;
 
 { ---- party attack resolution ---- }
 
-procedure ResolvePartyAttack(actor, foe: longint);
+procedure ResolvePartyAttack(actor, foe: longint;
+  hitMod: longint = 0; dmgMod: longint = 0; inflict: longint = 0);
 var
   melee, hit: boolean;
   roll, roll2, atk, dmg, die: longint;
@@ -503,7 +525,7 @@ begin
     roll2 := D(20);                       { off balance: roll at disadvantage }
     if roll2 < roll then roll := roll2;
   end;
-  atk := CharAttack(Roster[actor], melee) + PartyBless - PartyDark;
+  atk := CharAttack(Roster[actor], melee) + PartyBless - PartyDark + hitMod;
   if PartyStatus[actor].fear > 0 then dec(atk, FEAR_ATK);   { afraid: shaky aim }
   if CharEncumbered(Roster[actor]) then dec(atk, ENCUMBER_ATK);  { overladen }
   if OptCriticals then
@@ -515,13 +537,116 @@ begin
     if OptCriticals and (roll = 20) then dmg := die   { a crit for max damage }
     else dmg := D(die);
     if melee then dmg := dmg + AbilMod(Roster[actor].abil[abSTR]);
+    dmg := dmg + dmgMod;
     if dmg < 1 then dmg := 1;
     CombatLog(Roster[actor].name + ' hits ' + MonDefs[Foes[foe].def].name + '.');
     DamageFoe(foe, dmg, WeaponElement(Roster[actor]));
+    if Foes[foe].alive and (inflict <> 0) then AfflictFoe(foe, inflict, 3);
   end else begin
     CombatLog(Roster[actor].name + ' misses.');
     PushPop(0, foe, POPC_MISS, 'MISS');
   end;
+end;
+
+{ ---- combat maneuvers: the actor's combat-arena skills, rebuilt on demand ---- }
+
+var
+  gKActor: longint = -1;    { whose menu gKList currently holds }
+  gKList: array of longint; { catalog indices of that actor's combat skills }
+
+function CharHasShield(const c: TCharacter): boolean;
+begin
+  CharHasShield := (c.equip[eqOff].def >= 0)
+    and (ItemDefs[c.equip[eqOff].def].kind = IK_SHIELD);
+end;
+
+procedure BuildSkillMenu(actor: longint);
+var i, cat: longint;
+begin
+  gKActor := actor;
+  SetLength(gKList, 0);
+  if (actor < 0) or (actor > High(Roster)) then exit;
+  for i := 0 to KnownSkillCount(Roster[actor]) - 1 do begin
+    cat := KnownSkillNth(Roster[actor], i);
+    if (cat >= 0) and (SkillDefs[cat].arena = SKA_COMBAT) then begin
+      SetLength(gKList, Length(gKList) + 1);
+      gKList[High(gKList)] := cat;
+    end;
+  end;
+end;
+
+procedure EnsureSkillMenu(actor: longint);
+begin
+  if gKActor <> actor then BuildSkillMenu(actor);
+end;
+
+procedure ResetSkillMenu;
+begin
+  gKActor := -1;
+end;
+
+function CombatSkillCount: longint;
+begin
+  EnsureSkillMenu(CurActor);
+  CombatSkillCount := Length(gKList);
+end;
+
+function CombatSkillCat(i: longint): longint;
+begin
+  EnsureSkillMenu(CurActor);
+  if (i < 0) or (i >= Length(gKList)) then CombatSkillCat := -1
+  else CombatSkillCat := gKList[i];
+end;
+
+function CombatSkillInfo(i: longint): TSkillDef;
+var cat: longint;
+begin
+  cat := CombatSkillCat(i);
+  { the UI never asks out of range; fall back to the first entry if it does }
+  if cat < 0 then cat := 0;
+  if SkillDefCount > 0 then CombatSkillInfo := SkillDefs[cat];
+end;
+
+function CombatSkillUsesLeft(actor, i: longint): longint;
+var cat: longint;
+begin
+  CombatSkillUsesLeft := -1;
+  cat := CombatSkillCat(i);
+  if cat < 0 then exit;
+  if SkillDefs[cat].maxUses = 0 then exit;   { at will }
+  CombatSkillUsesLeft := SkillDefs[cat].maxUses;
+  if (actor >= 0) and (actor <= High(SkillUse))
+     and (cat <= High(SkillUse[actor])) then
+    CombatSkillUsesLeft := SkillDefs[cat].maxUses - SkillUse[actor][cat];
+  if CombatSkillUsesLeft < 0 then CombatSkillUsesLeft := 0;
+end;
+
+function ActorCanManeuver(actor, i: longint): boolean;
+var cat: longint;
+begin
+  ActorCanManeuver := false;
+  if (actor < 0) or (actor > High(Roster)) then exit;
+  if not (Roster[actor].alive and (not Roster[actor].downed)) then exit;
+  cat := CombatSkillCat(i);
+  if cat < 0 then exit;
+  { a maneuver may demand gear: a shield to bash, a ranged weapon to aim }
+  case SkillDefs[cat].effect of
+    SKE_BASH:      if not CharHasShield(Roster[actor]) then exit;
+    SKE_AIMEDSHOT: if not WeaponRanged(Roster[actor]) then exit;
+  end;
+  if (SkillDefs[cat].maxUses > 0) and (CombatSkillUsesLeft(actor, i) <= 0) then exit;
+  ActorCanManeuver := true;
+end;
+
+procedure SpendManeuver(actor, i: longint);
+var cat: longint;
+begin
+  cat := CombatSkillCat(i);
+  if cat < 0 then exit;
+  if SkillDefs[cat].maxUses = 0 then exit;   { at will, nothing to track }
+  if (actor >= 0) and (actor <= High(SkillUse))
+     and (cat <= High(SkillUse[actor])) then
+    inc(SkillUse[actor][cat]);
 end;
 
 end.

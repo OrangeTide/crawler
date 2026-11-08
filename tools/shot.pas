@@ -14,6 +14,7 @@ program shot;
     shot <out.ppm> world
     shot <out.ppm> menu [TAB]   (0 journal, 1 bestiary, 2 spells)
     shot <out.ppm> castmenu     (a quick battle with the Wizard's spell list open)
+    shot <out.ppm> skillmenu    (a quick battle with a fighter's maneuver list open)
     shot <out.ppm> learn        (the level-up learn-a-spell screen for a caster)
     shot <out.ppm> dialog <ID>  (an NPC dialog, to frame its portrait)
     shot <out.ppm> create       (the character-creation screen)
@@ -33,7 +34,7 @@ program shot;
 
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
-  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
+  mapfmt, monsters, pursuit, titleui, combat, combatui, combatstate, party, chardata,
   dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
   skilldb, skillbook, rules;
 
@@ -187,6 +188,29 @@ begin
       skillActor := ci; skillTrainSel := 0; State := gsLearnSkill;
     end else if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'aid') then
       CharSheetKeyDown(SDL_SCANCODE_A);   { tend the wounded member }
+  end
+  else if scene = 'skillmenu' then begin
+    { a quick battle, then reclass the first member to a fighter, train it in a
+      few maneuvers, and open the SKILL submenu to frame the maneuver list }
+    QuickBattle;
+    if High(Roster) >= 0 then begin
+      ci := 0;
+      Roster[ci].klass := ClassIndex('FIGHTER');
+      Roster[ci].level := 5;
+      Roster[ci].skillSlots := 10;
+      LearnSkill(Roster[ci], SkillByID('SK_POWERATTACK'));
+      LearnSkill(Roster[ci], SkillByID('SK_DISARM'));
+      LearnSkill(Roster[ci], SkillByID('SK_RALLY'));
+      CurActor := ci;
+    end;
+    CombatKeyDown(SDL_SCANCODE_DOWN);     { ATTACK -> CAST }
+    CombatKeyDown(SDL_SCANCODE_DOWN);     { CAST -> SKILL }
+    CombatKeyDown(SDL_SCANCODE_RETURN);   { open the maneuver list }
+    if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'go') then begin
+      CombatKeyDown(SDL_SCANCODE_RETURN); { pick Power Attack, go to target }
+      CombatKeyDown(SDL_SCANCODE_RETURN); { confirm the target: swing lands }
+      CombatSettle;                       { run the beat out so the log fills }
+    end;
   end
   else if scene = 'castmenu' then begin
     { a quick battle, then drive the Wizard into the cast submenu; an optional

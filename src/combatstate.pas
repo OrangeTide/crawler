@@ -115,6 +115,8 @@ var
   PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
   PartyDark: longint;       { a fight-long to-hit penalty for fighting in the
                              dark, set from the torch when the fight begins }
+  SkillUse: array of array of longint;  { combat-maneuver uses spent this fight,
+                             indexed [party member][skill catalog index] }
   OptCriticals: boolean;    { natural 20 auto-hits for max damage, 1 fumbles }
   CombatBeatScale: double;  { scales the pause between beats, from the options }
 

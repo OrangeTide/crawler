@@ -6,14 +6,23 @@ program t_skills;
 
 uses
   sysutils, pak, rng, rules, items, chardata, monsters, party, skilldb,
-  skillbook, testing;
+  skillbook, combatstate, combatcore, testing;
 
 var
   p: TPak;
   ab: TAbilityScores;
   a: TAbility;
   thief, fighter, wizard: TCharacter;
-  lock, power, mend, before, i, who: longint;
+  lock, power, mend, before, i, who, dis, mPow, mDis: longint;
+
+{ The current actor's combat-menu index for the first skill of an effect. }
+function MenuIdxOf(effect: byte): longint;
+var k: longint;
+begin
+  MenuIdxOf := -1;
+  for k := 0 to CombatSkillCount - 1 do
+    if CombatSkillInfo(k).effect = effect then begin MenuIdxOf := k; exit; end;
+end;
 
 function Idx(const id: string): longint;
 begin
@@ -109,6 +118,33 @@ begin
     'the ranked lockpick never fails this easy lock');
   Check((not PartySkillRoll(SKE_FINDTRAPS, who)) and (who = -1),
     'a skill no one knows cannot be rolled');
+
+  { ---- combat maneuvers: the menu and per-fight use limits ---- }
+  power := Idx('SK_POWERATTACK');
+  dis := Idx('SK_DISARM');
+  Roster[1].skillSlots := 10;
+  LearnSkill(Roster[1], power);   { at-will }
+  LearnSkill(Roster[1], dis);     { twice per fight }
+
+  CurActor := 1;
+  ResetSkillMenu;
+  SetLength(SkillUse, Length(Roster));
+  for i := 0 to High(SkillUse) do SetLength(SkillUse[i], SkillDefCount);
+
+  Check(CombatSkillCount = 2, 'the fighter has two combat maneuvers');
+  mPow := MenuIdxOf(SKE_POWERATTACK);
+  mDis := MenuIdxOf(SKE_DISARM);
+  Check((mPow >= 0) and (mDis >= 0), 'both maneuvers are on the menu');
+  Check(CombatSkillUsesLeft(1, mPow) = -1, 'power attack is at will');
+  Check(CombatSkillUsesLeft(1, mDis) = 2, 'disarm starts with two uses');
+  Check(ActorCanManeuver(1, mDis), 'disarm is ready at the start of a fight');
+
+  SpendManeuver(1, mDis);
+  Check(CombatSkillUsesLeft(1, mDis) = 1, 'a use spends one of disarm');
+  SpendManeuver(1, mDis);
+  Check(CombatSkillUsesLeft(1, mDis) = 0, 'disarm is spent after two uses');
+  Check(not ActorCanManeuver(1, mDis), 'a spent maneuver is refused');
+  Check(ActorCanManeuver(1, mPow), 'the at-will maneuver is never spent');
 
   TestSummary('skills');
   halt(TestExit);

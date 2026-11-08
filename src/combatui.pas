@@ -25,7 +25,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pic, sprites, party, chardata, items,
   monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
-  rng, flags, pcportrait, spellicon;
+  rng, flags, pcportrait, spellicon, skilldb, skillicon;
 
 var
   BossRewardFlag: string;   { set a story flag when the current boss is beaten }
@@ -37,25 +37,29 @@ const
   CB_SPELL   = 2;   { picking a spell }
   CB_ALLY    = 3;   { picking an ally, for a heal or an item }
   CB_ITEM    = 4;   { picking an item to use }
+  CB_SKILL   = 5;   { picking a combat maneuver }
 
   { commands in the root menu }
   CMD_ATTACK = 0;
   CMD_CAST   = 1;
-  CMD_ITEM   = 2;
-  CMD_GUARD  = 3;
-  CMD_MOVE   = 4;
-  CMD_SKIP   = 5;
-  CMD_FLEE   = 6;
-  CMD_COUNT  = 7;
+  CMD_SKILL  = 2;
+  CMD_ITEM   = 3;
+  CMD_GUARD  = 4;
+  CMD_MOVE   = 5;
+  CMD_SKIP   = 6;
+  CMD_FLEE   = 7;
+  CMD_COUNT  = 8;
 
   CMD_NAME: array[0 .. CMD_COUNT - 1] of string[7] = (
-    'ATTACK', 'CAST', 'ITEM', 'DEFEND', 'MOVE', 'SKIP', 'FLEE');
+    'ATTACK', 'CAST', 'SKILL', 'ITEM', 'DEFEND', 'MOVE', 'SKIP', 'FLEE');
 
 var
   { combat command UI: a FF-style command then target flow }
   cbMenu: longint;        { CB_* phase }
   cmdSel: longint;        { highlighted command }
   spellSel: longint;      { highlighted spell }
+  skillSel: longint;      { highlighted combat maneuver }
+  pendingSkill: longint;  { maneuver chosen, awaiting a target, -1 none }
   allySel: longint;       { highlighted ally, for a heal }
   pendingSpell: longint;  { spell chosen, awaiting a target, -1 none }
   itemSel: longint;       { highlighted item, a pack slot }
@@ -204,7 +208,7 @@ function CmdSpent(cmd: longint): boolean;
 begin
   case cmd of
     CMD_MOVE: CmdSpent := TurnMoved;
-    CMD_ATTACK, CMD_CAST, CMD_ITEM, CMD_GUARD: CmdSpent := TurnActed;
+    CMD_ATTACK, CMD_CAST, CMD_SKILL, CMD_ITEM, CMD_GUARD: CmdSpent := TurnActed;
   else
     CmdSpent := false;
   end;
@@ -214,6 +218,7 @@ procedure DrawCombatMenu;
 var
   i, y, y0, bh, row, n, first: longint;
   sp: TSpell;
+  sk: TSkillDef;
   c: TColor;
   any: boolean;
 begin
@@ -236,8 +241,10 @@ begin
 
   case cbMenu of
     CB_COMMAND:
+      { the root menu now holds eight commands, so pack the rows a touch
+        tighter than the scrolling sublists to keep FLEE inside the box }
       for i := 0 to CMD_COUNT - 1 do begin
-        y := y0 + i * 11;
+        y := (y0 - 2) + i * 10;
         if CmdSpent(i) then begin
           if i = cmdSel then DrawText(CMDBOX_X + 5, y, '>', RGB(96, 90, 72));
           DrawText(CMDBOX_X + 15, y, CMD_NAME[i], RGB(96, 90, 72));
@@ -275,6 +282,41 @@ begin
       if n > SPELL_VIS then
         DrawText(CMDBOX_X + 15, y0 + SPELL_VIS * 11,
           IntToStr(spellSel + 1) + '/' + IntToStr(n), RGB(120, 130, 150));
+    end;
+    CB_SKILL: begin
+      n := CombatSkillCount;
+      if n = 0 then
+        DrawText(CMDBOX_X + 6, y0, 'NO SKILLS', RGB(150, 150, 130))
+      else begin
+        first := 0;
+        if n > SPELL_VIS then begin
+          if skillSel >= SPELL_VIS then first := skillSel - SPELL_VIS + 1;
+          if first > n - SPELL_VIS then first := n - SPELL_VIS;
+        end;
+        for row := 0 to SPELL_VIS - 1 do begin
+          i := first + row;
+          if i >= n then break;
+          y := y0 + row * 11;
+          sk := CombatSkillInfo(i);
+          if i = skillSel then c := RGB(185, 215, 245)
+          else if ActorCanManeuver(CurActor, i) then c := RGB(150, 160, 185)
+          else c := RGB(95, 95, 110);
+          if i = skillSel then
+            FillRectBlend(CMDBOX_X + 2, y - 1, CMDBOX_W - 4, 10,
+              RGB(40, 44, 66), 200);
+          DrawSkillIcon(CMDBOX_X + 3, y, 9, 9, sk.icon);
+          DrawText(CMDBOX_X + 14, y, Copy(sk.name, 1, 12), c);
+          { at-will shows a dot, limited shows the uses left this fight }
+          if sk.maxUses = 0 then
+            DrawText(CMDBOX_X + CMDBOX_W - 12, y, '-', c)
+          else
+            DrawText(CMDBOX_X + CMDBOX_W - 12, y,
+              IntToStr(CombatSkillUsesLeft(CurActor, i)), c);
+        end;
+        if n > SPELL_VIS then
+          DrawText(CMDBOX_X + 15, y0 + SPELL_VIS * 11,
+            IntToStr(skillSel + 1) + '/' + IntToStr(n), RGB(120, 130, 150));
+      end;
     end;
     CB_TARGET: begin
       DrawText(CMDBOX_X + 6, y0, 'TARGET', RGB(240, 220, 130));
@@ -617,6 +659,21 @@ begin
   until i = start;
 end;
 
+procedure CombatStepSkill(dir: longint);
+var
+  start, i, n: longint;
+begin
+  n := CombatSkillCount;
+  if n = 0 then exit;
+  i := skillSel;
+  if (i < 0) or (i >= n) then i := 0;
+  start := i;
+  repeat
+    i := ((i + dir) mod n + n) mod n;
+    if ActorCanManeuver(CurActor, i) then begin skillSel := i; exit; end;
+  until i = start;
+end;
+
 { Return to the command menu, clearing any pending choice and picking a
   sane default target. Called at the top of each actor's turn. }
 procedure CombatToCommand;
@@ -628,6 +685,7 @@ begin
   for i := 0 to CMD_COUNT - 1 do        { land on the first command still open }
     if not CmdSpent(i) then begin cmdSel := i; break; end;
   pendingSpell := -1;
+  pendingSkill := -1;
   pendingItem := -1;
   if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
     CurTarget := FirstLivingFoe;
@@ -658,6 +716,17 @@ begin
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_SPELL; PlaySfx(SFX_SELECT);
+      end;
+    end;
+    CMD_SKILL: begin
+      skillSel := -1;
+      for i := 0 to CombatSkillCount - 1 do
+        if ActorCanManeuver(CurActor, i) then begin skillSel := i; break; end;
+      if skillSel < 0 then begin
+        CombatLog(Roster[CurActor].name + ' has no maneuver ready.');
+        PlaySfx(SFX_DOWN);
+      end else begin
+        cbMenu := CB_SKILL; PlaySfx(SFX_SELECT);
       end;
     end;
     CMD_ITEM: begin
@@ -701,6 +770,22 @@ begin
   end;
 end;
 
+procedure CombatConfirmSkill;
+var
+  sk: TSkillDef;
+begin
+  if not ActorCanManeuver(CurActor, skillSel) then begin PlaySfx(SFX_DOWN); exit; end;
+  sk := CombatSkillInfo(skillSel);
+  if sk.effect = SKE_RALLY then begin
+    { the rally hits the whole party, so it needs no target }
+    ActSkill(skillSel, -1); PlaySfx(SFX_SELECT); CombatToCommand;
+    exit;
+  end;
+  pendingSkill := skillSel;
+  CurTarget := FirstLivingFoe;
+  cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
+end;
+
 procedure CombatConfirmItem;
 begin
   if not CombatItemUsable(itemSel) then begin PlaySfx(SFX_DOWN); exit; end;
@@ -723,13 +808,17 @@ procedure CombatBack;
 begin
   case cbMenu of
     CB_TARGET:
-      if pendingSpell >= 0 then cbMenu := CB_SPELL else cbMenu := CB_COMMAND;
+      if pendingSkill >= 0 then cbMenu := CB_SKILL
+      else if pendingSpell >= 0 then cbMenu := CB_SPELL
+      else cbMenu := CB_COMMAND;
     CB_SPELL: cbMenu := CB_COMMAND;
+    CB_SKILL: cbMenu := CB_COMMAND;
     CB_ITEM:  cbMenu := CB_COMMAND;
     CB_ALLY:
       if pendingItem >= 0 then cbMenu := CB_ITEM else cbMenu := CB_SPELL;
   end;
   if cbMenu <> CB_TARGET then pendingSpell := -1;
+  if (cbMenu <> CB_TARGET) and (cbMenu <> CB_SKILL) then pendingSkill := -1;
   if cbMenu <> CB_ALLY then pendingItem := -1;
   PlaySfx(SFX_SELECT);
 end;
@@ -759,13 +848,22 @@ begin
         SDL_SCANCODE_DOWN, SDL_SCANCODE_RIGHT:
           CombatCycleTarget(1);
         SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
-          if pendingSpell >= 0 then begin
+          if pendingSkill >= 0 then begin
+            ActSkill(pendingSkill, CurTarget); PlaySfx(SFX_HIT);
+          end else if pendingSpell >= 0 then begin
             ActCast(pendingSpell, CurTarget); PlaySfx(SFX_HIT);
           end else begin
             ActAttack; PlaySfx(SFX_HIT);
           end;
           CombatToCommand;
         end;
+        SDL_SCANCODE_ESCAPE: CombatBack;
+      end;
+    CB_SKILL:
+      case scancode of
+        SDL_SCANCODE_UP, SDL_SCANCODE_W:   CombatStepSkill(-1);
+        SDL_SCANCODE_DOWN, SDL_SCANCODE_S: CombatStepSkill(1);
+        SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: CombatConfirmSkill;
         SDL_SCANCODE_ESCAPE: CombatBack;
       end;
     CB_SPELL:
@@ -807,6 +905,8 @@ begin
   cbMenu := CB_COMMAND;
   cmdSel := CMD_ATTACK;
   spellSel := 0;
+  skillSel := 0;
+  pendingSkill := -1;
   allySel := 0;
   pendingSpell := -1;
   itemSel := 0;
