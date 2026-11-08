@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Spell icons across the rest of the spell screens, and the party face in
+  combat. The per-spell icons now draw on the SPELLS tab, the learn-a-spell
+  screen, and the combat cast menu, not only the character sheet. Each party
+  member's portrait sits beside its name and bars on the combat party panel,
+  and pressing P on the character sheet repicks that member's face in play.
 - Spell icons, and a spell browser on the character sheet. Every spell in the
   catalog now names a pixel icon, carried on an icon line in spells.txt. A
   caster's character sheet lists its known spells with those icons, sorted by
