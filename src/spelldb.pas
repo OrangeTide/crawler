@@ -48,6 +48,17 @@ const
   SDT_LIGHTNING = 5;
   SDT_POISON    = 6;
 
+  { combat target modes, kept equal to combatstate TGT_* }
+  SCM_ENEMY = 0;
+  SCM_RANK  = 1;
+  SCM_ALLY  = 2;
+  SCM_PARTY = 3;
+
+  { combat effects, kept equal to combatstate EF_* }
+  SCE_DAMAGE = 0;
+  SCE_HEAL   = 1;
+  SCE_BLESS  = 2;
+
 type
   TSpellDef = record
     id: string[16];
@@ -58,6 +69,15 @@ type
     dtype: byte;        { SDT_* }
     effect: string;     { the prose that defines what the spell does }
     components: string; { material components, or empty }
+    { an optional thematic combat approximation; castable is false for the
+      utility and reference spells that no fight can use }
+    castable: boolean;
+    castCost: byte;     { spell points spent }
+    castMode: byte;     { SCM_* }
+    castEffect: byte;   { SCE_* }
+    castDice: byte;
+    castSides: byte;
+    castInflict: byte;  { a monsters ST_* a damaging hit may lay, 0 = none }
   end;
 
 var
@@ -125,6 +145,13 @@ begin
     PutB(a, n, ss[si].dtype);
     PutStr(a, n, ss[si].effect);
     PutStr(a, n, ss[si].components);
+    if ss[si].castable then PutB(a, n, 1) else PutB(a, n, 0);
+    PutB(a, n, ss[si].castCost);
+    PutB(a, n, ss[si].castMode);
+    PutB(a, n, ss[si].castEffect);
+    PutB(a, n, ss[si].castDice);
+    PutB(a, n, ss[si].castSides);
+    PutB(a, n, ss[si].castInflict);
   end;
   SetLength(a, n);
   EncodeSpells := a;
@@ -183,6 +210,13 @@ begin
     SpellDefs[si].dtype := RB;
     SpellDefs[si].effect := RStr;
     SpellDefs[si].components := RStr;
+    SpellDefs[si].castable := RB <> 0;
+    SpellDefs[si].castCost := RB;
+    SpellDefs[si].castMode := RB;
+    SpellDefs[si].castEffect := RB;
+    SpellDefs[si].castDice := RB;
+    SpellDefs[si].castSides := RB;
+    SpellDefs[si].castInflict := RB;
   end;
   LoadSpells := true;
 end;

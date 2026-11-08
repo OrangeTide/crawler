@@ -84,7 +84,8 @@ spells and bows strike over them.
   their weaknesses, and mystery loot hides its name until used or identified.
 - A spell catalog of 170 spells across the Cleric, Druid, and Magic-User
   domains. Each caster class draws from its domain, and a spells tab on the
-  meta screen lists a caster's spells by level with each one's full effect.
+  meta screen lists a caster's spells by level with each one's full effect. In
+  combat a caster's spell menu is its domain, gated by level and spell points.
 - Save and load of the whole game, including the party, gold, flags, journal,
   position and the explored fog of every visited map.
 - Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The

@@ -54,9 +54,9 @@ const
 
 type
   TSpell = record
-    id: string[8];
-    name: string[14];
-    track: byte;        { TRK_MAGE or TRK_PRIEST }
+    id: string[16];
+    name: string[20];
+    track: byte;        { unused: the domain now gates casting }
     cost: byte;         { spell points }
     mode: byte;         { TGT_* }
     effect: byte;       { EF_* }

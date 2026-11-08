@@ -146,19 +146,22 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   Magic-User list, and the Forestal from the Druid list; the rest cast nothing.
   A SPELLS tab on the meta screen lists a caster's whole domain in level order
   with the highlighted spell's prose, paged and switched between the party's
-  casters. Still open: arcane schools as sub-domains of the Magic-User list,
-  per-class known-or-prepared subsets rather than the whole domain, and wiring
-  combat and exploration to cast these spells (today combat still casts the
-  seven mechanical built-ins; the catalog is prose, so a castable spell needs
-  thematic mechanics first).
-- [gap] Port the hardcoded party and class data to content files. Several
-  designer-tunable tables still live in Pascal literals, against the
-  data-driven rule: the quick-start / pregen party (its classes, names, and
+  casters. Combat now casts from the catalog too: a caster's command menu is
+  the castable spells of its domain, gated by character level and spell points,
+  resolved with the ability from its class prime, and the old seven-spell
+  built-in table is gone. A spell becomes castable by carrying an optional
+  thematic combat line in spells.txt (cost, target mode, effect, dice, element
+  from its damage type); so far a signature few per domain are statted. Still
+  open: statting more of the combat-shaped spells (levels, breadth), arcane
+  schools as sub-domains of the Magic-User list, per-class known-or-prepared
+  subsets rather than the whole domain, and casting from exploration.
+- [gap] Port the remaining hardcoded party and class data to content files.
+  Against the data-driven rule, a few designer-tunable tables still live in
+  Pascal literals: the quick-start / pregen party (its classes, names, and
   species in titleui.BuildPregenParty), the random name pool (NAME_POOL in
-  gamestate), the char-creation default class, and the seven built-in combat
-  spells (SpellTable in combatcore). Move each into a content/*.txt lump with a
-  parser, the way classes, monsters, and spells already load, so none of this
-  content is baked into branches.
+  gamestate), and the char-creation default class. Move each into a content
+  lump with a parser, the way classes, monsters, and spells already load. (The
+  built-in combat spell table is already retired in favour of spells.txt.)
 
 ### D. Reference, meta, and quality-of-life
 
@@ -365,11 +368,11 @@ If the recent AI thread is the live interest, 0.20.0 has the most momentum and
 the lowest startup cost. If a clean renderer baseline matters more, 0.19.0 is the
 one unfinished milestone on the books.
 
-A third thread is now live in theme C. The axx-rpg spell list is imported into
-content/spells.txt and loaded by the spelldb unit, and each caster class now
-names its spell domain in classes.txt, surfaced on a SPELLS tab that lists a
-caster's whole domain. What remains is narrowing the domains into schools and
-known-or-prepared subsets, and letting combat and exploration actually cast
-these spells (the catalog is prose, so that needs thematic mechanics first).
-This leans on the data-driven content pipeline and depends on neither open
-milestone.
+A third thread is well along in theme C. The axx-rpg spell list is imported
+into content/spells.txt, each caster class names its spell domain in
+classes.txt, a SPELLS tab lists a caster's domain, and combat now casts from
+the catalog: a caster's menu is its domain, gated by level and spell points.
+A signature few spells per domain carry thematic combat stats so far. What
+remains is statting more of the combat-shaped spells, narrowing the domains
+into schools and known-or-prepared subsets, and casting from exploration. This
+leans on the data-driven content pipeline and depends on neither open milestone.

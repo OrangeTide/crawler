@@ -90,6 +90,14 @@ whose development history is summarized in docs/roadmap.md.
   headless or sandboxed environment where the SDL window will not open.
 
 ### Changed
+- Combat now casts from the spell catalog instead of a fixed built-in table. A
+  caster's command menu is the castable spells of its class domain, gated by
+  character level (higher levels reach higher spell levels) and spell points,
+  and resolved with the ability modifier from its class prime. A catalog spell
+  becomes castable by carrying an optional thematic combat line in spells.txt
+  (spell-point cost, target mode, effect, dice, with the element taken from its
+  damage type); a signature few per domain are statted so far, and the old
+  seven hardcoded combat spells are retired. Foe spellcasting is unchanged.
 - Renamed the game to "Cities of the Sunless Depths" (was "Shadows of the
   Deep"). The title logo and the window caption carry the new name.
 - Generated dungeon levels now choose stairs or a ladder for each vertical

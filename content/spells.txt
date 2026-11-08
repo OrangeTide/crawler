@@ -8,12 +8,14 @@
 
 spell C_BLESS "Bless" cleric 1 none none
   "+1 to the party's attacks and saves for one fight."
+  cast 1 party bless 0d0
 
 spell C_COMMAND "Command" cleric 1 will none
   "One word a target must obey for a round: halt, flee, drop, kneel. Will save resists."
 
 spell C_CURELIGHTWOUND "Cure Light Wounds" cleric 1 none none
   "Restores 1d8 HP and ends Poisoned. Reverses to Cause, 1d8 on a touch."
+  cast 1 ally heal 1d8
 
 spell C_DETECTEVIL "Detect Evil" cleric 1 none none
   "Sense Chaotic creatures and cursed things within 60 ft for 6 turns."
@@ -63,6 +65,7 @@ spell C_SPEAKWITHANIMA "Speak with Animals" cleric 2 none none
 
 spell C_SPIRITUALHAMME "Spiritual Hammer" cleric 2 none none
   "A floating hammer of force fights for you at your attack bonus, 1d4, one fight."
+  cast 2 enemy damage 1d4
   comp "the caster's holy symbol"
 
 spell C_ANIMATEDEAD "Animate Dead" cleric 3 none none
@@ -93,6 +96,7 @@ spell C_REMOVECURSE "Remove Curse" cleric 3 none none
 
 spell M_BURNINGHANDS "Burning Hands" magicuser 1 dodge fire
   "A fan of flame: 1d3 per Level in a 10 ft cone, Dodge save for half."
+  cast 1 rank damage 1d6
 
 spell M_CHARMPERSON "Charm Person" magicuser 1 will none
   "Will save or Charmed."
@@ -122,6 +126,7 @@ spell M_LIGHT "Light" magicuser 1 none none
 
 spell M_MAGICMISSILE "Magic Missile" magicuser 1 none force
   "1d4+1 damage, never misses. One more dart at Levels 3 and 5."
+  cast 1 enemy damage 1d4
 
 spell M_READMAGIC "Read Magic" magicuser 1 none none
   "Decipher arcane script and scrolls so you can cast or copy them."
@@ -131,6 +136,7 @@ spell M_SHIELD "Shield" magicuser 1 none none
 
 spell M_SHOCKINGGRASP "Shocking Grasp" magicuser 1 none lightning
   "Your next touch this round delivers 1d8 plus your Level in lightning."
+  cast 1 enemy damage 1d8
 
 spell M_SLEEP "Sleep" magicuser 1 none none
   "2d4 HD of creatures of 4 HD or less fall Asleep, no save."
@@ -241,6 +247,7 @@ spell D_ENTANGLE "Entangle" druid 1 dodge none
 
 spell D_FAERIEFIRE "Faerie Fire" druid 1 none none
   "Ring a target in pale light for one fight. Attacks against it gain +1 and it cannot hide."
+  cast 1 party bless 0d0
 
 spell D_SPEAKWITHANIMA "Speak with Animals" druid 1 none none
   "Talk with natural beasts for 6 turns. They answer as their nature allows and may grant a small favor on a good reaction."
@@ -253,12 +260,14 @@ spell D_SHILLELAGH "Shillelagh" druid 1 none none
 
 spell D_GOODBERRY "Goodberry" druid 1 none none
   "1d6 berries, each heals 1 HP and feeds a traveler for a day. They spoil at next dawn."
+  cast 1 ally heal 1d6
 
 spell D_BARKSKIN "Barkskin" druid 2 none none
   "A target's skin turns to bark: +2 AC for 6 turns."
 
 spell D_PRODUCEFLAME "Produce Flame" druid 2 none fire
   "A flame sits in your palm for 6 turns. Hurl it to Near as an attack for 1d6 fire, and it sets tinder alight."
+  cast 2 enemy damage 1d6
 
 spell D_HEATMETAL "Heat Metal" druid 2 none fire
   "Metal a target wears turns scalding for 1d4 rounds: 1d4 a round until dropped. Great mass or cold iron resists."
@@ -359,6 +368,7 @@ spell C_AUGURY "Augury" cleric 2 none none
 
 spell C_AID "Aid" cleric 2 none none
   "Bless an ally with +1 to attacks and saves and 1d8 added HP for one fight. The added HP fade first."
+  cast 2 ally heal 1d8
 
 spell C_SPEAKWITHDEAD "Speak with Dead" cleric 3 none none
   "Put a few short questions to a corpse whose head and jaw remain. It answers grudging, as it knew in life."
@@ -381,6 +391,7 @@ spell M_IDENTIFY "Identify" magicuser 1 none none
 
 spell M_ACIDARROW "Acid Arrow" magicuser 2 none acid
   "A dart of acid strikes at range for 2d4, and again for 2d4 at the start of the next round, one more round per three Levels."
+  cast 2 enemy damage 2d4
   comp "powdered rhubarb and an adder's stomach"
 
 spell M_FOGCLOUD "Fog Cloud" magicuser 2 none none
@@ -400,6 +411,7 @@ spell D_DETECTMAGIC "Detect Magic" druid 1 none none
 
 spell D_FLAMEBLADE "Flame Blade" druid 2 none fire
   "A blade of fire springs from your hand for 6 turns. It strikes at your attack bonus for 1d4 plus half your Level in fire, and lights tinder."
+  cast 2 enemy damage 1d4
 
 spell M_ICESTORM "Ice Storm" magicuser 4 dodge cold
   "Hail and sleet batter a 20 ft space for 6d6 cold, Dodge for half, and leave the ground slick and the footing treacherous for one fight."

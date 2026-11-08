@@ -254,7 +254,7 @@ begin
         else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
         else c := RGB(95, 95, 110);
         if i = spellSel then DrawText(CMDBOX_X + 5, y, '>', c);
-        DrawText(CMDBOX_X + 15, y, sp.name, c);
+        DrawText(CMDBOX_X + 15, y, Copy(sp.name, 1, 12), c);
         DrawText(CMDBOX_X + CMDBOX_W - 12, y, IntToStr(sp.cost), c);
       end;
     CB_TARGET: begin

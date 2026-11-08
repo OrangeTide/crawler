@@ -13,6 +13,7 @@ program shot;
     shot <out.ppm> combat [DEPTH]
     shot <out.ppm> world
     shot <out.ppm> menu [TAB]   (0 journal, 1 bestiary, 2 spells)
+    shot <out.ppm> castmenu     (a quick battle with the Wizard's spell list open)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -27,7 +28,7 @@ program shot;
 
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
-  mapfmt, monsters, pursuit, titleui;
+  mapfmt, monsters, pursuit, titleui, combatui, combatstate, party;
 
 procedure DumpPPM(const fn: string);
 var
@@ -104,6 +105,16 @@ begin
     QuickStart;             { a party, so the spells tab has casters }
     State := gsMenu;
     if ParamCount >= 3 then menuTab := StrToInt(ParamStr(3)) else menuTab := 0;
+  end
+  else if scene = 'castmenu' then begin
+    { a quick battle, then drive the Wizard into the cast submenu }
+    QuickBattle;
+    if High(Roster) >= 3 then begin
+      CurActor := 3;          { the pregen Wizard }
+      Roster[3].sp := 5;
+    end;
+    CombatKeyDown(SDL_SCANCODE_DOWN);     { ATTACK -> CAST }
+    CombatKeyDown(SDL_SCANCODE_RETURN);   { open the spell list }
   end
   else if (scene = 'map') or (scene = 'foe') then begin
     if ParamCount < 6 then begin

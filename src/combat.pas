@@ -421,7 +421,9 @@ begin
   if front = 0 then Foes[0].rank := RANK_FRONT;   { someone must be reachable }
   FoesAtStart := count;
 
-  { give casters a small pool of spell points for the fight }
+  { give casters a small pool of spell points for the fight, and rebuild the
+    per-caster spell lists in case the party changed or levelled }
+  ResetSpellList;
   for i := 0 to High(Roster) do
     Roster[i].sp := CharSpellPoints(Roster[i]);
 
@@ -659,7 +661,7 @@ begin
     CombatLog(Roster[CurActor].name + ' cannot cast that.');
     exit;
   end;
-  sp := SpellTable[spellIdx];
+  sp := SpellInfo(spellIdx);
   dec(Roster[CurActor].sp, sp.cost);
   m := CasterMod(CurActor);
 

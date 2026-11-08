@@ -24,7 +24,7 @@ function ParseSpells(const fn: string; out ss: array of TSpellDef;
 implementation
 
 uses
-  classes, sysutils;
+  classes, sysutils, monsters;
 
 procedure QTok(const line: string; out tok: array of string; out n: longint);
 var
@@ -81,6 +81,52 @@ begin
   else DTypeOf := false;
 end;
 
+function ModeOf(const s: string; out v: byte): boolean;
+begin
+  ModeOf := true;
+  if s = 'enemy' then v := SCM_ENEMY
+  else if s = 'rank' then v := SCM_RANK
+  else if s = 'ally' then v := SCM_ALLY
+  else if s = 'party' then v := SCM_PARTY
+  else ModeOf := false;
+end;
+
+function EffectOf(const s: string; out v: byte): boolean;
+begin
+  EffectOf := true;
+  if s = 'damage' then v := SCE_DAMAGE
+  else if s = 'heal' then v := SCE_HEAL
+  else if s = 'bless' then v := SCE_BLESS
+  else EffectOf := false;
+end;
+
+function StatusOf(const s: string; out v: byte): boolean;
+begin
+  StatusOf := true;
+  if s = 'poison' then v := ST_POISON
+  else if s = 'stun' then v := ST_STUN
+  else if s = 'slow' then v := ST_SLOW
+  else if s = 'burn' then v := ST_BURN
+  else if s = 'offbal' then v := ST_OFFBAL
+  else if s = 'fear' then v := ST_FEAR
+  else if s = 'paral' then v := ST_PARAL
+  else if s = 'disease' then v := ST_DISEASE
+  else StatusOf := false;
+end;
+
+{ Parse an "XdY" dice expression; "0d0" is allowed for a diceless effect. }
+function DiceOf(const s: string; out dice, sides: byte): boolean;
+var p, dv, sv: longint;
+begin
+  DiceOf := false;
+  p := Pos('d', s);
+  if p < 2 then exit;
+  dv := StrToIntDef(Copy(s, 1, p - 1), -1);
+  sv := StrToIntDef(Copy(s, p + 1, Length(s)), -1);
+  if (dv < 0) or (sv < 0) then exit;
+  dice := dv; sides := sv; DiceOf := true;
+end;
+
 function ParseSpells(const fn: string; out ss: array of TSpellDef;
   out count: longint; out err: string): boolean;
 var
@@ -111,6 +157,13 @@ begin
         ss[cur].level := StrToIntDef(tok[4], 1);
         ss[cur].effect := '';
         ss[cur].components := '';
+        ss[cur].castable := false;
+        ss[cur].castCost := 0;
+        ss[cur].castMode := 0;
+        ss[cur].castEffect := 0;
+        ss[cur].castDice := 0;
+        ss[cur].castSides := 0;
+        ss[cur].castInflict := 0;
         if not DomainOf(tok[3], ss[cur].domain) then begin
           err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[3]; exit;
         end;
@@ -123,6 +176,28 @@ begin
       end else if tok[0] = 'comp' then begin
         if cur < 0 then begin err := 'comp before spell'; exit; end;
         ss[cur].components := tok[1];
+      end else if tok[0] = 'cast' then begin
+        { cast COST MODE EFFECT XdY [inflict STATUS] }
+        if cur < 0 then begin err := 'cast before spell'; exit; end;
+        if n < 5 then begin
+          err := 'line ' + IntToStr(li + 1) + ': cast needs cost mode effect dice';
+          exit;
+        end;
+        ss[cur].castable := true;
+        ss[cur].castCost := StrToIntDef(tok[1], 1);
+        if not ModeOf(tok[2], ss[cur].castMode) then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad cast mode ' + tok[2]; exit;
+        end;
+        if not EffectOf(tok[3], ss[cur].castEffect) then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad cast effect ' + tok[3]; exit;
+        end;
+        if not DiceOf(tok[4], ss[cur].castDice, ss[cur].castSides) then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad cast dice ' + tok[4]; exit;
+        end;
+        if (n >= 7) and (tok[5] = 'inflict') then
+          if not StatusOf(tok[6], ss[cur].castInflict) then begin
+            err := 'line ' + IntToStr(li + 1) + ': bad inflict ' + tok[6]; exit;
+          end;
       end else if line[1] = '"' then begin
         if cur < 0 then begin err := 'effect before spell'; exit; end;
         ss[cur].effect := tok[0];

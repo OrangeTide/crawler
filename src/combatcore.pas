@@ -13,33 +13,11 @@ unit combatcore;
 interface
 
 uses
-  sysutils, rng, rules, items, monsters, party, chardata, combatstate;
+  sysutils, rng, rules, items, monsters, party, chardata, spelldb, combatstate;
 
-const
-  { The spell book, shared by the casting UI and ActCast in the driver. }
-  SpellTable: array[0 .. 6] of TSpell = (
-    (id: 'BOLT';  name: 'Arc Bolt';    track: TRK_MAGE;   cost: 1;
-     mode: TGT_ENEMY;      effect: EF_DAMAGE; dice: 2; sides: 6;
-     element: EL_SHOCK; inflict: 0),
-    (id: 'BLAST'; name: 'Fire Blast';  track: TRK_MAGE;   cost: 2;
-     mode: TGT_ENEMY_RANK; effect: EF_DAMAGE; dice: 2; sides: 6;
-     element: EL_FIRE; inflict: 0),
-    (id: 'FROST'; name: 'Frost Shard';  track: TRK_MAGE;  cost: 1;
-     mode: TGT_ENEMY;      effect: EF_DAMAGE; dice: 1; sides: 8;
-     element: EL_FROST; inflict: ST_SLOW),
-    (id: 'HEX';   name: 'Venom Hex';    track: TRK_MAGE;  cost: 1;
-     mode: TGT_ENEMY;      effect: EF_DAMAGE; dice: 1; sides: 4;
-     element: EL_PHYS; inflict: ST_POISON),
-    (id: 'SMITE'; name: 'Smite';        track: TRK_PRIEST; cost: 2;
-     mode: TGT_ENEMY;      effect: EF_DAMAGE; dice: 2; sides: 8;
-     element: EL_HOLY; inflict: 0),
-    (id: 'MEND';  name: 'Mend';         track: TRK_PRIEST; cost: 1;
-     mode: TGT_ALLY;       effect: EF_HEAL;   dice: 2; sides: 8;
-     element: 0; inflict: 0),
-    (id: 'BLESS'; name: 'Bless';        track: TRK_PRIEST; cost: 2;
-     mode: TGT_PARTY;      effect: EF_BLESS;  dice: 0; sides: 0;
-     element: 0; inflict: 0)
-  );
+{ The party casts from the spell catalog (spelldb): a caster draws the castable
+  spells of its class domain that its level reaches. SpellCount, SpellInfo and
+  ActorCanCast work over that per-actor list, which is rebuilt on demand. }
 
 procedure CombatLog(const s: string);
 
@@ -77,10 +55,12 @@ procedure AfflictMember(mi, st, turns: longint);
 { Resolve one party melee or ranged attack; off balance rolls at disadvantage. }
 procedure ResolvePartyAttack(actor, foe: longint);
 
+{ Drop the cached per-actor spell list so it rebuilds; call at fight start. }
+procedure ResetSpellList;
 function SpellCount: longint;
 function SpellInfo(i: longint): TSpell;
 function ActorCanCast(actor, spellIdx: longint): boolean;
-{ The spell ability modifier: wits for mages, wisdom for priests. }
+{ The spell ability modifier: the caster's class prime ability. }
 function CasterMod(actor: longint): longint;
 
 implementation
@@ -391,35 +371,106 @@ begin
   end;
 end;
 
-{ ---- spell data ---- }
+{ ---- spell data: the caster's domain spells, rebuilt on demand ---- }
+
+var
+  gListActor: longint = -1;   { whose list gList currently holds }
+  gList: array of longint;    { catalog indices this caster may cast }
+
+{ The highest spell level a caster of this character level reaches. }
+function MaxSpellLevel(const c: TCharacter): longint;
+begin
+  MaxSpellLevel := (c.level + 1) div 2;
+  if MaxSpellLevel < 1 then MaxSpellLevel := 1;
+  if MaxSpellLevel > 6 then MaxSpellLevel := 6;
+end;
+
+procedure BuildList(actor: longint);
+var dom, i: longint;
+begin
+  gListActor := actor;
+  SetLength(gList, 0);
+  if (actor < 0) or (actor > High(Roster)) then exit;
+  dom := ClassDomain(Roster[actor].klass);
+  if dom = SPD_NONE then exit;
+  for i := 0 to SpellDefCount - 1 do
+    if SpellDefs[i].castable and (SpellDefs[i].domain = dom)
+      and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor])) then begin
+      SetLength(gList, Length(gList) + 1);
+      gList[High(gList)] := i;
+    end;
+end;
+
+procedure EnsureList(actor: longint);
+begin
+  if gListActor <> actor then BuildList(actor);
+end;
+
+procedure ResetSpellList;
+begin
+  gListActor := -1;
+end;
+
+{ Build a combat spell from a catalog entry: the prose is the intent, these
+  fields its thematic combat shape. The source damage type sets the element. }
+function SpellFromCatalog(cat: longint): TSpell;
+var d: TSpellDef;
+begin
+  d := SpellDefs[cat];
+  SpellFromCatalog.id := d.id;
+  SpellFromCatalog.name := d.name;
+  SpellFromCatalog.track := 0;
+  SpellFromCatalog.cost := d.castCost;
+  case d.castMode of
+    SCM_RANK:  SpellFromCatalog.mode := TGT_ENEMY_RANK;
+    SCM_ALLY:  SpellFromCatalog.mode := TGT_ALLY;
+    SCM_PARTY: SpellFromCatalog.mode := TGT_PARTY;
+  else
+    SpellFromCatalog.mode := TGT_ENEMY;
+  end;
+  case d.castEffect of
+    SCE_HEAL:  SpellFromCatalog.effect := EF_HEAL;
+    SCE_BLESS: SpellFromCatalog.effect := EF_BLESS;
+  else
+    SpellFromCatalog.effect := EF_DAMAGE;
+  end;
+  SpellFromCatalog.dice := d.castDice;
+  SpellFromCatalog.sides := d.castSides;
+  SpellFromCatalog.element := SpellElement(d.dtype);
+  SpellFromCatalog.inflict := d.castInflict;
+end;
 
 function SpellCount: longint;
 begin
-  SpellCount := Length(SpellTable);
+  EnsureList(CurActor);
+  SpellCount := Length(gList);
 end;
 
 function SpellInfo(i: longint): TSpell;
 begin
-  SpellInfo := SpellTable[i];
+  EnsureList(CurActor);
+  if (i < 0) or (i >= Length(gList)) then begin
+    FillChar(SpellInfo, SizeOf(SpellInfo), 0);
+    exit;
+  end;
+  SpellInfo := SpellFromCatalog(gList[i]);
 end;
 
 function ActorCanCast(actor, spellIdx: longint): boolean;
 begin
   ActorCanCast := false;
-  if (spellIdx < 0) or (spellIdx >= Length(SpellTable)) then exit;
   if (actor < 0) or (actor > High(Roster)) then exit;
+  EnsureList(actor);
+  if (spellIdx < 0) or (spellIdx >= Length(gList)) then exit;
   if not (Roster[actor].alive and (not Roster[actor].downed)) then exit;
-  ActorCanCast := (CharTrack(Roster[actor]) = SpellTable[spellIdx].track)
-    and (Roster[actor].sp >= SpellTable[spellIdx].cost);
+  ActorCanCast := Roster[actor].sp >= SpellDefs[gList[spellIdx]].castCost;
 end;
 
-{ The spell ability modifier: wits for mages, wisdom for priests. }
+{ The spell ability modifier: the caster's class prime ability. }
 function CasterMod(actor: longint): longint;
 begin
-  if CharTrack(Roster[actor]) = TRK_MAGE then
-    CasterMod := AbilMod(Roster[actor].abil[abINT])
-  else
-    CasterMod := AbilMod(Roster[actor].abil[abWIS]);
+  CasterMod := AbilMod(Roster[actor].abil[
+    TAbility(ClassDefs[Roster[actor].klass].prime)]);
 end;
 
 { ---- party attack resolution ---- }
