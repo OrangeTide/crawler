@@ -71,6 +71,17 @@ const
   SCE_HEAL   = 1;
   SCE_BLESS  = 2;
 
+  { out-of-combat (field) effects. FE_HEAL is derived from an ally heal combat
+    line, not stored; the rest are declared by a "field" line in content. }
+  FE_NONE        = 0;
+  FE_HEAL        = 1;   { restore HP to one member (from the cast dice) }
+  FE_CUREPOISON  = 2;   { clear poison on one member }
+  FE_CUREDISEASE = 3;   { clear disease on one member }
+  FE_REMOVECURSE = 4;   { lift lycanthropy on one member }
+  FE_LIGHT       = 5;   { refuel the party light, fieldArg torch-loads }
+  FE_IDENTIFY    = 6;   { identify the party's carried unknown item kinds }
+  FE_REVEAL      = 7;   { lift fog within fieldArg tiles of the party }
+
 type
   TSpellDef = record
     id: string[16];
@@ -92,6 +103,8 @@ type
     castInflict: byte;  { a monsters ST_* a damaging hit may lay, 0 = none }
     school: byte;       { SCH_*, SCH_NONE for cleric, druid and untagged }
     icon: byte;         { PORT_SI<NN> spell icon, 0 = none }
+    fieldEffect: byte;  { FE_*, the out-of-combat effect; FE_NONE if none }
+    fieldArg: byte;     { FE_LIGHT torch-loads, FE_REVEAL radius, else 0 }
   end;
 
 var
@@ -115,6 +128,13 @@ function SchoolName(s: byte): string;
 { Whether a specialist of the favored school is barred from the other school
   (its AD&D opposition). A school never opposes itself. }
 function SchoolOpposes(favored, other: byte): boolean;
+{ The out-of-combat effect a spell works, FE_NONE for none. A spell with an
+  explicit field effect uses it; otherwise an ally heal combat line stands in
+  as FE_HEAL, so the cure-wounds line needs no separate tag. }
+function SpellFieldEffect(const d: TSpellDef): byte;
+{ Whether a field effect picks one party member (heals and cures), as opposed
+  to working on the whole party (light, identify, reveal). }
+function FieldTargeted(kind: byte): boolean;
 
 implementation
 
@@ -172,6 +192,8 @@ begin
     PutB(a, n, ss[si].castInflict);
     PutB(a, n, ss[si].school);
     PutB(a, n, ss[si].icon);
+    PutB(a, n, ss[si].fieldEffect);
+    PutB(a, n, ss[si].fieldArg);
   end;
   SetLength(a, n);
   EncodeSpells := a;
@@ -239,6 +261,8 @@ begin
     SpellDefs[si].castInflict := RB;
     SpellDefs[si].school := RB;
     SpellDefs[si].icon := RB;
+    SpellDefs[si].fieldEffect := RB;
+    SpellDefs[si].fieldArg := RB;
   end;
   LoadSpells := true;
 end;
@@ -361,6 +385,23 @@ begin
   if favored > SCH_TRANS then exit;        { generalist or invalid favors none }
   if other > SCH_TRANS then exit;
   SchoolOpposes := other in OPP[favored];
+end;
+
+function SpellFieldEffect(const d: TSpellDef): byte;
+begin
+  if d.fieldEffect <> FE_NONE then
+    SpellFieldEffect := d.fieldEffect
+  else if d.castable and (d.castEffect = SCE_HEAL)
+    and (d.castMode = SCM_ALLY) then
+    SpellFieldEffect := FE_HEAL
+  else
+    SpellFieldEffect := FE_NONE;
+end;
+
+function FieldTargeted(kind: byte): boolean;
+begin
+  FieldTargeted := (kind = FE_HEAL) or (kind = FE_CUREPOISON)
+    or (kind = FE_CUREDISEASE) or (kind = FE_REMOVECURSE);
 end;
 
 end.

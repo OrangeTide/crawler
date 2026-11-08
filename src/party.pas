@@ -106,6 +106,8 @@ function TempleRevive: longint;
 { Name every unknown item kind the party carries that the purse can afford,
   spending the gold. Returns how many kinds were identified. }
 function IdentifyParty: longint;
+{ As IdentifyParty, but a free reading (a Detect Magic field cast). }
+function IdentifyPartyFree: longint;
 function HirelingCount: longint;
 { The price to take on a hireling, eased a little by the leader's charisma. }
 function HireCost: longint;
@@ -360,7 +362,7 @@ begin
     c.rank := 1
   else
     c.rank := 0;
-  c.sp := 0;
+  c.sp := CharSpellPoints(c);   { a full spell pool, restored later by rest }
   c.known := nil;
   c.portrait := 0;
   for s := eqMain to eqLight do
@@ -422,6 +424,7 @@ begin
   while c.xp >= XPForNext(track, c.level) do begin
     inc(c.level);
     c.hpMax := MaxHPDie(ClassDefs[c.klass].hitDie, c.abil[abCON], c.level);
+    c.sp := CharSpellPoints(c);   { a new level widens the spell pool }
   end;
 end;
 
@@ -433,6 +436,7 @@ begin
     if Roster[i].alive then begin
       Roster[i].downed := false;
       Roster[i].guarding := false;
+      Roster[i].sp := CharSpellPoints(Roster[i]);  { the night refills spells }
       Roster[i].poison := 0;   { acute poison passes with the night }
       if Roster[i].disease > 0 then begin
         { the fever runs its course over several rests, and caps recovery
@@ -501,6 +505,23 @@ begin
       end;
     end;
   IdentifyParty := cnt;
+end;
+
+function IdentifyPartyFree: longint;
+var
+  i, j, def, cnt: longint;
+begin
+  cnt := 0;
+  for i := 0 to High(Roster) do
+    for j := 0 to High(Roster[i].pack) do begin
+      def := Roster[i].pack[j].def;
+      if (def >= 0) and (Roster[i].pack[j].qty > 0) and (not ItemIsKnown(def)) then
+      begin
+        MarkItemKnown(def);   { a Detect Magic reading, no gold asked }
+        inc(cnt);
+      end;
+    end;
+  IdentifyPartyFree := cnt;
 end;
 
 function HirelingCount: longint;

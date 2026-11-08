@@ -115,6 +115,19 @@ begin
   else EffectOf := false;
 end;
 
+function FieldKindOf(const s: string; out v: byte): boolean;
+begin
+  FieldKindOf := true;
+  if s = 'heal' then v := FE_HEAL
+  else if s = 'curepoison' then v := FE_CUREPOISON
+  else if s = 'curedisease' then v := FE_CUREDISEASE
+  else if s = 'removecurse' then v := FE_REMOVECURSE
+  else if s = 'light' then v := FE_LIGHT
+  else if s = 'identify' then v := FE_IDENTIFY
+  else if s = 'reveal' then v := FE_REVEAL
+  else FieldKindOf := false;
+end;
+
 function StatusOf(const s: string; out v: byte): boolean;
 begin
   StatusOf := true;
@@ -181,6 +194,8 @@ begin
         ss[cur].castInflict := 0;
         ss[cur].school := SCH_NONE;
         ss[cur].icon := 0;
+        ss[cur].fieldEffect := FE_NONE;
+        ss[cur].fieldArg := 0;
         if not DomainOf(tok[3], ss[cur].domain) then begin
           err := 'line ' + IntToStr(li + 1) + ': bad domain ' + tok[3]; exit;
         end;
@@ -223,6 +238,13 @@ begin
       end else if tok[0] = 'icon' then begin
         if cur < 0 then begin err := 'icon before spell'; exit; end;
         ss[cur].icon := StrToIntDef(tok[1], 0);
+      end else if tok[0] = 'field' then begin
+        { field KIND [arg]: the out-of-combat effect and its optional number }
+        if cur < 0 then begin err := 'field before spell'; exit; end;
+        if not FieldKindOf(tok[1], ss[cur].fieldEffect) then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad field ' + tok[1]; exit;
+        end;
+        if n >= 3 then ss[cur].fieldArg := StrToIntDef(tok[2], 0);
       end else if line[1] = '"' then begin
         if cur < 0 then begin err := 'effect before spell'; exit; end;
         ss[cur].effect := tok[0];

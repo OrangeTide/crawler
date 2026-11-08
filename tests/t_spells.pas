@@ -101,6 +101,20 @@ begin
   Check(SpellDefs[SpellByID('M_MAGICMISSILE')].icon = 52, 'Magic Missile keeps its icon');
   Check(SpellDefs[SpellByID('C_BLESS')].icon = 34, 'Bless keeps its icon');
 
+  { the out-of-combat field effect and its arg survive the codec }
+  Check(SpellDefs[SpellByID('C_CUREDISEASE')].fieldEffect = FE_CUREDISEASE,
+    'Cure Disease carries its field effect');
+  Check(SpellDefs[SpellByID('C_CONTINUALLIGHT')].fieldEffect = FE_LIGHT,
+    'Continual Light is a field light');
+  Check(SpellDefs[SpellByID('C_CONTINUALLIGHT')].fieldArg = 4,
+    'Continual Light keeps its torch-load arg');
+  Check(SpellDefs[SpellByID('C_DETECTEVIL')].fieldEffect = FE_REVEAL,
+    'Detect Evil senses the surroundings');
+  Check(SpellDefs[SpellByID('M_FIREBALL')].fieldEffect = FE_NONE,
+    'a damage spell has no field effect');
+  Check(SpellFieldEffect(SpellDefs[SpellByID('C_CURELIGHTWOUND')]) = FE_HEAL,
+    'an ally heal is a field heal with no field line');
+
   { the domain count helper agrees with the per-domain tallies }
   Check(DomainSpellCount(SPD_CLERIC) = 47, 'the Cleric domain counts 47');
   Check(DomainSpellCount(SPD_DRUID) = 51, 'the Druid domain counts 51');

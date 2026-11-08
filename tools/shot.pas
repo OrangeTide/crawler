@@ -18,6 +18,7 @@ program shot;
     shot <out.ppm> dialog <ID>  (an NPC dialog, to frame its portrait)
     shot <out.ppm> create       (the character-creation screen)
     shot <out.ppm> sheet [N]    (the character sheet for party member N)
+    shot <out.ppm> fieldcast [cast]   (the SPELLS tab field-casting; cast opens the picker)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -33,7 +34,7 @@ program shot;
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combatui, combatstate, party, chardata,
-  dialog, charcreateui, spellbook;
+  dialog, charcreateui, spellbook, miscui, spelldb, fieldcast;
 
 procedure DumpPPM(const fn: string);
 var
@@ -74,7 +75,7 @@ end;
 
 var
   outPath, scene: string;
-  mi: longint;
+  mi, ci, nd: longint;
 begin
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: shot <out.ppm> title|combat|world|map ...');
@@ -131,6 +132,36 @@ begin
     QuickStart;             { a party, so the spells tab has casters }
     State := gsMenu;
     if ParamCount >= 3 then menuTab := StrToInt(ParamStr(3)) else menuTab := 0;
+  end
+  else if scene = 'fieldcast' then begin
+    { the SPELLS tab set up to field-cast: the first caster is raised and
+      relearns so it knows cures, a member is wounded to mend, and the cursor
+      is driven to the first field-castable spell. A 'cast' argument then opens
+      the member picker. }
+    QuickStart;
+    ci := -1;
+    for mi := 0 to High(Roster) do
+      if (ci < 0) and CharIsCaster(Roster[mi]) then ci := mi;
+    if ci >= 0 then begin
+      Roster[ci].level := 6;
+      SetLength(Roster[ci].known, 0);
+      AutoLearn(Roster[ci]);
+      Roster[ci].sp := CharSpellPoints(Roster[ci]);
+    end;
+    if High(Roster) >= 1 then Roster[1].hp := Roster[1].hpMax div 2;
+    State := gsMenu;
+    menuTab := 2;
+    { step the cursor down to the first spell with a field effect }
+    if ci >= 0 then begin
+      nd := -1;
+      for mi := 0 to KnownCount(Roster[ci]) - 1 do
+        if (nd < 0) and (FieldCastKind(KnownNth(Roster[ci], mi)) <> FE_NONE) then
+          nd := mi;
+      if nd > 0 then
+        for mi := 1 to nd do JournalKeyDown(SDL_SCANCODE_DOWN);
+    end;
+    if (ParamCount >= 3) and (LowerCase(ParamStr(3)) = 'cast') then
+      JournalKeyDown(SDL_SCANCODE_RETURN);   { open the member picker }
   end
   else if scene = 'castmenu' then begin
     { a quick battle, then drive the Wizard into the cast submenu; an optional
