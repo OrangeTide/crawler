@@ -10,6 +10,19 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Arcane schools for the Magic-User list. Every Magic-User spell now names one
+  of the eight schools (abjuration, conjuration, divination, enchantment,
+  evocation, illusion, necromancy, transmutation), tagged in spells.txt and
+  carried on the spell record. A mage class may name a favored school in
+  classes.txt, which makes it a specialist: it is barred from learning or
+  casting its AD&D opposition schools, keeps Lesser Divination (any divination
+  spell of level four or lower) regardless, knows one extra spell for its
+  focus, and casts its favored-school spells at a steeper save. Eight specialist
+  classes ship (Abjurer, Conjurer, Diviner, Enchanter, Invoker, Illusionist,
+  Necronimus, Transmuter); Wizard and the other mage classes stay generalists
+  with the whole list. The learn screen and the SPELLS tab show the school, and
+  the opposition filter runs through the shared spellbook rules. Covered by a
+  new t_school.
 - Known spells, chosen at level-up. A caster no longer commands its whole
   domain. It learns a growing list of spells, one at creation and one for each
   level it gains, picked by the player on a learn-a-spell screen that opens

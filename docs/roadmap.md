@@ -130,6 +130,14 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   shelter behind one big one (up to eight tiny behind a single large). This
   gates the combat MOVE between ranks and the initial encounter layout.
 
+- [gap] A skills system. Design task first: what a skill is (an active or
+  passive non-spell ability a character gains and uses), the available list,
+  how skills are gained (by class, level, or training) and spent in and out of
+  combat, and how they sit beside spells in the data and the save. Loosely map
+  the available "250 WARRIOR ICONS" art (~/Documents/sprites-free) to the list
+  so martial classes get iconography the way casters get spell icons. Needs its
+  own plan before any code; the icon UI work is tracked under section D.
+
 - [done] Imported the axx-rpg spell lists. All 170 spells from
   ~/Vibe/axx-rpg/src/sup/spells.csv (Cleric, Druid, Magic-User across six
   levels) now live in content/spells.txt as a data-driven catalog, baked into a
@@ -158,8 +166,12 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   levels, on a learn screen that opens before play resumes, and the known list
   is kept on the character and in the save (version bumped). Combat and the
   SPELLS tab both read that list, and generated parties and hirelings learn
-  automatically. The rules live in a spellbook unit. Still open: arcane schools
-  as sub-domains of the Magic-User list, and casting from exploration.
+  automatically. The rules live in a spellbook unit. Arcane schools are now a
+  sub-domain of the Magic-User list: every arcane spell names one of the eight
+  schools, and a specialist mage (eight of them ship) focuses on one, barred
+  from its opposition schools but for Lesser Divination, knowing one extra
+  spell and casting its school at a steeper save. Still open: casting from
+  exploration.
 - [gap] Port the remaining hardcoded party and class data to content files.
   Against the data-driven rule, a few designer-tunable tables still live in
   Pascal literals: the quick-start / pregen party (its classes, names, and
@@ -195,6 +207,24 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   off-line tools and support libraries, especially when porting from another
   project. The DOS original's hard limit was a tiny palette; our content is
   mostly 32 colours or fewer, so that constraint is not a real blocker.
+- [gap] Scrub the current portrait art from the commit history. The
+  a third-party artist portraits under content/portraits would be removed from every
+  commit with a git filter-repo rewrite, likely as part of a licensing swap for
+  the new portrait pack. This rewrites shared history, so confirm the scope and
+  the reason before running it, and rotate nothing is needed (art, not
+  secrets). Pairs with adopting the replacement pack below.
+- [gap] Adopt the Batareya "BIG PACK PORTRAITS1" set (500 portraits, 512x512,
+  in ~/Documents/sprites-free). Resize and bake to PIC lumps, wire to the
+  talking NPCs and to a new party-character portrait, and update CREDITS once
+  the license is located (no license file ships in the pack). Supersedes the
+  current portrait art once the history scrub lands.
+- [gap] Spell and skill icons, and the UI that uses them. Bake the Batareya
+  "MAGE ICONS BIG PACk" as per-spell icons and "250 WARRIOR ICONS" as per-skill
+  icons (both 512x512 in ~/Documents/sprites-free, license to be located). Then
+  add the UI where an icon is meaningful: the SPELLS tab and a spell-book
+  browser on the character sheet, the learn-a-spell screen, and the combat cast
+  menu. An icon keys off the spell or skill id. Depends on the skills system
+  below for the skill side.
 
 ### E. Shipping targets (design sections 23 and 24)
 

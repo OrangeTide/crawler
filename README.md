@@ -89,6 +89,12 @@ spells and bows strike over them.
   on the meta screen lists a caster's known spells by level with each one's
   full effect. In combat its spell menu is the learned, reachable spells, gated
   by level and spell points.
+- Arcane schools for the Magic-User list. Each arcane spell belongs to one of
+  the eight schools, and a specialist mage (Abjurer, Conjurer, Diviner,
+  Enchanter, Invoker, Illusionist, Necronimus, Transmuter) focuses on one:
+  barred from its opposition schools but for Lesser Divination, knowing one
+  extra spell, and casting its own school at a steeper save. The Wizard and the
+  other mage classes stay generalists with the whole list.
 - Save and load of the whole game, including the party, gold, flags, journal,
   position and the explored fog of every visited map.
 - Roguelike dynamic maps (rooms, caves, mazes) generated from a seed. The
