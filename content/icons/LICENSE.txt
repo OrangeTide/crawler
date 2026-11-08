@@ -1,0 +1,15 @@
+Spell icon art
+==============
+
+The icon PNGs in this directory are from the "MAGE ICONS BIG PACK" by
+Batareya, obtained from batareya.itch.io. The pack ships 64x64 pixel art
+distributed at an 8x upscale (512x512); each file here is one icon scaled
+back to its native 64x64.
+
+Only the icons that content/spells.txt references are kept, named si<N>.png
+after the pack's numbering. Each spell names its icon on an "icon <N>" line
+in content/spells.txt.
+
+License: Batareya's asset packs are offered for free personal and commercial
+use. The exact terms for this pack should be confirmed against its itch.io
+page before a release; no license file ships inside the pack.

@@ -47,6 +47,11 @@ PORTRAITSRC = $(foreach n,$(PORTRAITNAMES),content/portraits/$(n).ppm)
 # creation, and the chosen face shows in the party strip.
 PCPORTRAITIDS = $(shell seq -w 0 23)
 PCPORTRAITSRC = $(foreach i,$(PCPORTRAITIDS),content/portraits/pc$(i).ppm)
+# Spell icons: the Batareya mage-icon faces that content/spells.txt names, one
+# si<NN>.png per icon, baked the same way to SI<NN> lumps. The set is whatever
+# PNGs are present in content/icons.
+SPELLICONPNG = $(wildcard content/icons/si*.png)
+SPELLICONSRC = $(SPELLICONPNG:.png=.ppm)
 # Title background: a 320x240 scene (from Jon's photo) and its own 256-colour
 # palette, baked to TITLE_BG and TITLE_PAL PIC lumps via the sprite path. The
 # title swaps this palette in, PlayStation 8-bit-CLUT style, for a smooth scene.
@@ -57,12 +62,14 @@ MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:comba
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SPELLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) $(MODELSRC) \
-            $(SPRITESRC) $(PORTRAITSRC) $(PCPORTRAITSRC) $(TITLEBGSRC) $(MUSICSRC)
+            $(SPRITESRC) $(PORTRAITSRC) $(PCPORTRAITSRC) $(SPELLICONSRC) \
+            $(TITLEBGSRC) $(MUSICSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)
+SPELLICONARGS = $(foreach f,$(SPELLICONPNG),sprite $(basename $(notdir $(f))) $(f:.png=.ppm))
 TITLEBGARG = sprite TITLE_BG content/title/title_bg.ppm \
              sprite TITLE_PAL content/title/title_pal.ppm
 MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
@@ -106,7 +113,7 @@ build/tools/shot: tools/shot.pas src/*.pas | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(TITLEBGARG) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(TITLEBGARG) $(MUSICARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
@@ -117,6 +124,11 @@ content/sprites/%.ppm: content/sprites/%.png
 # Portrait source: a 64x64 PNG (with alpha) flattened onto the magenta key.
 # Kept at native size, no scaling, so the face stays square.
 content/portraits/%.ppm: content/portraits/%.png
+	convert $< -alpha on -channel A -threshold 50% +channel \
+	  -background '#FF00FF' -flatten -depth 8 ppm:$@
+
+# Spell icon source: a 64x64 PNG, opaque, passed through like a portrait.
+content/icons/%.ppm: content/icons/%.png
 	convert $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
