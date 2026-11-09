@@ -1,28 +1,52 @@
 # The Crystal Grotto: a deep cave off the crypt where the second relic
-# shard sleeps in the living crystal.
+# shard sleeps in the living crystal. Re-authored to the Mines and Cave
+# kit's 4-unit scale, so the organic rock pieces clad the open cavern
+# cleanly. It is one wide cavern with 2x2 rock-pillar islands and a sunken
+# crystal pool at its heart, lit by bioluminescence. 1=wall, 0=open floor.
 map GROTTO
-size 12 10
-tileset 5
+size 20 16
+tileset 13
 music 0
 area cave
+# the cave stands about four units tall; the central pool sinks a unit and
+# its roof drops, for a close, glittering hollow around the shrine
+sector 0 0 64
+sector 1 -16 48
 walls
-111111111111
-100000000001
-100011110001
-100010010001
-100010010001
-100000000001
-100011110001
-100000000001
-100000000001
-111111111111
+11111111111111111111
+10000000000000000001
+10000000000000000001
+10001100000000110001
+10001100000000110001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10001100000000110001
+10001100000000110001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+11111111111111111111
 end
-marker start 1 8 E
-portal 1 1 DUNGEON grotto
-npc 6 5 GROTTO Shrine NPC_SHRINE1
-torch 10 1
-torch 10 8
-biolume 1 4
-biolume 10 5
-prop 8 8 BARREL
-loot 8 8 100 GEODE 1
+# the sunken crystal pool at the cavern's heart
+fill 1 7 6 12 9
+marker start 2 13 N
+marker shrine 10 3 S
+portal 2 14 DUNGEON grotto
+npc 10 2 GROTTO Shrine NPC_SHRINE1
+# the pool glows with its own cold light, brighter than the dim cavern
+trigger ambient 112 - 7 6 12 6 12 9 7 9
+# a line the first time the party descends to the crystal pool
+trigger event 0 SAWPOOL 7 6 12 6 12 9 7 9
+eventmsg SAWPOOL A POOL OF LIVING CRYSTAL GLOWS COLD IN THE HOLLOW BELOW.
+biolume 9 7
+biolume 12 8
+biolume 3 3
+biolume 16 11
+torch 2 12
+torch 17 3
+prop 3 13 BARREL
+loot 10 3 100 GEODE 1
+loot 3 13 0 WARDSHLD 1

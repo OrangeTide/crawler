@@ -26,6 +26,15 @@ whose development history is summarized in docs/roadmap.md.
   when its tag is `poison`. Authored with a `trigger hazard <damage> <element>`
   directive. The INFERNAL hall now carries a seam of lava.
 
+### Added
+- A crystal-grotto theme kit. The GROTTO cave now wears the loafbrr Mines and
+  Cave Set on its own tileset (13): organic rocky ground, cave-rock walls, and a
+  ceiling reused from the floor piece flipped to face down, floors and ceiling on
+  the ground atlas and walls on the cave-rock atlas. The cave was re-authored to
+  the kit's 4-unit scale, a wide open cavern with rock-pillar islands and a
+  sunken crystal pool lit by bioluminescence, in place of the old one-tile-wide
+  passages on the biome tileset.
+
 ### Changed
 - Replaced the dungeon kit. The modular tileset (10), which the authored DUNGEON
   and the generated crypt levels ride, now wears the loafbrr Mausoleum Dungeon

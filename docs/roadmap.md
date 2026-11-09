@@ -299,10 +299,15 @@ multi-cell mesh instances rather than per-cell quads.
   multi-material crypt kit (dressed-stone floor, ashlar wall, concrete ceiling
   slab, stone pillar, each on its own atlas) in place of the SigilsVault mossy
   kit, at the same 1-unit scale so the DUNGEON and the generated crypts clad
-  unchanged. Still open: stained-glass windows (the cathedral kit
-  ships an emission atlas the renderer has no channel for yet); and the
-  remaining authored zones (GROTTO crystal cave, INFERNAL volcanic) still want
-  kits of their own themes.
+  unchanged. The GROTTO got its own theme kit too: the loafbrr Mines and Cave
+  Set on tileset 13, an organic 4-unit cave kit (rocky ground and cave-rock
+  walls on two atlases, the ceiling reused from the floor flipped), with the
+  cave re-authored to a wide open cavern, rock-pillar islands and a sunken
+  crystal pool lit by bioluminescence. Still open: stained-glass windows (the
+  cathedral kit ships an emission atlas the renderer has no channel for yet);
+  the INFERNAL volcanic zone still wants a kit of its own theme; and the
+  cladding pass does not place kit pillars yet (the pillar role is defined but
+  inert).
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto

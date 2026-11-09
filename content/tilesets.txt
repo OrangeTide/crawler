@@ -50,3 +50,19 @@ kit 12 temple
   ceil   CATH_CEIL    8 8
   wall   CATH_WALL    8 1 16
   pillar CATH_PILLAR  2 2 9
+
+# Tileset 13: the loafbrr Mines and Cave Set, for the crystal grotto. A
+# low-poly organic cave kit on a 4-unit module: rocky ground, cave rock
+# walls, and a ceiling slab reused from the ground piece (flipped to face
+# down). It is a two-material kit, so floors and the ceiling sample the
+# ground atlas (@0) and the walls sample the cave-rock atlas (@1). The
+# native pieces are organic (they overhang the 4-unit cell and interlock to
+# hide the grid); the 1-unit base pieces are flat fillers for ragged edges.
+# No pillar role: the cladding pass does not place pillars yet.
+kit 13 grotto
+  floor  GROTTO_FLOOR       4 4   @0
+  floor  GROTTO_BASE_FLOOR  1 1   @0
+  ceil   GROTTO_CEIL        4 4   @0
+  ceil   GROTTO_BASE_CEIL   1 1   @0
+  wall   GROTTO_WALL        4 1 4 @1
+  wall   GROTTO_BASE_WALL   1 1 4 @1

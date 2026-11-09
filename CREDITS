@@ -122,6 +122,24 @@ sheet. Kept at the kit's native grand scale for the cathedral theme,
 and reused for the town temple from a warm-tinted bake of the same
 trim sheet.
 
+Modular cave tiles
+------------------
+
+Source: "Mines and Cave Set" by loafbrr (loafbrr.itch.io). A low-poly
+organic cave and mine kit of rocky ground, cave walls, pillars, timber
+and rails on a 4-metre module, with per-material PBR textures.
+License: CC0 1.0 (public domain dedication). Attribution is not
+required but is appreciated. The full terms are in the kit's README.txt.
+
+The grotto_* pieces under content/rooms/pieces are the subset baked into
+the game (a cave floor, a cave wall, and a ceiling reused from the floor
+piece flipped to face down), converted from the kit's combined GLB to
+shared-texture meshes. Floors and the ceiling sample the ground atlas
+and the walls sample the cave-rock atlas (content/rooms/trim_grotto_*.ppm,
+from the kit's Mines_Ground and Mine_Walls diffuse maps). It clads the
+crystal grotto on tileset 13. The 1-unit base fillers are flat quads,
+not kit meshes.
+
 Spell catalog
 -------------
 
