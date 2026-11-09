@@ -249,6 +249,16 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   was then scrubbed from the whole commit history with a git filter-repo
   rewrite, both the image blobs and the text references. The rewrite is local;
   the remotes still carry the old history.
+- [gap] Update the README. It is out of date in several areas (for example it
+  still describes the raycaster as the main renderer, when the polygon path with
+  sector heights and modular-kit cladding is now the default). Audit it against
+  the current engine, controls and module map.
+- [gap] Capture screenshots of the new modular areas (the clad crypt DUNGEON,
+  the cathedral theme, the warm-tinted town temple) through the headless shot
+  tool, and fold the best into the README screenshot set.
+- [gap] Online help for the keyboard commands: a HELP overlay bound to F1 and
+  reachable from a main-menu HELP item, listing the controls. Source the key
+  list from the same binding table the game already uses so it stays in step.
 
 ### E. Shipping targets (design sections 23 and 24)
 
