@@ -62,6 +62,14 @@ begin
   end;
 end;
 
+{ An open neighbour that the procedural wall quad should face: a kit cell is
+  clad by its own wall mesh, so the quad is suppressed toward it. }
+function OpenNonKit(nx, ny: longint): boolean;
+begin
+  OpenNonKit := (not IsWallTile(nx, ny))
+    and (KitIndexForTileset(CellTileset(nx, ny)) < 0);
+end;
+
 { One vertical wall quad on cell (tx,ty)'s edge, facing the open neighbor on
   side 0..3 (west, east, south, north), spanning z in [zLo,zHi]. The winding
   matches the old full-height faces, so a flat zLo=0,zHi=1 draws identically. }
@@ -221,22 +229,22 @@ begin
         ftex := WallTexId(TileAt(tx, ty));
         { a face toward each open neighbor, spanning that neighbor's sector
           floor to ceiling, lit from that neighbor tile }
-        if not IsWallTile(tx - 1, ty) then begin   { west face, x = tx }
+        if OpenNonKit(tx - 1, ty) then begin   { west face, x = tx }
           fcx := tx; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx - 1, ty, fd);
           WallQuad(mc, 0, tx, ty, FloorZAt(tx - 1, ty), CeilZAt(tx - 1, ty), ftex, light);
         end;
-        if not IsWallTile(tx + 1, ty) then begin   { east face, x = tx+1 }
+        if OpenNonKit(tx + 1, ty) then begin   { east face, x = tx+1 }
           fcx := tx + 1; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx + 1, ty, fd);
           WallQuad(mc, 1, tx, ty, FloorZAt(tx + 1, ty), CeilZAt(tx + 1, ty), ftex, light);
         end;
-        if not IsWallTile(tx, ty - 1) then begin   { south face, y = ty }
+        if OpenNonKit(tx, ty - 1) then begin   { south face, y = ty }
           fcx := cx; fcy := ty; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty - 1, fd) * NS_DARK;
           WallQuad(mc, 2, tx, ty, FloorZAt(tx, ty - 1), CeilZAt(tx, ty - 1), ftex, light);
         end;
-        if not IsWallTile(tx, ty + 1) then begin   { north face, y = ty+1 }
+        if OpenNonKit(tx, ty + 1) then begin   { north face, y = ty+1 }
           fcx := cx; fcy := ty + 1; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty + 1, fd) * NS_DARK;
           WallQuad(mc, 3, tx, ty, FloorZAt(tx, ty + 1), CeilZAt(tx, ty + 1), ftex, light);
@@ -267,8 +275,9 @@ begin
     end;
 
   { clad the kit tilesets' floors and ceilings at native scale, merging
-    aligned cells into whole kit pieces }
+    aligned cells into whole kit pieces, then the walls on their edges }
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
+  CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);

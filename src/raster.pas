@@ -43,6 +43,13 @@ procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, scale, myaw, light: double;
   atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
 
+{ As RenderMeshAt, but with an independent scale per local axis (sx along the
+  mesh's own x, sy along y, sz along z), applied before the yaw rotation. Used
+  to fit a fixed-size wall piece to a cell-edge run and a sector's height. }
+procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, sx, sy, sz, myaw, light: double;
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+
 { Draw one textured quad given four world-space corners (wound in order)
   and their texture coordinates. tex points at tw*th palette indices.
   The quad is not backface culled; the depth buffer sorts it. An optional
@@ -395,6 +402,51 @@ begin
       wx := mx + scale * lx;
       wy := my + scale * ly;
       wz := mz + scale * m.verts[base + k].z;
+      if not Project(cam, wx, wy, wz, c[k]) then begin ok := false; break; end;
+      c[k].u := m.verts[base + k].u;
+      c[k].v := m.verts[base + k].v;
+    end;
+    if ok then begin
+      area := (c[1].sx - c[0].sx) * (c[2].sy - c[0].sy)
+            - (c[2].sx - c[0].sx) * (c[1].sy - c[0].sy);
+      if area > 0 then
+        FillTriTex(c[0], c[1], c[2], tex, tw, th, light);
+    end;
+    inc(base, 3);
+  end;
+end;
+
+procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, sx, sy, sz, myaw, light: double;
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+var
+  base, k: longint;
+  cmy, smy, px, py, lx, ly, wx, wy, wz, area: double;
+  c: array[0 .. 2] of TCorner;
+  ok: boolean;
+  tex: PByte;
+  tw, th: longint;
+begin
+  if m.texKind = TEXKIND_SHARED then begin
+    if (atlas = nil) or (aw <= 0) or (ah <= 0) then exit;
+    tex := atlas; tw := aw; th := ah;
+  end else begin
+    if Length(m.tex) = 0 then exit;
+    tex := @m.tex[0]; tw := m.texW; th := m.texH;
+  end;
+  cmy := cos(myaw); smy := sin(myaw);
+  base := 0;
+  while base + 2 < Length(m.verts) do begin
+    ok := true;
+    for k := 0 to 2 do begin
+      { scale in the mesh's own frame, then rotate about Z and place }
+      px := m.verts[base + k].x * sx;
+      py := m.verts[base + k].y * sy;
+      lx := px * cmy - py * smy;
+      ly := px * smy + py * cmy;
+      wx := mx + lx;
+      wy := my + ly;
+      wz := mz + sz * m.verts[base + k].z;
       if not Project(cam, wx, wy, wz, c[k]) then begin ok := false; break; end;
       c[k].u := m.verts[base + k].u;
       c[k].v := m.verts[base + k].v;

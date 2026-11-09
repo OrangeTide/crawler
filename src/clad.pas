@@ -38,6 +38,13 @@ procedure CladInit(const p: TPak);
 procedure CladView(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; drawCeil: boolean; lightFn: TCladLightFn);
 
+{ Clad the walls of every open kit cell in the window: a wall piece stands on
+  each edge where the cell meets a solid cell, runs merged along the edge and
+  aligned to the kit grid, scaled to the sector height. The caller suppresses
+  its own wall quads toward kit cells so the two do not overlap. }
+procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
+  ex, ey: double; lightFn: TCladLightFn);
+
 implementation
 
 uses
@@ -171,6 +178,104 @@ begin
         covered[ty][tx] := true;
       end;
     end;
+end;
+
+{ The four edge directions a wall can stand on: the solid-neighbour offset,
+  whether the run extends along x (else along y), the piece yaw, and the
+  anchor offset onto the boundary line between the cell and its neighbour. }
+const
+  WDX: array[0 .. 3] of longint = (-1,  1,  0,  0);   { W E S N }
+  WDY: array[0 .. 3] of longint = ( 0,  0, -1,  1);
+  WRunX: array[0 .. 3] of boolean = (false, false, true, true);
+  WMOX: array[0 .. 3] of longint = (0, 1, 0, 0);
+  WMOY: array[0 .. 3] of longint = (0, 0, 0, 1);
+
+{ Is a wall wanted on edge dir of cell (cx,cy): an open kit cell of sector s0
+  whose neighbour across dir is solid, not already drawn? }
+function WallCell(cx, cy, dir, s0, kitIdx: longint): boolean;
+begin
+  WallCell := false;
+  if (cx < 0) or (cy < 0) or (cx >= MapW) or (cy >= MapH) then exit;
+  if covered[cy][cx] then exit;
+  if IsWallTile(cx, cy) then exit;
+  if SectorAt(cx, cy) <> s0 then exit;
+  if KitIndexForTileset(CellTileset(cx, cy)) <> kitIdx then exit;
+  WallCell := IsWallTile(cx + WDX[dir], cy + WDY[dir]);
+end;
+
+{ Does the whole kit-grid-aligned run of wfw cells from (ax,ay) along the
+  direction's run axis want this wall? }
+function WallRunFull(dir, ax, ay, wfw, s0, kitIdx: longint): boolean;
+var i: longint;
+begin
+  WallRunFull := false;
+  for i := 0 to wfw - 1 do
+    if WRunX[dir] then begin
+      if not WallCell(ax + i, ay, dir, s0, kitIdx) then exit;
+    end else
+      if not WallCell(ax, ay + i, dir, s0, kitIdx) then exit;
+  WallRunFull := true;
+end;
+
+procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
+  ex, ey: double; lightFn: TCladLightFn);
+var
+  dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx, wp, wfw, wh, s0, mi: longint;
+  fz, cz, sxl, szl, yaw, mxw, myw, cxr, cyr, dist, light: double;
+  atlas: PByte;
+begin
+  for dir := 0 to 3 do begin
+    for ty := 0 to MapH - 1 do
+      for tx := 0 to MapW - 1 do
+        covered[ty][tx] := false;
+
+    for ty := y0 to y1 do
+      for tx := x0 to x1 do begin
+        if (tx < 0) or (ty < 0) or (tx >= MapW) or (ty >= MapH) then continue;
+        kitIdx := KitIndexForTileset(CellTileset(tx, ty));
+        if kitIdx < 0 then continue;
+        s0 := SectorAt(tx, ty);
+        if not WallCell(tx, ty, dir, s0, kitIdx) then continue;
+        wp := KitPieceByRole(kitIdx, KITROLE_WALL);
+        if wp < 0 then continue;
+        mi := MeshIdx(Kits[kitIdx].pieces[wp].lump);
+        if (mi < 0) or (not cacheOk[mi]) then continue;
+        wfw := Kits[kitIdx].pieces[wp].fw; if wfw < 1 then wfw := 1;
+        wh := Kits[kitIdx].pieces[wp].fz; if wh < 1 then wh := 1;
+
+        { a full kit-grid-aligned run draws as one native piece; an edge that
+          does not fill the run drops to one piece per cell. Aligning to the
+          world grid keeps the run stable as the camera moves }
+        if WRunX[dir] then ax := (tx div wfw) * wfw else ax := tx;
+        if WRunX[dir] then ay := ty else ay := (ty div wfw) * wfw;
+        if WallRunFull(dir, ax, ay, wfw, s0, kitIdx) then begin
+          run := wfw; rsx := ax; rsy := ay;
+        end else begin
+          run := 1; rsx := tx; rsy := ty;
+        end;
+        for i := 0 to run - 1 do
+          if WRunX[dir] then covered[rsy][rsx + i] := true
+          else covered[rsy + i][rsx] := true;
+
+        fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
+        sxl := run / wfw;              { run cells along the piece length }
+        szl := (cz - fz) / wh;         { fit the piece height to the sector }
+        if WRunX[dir] then yaw := 0 else yaw := pi / 2;
+        mxw := rsx + WMOX[dir];
+        myw := rsy + WMOY[dir];
+        if WRunX[dir] then begin
+          cxr := rsx + run / 2; cyr := rsy + 0.5;
+        end else begin
+          cxr := rsx + 0.5; cyr := rsy + run / 2;
+        end;
+        dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
+        light := lightFn(tx, ty, dist);
+        atlas := nil;
+        if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+        RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
+          light, atlas, TrimW, TrimH);
+      end;
+  end;
 end;
 
 end.
