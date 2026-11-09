@@ -1,62 +1,65 @@
-# The original hand-built dungeon, now loaded from a file.
-# 1=brick 2=stone 3=moss 4=door, 0=open floor.
+# The starter crypt, re-authored to the modular mossy kit's scale. The old
+# hand-built maze was one tile wide, so the 4-unit kit pieces could not tile it
+# and their relief jammed into the corridors. This version is built from wide
+# open halls (which the kit clads cleanly) joined by short doorways, with pillar
+# blocks for crypt character. 1=wall, 0=open floor.
 map DUNGEON
 size 24 24
 tileset 10
 music 0
 area crypt
-# the modular crypt kit wants roughly three-unit ceilings, so the base
-# sector is taller than the old flat default; the central gallery is taller
-# still and its floor drops half a unit for a grand sunken hall
+# the modular crypt kit wants roughly three-unit ceilings, so the base sector
+# is taller than the old flat default; the central gallery is taller still and
+# its floor drops half a unit for a grand sunken hall
 sector 0 0 48
 sector 1 -8 64
 walls
 111111111111111111111111
-100000000002220000000001
-101110111102020111011101
-101000100000000000100301
-101011101110111011101101
-100010001000100010001001
-111010111011101110101111
 100000000000000000000001
-101111011110111101111101
-100000010000400000010001
-101110010111111010011101
-101000000100000010000101
-101011110101110110110101
-100010000101000000010001
-111010111101011111010111
-100000100000010000000001
-101110101111010101111101
-101000101000000100000301
-101011101011111101110101
-100010001000000001000001
-111010111110111011101011
-103000000000200000000001
-100000111002220111000001
+100000000000000000000001
+100000011000000110000001
+100000011000000110000001
+100000000000000000000001
+111001111110011111100111
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+111001111110011111100111
+100000000000000000000001
+100000000000000000000001
+100000011000000110000001
+100000011000000110000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
+100000000000000000000001
 111111111111111111111111
 end
-# the full-width east-west hall at row 7 is the sunken grand gallery
-fill 1 1 7 22 7
-marker start 2 1 E
-marker back 5 1 E
-marker grotto 3 22 E
+# the central five-row hall is the sunken grand gallery
+fill 1 1 7 22 11
+marker start 2 2 E
+marker back 4 2 S
+marker grotto 3 21 E
 portal 4 1 TOWN gate
-portal 11 7 CATACOMB start
-portal 13 7 MAZE start
+portal 8 10 CATACOMB start
+portal 15 10 MAZE start
 portal 20 1 INFERNAL start
-portal 2 22 GROTTO start
+portal 2 21 GROTTO start
 npc 22 22 SHRINE Shrine NPC_SHRINE2
-trap 7 7 6 12
-trap 16 7 8 13
-trap 12 19 7 13
+trap 5 9 6 12
+trap 18 9 8 13
+trap 12 18 7 13
 moonwell 13 9
-torch 3 7
-torch 20 7
-brazier 2 15
-prop 8 7 BARREL
-prop 9 7 BARREL 45
-loot 8 7 120 ELIXIR 1
-loot 9 7 90 SILVER 1
+torch 3 8
+torch 20 8
+brazier 5 18
+prop 11 9 BARREL
+prop 12 9 BARREL 45
+loot 11 9 120 ELIXIR 1
+loot 12 9 90 SILVER 1
 prop 21 22 BARREL
 loot 21 22 0 WARDSHLD 1

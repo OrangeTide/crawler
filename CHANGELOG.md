@@ -9,6 +9,14 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Changed
+- Re-authored the starter DUNGEON to the modular mossy kit's scale. The old
+  hand-built level was one tile wide, so the 4-unit kit pieces could not tile
+  it and their relief jammed into the corridors, which read as corrupt, narrow
+  geometry with glitched corners. It is now built from wide open halls joined by
+  short doorways, with pillar blocks for crypt character, so the kit clads it
+  cleanly. All portals, markers, and features are preserved.
+
 ## [0.27.1] - 2026-11-09
 
 Release tooling fixes for the 0.27 line.
