@@ -411,9 +411,11 @@ multi-cell mesh instances rather than per-cell quads.
   modular kit has its own tileset (10, past the biomes, opt-in), base-unit (1x1)
   kit pieces so ragged non-grid-aligned rooms tile clean fillers instead of
   stretched ones, and crypt-themed generated dungeon levels now wear the kit and
-  clad in play. Still open: migrate the authored zone maps onto modular tilesets;
-  vary the generated dungeons' floor and ceiling heights for vertical variety
-  (they clad flat today); and multi-atlas residency for a map that mixes a
+  clad in play, each level painting coarse blocks of open cells with varied
+  floor and ceiling heights from the level seed (floors step at most half a
+  unit so the dungeon stays traversable, ceilings vary freely) for vertical
+  relief instead of one flat room. Still open: migrate the authored zone maps
+  onto modular tilesets; and multi-atlas residency for a map that mixes a
   modular sector with a procedural one (one trim atlas is resident per map, which
   suffices while a modular map is wholly modular). Only the crypt theme fits the
   one mossy kit; other biomes need their own kits (future art) before they go
