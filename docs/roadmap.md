@@ -417,13 +417,18 @@ multi-cell mesh instances rather than per-cell quads.
   relief instead of one flat room. The authored crypt DUNGEON is now clad too:
   it sits on the modular tileset with kit-appropriate ceiling heights (three
   units base) and a taller sunken grand gallery down its central hall, authored
-  with the sector and fill directives. Still open: the other authored zones wait
-  on their own kits (GROTTO is a crystal cave, INFERNAL is volcanic, TEMPLE a
-  town shrine, none a fit for the one mossy kit); and multi-atlas residency for a
-  map that mixes a modular sector with a procedural one (one trim atlas is
-  resident per map, which suffices while a modular map is wholly modular). Only
-  the crypt theme fits the one mossy kit; other biomes need their own kits
-  (future art) before they go modular.
+  with the sector and fill directives. A second kit has landed: the SigilsVault
+  modular cathedral kit on tileset 11, kept at its grand native scale (eight-unit
+  module, sixteen-unit walls, vaulted ceilings). The mountain biome now generates
+  a cathedral theme from it, a cruciform of eight-cell bays (nave, transept, and
+  random corner chapels) with soaring bay vaults, brazier lighting and a dim
+  clerestory ambient. Still open: migrate the authored TEMPLE onto the cathedral
+  kit with its own lighting and tint; stained-glass windows (the kit ships an
+  emission atlas the renderer has no channel for yet); the remaining authored
+  zones (GROTTO crystal cave, INFERNAL volcanic) still want kits of their own
+  themes; and multi-atlas residency for a map that mixes a modular sector with a
+  procedural one (one trim atlas is resident per map, which suffices while a
+  modular map is wholly modular).
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
