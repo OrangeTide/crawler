@@ -229,6 +229,7 @@ Rendering:
 | `src/raster.pas` | A small fixed-function polygon rasterizer, PSX style. |
 | `src/meshfmt.pas` | Baked triangle mesh format, drawn by the polygon renderer. |
 | `src/models.pas` | Registry of baked meshes the polygon renderer instances. |
+| `src/roomdb.pas` | A hand-placed modular-tile room: the theme G pre-format proof. |
 | `src/polyrender.pas` | Draws the tile grid as textured polygons via the rasterizer. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `src/texgen.pas` | Procedural texture and per-zone tileset generation (tool side). |

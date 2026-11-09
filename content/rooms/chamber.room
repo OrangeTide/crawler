@@ -1,0 +1,13 @@
+# Modular chamber proof for theme G (0.26.0).
+# SigilsVault mossy dungeon kit, instanced at native 1-metre scale over
+# the polygon renderer, every piece drawn from the one resident trim
+# atlas. A 4x4m room: a floor, four walls, a ceiling, and a pillar.
+#
+# model       x    y    z    yawDeg
+MOD_FLOOR      0    0    0    0
+MOD_CEIL       0    0    3    0
+MOD_WALL      -2   -2    0    0
+MOD_WALL       2    2    0    180
+MOD_WALL      -2   -2    0    90
+MOD_WALL       2   -2    0    90
+MOD_PILLAR    -1   -1    0    0

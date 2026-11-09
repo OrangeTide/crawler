@@ -86,6 +86,22 @@ use; confirm the exact terms for this pack against its itch.io page before a
 release. The skill-to-icon mapping is the icon line on each entry in
 content/skills.txt.
 
+Modular dungeon tiles
+---------------------
+
+Source: "Modular Dungeon Kit" by Kevin Barany / SigilsVault
+(sigilsvault.itch.io, sigilsvault.gumroad.com). A low-poly dark-fantasy
+kit of walls, floors, ceilings, pillars and props on a 1-metre grid,
+trim-sheet textured.
+License: CC0 1.0 (public domain dedication). Credit is appreciated but
+not required. The full terms are in the kit's LICENSE.txt.
+
+The pieces under content/rooms are the subset baked into the game: a
+floor, a wall, a ceiling, and a pillar, converted from the kit GLBs to
+shared-texture meshes that sample the kit's handpainted (mossy) trim
+sheet. They are the first modular-tile set, used by the chamber in
+content/rooms/chamber.room.
+
 Spell catalog
 -------------
 

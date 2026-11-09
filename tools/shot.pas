@@ -36,7 +36,7 @@ uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combat, combatui, combatstate, party, chardata,
   dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
-  skilldb, skillbook, rules;
+  skilldb, skillbook, rules, textures, roomdb, polyrender, math;
 
 procedure DumpPPM(const fn: string);
 var
@@ -78,7 +78,13 @@ end;
 var
   outPath, scene: string;
   mi, ci, nd: longint;
+  doGameRender: boolean;
+  room: TRoom;
+  roomFn: string;
+  rls: TStringList;
+  camA: double;
 begin
+  doGameRender := true;
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: shot <out.ppm> title|combat|world|map ...');
     halt(2);
@@ -274,6 +280,37 @@ begin
       AddPursuer(mi, UpperCase(ParamStr(3)),
         StrToInt(ParamStr(8)), StrToInt(ParamStr(9)));
     end;
+  end else if scene = 'room' then begin
+    { the theme G modular-room proof: load a hand-placed set of kit pieces
+      and draw them from the resident trim atlas through the polygon path.
+      Optional args: <room-file> <camX> <camY> <camYawDeg> }
+    roomFn := 'content/rooms/chamber.room';
+    if ParamCount >= 3 then roomFn := ParamStr(3);
+    if not FileExists(roomFn) then begin
+      writeln(StdErr, 'shot: no room file ', roomFn); halt(1);
+    end;
+    rls := TStringList.Create;
+    rls.LoadFromFile(roomFn);
+    if not ParseRoom(rls.Text, room) then begin
+      writeln(StdErr, 'shot: empty or malformed room ', roomFn); halt(1);
+    end;
+    rls.Free;
+    if not SetTileset(GamePak, TILESET_MODULAR) then
+      writeln(StdErr, 'shot: warning, modular tileset incomplete');
+    if Length(TrimTex) = 0 then
+      writeln(StdErr, 'shot: warning, no trim atlas resident (TRIM',
+        TILESET_MODULAR, ' missing)');
+    Cam.posX := -3.0; Cam.posY := 0.0; camA := 0.0;
+    if ParamCount >= 6 then begin
+      Cam.posX := StrToFloatDef(ParamStr(4), -3.0);
+      Cam.posY := StrToFloatDef(ParamStr(5), 0.0);
+      camA := DegToRad(StrToFloatDef(ParamStr(6), 0.0));
+    end;
+    Cam.dirX := cos(camA); Cam.dirY := sin(camA);
+    Cam.planeX := -sin(camA) * 0.66; Cam.planeY := cos(camA) * 0.66;
+    Cam.pitch := 0;
+    RenderRoom(GamePak, room);
+    doGameRender := false;
   end else begin
     writeln(StdErr, 'shot: unknown scene ', scene); halt(2);
   end;
@@ -283,7 +320,7 @@ begin
   for mi := 2 to ParamCount do
     if LowerCase(ParamStr(mi)) = 'poly' then UsePoly := true;
 
-  GameRender(60);
+  if doGameRender then GameRender(60);
   DumpPPM(outPath);
   writeln('wrote ', outPath, ' (', scene, ')');
 

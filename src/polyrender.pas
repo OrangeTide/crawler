@@ -13,7 +13,17 @@ unit polyrender;
 
 interface
 
+uses
+  pak, roomdb;
+
 procedure RenderViewPoly;
+
+{ Draw a hand-placed modular room (the theme G pre-format proof): clear
+  to a dark interior, then instance every piece from the resident trim
+  atlas through the shared-texture mesh path. Meshes are pulled from the
+  pak by piece name. The camera is the global world.Cam, with the eye
+  raised to room height. }
+procedure RenderRoom(const p: TPak; const room: TRoom);
 
 implementation
 
@@ -206,6 +216,53 @@ begin
 
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);
+end;
+
+procedure RenderRoom(const p: TPak; const room: TRoom);
+var
+  mc: TMeshCam;
+  i, ci: longint;
+  dist, light: double;
+  blob: TByteArray;
+  atlas: PByte;
+  cacheName: array of string;
+  cacheMesh: array of TMesh;
+
+  { Decode a piece mesh from the pak once, caching by name for this frame. }
+  function MeshFor(const nm: string): longint;
+  var k: longint; m: TMesh;
+  begin
+    MeshFor := -1;
+    for k := 0 to High(cacheName) do
+      if cacheName[k] = nm then begin MeshFor := k; exit; end;
+    if not (PakGet(p, nm, blob) and DecodeMesh(blob, m)) then exit;
+    k := Length(cacheName);
+    SetLength(cacheName, k + 1); SetLength(cacheMesh, k + 1);
+    cacheName[k] := nm; cacheMesh[k] := m;
+    MeshFor := k;
+  end;
+
+begin
+  RasterCX := FBW / 2; RasterCY := FBH / 2;
+  ClearFB(RGB(10, 9, 12));
+  RasterBeginFrame;
+
+  atlas := nil;
+  if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+
+  mc.x := Cam.posX; mc.y := Cam.posY; mc.z := 1.5;
+  mc.yaw := arctan2(Cam.dirY, Cam.dirX);
+  mc.pitch := Cam.pitch / FOCAL;
+
+  for i := 0 to High(room) do begin
+    ci := MeshFor(room[i].model);
+    if ci < 0 then continue;
+    dist := sqrt(sqr(room[i].x - Cam.posX) + sqr(room[i].y - Cam.posY));
+    light := 230 - dist * 6;
+    if light < 70 then light := 70;
+    RenderMeshAt(cacheMesh[ci], mc, room[i].x, room[i].y, room[i].z,
+      room[i].scale, room[i].yaw, light, atlas, TrimW, TrimH);
+  end;
 end;
 
 end.

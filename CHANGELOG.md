@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Trim-sheet texturing in the asset and mesh pipeline, the groundwork for
+  modular tile levels. A baked mesh now either ships its own texture (props,
+  unchanged) or carries none and samples a shared trim-sheet atlas the renderer
+  supplies, so a whole modular room draws from one resident texture. The asset
+  tools gained verbs to bake modular tiles and the per-tileset atlas, and a
+  first hand-placed room from the SigilsVault mossy dungeon kit renders through
+  the polygon path as a proof of the look and the per-tile budget.
 - A skills system, the martial counterpart to spells. Characters train
   non-spell abilities with proficiency slots, banked at creation and on
   level-up and generous for the thief kit, and spent on a learn-a-skill screen

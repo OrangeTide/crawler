@@ -341,10 +341,12 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   triangles for structural tiles, 256 for hero tiles, 150 for prop meshes, and
   one resident 256x256 8-bit trim sheet per tileset. GLB is the import format;
   the shared trim sheet maps onto the one-resident-tileset model.
-- [gap] (0.26.0) Trim-sheet texturing in the asset and mesh pipeline: a single
-  shared atlas per tileset, UV-mapped per piece and baked once, so a whole
-  modular room costs one texture. This is the PS1-friendly path and the kits
-  already ship this way, with a plain and a handpainted trim sheet each.
+- [done] (0.26.0) Trim-sheet texturing in the asset and mesh pipeline: CMSH
+  grew a texKind byte (version 2), so a mesh either ships its own texture (the
+  prop case) or carries none and samples a shared trim atlas the renderer
+  supplies. textures.pas holds one resident trim atlas per tileset, loaded from
+  a TRIM<n> lump. mkassets gained tile and trim verbs, mkmesh a geometry-only
+  form. A whole modular room now costs one texture, the PS1-friendly path.
 - [gap] (0.32.0) Per-biome split palette: give each biome or theme its own
   palette that spends most of the 256 entries, 128 or 192, on that biome's
   textures so the quantized trim sheets smooth out and stop sharing one generic
@@ -358,10 +360,12 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   since it is a quality pass over textures that already read correctly. Sprite
   art may need pre-indexing into the reserved band rather than re-quantizing at
   load.
-- [gap] (0.26.0) Bake a first modular room: import a hand-placed set of kit
-  pieces as instanced meshes in the polygon renderer, drawn over the existing
-  grid, to prove the look and the budget before the map format changes. This
-  reuses the instanced-prop path that already draws the remaining meshes.
+- [done] (0.26.0) Bake a first modular room: a hand-placed set of mossy dungeon
+  kit pieces (floor, four walls, ceiling, pillar) instanced through the polygon
+  renderer's shared-texture mesh path, authored in content/rooms/chamber.room
+  and rendered headlessly by the shot tool's room scene. It proves the look and
+  the per-tile budget (all pieces at or under 128 tris, one shared atlas) before
+  the map format changes. See the committed proof render.
 - [gap] (0.27.0) The sector map format: sectors carry a floor and a ceiling
   height and a tileset, walls are segments between sectors, and a cell
   references the modular pieces that build it. This replaces the uniform-height
@@ -463,15 +467,17 @@ per-skill icons drawn everywhere the player meets a spell or skill, player
 portraits in the party strip and combat panel, and a full character sheet with
 a spell and skill browser.
 
-### 0.26.0 Modular tiles and PS1 kit evaluation (M)
+### 0.26.0 Modular tiles and PS1 kit evaluation (M) [done]
 
-Theme G, the groundwork. The kit evaluation is done: GO for the Modular Dungeon
-kit, with a per-tile poly budget settled in `docs/kit-evaluation.md`. The two
-remaining pieces are implementation: bring trim-sheet texturing into the asset
-and mesh pipeline, and bake a first hand-placed modular room drawn over the
-existing grid to prove the look and the budget. No map-format change yet: this
-de-risks the rework before the format churns. Depends on the polygon renderer
-being the default (0.19.0).
+Theme G, the groundwork, complete. The kit evaluation returned GO for the
+Modular Dungeon kit, with a per-tile poly budget settled in
+`docs/kit-evaluation.md`. Trim-sheet texturing then landed in the asset and
+mesh pipeline: shared-texture meshes (CMSH version 2) that sample a resident
+per-tileset trim atlas, so a whole modular room costs one texture. A first
+hand-placed room (the mossy kit, in content/rooms/chamber.room) renders through
+the polygon path's shared mesh instancing, proving the look and the budget. No
+map-format change yet: this de-risked the rework before the format churns.
+Depended on the polygon renderer being the default (0.19.0).
 
 ### 0.27.0 Sector map format (L)
 
@@ -562,15 +568,15 @@ These hold across every milestone and are the reason for the choices above.
 
 ## Recommended next
 
-0.19.0 is complete and the 0.26.0 kit evaluation returned GO for the Modular
-Dungeon kit (see `docs/kit-evaluation.md`), so the sector thread is unblocked
-and the order is:
+0.19.0 and all of 0.26.0 are complete: the kit evaluation cleared the Modular
+Dungeon kit, trim-sheet texturing is in the pipeline, and a first modular room
+renders from the shared atlas (see `docs/kit-evaluation.md` and
+content/rooms/chamber.room). The sector thread is unblocked and the order is:
 
-- Continue 0.26.0 with its two implementation pieces now that the kit is
-  cleared: trim-sheet texturing in the asset and mesh pipeline (one resident
-  256x256 tileset per modular set), then a first hand-placed modular room drawn
-  over the existing grid to prove the look and the per-tile budget before the
-  map format churns in 0.27.0. The polygon renderer they build on is in place.
+- Open 0.27.0, the sector map format, the next real step. The modular pieces,
+  the shared-atlas tile path, and the proven per-tile budget are all in place;
+  what remains is the sector data model and porting mapgen and the authored maps
+  onto it. This is the large, central rework the theme has been building toward.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
