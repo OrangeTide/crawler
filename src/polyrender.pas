@@ -177,7 +177,7 @@ var
   tx, ty, x0, y0, x1, y1: longint;
   cx, cy, dist, fwd, light, fcx, fcy, fd, fz, cz: double;
   cyaw, syaw: double;
-  ftex, gk, gw, kitIdx: longint;
+  ftex, gk, gw: longint;
   gcol: TColor;
   shor, syy, sxx: longint;
   sb: byte;
@@ -244,12 +244,10 @@ begin
       end else begin
         light := TileLight(tx, ty, dist);
         fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
-        kitIdx := KitIndexForTileset(CellTileset(tx, ty));
-        { clad from the modular kit when the tileset has one and its pieces
-          drew; otherwise fall through to the procedural surface quads. The
-          and is short-circuit, so the cladding runs only for a kit cell }
-        if not ((kitIdx >= 0)
-          and CladFloorCeil(mc, kitIdx, tx, ty, fz, cz, light, not CurMapSurface)) then
+        { a kit tileset's floors and ceilings are drawn by the CladView pass
+          after this loop, at the kit's native scale; only a non-kit cell
+          draws the procedural surface quads here }
+        if KitIndexForTileset(CellTileset(tx, ty)) < 0 then
         begin
           { floor at this cell's sector height, with an emissive tile's glow tint
             mixed in, as the raycaster does for a light well, brazier or vent }
@@ -267,6 +265,10 @@ begin
         StepFaces(mc, tx, ty, fz, cz, ex, ey);
       end;
     end;
+
+  { clad the kit tilesets' floors and ceilings at native scale, merging
+    aligned cells into whole kit pieces }
+  CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);

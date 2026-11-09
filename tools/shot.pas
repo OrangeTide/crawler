@@ -116,12 +116,14 @@ end;
 
 { Build a flat room on the modular tileset so the cladding pass draws its
   floor and ceiling from the mossy kit meshes instead of the surface quads.
+  The open area spans cells 4..11, aligned to the mossy kit's 4-unit grid,
+  so it merges into four whole 4x4 floor and ceiling pieces at native scale.
   One sector, three units tall to match the kit's native wall height. }
 procedure BuildCladDemo(out m: TMapData);
 var
   x, y, i: longint;
 begin
-  m.w := 10; m.h := 10;
+  m.w := 16; m.h := 16;
   m.tileset := TILESET_MODULAR; m.music := 0; m.flags := 0; m.area := 0;
   SetLength(m.walls, m.w * m.h);
   SetLength(m.cellSector, m.w * m.h);
@@ -135,12 +137,12 @@ begin
   for y := 0 to m.h - 1 do
     for x := 0 to m.w - 1 do begin
       i := y * m.w + x;
-      if (x = 0) or (y = 0) or (x = m.w - 1) or (y = m.h - 1) then begin
-        m.walls[i] := 2;                 { stone border wall }
-        m.cellSector[i] := SECTOR_NONE;
-      end else begin
+      if (x >= 4) and (x <= 11) and (y >= 4) and (y <= 11) then begin
         m.walls[i] := TILE_EMPTY;
         m.cellSector[i] := 0;
+      end else begin
+        m.walls[i] := 2;                 { stone wall around the open area }
+        m.cellSector[i] := SECTOR_NONE;
       end;
     end;
 end;
@@ -383,7 +385,7 @@ begin
     if ParamCount >= 5 then
       PlaceAt(StrToInt(ParamStr(3)), StrToInt(ParamStr(4)), DirCode(ParamStr(5)))
     else
-      PlaceAt(5, 8, DIR_N);
+      PlaceAt(5, 7, DIR_E);
     if ParamCount >= 6 then Cam.pitch := StrToFloatDef(ParamStr(6), 0);
     UsePoly := true;   { cladding draws only in the polygon path }
   end else if scene = 'room' then begin
