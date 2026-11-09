@@ -39,6 +39,7 @@ type
     lump: string[16];       { the baked tile mesh to instance }
     fw, fh: byte;           { ground footprint in grid units }
     fz: byte;               { height in grid units (1 for a slab) }
+    atlas: byte;            { which resident trim sheet this piece samples }
   end;
 
   TKit = record
@@ -107,6 +108,7 @@ begin
       PutB(a, n, kits[i].pieces[k].fw);
       PutB(a, n, kits[i].pieces[k].fh);
       PutB(a, n, kits[i].pieces[k].fz);
+      PutB(a, n, kits[i].pieces[k].atlas);
     end;
   end;
   SetLength(a, n);
@@ -164,6 +166,7 @@ begin
       Kits[i].pieces[k].fw := RB(blob, pos);
       Kits[i].pieces[k].fh := RB(blob, pos);
       Kits[i].pieces[k].fz := RB(blob, pos);
+      Kits[i].pieces[k].atlas := RB(blob, pos);
     end;
   end;
   LoadKits := true;

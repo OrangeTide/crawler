@@ -289,12 +289,15 @@ multi-cell mesh instances rather than per-cell quads.
   clerestory ambient. The town TEMPLE is rebuilt from the same cathedral meshes
   on tileset 12, drawn from a warm candlelit tint of the trim atlas and lit
   bright as a sunlit sanctum, showing the kit reused across two moods with no new
-  geometry. Still open: stained-glass windows (the kit ships an emission atlas
-  the renderer has no channel for yet); the remaining authored zones (GROTTO
-  crystal cave, INFERNAL volcanic) still want kits of their own themes; and
-  multi-atlas residency for a map that mixes a modular sector with a procedural
-  one (one trim atlas is resident per map, which suffices while a modular map is
-  wholly modular).
+  geometry. Multi-atlas residency has landed: a tileset can hold several
+  resident trim sheets at once and each kit piece names the one it samples (an
+  `@N` token in the kit text), so a multi-material kit clads floors, walls and
+  ceilings from separate sheets, and a map that mixes a modular sector with a
+  procedural one no longer shares a single atlas. This unblocks kits whose art
+  spans more than one trim sheet. Still open: stained-glass windows (the kit
+  ships an emission atlas the renderer has no channel for yet); and the
+  remaining authored zones (GROTTO crystal cave, INFERNAL volcanic) still want
+  kits of their own themes.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto

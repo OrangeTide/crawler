@@ -42,16 +42,32 @@ const
 type
   TTexture = array[0 .. TEXSIZE - 1] of TColor;
 
+  { One resident trim-sheet atlas, as palette indices. }
+  TTrimSheet = record
+    data: array of byte;
+    w, h: longint;
+  end;
+
 var
   Tex: array[0 .. TEX_COUNT - 1] of TTexture;
   CurTileset: longint = -1;
 
-  { The resident trim-sheet atlas for the current tileset, as palette
-    indices (the shared texture every modular tile samples). Empty when
-    the tileset defines no modular pieces. One atlas is resident at a
-    time, the same flat-memory rule the surfaces follow. }
+  { The resident trim-sheet atlases for the current tileset, as palette
+    indices (the shared textures the modular tiles sample). Most kits use one
+    (atlas 0); a multi-material kit lists several, and each piece names the one
+    it samples. Empty when the tileset defines no modular pieces. The set is
+    resident only while its tileset is, the same flat-memory rule the surfaces
+    follow. }
+  TrimSheets: array of TTrimSheet;
+
+  { Atlas 0, kept as its own fields for the single-atlas callers (the authored
+    .room render path and the headless tool). }
   TrimTex: array of byte;
   TrimW, TrimH: longint;
+
+{ The atlas at `index` as a pointer and dimensions, falling back to atlas 0
+  for an out-of-range or empty index. Returns nil when no atlas is resident. }
+function TrimPtr(index: longint; out w, h: longint): PByte;
 
 { Load the surfaces of tileset 0, the default. Call once at startup. }
 function LoadTextures(const p: TPak): boolean;
@@ -98,30 +114,59 @@ begin
   LoadOne := true;
 end;
 
-{ Load the TRIM<tileset> atlas into TrimTex as palette indices. A tileset
-  without a trim lump leaves the atlas empty, which simply means it has no
-  modular pieces. Returns true when an atlas was loaded. }
-function LoadTrim(const p: TPak; tileset: longint): boolean;
+{ The lump name for atlas `a` of a tileset: TRIM<t> for atlas 0, and
+  TRIM<t>_<a> for the rest, so a single-atlas kit is unchanged. }
+function TrimLumpName(tileset, a: longint): string;
+var s: string;
+begin
+  Str(tileset, s);
+  TrimLumpName := 'TRIM' + s;
+  if a > 0 then begin
+    Str(a, s);
+    TrimLumpName := TrimLumpName + '_' + s;
+  end;
+end;
+
+{ Load the trim atlases of a tileset: TRIM<t>, then TRIM<t>_1, _2, ... until
+  one is missing. A tileset with no TRIM<t> lump stays empty, which simply
+  means it has no modular pieces. Returns true when at least one loaded. }
+function LoadTrims(const p: TPak; tileset: longint): boolean;
 var
   blob: TByteArray;
   img: TImage;
-  i, n: longint;
-  nm: string;
+  i, n, a: longint;
 begin
-  LoadTrim := false;
+  TrimSheets := nil;
   TrimTex := nil; TrimW := 0; TrimH := 0;
-  Str(tileset, nm);
-  nm := 'TRIM' + nm;
-  if not PakGet(p, nm, blob) then
+  a := 0;
+  while PakGet(p, TrimLumpName(tileset, a), blob) do begin
+    if not PicDecode(blob, img) then break;
+    SetLength(TrimSheets, a + 1);
+    n := img.w * img.h;
+    SetLength(TrimSheets[a].data, n);
+    for i := 0 to n - 1 do
+      TrimSheets[a].data[i] := Quantize(img.pix[i]);
+    TrimSheets[a].w := img.w; TrimSheets[a].h := img.h;
+    inc(a);
+  end;
+  if Length(TrimSheets) > 0 then begin
+    TrimTex := TrimSheets[0].data;   { atlas 0 for the single-atlas callers }
+    TrimW := TrimSheets[0].w; TrimH := TrimSheets[0].h;
+  end;
+  LoadTrims := Length(TrimSheets) > 0;
+end;
+
+function TrimPtr(index: longint; out w, h: longint): PByte;
+begin
+  if (index < 0) or (index >= Length(TrimSheets))
+    or (Length(TrimSheets[index].data) = 0) then
+    index := 0;
+  if (Length(TrimSheets) = 0) or (Length(TrimSheets[index].data) = 0) then begin
+    TrimPtr := nil; w := 0; h := 0;
     exit;
-  if not PicDecode(blob, img) then
-    exit;
-  n := img.w * img.h;
-  SetLength(TrimTex, n);
-  for i := 0 to n - 1 do
-    TrimTex[i] := Quantize(img.pix[i]);
-  TrimW := img.w; TrimH := img.h;
-  LoadTrim := true;
+  end;
+  w := TrimSheets[index].w; h := TrimSheets[index].h;
+  TrimPtr := @TrimSheets[index].data[0];
 end;
 
 function SetTileset(const p: TPak; tileset: longint): boolean;
@@ -138,8 +183,8 @@ begin
       { this tileset lacks the surface: use tileset 0's }
       if not LoadOne(p, id, LumpName(id, 0)) then
         SetTileset := false;
-  { the trim atlas is optional; its absence is not a failure }
-  LoadTrim(p, tileset);
+  { the trim atlases are optional; their absence is not a failure }
+  LoadTrims(p, tileset);
   CurTileset := tileset;
 end;
 

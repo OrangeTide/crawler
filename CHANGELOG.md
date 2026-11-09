@@ -27,6 +27,12 @@ whose development history is summarized in docs/roadmap.md.
   directive. The INFERNAL hall now carries a seam of lava.
 
 ### Changed
+- Kit cladding now supports multiple resident trim atlases per tileset. Each
+  kit piece names the atlas it samples (an `@N` token in the kit text, default
+  0), so a multi-material kit can clad its floors, walls and ceilings from
+  separate sheets instead of one shared trim sheet. The baker writes extra
+  atlas lumps (`TRIM<t>_<n>`) and the renderer resolves each piece's sheet at
+  draw time. Single-atlas kits are unchanged.
 - Re-authored the starter DUNGEON to the modular mossy kit's scale. The old
   hand-built level was one tile wide, so the 4-unit kit pieces could not tile
   it and their relief jammed into the corridors, which read as corrupt, narrow

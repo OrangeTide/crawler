@@ -30,11 +30,20 @@ begin
   if pi >= 0 then RoleLump := Kits[ki].pieces[pi].lump;
 end;
 
+{ The trim atlas index of the first piece of a role in a kit, or -1. }
+function RoleAtlas(ki, role: longint): longint;
+var pi: longint;
+begin
+  RoleAtlas := -1;
+  pi := KitPieceByRole(ki, role);
+  if pi >= 0 then RoleAtlas := Kits[ki].pieces[pi].atlas;
+end;
+
 var
   w: TPakWriter;
   p: TPak;
   src: array[0 .. 0] of TKit;
-  ki: longint;
+  ki, aw, ah: longint;
 begin
   { codec round-trip on synthetic data through a temp pak }
   src[0].tileset := 7;
@@ -43,9 +52,11 @@ begin
   src[0].pieces[0].role := KITROLE_FLOOR;
   src[0].pieces[0].lump := 'T_FLOOR'; src[0].pieces[0].fw := 2;
   src[0].pieces[0].fh := 2; src[0].pieces[0].fz := 1;
+  src[0].pieces[0].atlas := 0;
   src[0].pieces[1].role := KITROLE_WALL;
   src[0].pieces[1].lump := 'T_WALL'; src[0].pieces[1].fw := 3;
   src[0].pieces[1].fh := 1; src[0].pieces[1].fz := 4;
+  src[0].pieces[1].atlas := 2;
 
   PakWInit(w);
   PakWAdd(w, 'KITS', EncodeKits(src));
@@ -59,7 +70,24 @@ begin
   CheckEqI(RoleFW(ki, KITROLE_FLOOR), 2, 'the floor footprint round-trips');
   CheckEqI(RoleFW(ki, KITROLE_WALL), 3, 'the wall span round-trips');
   Check(RoleLump(ki, KITROLE_WALL) = 'T_WALL', 'the wall lump round-trips');
+  CheckEqI(RoleAtlas(ki, KITROLE_FLOOR), 0, 'the floor atlas round-trips');
+  CheckEqI(RoleAtlas(ki, KITROLE_WALL), 2, 'the wall atlas round-trips');
   Check(not TilesetHasKit(3), 'a tileset with no kit reports none');
+
+  { TrimPtr selects the resident atlas by index and falls back to atlas 0 }
+  SetLength(TrimSheets, 2);
+  SetLength(TrimSheets[0].data, 4);
+  TrimSheets[0].w := 2; TrimSheets[0].h := 2;
+  SetLength(TrimSheets[1].data, 16);
+  TrimSheets[1].w := 4; TrimSheets[1].h := 4;
+  Check(TrimPtr(0, aw, ah) <> nil, 'atlas 0 resolves to a sheet');
+  CheckEqI(aw, 2, 'atlas 0 reports its width');
+  Check(TrimPtr(1, aw, ah) <> nil, 'atlas 1 resolves to a sheet');
+  CheckEqI(aw, 4, 'atlas 1 reports its width');
+  Check(TrimPtr(5, aw, ah) <> nil, 'an out-of-range atlas falls back');
+  CheckEqI(aw, 2, 'the fallback uses atlas 0');
+  TrimSheets := nil;
+  Check(TrimPtr(0, aw, ah) = nil, 'no resident sheets yields nil');
 
   { the baked mossy kit from content/tilesets.txt }
   Check(PakLoad('build/game.pak', p), 'load build/game.pak (run make first)');

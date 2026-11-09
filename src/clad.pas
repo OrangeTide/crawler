@@ -11,9 +11,10 @@ unit clad;
   to the world grid rather than the view keeps the tiling stable as the
   camera moves, so pieces do not resize or shimmer frame to frame.
 
-  Kit piece meshes are decoded once into a resident cache keyed by lump. The
-  cladding draws from the resident trim atlas (textures.TrimTex), so the
-  map's tileset must be the one whose atlas is resident. The merged block is
+  Kit piece meshes are decoded once into a resident cache keyed by lump. Each
+  piece samples one of the tileset's resident trim atlases (textures.TrimPtr by
+  the piece's atlas index), so the map's tileset must be the resident one. A
+  single-atlas kit leaves every piece on atlas 0. The merged block is
   lit as a whole through a caller-supplied light function, so the lighting
   matches the renderer's own per-cell shading at the block's centre. }
 
@@ -99,7 +100,7 @@ end;
 procedure DrawPiece(const mc: TMeshCam; kitIdx, pieceIdx: longint;
   cxw, cyw, mz, s, light: double);
 var
-  mi, fw: longint;
+  mi, fw, aw, ah: longint;
   sc: double;
   atlas: PByte;
 begin
@@ -109,10 +110,9 @@ begin
   fw := Kits[kitIdx].pieces[pieceIdx].fw;
   if fw < 1 then fw := 1;
   sc := s / fw;
-  atlas := nil;
-  if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+  atlas := TrimPtr(Kits[kitIdx].pieces[pieceIdx].atlas, aw, ah);
   RenderMeshAt(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
-    atlas, TrimW, TrimH);
+    atlas, aw, ah);
 end;
 
 { Draw the floor (and ceiling) of an s-by-s block anchored at cell (ax,ay). }
@@ -229,7 +229,7 @@ procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; lightFn: TCladLightFn);
 var
   dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx: longint;
-  wp, wpN, wfw, pfw, wh, s0, mi: longint;
+  wp, wpN, wfw, pfw, wh, s0, mi, aw, ah: longint;
   fz, cz, sxl, szl, yaw, mxw, myw, cxr, cyr, dist, light: double;
   atlas: PByte;
 begin
@@ -285,10 +285,9 @@ begin
         end;
         dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
         light := lightFn(tx, ty, dist);
-        atlas := nil;
-        if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+        atlas := TrimPtr(Kits[kitIdx].pieces[wp].atlas, aw, ah);
         RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
-          light, atlas, TrimW, TrimH);
+          light, atlas, aw, ah);
       end;
   end;
 end;
@@ -296,7 +295,7 @@ end;
 procedure CladStep(const mc: TMeshCam; dir, tx, ty: longint;
   z0, z1, light: double);
 var
-  kitIdx, wp, pfw, wh, mi: longint;
+  kitIdx, wp, pfw, wh, mi, aw, ah: longint;
   sxl, szl, yaw, mxw, myw: double;
   atlas: PByte;
 begin
@@ -314,10 +313,9 @@ begin
   if WRunX[dir] then yaw := 0 else yaw := pi / 2;
   mxw := tx + WMOX[dir];
   myw := ty + WMOY[dir];
-  atlas := nil;
-  if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+  atlas := TrimPtr(Kits[kitIdx].pieces[wp].atlas, aw, ah);
   RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
-    light, atlas, TrimW, TrimH);
+    light, atlas, aw, ah);
 end;
 
 end.

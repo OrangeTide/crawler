@@ -304,13 +304,15 @@ begin
       ram, ' B ram) from ', objFn);
 end;
 
-procedure AddTrimSheet(tileset: longint; const ppmFn: string);
-{ Bake a tileset's trim-sheet atlas from a binary PPM into a TRIM<n> PIC,
-  the one shared texture its modular tiles draw from. }
+procedure AddTrimSheet(tileset, slot: longint; const ppmFn: string);
+{ Bake a tileset's trim-sheet atlas from a binary PPM into a PIC lump: TRIM<n>
+  for slot 0, TRIM<n>_<slot> for the rest, so a multi-material kit can carry a
+  separate sheet per surface while a single-atlas kit stays on TRIM<n>. }
 var
   sw, sh, i: longint;
   pixbuf: TByteArray;
   atlas: TImage;
+  lump: string;
 begin
   if not ReadPpm(ppmFn, sw, sh, pixbuf) then begin
     writeln(StdErr, 'mkassets: trim ', tileset, ': cannot read ', ppmFn);
@@ -319,8 +321,10 @@ begin
   ImgNew(atlas, sw, sh);
   for i := 0 to sw * sh - 1 do
     atlas.pix[i] := RGB(pixbuf[i * 3], pixbuf[i * 3 + 1], pixbuf[i * 3 + 2]);
-  PakWAdd(w, 'TRIM' + IntToStr(tileset), PicEncodeDirect(atlas));
-  writeln('  trim TRIM', tileset, ' (', sw, 'x', sh, ') from ', ppmFn);
+  lump := 'TRIM' + IntToStr(tileset);
+  if slot > 0 then lump := lump + '_' + IntToStr(slot);
+  PakWAdd(w, lump, PicEncodeDirect(atlas));
+  writeln('  trim ', lump, ' (', sw, 'x', sh, ') from ', ppmFn);
 end;
 
 procedure AddSprite(const name, ppmFn: string);
@@ -441,7 +445,15 @@ begin
       AddTile(ParamStr(i + 1), ParamStr(i + 2),
         StrToIntDef(ParamStr(i + 3), 128)); inc(i, 4);
     end else if ParamStr(i) = 'trim' then begin
-      AddTrimSheet(StrToIntDef(ParamStr(i + 1), 0), ParamStr(i + 2)); inc(i, 3);
+      { "trim <tileset> <ppm>" is atlas 0; "trim <tileset> <slot> <ppm>" adds
+        a further atlas when a numeric slot precedes the file. }
+      if (StrToIntDef(ParamStr(i + 2), -1) >= 0) and (ParamStr(i + 3) <> '') then
+      begin
+        AddTrimSheet(StrToIntDef(ParamStr(i + 1), 0),
+          StrToIntDef(ParamStr(i + 2), 0), ParamStr(i + 3)); inc(i, 4);
+      end else begin
+        AddTrimSheet(StrToIntDef(ParamStr(i + 1), 0), 0, ParamStr(i + 2)); inc(i, 3);
+      end;
     end else if ParamStr(i) = 'sprite' then begin
       AddSprite(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else begin
