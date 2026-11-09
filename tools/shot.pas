@@ -75,6 +75,43 @@ begin
   end;
 end;
 
+{ Build a hand-made two-sector map to prove the renderer draws height: a
+  flat room with a sunken square pit and a raised dais, so the polygon path
+  shows floor risers, ceiling lintels and the eye riding the sector floor. }
+procedure BuildSectorDemo(out m: TMapData);
+var
+  x, y, i: longint;
+begin
+  m.w := 14; m.h := 14;
+  m.tileset := 4; m.music := 0; m.flags := 0; m.area := 0;
+  SetLength(m.walls, m.w * m.h);
+  SetLength(m.cellSector, m.w * m.h);
+  m.markers := nil; m.portals := nil; m.doors := nil; m.npcs := nil;
+  m.traps := nil; m.lights := nil; m.props := nil; m.loot := nil;
+
+  SetLength(m.sectors, 3);
+  m.sectors[0].floorZ := 0;  m.sectors[0].ceilZ := 16;  { the main room }
+  m.sectors[0].tileset := 0; m.sectors[0].light := 0;
+  m.sectors[1].floorZ := -12; m.sectors[1].ceilZ := 16;  { a sunken pit }
+  m.sectors[1].tileset := 0; m.sectors[1].light := 0;
+  m.sectors[2].floorZ := 6;  m.sectors[2].ceilZ := 16;  { a raised dais }
+  m.sectors[2].tileset := 0; m.sectors[2].light := 0;
+
+  for y := 0 to m.h - 1 do
+    for x := 0 to m.w - 1 do begin
+      i := y * m.w + x;
+      if (x = 0) or (y = 0) or (x = m.w - 1) or (y = m.h - 1) then begin
+        m.walls[i] := 2;                 { stone border wall }
+        m.cellSector[i] := SECTOR_NONE;
+      end else begin
+        m.walls[i] := TILE_EMPTY;
+        m.cellSector[i] := 0;            { the main room by default }
+      end;
+    end;
+  for y := 3 to 6 do for x := 3 to 6 do m.cellSector[y * m.w + x] := 1;   { pit }
+  for y := 8 to 10 do for x := 8 to 10 do m.cellSector[y * m.w + x] := 2;  { dais }
+end;
+
 var
   outPath, scene: string;
   mi, ci, nd: longint;
@@ -83,6 +120,7 @@ var
   roomFn: string;
   rls: TStringList;
   camA: double;
+  secMap: TMapData;
 begin
   doGameRender := true;
   if ParamCount < 2 then begin
@@ -280,6 +318,20 @@ begin
       AddPursuer(mi, UpperCase(ParamStr(3)),
         StrToInt(ParamStr(8)), StrToInt(ParamStr(9)));
     end;
+  end else if scene = 'sector' then begin
+    { the theme G height proof: a hand-built two-sector map with a pit and a
+      dais, rendered through the normal explore view. Optional args:
+      <camX> <camY> <N|E|S|W> }
+    QuickStart;
+    BuildSectorDemo(secMap);
+    if not LoadMapData(secMap) then begin
+      writeln(StdErr, 'shot: could not load the sector demo'); halt(1);
+    end;
+    CurMapName := 'SECTORDEMO';
+    if ParamCount >= 5 then
+      PlaceAt(StrToInt(ParamStr(3)), StrToInt(ParamStr(4)), DirCode(ParamStr(5)))
+    else
+      PlaceAt(7, 12, DIR_N);
   end else if scene = 'room' then begin
     { the theme G modular-room proof: load a hand-placed set of kit pieces
       and draw them from the resident trim atlas through the polygon path.

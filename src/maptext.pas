@@ -77,9 +77,10 @@ function ParseMapText(const fn: string; out m: TMapData;
 var
   lines: TStringList;
   li, ntok, row, x: longint;
+  k, j, oldn, fx, fy, fx0, fy0, fx1, fy1, idx: longint;
   tok: array[0 .. 15] of string;
   line: string;
-  inWalls: boolean;
+  inWalls, wallsDone: boolean;
   mk: TMarker;
   po: TPortal;
   dr: TDoorMeta;
@@ -95,8 +96,9 @@ begin
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
-  m.loot := nil;
+  m.loot := nil; m.sectors := nil; m.cellSector := nil;
   inWalls := false;
+  wallsDone := false;
   row := 0;
 
   lines := TStringList.Create;
@@ -107,6 +109,7 @@ begin
       if inWalls then begin
         if (line = 'end') then begin
           inWalls := false;
+          wallsDone := true;
           if row <> m.h then begin
             errmsg := 'wall row count does not match height';
             exit;
@@ -144,7 +147,44 @@ begin
         m.tileset := StrToInt(tok[1])
       else if tok[0] = 'music' then
         m.music := StrToInt(tok[1])
-      else if tok[0] = 'walls' then begin
+      else if tok[0] = 'sector' then begin
+        { sector N FLOORZ CEILZ [TILESET]: define a sector's heights. Heights
+          are in 1/16 world unit, so HZ_UNIT (16) is the old flat ceiling. }
+        if ntok < 4 then begin errmsg := 'sector needs N FLOORZ CEILZ [TILESET]'; exit; end;
+        k := StrToInt(tok[1]);
+        if k < 0 then begin errmsg := 'sector id is negative'; exit; end;
+        if k >= Length(m.sectors) then begin
+          oldn := Length(m.sectors);
+          SetLength(m.sectors, k + 1);
+          for j := oldn to k do begin
+            m.sectors[j].floorZ := 0; m.sectors[j].ceilZ := HZ_UNIT;
+            m.sectors[j].tileset := 0; m.sectors[j].light := 0;
+          end;
+        end;
+        m.sectors[k].floorZ := StrToInt(tok[2]);
+        m.sectors[k].ceilZ := StrToInt(tok[3]);
+        if ntok >= 5 then m.sectors[k].tileset := StrToInt(tok[4]);
+      end else if tok[0] = 'fill' then begin
+        { fill N X0 Y0 X1 Y1: assign a cell rectangle to sector N. Needs the
+          wall grid, so it must follow the walls block. }
+        if ntok < 6 then begin errmsg := 'fill needs N X0 Y0 X1 Y1'; exit; end;
+        if not wallsDone then begin errmsg := 'fill before the walls block'; exit; end;
+        if Length(m.cellSector) <> m.w * m.h then begin
+          SetLength(m.cellSector, m.w * m.h);
+          for idx := 0 to m.w * m.h - 1 do
+            if CellHasSector(m.walls[idx]) then m.cellSector[idx] := 0
+            else m.cellSector[idx] := SECTOR_NONE;
+        end;
+        k := StrToInt(tok[1]);
+        fx0 := StrToInt(tok[2]); fy0 := StrToInt(tok[3]);
+        fx1 := StrToInt(tok[4]); fy1 := StrToInt(tok[5]);
+        for fy := fy0 to fy1 do
+          for fx := fx0 to fx1 do
+            if (fx >= 0) and (fy >= 0) and (fx < m.w) and (fy < m.h) then begin
+              idx := fy * m.w + fx;
+              if CellHasSector(m.walls[idx]) then m.cellSector[idx] := k;
+            end;
+      end else if tok[0] = 'walls' then begin
         if m.w = 0 then begin errmsg := 'walls before size'; exit; end;
         inWalls := true;
         row := 0;

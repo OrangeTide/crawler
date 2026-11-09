@@ -366,16 +366,18 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   and rendered headlessly by the shot tool's room scene. It proves the look and
   the per-tile budget (all pieces at or under 128 tris, one shared atlas) before
   the map format changes. See the committed proof render.
-- [gap] (0.27.0) The sector map format: sectors carry a floor and a ceiling
-  height and a tileset, walls are segments between sectors, and a cell
-  references the modular pieces that build it. This replaces the uniform-height
-  tile grid as the authored and generated map model and lets halls, vaults,
-  balconies, and pits read as height rather than as flat tiles. Collision and
-  the turn-based grid decouple from the render geometry: movement stays on a
-  logical grid laid over the sectors, so the feel is unchanged. Bump the map and
-  GEN versions and keep seed determinism, so generated sector maps rebuild
-  identically from a seed and the save still stores the seed plus diffs. The
-  raycaster stays only as a flat-grid fallback for the DOS target.
+- [partial] (0.27.0) The sector map format, foundation landed. Sectors are
+  regions of open cells carrying a floor and ceiling height, added over the
+  wall grid (MAP_VERSION 10, GEN_VERSION 4). The wall grid stays the movement
+  grid and the raycaster's input, so collision, routing, fog, determinism and
+  the save are undisturbed; the sector layer is additive. The polygon renderer
+  draws floors and ceilings at the cell's sector height and the risers and
+  lintels between sectors of differing height; the camera eye rides the sector
+  floor, and movement gained a step-up rule. Flat maps render pixel-identically.
+  The map compiler gained sector and fill directives for authoring height. Still
+  open: an explicit wall-segment (linedef) layer so sector edges need not be
+  grid-aligned, which the non-square, multi-unit kit pieces will need, and
+  cladding sectors with the modular meshes instead of the tileset surface quads.
 - [gap] (0.27.0) Port mapgen and the authored maps to sectors: the generators
   emit sector geometry assembled from kit pieces, and content/maps/*.map migrate
   to the new format. Vary floor and ceiling heights per area so the generated
@@ -479,15 +481,19 @@ the polygon path's shared mesh instancing, proving the look and the budget. No
 map-format change yet: this de-risked the rework before the format churns.
 Depended on the polygon renderer being the default (0.19.0).
 
-### 0.27.0 Sector map format (L)
+### 0.27.0 Sector map format (L) [foundation landed]
 
-Theme G, the core rework. Define the Doom-style sector data model (per-sector
-floor and ceiling height, wall segments, a referenced tileset), decouple
-collision and the turn-based grid from the render geometry, and migrate both
-mapgen and the authored content/maps to it, bumping the map and GEN versions
-while keeping seed determinism. The raycaster drops to a flat-grid fallback.
-This is the largest milestone of the thread and the one that changes the game's
-look from a flat grid to a late-90s first-person RPG. Depends on 0.26.0.
+Theme G, the core rework. The foundation is in: a sector layer over the wall
+grid (sectors as regions of open cells with a floor and ceiling height,
+MAP_VERSION 10, GEN_VERSION 4), a polygon renderer that draws per-sector heights
+and the steps between them, the camera eye riding the sector floor, a movement
+step-up rule, and map-compiler directives for authoring height. Collision and
+the grid stay decoupled from the geometry, flat maps are pixel-identical, and
+the save and determinism are untouched. Still ahead in this milestone: an
+explicit wall-segment layer for non-grid-aligned kit geometry, cladding sectors
+with the modular meshes, and migrating mapgen and the authored maps to real
+verticality. This is the milestone that turns the flat grid into a late-90s
+first-person RPG. Depends on 0.26.0.
 
 ### 0.28.0 Outdoor terrain (M)
 
@@ -568,15 +574,16 @@ These hold across every milestone and are the reason for the choices above.
 
 ## Recommended next
 
-0.19.0 and all of 0.26.0 are complete: the kit evaluation cleared the Modular
-Dungeon kit, trim-sheet texturing is in the pipeline, and a first modular room
-renders from the shared atlas (see `docs/kit-evaluation.md` and
-content/rooms/chamber.room). The sector thread is unblocked and the order is:
+0.26.0 is complete and the 0.27.0 foundation has landed: the map carries a
+sector layer, the polygon renderer draws per-sector heights and the steps
+between them, and height is authorable (see `docs/sector-heights.png`). The
+order from here is:
 
-- Open 0.27.0, the sector map format, the next real step. The modular pieces,
-  the shared-atlas tile path, and the proven per-tile budget are all in place;
-  what remains is the sector data model and porting mapgen and the authored maps
-  onto it. This is the large, central rework the theme has been building toward.
+- Continue 0.27.0. The next piece is an explicit wall-segment (linedef) layer so
+  sector edges are not bound to the grid, which the non-square, multi-unit kit
+  pieces need, followed by cladding sectors with the modular meshes and then
+  migrating mapgen and the authored maps to real verticality. Each is additive
+  over the foundation and leaves the game runnable.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and

@@ -10,6 +10,15 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A sector layer in the map format, the foundation for height in levels.
+  Sectors are regions of open cells that carry their own floor and ceiling
+  height, laid over the wall grid. The polygon renderer draws floors and
+  ceilings at each cell's sector height and the risers and lintels between
+  sectors that differ, the camera eye rides the sector floor, and movement
+  gained a step-up rule (a floor too tall to climb blocks, a drop is allowed).
+  The wall grid stays the movement grid and the flat-grid raycaster's input, so
+  existing maps look unchanged. The map compiler gained sector and fill
+  directives for authoring height.
 - Trim-sheet texturing in the asset and mesh pipeline, the groundwork for
   modular tile levels. A baked mesh now either ships its own texture (props,
   unchanged) or carries none and samples a shared trim-sheet atlas the renderer

@@ -240,7 +240,7 @@ World, maps and navigation:
 | File | Role |
 |------|------|
 | `src/world.pas` | Active map grid, camera, movement and collision. |
-| `src/mapfmt.pas` | Compiled map format: encode and decode map lumps. |
+| `src/mapfmt.pas` | Compiled map format: wall grid plus a sector height layer. |
 | `src/maptext.pas` | Parser for the human-authored text map format. |
 | `src/mapstate.pas` | Per-map fog, door and seed snapshots across visits. |
 | `src/mapgen.pas` | Seeded roguelike generators (rooms, cave, maze). |
