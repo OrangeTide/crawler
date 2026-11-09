@@ -1,0 +1,29 @@
+# A small modular-kit demo room, authored on tileset 9 so the polygon
+# renderer clads its floor, ceiling and walls from the mossy dungeon kit
+# through the normal map-load path. The open area spans cells 4..11, aligned
+# to the kit's 4-unit grid, and the default sector is three units tall to
+# match the kit's native wall height. This is the first authored map that
+# wears a modular kit; the zones migrate later.
+map KITROOM
+size 16 16
+tileset 9
+sector 0 0 48
+walls
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111000000001111
+1111000000001111
+1111000000001111
+1111000000001111
+1111000000001111
+1111000000001111
+1111000000001111
+1111000000001111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+end
+marker START 7 7 N
