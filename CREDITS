@@ -142,5 +142,7 @@ an acknowledgement is appreciated but not required).
 
 On the other targets the game loads the system or distribution SDL2 at
 runtime. The macOS .app has no system SDL2 to find, so it bundles the
-official arm64 SDL2 dylib in Contents/Frameworks and loads it from there.
-The dylib is supplied at build time and is not stored in this repository.
+official SDL2 framework binary (version 2.32.10, a universal arm64 and
+x86_64 Mach-O) in Contents/Frameworks and loads it from there. The dylib
+is supplied at build time and is not stored in this repository; see
+docker/macos-cross/README.md for how it is obtained.
