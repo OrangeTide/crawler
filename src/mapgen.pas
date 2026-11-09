@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 5;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 6;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -390,6 +390,63 @@ begin
   AddStair(m, g, fx, fy, kind, target, marker, arrive);
 end;
 
+{ Find a sector with this floor and ceiling height, or add one and return it.
+  Open cells of the same height share a sector, so adjacent heights meet at a
+  step the renderer closes with a riser or lintel. }
+function HeightSector(var m: TMapData; fz, cz: smallint): longint;
+var k: longint;
+begin
+  for k := 0 to High(m.sectors) do
+    if (m.sectors[k].floorZ = fz) and (m.sectors[k].ceilZ = cz) then begin
+      HeightSector := k;
+      exit;
+    end;
+  k := Length(m.sectors);
+  SetLength(m.sectors, k + 1);
+  m.sectors[k].floorZ := fz;
+  m.sectors[k].ceilZ := cz;
+  m.sectors[k].tileset := 0;
+  m.sectors[k].light := 0;
+  HeightSector := k;
+end;
+
+{ Give a crypt level vertical variety: paint coarse blocks of open cells with
+  varied floor and ceiling heights drawn from the level seed. Floors step by
+  at most half a unit so every cell stays within the party's step-up limit and
+  the dungeon is always traversable; ceilings vary freely. Deterministic: the
+  draws come from the level RNG after all layout, so geometry is unchanged. }
+procedure VaryHeights(var m: TMapData; const g: TGrid; var r: TRng);
+const
+  BLK   = 7;                                { cells per height block }
+  CEILS: array[0 .. 3] of smallint = (40, 48, 56, 64);  { 2.5 .. 4.0 units }
+  FLRS:  array[0 .. 1] of smallint = (0, 8);            { 0 or 0.5 unit }
+var
+  bw, nb, bi, x, y, i: longint;
+  bFloor, bCeil: array of smallint;
+begin
+  bw := (m.w + BLK - 1) div BLK;
+  nb := bw * ((m.h + BLK - 1) div BLK);
+  SetLength(bFloor, nb);
+  SetLength(bCeil, nb);
+  for bi := 0 to nb - 1 do begin
+    bFloor[bi] := FLRS[RngRange(r, 0, 1)];
+    bCeil[bi]  := CEILS[RngRange(r, 0, 3)];
+  end;
+  SetLength(m.sectors, 0);
+  SetLength(m.cellSector, m.w * m.h);
+  for y := 0 to m.h - 1 do
+    for x := 0 to m.w - 1 do begin
+      i := y * m.w + x;
+      if g[i] = 0 then begin
+        bi := (y div BLK) * bw + (x div BLK);
+        m.cellSector[i] := HeightSector(m, bFloor[bi], bCeil[bi]);
+      end else
+        m.cellSector[i] := SECTOR_NONE;
+    end;
+  if Length(m.sectors) = 0 then
+    m.cellSector[0] := byte(HeightSector(m, 0, HZ_UNIT));
+end;
+
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 const
   W = 28; H = 28;
@@ -457,6 +514,10 @@ begin
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
+
+  { the modular crypt wears varied floor and ceiling heights; other themes
+    keep the flat default that EnsureSectors supplies at load }
+  if theme = THEME_CRYPT then VaryHeights(m, g, r);
 
   GenerateDungeonLevel := m;
 end;
