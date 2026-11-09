@@ -54,9 +54,18 @@ drives both combat and out-of-combat casting; caster classes carry domains and
 specialist schools and learn from a learn screen; the martial counterpart, a
 proficiency-slot skills system with exploration checks and no-resource combat
 maneuvers, is in; and presentation gained per-spell and per-skill icons,
-player-character portraits, and a full character sheet. That leaves 0.19.0 and
-0.20.0 as the open low-numbered milestones, and themes E, F, and the new theme G
-as the forward work.
+player-character portraits, and a full character sheet.
+
+Theme G then opened and its first two milestones shipped. 0.26.0 evaluated the
+SigilsVault CC0 kits for the PS1 budget and built the trim-sheet mesh pipeline.
+0.27.0 (and the 0.27.1 tooling follow-up) landed the sector map format over the
+movement grid, the modular-kit cladding, a polygon trigger layer, and the port
+of the generators and authored zones to the kits: themed crypt dungeons, the
+cathedral theme, the reused town temple, and the starter DUNGEON re-authored to
+the kit's scale. That leaves 0.19.0 and 0.20.0 as the open low-numbered
+milestones, the 0.27.0 follow-ons under theme G (more trigger effects, GROTTO
+and INFERNAL kits, stained glass, multi-atlas residency), and 0.28.0 outdoor
+terrain next, with themes E and F as the further forward work.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
@@ -89,41 +98,18 @@ the earlier `game`, `overworld`, and `mapgen` splits.
 
 ## Open backlog by theme
 
-Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
-[future] recorded but unscheduled. Each open item names its target milestone.
+Tags: [gap] not started, [partial] exists but incomplete, [future] recorded but
+unscheduled. Each open item names its target milestone. Completed work is not
+listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
-- [done] Exits (doors, stairs, ladders, cave mouths, shafts) draw as
-  floor-anchored billboards in both renderers, replacing the coloured floor
-  pads. The shared gather step keeps the two paths in step.
 - [partial] (0.19.0) Draw the remaining light-source glows in the polygon path
   that the raycaster already shows.
 - [gap] (0.19.0) Vertex snap and ordered dither for the PSX look.
-- [done] Prop collision: props are passable decorations by default, with an
-  opt-in solid flag per model (models.ModelDef.solid, checked by
-  world.PropSolidAt in IsBlocking). The current props stay passable, which the
-  maps rely on: a barrel sits on a tile that also holds loot, so blocking it
-  would strand the loot, and a doorway is an arch to walk through. Furniture the
-  theme G kit brings (coffins, crates) sets solid to block. Route planning does
-  not yet read solid props, the same blind spot as NPCs and locked doors in
-  theme B.
-- [done] Reached parity with the raycaster and made the polygon renderer the
-  default (UsePoly true at startup; P toggles the raycaster, kept as a
-  fallback). A parity sweep across the zones fixed a stale texture cache on
-  tileset swap and billboards sinking into the floor at range, and confirmed the
-  polygon path draws the 3D props the raycaster cannot. This unblocks theme G.
-  The raycaster retires once the sector level format lands.
-- [done] Ported the rasterizer's per-pixel hot path to 16.16 fixed point: the
-  depth buffer is fixed, and each span steps its texture and depth interpolants
-  with integer adds and compares. Projection and the scanline edge walk stay in
-  float as the boundary, the same split the raycaster uses (see theme E).
 
 ### B. Navigation and AI (continues the recent track, 0.20.0)
 
-- [done] Materialized cross-map routes: auto-travel plans the portal route once
-  as a list of per-map legs and follows it, re-planning only on divergence,
-  rather than re-searching every step. The full map previews the walked path.
 - [gap] (0.20.0) Locked-door handling in routing: `pathfind` treats every door
   as passable, so a route can plan through a door the party cannot open. Now
   that the Pick Locks skill exists (theme C), a door-aware router should consult
@@ -142,32 +128,6 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   fleeing to reinforcements, guards that converge on an alarm.
 
 ### C. RPG systems depth (design section 16)
-
-- [done] Status effects breadth: poison, fear, paralysis, fighting blind in
-  dim light, lingering disease, and encumbrance from carried bulk are all
-  wired, with monsters that inflict them and a party-strip that shows them.
-- [done] Light and food as consumable resources tied to rest. A torch burns
-  down as a fuel budget, spare torches relight as it gutters, and a rest
-  spends one ration per living member or the party goes hungry.
-- [done] Difficulty and accessibility options: permadeath versus temple
-  revive, combat speed, and the optional natural-20/1 critical rules are all
-  options rows. Text speed was dropped: there is no typewriter reveal to tune.
-- [done] Key rebinding and settings persistence stored next to the save. A
-  config file holds the volumes, the choices, and the core-action key table;
-  the explore keys rebind in a dedicated screen.
-- [done] Hirelings and followers from the tavern, sharing the party structure.
-  A recruit joins at the party's level for a charisma-eased fee and draws the
-  same fee as a wage each lunar month, deserting when the purse cannot cover it.
-- [done] (0.25.0) The spell system: imported the axx-rpg lists, gave each caster
-  class its domain and specialist schools, a learn screen and a saved known
-  list, combat casting from the catalog, and out-of-combat casting off a
-  persistent, rest-restored spell-point pool. (Full detail in the 0.25.0
-  milestone below.)
-- [done] (0.25.0) The skills system, the martial counterpart to spells.
-  Proficiency-slot acquisition, exploration checks (pick locks, find traps,
-  move silently, first aid), and no-resource combat maneuvers (power attack,
-  disarm, shield bash, aimed shot, rally) on a SKILL command. Data-driven in
-  content/skills.txt, rules in skillbook, saved per character (save version 14).
 
 - [gap] (0.30.0) Rank capacity by creature size. The front rank must hold at
   least as much bulk as the back rank, so a back-rank combatant always has cover
@@ -197,33 +157,10 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
 
 ### D. Reference, meta, and quality-of-life
 
-- [done] Bestiary of discovered monsters and item identification. A codex
-  tracks monsters met and item kinds known; a bestiary tab lists foes with
-  their weaknesses, and mystery loot hides its name until quaffed or named at
-  the temple.
-- [done] (0.25.0) Player-character portraits and the character sheet. A new
-  character cycles a pool of Batareya faces at creation (P key), saved and shown
-  as a thumbnail in the party strip and the combat panel. The character sheet
-  (press I) shows one member at full size with the full stat block and gear, and
-  for a caster or a trained character a spell and skill browser.
-- [done] (0.25.0) Spell and skill icons, and the UI that uses them. Every spell
-  names a per-spell icon from the Batareya "MAGE ICONS BIG PACK" (SI<NN> lumps)
-  and every skill an icon from the "250 WARRIOR ICONS" pack (WI<N> lumps), drawn
-  wherever the player meets a spell or skill: the character sheet browsers, the
-  SPELLS tab, the learn screens, and the combat cast and SKILL menus.
 - [partial] (0.30.0) Journal and quest expansion: map pins and auto-markers on
   the full map are done. A fuller quest log can now proceed since the 0.24.0
   quest content shipped.
 - [gap] (0.30.0) A run timer or achievements for replay (low priority).
-- [done] Refreshed the README screenshots to the current game: the town with
-  its elder, each zone, the tavern keeper, a skeleton down a crypt hall, and a
-  five-foe fight across the front and back ranks. The shot tool gained a `foe`
-  scene and a combat depth, and `scripts/screenshots.sh` regenerates the set.
-- [done] A proper title screen, adopting ideas from the DOS RPG at
-  ~/DEVEL/dos-rpg (Liminal Kingdoms): the same mountain photo that game uses,
-  taken from the original at full colour and dithered to our palette, with
-  birds drifting across its sky, a scaled logo and the boxed menu we already
-  use.
 - [gap] (0.30.0) Evaluate the sprite and portrait file formats from
   ~/DEVEL/dos-rpg for our animated sprites. See its sprfmt.md: the .SPA
   animation bank (named sequences, run-encoded frames that drop the mask plane
@@ -243,12 +180,6 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   arches, and the public-domain Dungeon Crawl set has stairs, ladders and cave
   features) or fold the exits into the theme G modular-tile geometry. Generate
   no replacement art; see the cross-cutting constraint below.
-- [done] Swapped the six NPC portraits to the Batareya "500 Fantasy Pixel Art
-  Portraits" pack (free for personal and commercial use, no redistribution
-  limit), scaled to the 64x64 dialog format. The previous licensed portrait art
-  was then scrubbed from the whole commit history with a git filter-repo
-  rewrite, both the image blobs and the text references. The rewrite is local;
-  the remotes still carry the old history.
 - [gap] Update the README. It is out of date in several areas (for example it
   still describes the raycaster as the main renderer, when the polygon path with
   sector heights and modular-kit cladding is now the default). Audit it against
@@ -280,51 +211,11 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
   commercial use but their exact terms still need confirming against each
   itch.io page; the SigilsVault kits (theme G) and the Dungeon Crawl sprites are
   CC0. This is a release gate, not code.
-- [done] Relocatable file paths for an install-free distribution. An apppaths
-  unit locates the pak relative to the real executable (resolved through
-  /proc/self/exe, _NSGetExecutablePath, or GetModuleFileName, so a launch by
-  bare name or through a symlink still finds its data), with the search list
-  covering a macOS .app bundle and a unix install prefix. Writable state (the
-  save and settings) moves to a per-user directory so a read-only install
-  works, with a portable.txt marker to keep everything in one folder. This
-  readies the macOS .app and Windows zip layouts, and the per-host path code
-  is exercised natively by CI on each of the three desktop targets.
-- [done] Cross-platform desktop build and CI. The build compiles for Linux,
-  Windows, and macOS from one Makefile (an EXE suffix and a per-OS SDL library
-  name list are the only host-specific pieces), with SDL2 loaded at runtime so
-  no development library is needed to compile. A GitHub Actions matrix builds
-  and runs the full test suite on all three hosts, and a GitLab pipeline does
-  the same on Linux, so the three desktop targets stay green on every push.
-  DOS and the PS1 remain gated on the renderer backend seam above.
 - [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
   out of the PS1 build, recorded only so nothing now blocks it.
 
 ### F. World content and the critical path (design section 17)
 
-- [done] Flesh out the six zones' encounters, landmarks, and loot. Each zone
-  carries its authored NPCs, landmarks, lights, hazards, and encounter table:
-  the seaside ferryman and wreck, the forest ranger, hunter's camp and moonlit
-  glade, the torch-lit crypt, the glowing grotto, and the infernal's lava vents.
-  Each wears its own tileset, one colour scheme over the shared patterns, so a
-  generated map themes from its area too. Placed caches, barrels across the
-  zones, hand coin and gear to a party that opens them once, the take tracked by
-  a per-tile flag in the save. Worn gear carries an elemental resist mask: the
-  dragonscale shield earned in the crypt halves the demon lord's fire and the
-  infernal's lava vents, so the reward pays off. Other elements (frost, shock,
-  holy) ride the same mask when gear for them is added.
-- [done] The main quest and an ending: the three relic shards (crypt shrine,
-  cave grotto, infernal demon-lord) thread across the zones to the Elder, who
-  gates the arc on all three held. The quest flags, journal and victory screen
-  close the critical path.
-- [done] Renamed the game to "Cities of the Sunless Depths" (was "Shadows of
-  the Deep") and extended the arc to match. The three-shard quest is now its
-  early beat: once the relic is whole the Elder reveals it as a key, not a
-  ward, and charges the descent. The capstone is the Sunless Depths layer
-  (SUNLESS_DEPTH, the Depths cells below depth 30), where a sealed City Gate in
-  the Depths settlement opens on the key and wins the game on the first of the
-  lost cities. Touched the title logo, the window caption, the README, the
-  dialogue content (ELDER, the new DEPTHS gate), the journal, the Depths
-  generator (the gate NPC, GEN_VERSION 3), and the victory screen.
 - [gap] (0.29.0) Follow-on arc content: name and populate the lost cities beyond
   the first gate, and balance the depth-30 descent as a real finale rather than
   a single capstone beat. The win currently fires on reaching the first City
@@ -354,21 +245,6 @@ path reaches full coverage; there is no flat-grid DOS fallback, so the geometry
 is not bound to the grid, and kit pieces that span several grid units ride as
 multi-cell mesh instances rather than per-cell quads.
 
-- [done] (0.26.0) Evaluated the SigilsVault CC0 kits for PS1 feasibility, written
-  up in `docs/kit-evaluation.md`. Verdict: GO for the Modular Dungeon kit, a
-  conditional go for the Modular Cathedral kit. Measured face counts over every
-  GLB piece (dungeon mean 135, max 584; cathedral mean 345, max 1962), proved the
-  meshtools pipeline ingests a kit piece end to end (GLB to OBJ to a palette PPM
-  to a CMSH lump to a framebuffer render), and set a per-tile budget: 128
-  triangles for structural tiles, 256 for hero tiles, 150 for prop meshes, and
-  one resident 256x256 8-bit trim sheet per tileset. GLB is the import format;
-  the shared trim sheet maps onto the one-resident-tileset model.
-- [done] (0.26.0) Trim-sheet texturing in the asset and mesh pipeline: CMSH
-  grew a texKind byte (version 2), so a mesh either ships its own texture (the
-  prop case) or carries none and samples a shared trim atlas the renderer
-  supplies. textures.pas holds one resident trim atlas per tileset, loaded from
-  a TRIM<n> lump. mkassets gained tile and trim verbs, mkmesh a geometry-only
-  form. A whole modular room now costs one texture, the PS1-friendly path.
 - [gap] (0.32.0) Per-biome split palette: give each biome or theme its own
   palette that spends most of the 256 entries, 128 or 192, on that biome's
   textures so the quantized trim sheets smooth out and stop sharing one generic
@@ -382,12 +258,6 @@ multi-cell mesh instances rather than per-cell quads.
   since it is a quality pass over textures that already read correctly. Sprite
   art may need pre-indexing into the reserved band rather than re-quantizing at
   load.
-- [done] (0.26.0) Bake a first modular room: a hand-placed set of mossy dungeon
-  kit pieces (floor, four walls, ceiling, pillar) instanced through the polygon
-  renderer's shared-texture mesh path, authored in content/rooms/chamber.room
-  and rendered headlessly by the shot tool's room scene. It proves the look and
-  the per-tile budget (all pieces at or under 128 tris, one shared atlas) before
-  the map format changes. See the committed proof render.
 - [partial] (0.27.0) The sector map format, foundation landed. Sectors are
   regions of open cells carrying a floor and ceiling height, added over the
   wall grid (MAP_VERSION 10, GEN_VERSION 4). The wall grid stays the movement
@@ -401,14 +271,6 @@ multi-cell mesh instances rather than per-cell quads.
   renderer to keep geometry grid-aligned, non-square and multi-unit kit pieces
   are handled as mesh instances, and the polygon idea is spent on trigger areas
   instead of a wall-segment renderer.
-- [done] (0.27.0) Clad kit tilesets with modular meshes. A data-driven kit per
-  tileset (content/tilesets.txt, the KITS lump) names the floor, ceiling and
-  wall pieces and their footprints; the cladding pass draws a kit tileset's
-  sectors from those meshes instead of the procedural surface quads. Floors and
-  ceilings merge into native-scale pieces over a fixed world grid, walls stand
-  on the sector edges scaled to any height (raster.RenderMeshAt3), and a
-  non-kit tileset renders byte-identically. The first authored kit map
-  (content/maps/kitroom.map, tileset 9) proves it through the live load path.
 - [partial] (0.27.0) A polygon trigger and zone layer for encounters and region
   effects, decoupled from the geometry (the gameplay half of the mesh-clad grid
   model). Landed: the map format carries trigger polygons (MAP_VERSION 11, an
@@ -548,7 +410,7 @@ the polygon path's shared mesh instancing, proving the look and the budget. No
 map-format change yet: this de-risked the rework before the format churns.
 Depended on the polygon renderer being the default (0.19.0).
 
-### 0.27.0 Sector map format (L) [foundation landed]
+### 0.27.0 Sector map format (L) [done]
 
 Theme G, the core rework. The foundation is in: a sector layer over the wall
 grid (sectors as regions of open cells with a floor and ceiling height,
@@ -559,13 +421,16 @@ the grid stay decoupled from the geometry, flat maps are pixel-identical, and
 the save and determinism are untouched. The cladding then landed: a data-driven
 kit per tileset draws a sector's floors, ceilings and walls from modular kit
 meshes, merged to native scale over the world grid, with the first authored kit
-map proving it through the live load path. Still ahead in this milestone: a
-polygon trigger and zone layer decoupled from the geometry, and the larger port
-that brings the kit to the generators and the authored zones. The earlier
-linedef plan is dropped, since the retiring raycaster leaves no flat-grid
-renderer to keep geometry grid-aligned and multi-unit kit pieces ride as mesh
-instances. This is the milestone that turns the flat grid into a late-90s
-first-person RPG. Depends on 0.26.0.
+map proving it through the live load path. Shipped as 0.27.0 and 0.27.1: the
+polygon trigger and zone layer landed, and the kit port reached the generators
+and the authored zones (the crypt DUNGEON, re-authored to the kit's scale, plus
+the cathedral theme and the reused town temple). The remaining follow-ons carry
+forward as the theme G [partial] items: more trigger effect kinds, GROTTO and
+INFERNAL theme kits, stained-glass emission, and multi-atlas residency. The
+earlier linedef plan is dropped, since the retiring raycaster leaves no
+flat-grid renderer to keep geometry grid-aligned and multi-unit kit pieces ride
+as mesh instances. This is the milestone that turns the flat grid into a
+late-90s first-person RPG. Depends on 0.26.0.
 
 ### 0.28.0 Outdoor terrain (M)
 
