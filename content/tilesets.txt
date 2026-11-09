@@ -1,0 +1,19 @@
+# Modular kits, one per tileset. A kit names the baked mesh pieces that
+# clad that tileset's sectors, each with its footprint in grid units, so
+# the theme G cladding pass places them at native scale over the logical
+# grid. A tileset with no kit here renders with the procedural surface
+# quads as before.
+#
+# kit <tileset> <name>
+#   <role> <LUMP> <fw> <fh> [<fz>]
+# roles: floor ceil wall pillar; fw fh are the ground footprint in grid
+# units, fz the height in units (default 1).
+
+# Tileset 9: the SigilsVault mossy dungeon kit. Pieces authored at native
+# ~4 metre scale, so the floor and ceiling cover a 4x4 block and the wall
+# spans 4 units and stands 3 tall. See content/rooms/pieces.
+kit 9 mossy
+  floor  MOD_FLOOR   4 4
+  ceil   MOD_CEIL    4 4
+  wall   MOD_WALL    4 1 3
+  pillar MOD_PILLAR  1 1 3

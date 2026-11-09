@@ -25,6 +25,7 @@ SPELLS    = content/spells.txt
 SKILLS    = content/skills.txt
 SHOPS     = content/shops.txt
 ENCOUNTERS = content/encounters.txt
+TILESETS  = content/tilesets.txt
 WORLD     = content/world.txt
 # Prop meshes only; monsters and NPCs are billboard sprites (see SPRITENAMES).
 MODELNAMES = barrel doorway
@@ -71,7 +72,7 @@ TITLEBGSRC = content/title/title_bg.ppm content/title/title_pal.ppm
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
-            $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(WORLD) $(MAPS) \
+            $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
             $(MUSICSRC)
@@ -93,7 +94,7 @@ MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) dialogs $(DIALOGS) \
             spells $(SPELLS) skills $(SKILLS) shops $(SHOPS) \
-            encounters $(ENCOUNTERS) world $(WORLD)
+            encounters $(ENCOUNTERS) kits $(TILESETS) world $(WORLD)
 
 .PHONY: all run clean tools meshtools shottool test
 

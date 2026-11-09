@@ -16,7 +16,7 @@ uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
-  skilldb, skilltext;
+  skilldb, skilltext, tilekit, kittext;
 
 var
   w: TPakWriter;
@@ -239,6 +239,22 @@ begin
   writeln('  encounters (', n, ' tables) from ', fn);
 end;
 
+procedure AddKits(const fn: string);
+var
+  kits: array[0 .. 31] of TKit;
+  dyn: array of TKit;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseKits(fn, kits, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := kits[k];
+  PakWAdd(w, 'KITS', EncodeKits(dyn));
+  writeln('  kits (', n, ') from ', fn);
+end;
+
 procedure AddModel(const name, objFn, ppmFn: string);
 var
   mesh: TMesh;
@@ -413,6 +429,8 @@ begin
       AddShops(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'encounters' then begin
       AddEncounters(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'kits' then begin
+      AddKits(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'world' then begin
       AddWorld(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'music' then begin
