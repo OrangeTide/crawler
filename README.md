@@ -199,11 +199,10 @@ The macOS archive holds a self-contained `Crawler.app` that bundles SDL2, so it
 needs no Homebrew. It is not notarized by Apple, though, so Gatekeeper
 quarantines it on download. The first launch reports that macOS "could not
 verify" the app is free of malware and offers only Move to Trash or Done. To
-run it, clear the quarantine attribute on the extracted folder, then open the
-app:
+run it, clear the quarantine attribute on the app, then open it:
 
 ```sh
-xattr -dr com.apple.quarantine crawler-*-macos-aarch64
+xattr -dr com.apple.quarantine crawler-*-macos-aarch64/Crawler.app
 open crawler-*-macos-aarch64/Crawler.app
 ```
 
