@@ -386,19 +386,32 @@ multi-cell mesh instances rather than per-cell quads.
   draws floors and ceilings at the cell's sector height and the risers and
   lintels between sectors of differing height; the camera eye rides the sector
   floor, and movement gained a step-up rule. Flat maps render pixel-identically.
-  The map compiler gained sector and fill directives for authoring height. Still
-  open: cladding sectors with the instanced modular kit meshes in place of the
-  tileset surface quads (the tile-models placed over the logical grid, a mesh
-  per cell or multi-cell footprint, not bound to fill its cell), and a polygon
-  trigger and zone layer for encounters and region effects decoupled from the
-  geometry. The earlier linedef (explicit wall-segment) plan is dropped: with no
-  flat-grid renderer to keep geometry grid-aligned, non-square and multi-unit
-  kit pieces are handled as mesh instances, and the polygon idea is spent on
-  trigger areas instead of a wall-segment renderer.
-- [gap] (0.27.0) Port mapgen and the authored maps to sectors: the generators
-  emit sector geometry clad with kit meshes, and content/maps/*.map migrate to
-  the new format. Vary floor and ceiling heights per area so the generated
-  dungeons gain vertical variety over the current single-height rooms.
+  The map compiler gained sector and fill directives for authoring height. The
+  earlier linedef (explicit wall-segment) plan is dropped: with no flat-grid
+  renderer to keep geometry grid-aligned, non-square and multi-unit kit pieces
+  are handled as mesh instances, and the polygon idea is spent on trigger areas
+  instead of a wall-segment renderer.
+- [done] (0.27.0) Clad kit tilesets with modular meshes. A data-driven kit per
+  tileset (content/tilesets.txt, the KITS lump) names the floor, ceiling and
+  wall pieces and their footprints; the cladding pass draws a kit tileset's
+  sectors from those meshes instead of the procedural surface quads. Floors and
+  ceilings merge into native-scale pieces over a fixed world grid, walls stand
+  on the sector edges scaled to any height (raster.RenderMeshAt3), and a
+  non-kit tileset renders byte-identically. The first authored kit map
+  (content/maps/kitroom.map, tileset 9) proves it through the live load path.
+- [gap] (0.27.0) A polygon trigger and zone layer for encounters and region
+  effects, decoupled from the geometry (the gameplay half of the mesh-clad grid
+  model). Not started.
+- [gap] (0.27.0) Port mapgen and the authored zones to the kit. The cladding is
+  in; this brings it to the real content. The generators emit sector geometry
+  clad with kit meshes, and the authored zone maps migrate onto modular
+  tilesets with varied floor and ceiling heights for vertical variety. Needs
+  the pieces to cover arbitrary layouts well: either base-unit (1x1) kit pieces
+  so ragged, non-grid-aligned rooms do not fall back to stretched fillers, or
+  authoring the zones on the kit grid. A map that mixes a modular sector with a
+  procedural one also needs more than one trim atlas resident at once (today
+  one atlas is resident per map). Larger than the cladding itself, so it is its
+  own effort rather than a tail of the renderer work.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
@@ -514,14 +527,16 @@ MAP_VERSION 10, GEN_VERSION 4), a polygon renderer that draws per-sector heights
 and the steps between them, the camera eye riding the sector floor, a movement
 step-up rule, and map-compiler directives for authoring height. Collision and
 the grid stay decoupled from the geometry, flat maps are pixel-identical, and
-the save and determinism are untouched. Still ahead in this milestone: cladding
-sectors with the instanced modular kit meshes over the logical grid, a polygon
-trigger and zone layer decoupled from the geometry, and migrating mapgen and the
-authored maps to real verticality. The earlier linedef plan is dropped, since
-the retiring raycaster leaves no flat-grid renderer to keep geometry
-grid-aligned and multi-unit kit pieces ride as mesh instances. This is the
-milestone that turns the flat grid into a late-90s first-person RPG. Depends on
-0.26.0.
+the save and determinism are untouched. The cladding then landed: a data-driven
+kit per tileset draws a sector's floors, ceilings and walls from modular kit
+meshes, merged to native scale over the world grid, with the first authored kit
+map proving it through the live load path. Still ahead in this milestone: a
+polygon trigger and zone layer decoupled from the geometry, and the larger port
+that brings the kit to the generators and the authored zones. The earlier
+linedef plan is dropped, since the retiring raycaster leaves no flat-grid
+renderer to keep geometry grid-aligned and multi-unit kit pieces ride as mesh
+instances. This is the milestone that turns the flat grid into a late-90s
+first-person RPG. Depends on 0.26.0.
 
 ### 0.28.0 Outdoor terrain (M)
 
@@ -610,11 +625,12 @@ sector layer, the polygon renderer draws per-sector heights and the steps
 between them, and height is authorable (see `docs/sector-heights.png`). The
 order from here is:
 
-- Continue 0.27.0. The next piece is cladding sectors with the instanced modular
-  kit meshes over the logical grid, so the kit tile-models replace the tileset
-  surface quads, followed by a polygon trigger and zone layer and then migrating
-  mapgen and the authored maps to real verticality. Each is additive over the
-  foundation and leaves the game runnable.
+- Continue 0.27.0. Cladding has landed: kit tilesets draw their floors, ceilings
+  and walls from modular meshes. The next pieces are a polygon trigger and zone
+  layer and the larger port that brings the kit to the generators and the
+  authored zones (which wants base-unit kit pieces or kit-grid authoring, and
+  more than one resident trim atlas for mixed-tileset maps). Each is additive
+  over the foundation and leaves the game runnable.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
