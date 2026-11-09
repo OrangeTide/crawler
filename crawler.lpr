@@ -18,6 +18,8 @@ const
   WINW    = FBW * SCALE;
   WINH    = FBH * SCALE;
   TITLE   = 'Cities of the Sunless Depths';
+  {$I version.inc}                      { defines BUILD_VERSION, generated }
+  CAPTION = TITLE + '  v' + BUILD_VERSION;
 
 var
   win, ren, tex: Pointer;
@@ -38,6 +40,8 @@ begin
 end;
 
 begin
+  BuildVersion := BUILD_VERSION;   { let the title screen show the build }
+
   { SDL and the GL/Mesa stack perform operations that raise the x87/SSE
     invalid and divide-by-zero flags. FPC leaves those unmasked, which
     turns them into runtime errors, so mask them before any SDL call. }
@@ -57,7 +61,7 @@ begin
 
   SDL_SetHint('SDL_RENDER_SCALE_QUALITY', '0');  { nearest neighbour }
 
-  win := SDL_CreateWindow(TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+  win := SDL_CreateWindow(CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
     WINW, WINH, SDL_WINDOW_SHOWN);
   if win = nil then begin
     writeln(StdErr, 'CreateWindow failed: ', SDL_GetError());

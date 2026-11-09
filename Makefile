@@ -1,5 +1,22 @@
 FPC      ?= fpc
 MODE     ?= -O2
+
+# Version: version.mk holds the authoritative number; git describe refines it.
+# On a release tree describe returns the tag (clean) or the tag plus a commit
+# count and sha; a tagless checkout falls back to a -dev- sha suffix, and no
+# git at all leaves a bare version. The build bakes VERSION into build/version.inc.
+include version.mk
+GIT_DESC := $(shell git describe --tags --dirty --match 'v$(PROJ_VERSION)' 2>/dev/null)
+ifeq ($(GIT_DESC),)
+# No tag for this version yet: mark a dev build with the short sha, and -dirty
+# when the tracked tree has uncommitted changes.
+GIT_SHA := $(shell git rev-parse --short HEAD 2>/dev/null)
+GIT_DIRTY := $(shell test -n "$$(git status --porcelain --untracked-files=no 2>/dev/null)" && echo -dirty)
+GIT_SUFFIX := $(if $(GIT_SHA),-dev-g$(GIT_SHA)$(GIT_DIRTY),)
+else
+GIT_SUFFIX := $(patsubst v$(PROJ_VERSION)%,%,$(GIT_DESC))
+endif
+VERSION := $(PROJ_VERSION)$(GIT_SUFFIX)
 # Windows FPC appends .exe to its output; mirror that so the targets and the
 # binaries the recipes invoke carry the right name on every host.
 ifeq ($(OS),Windows_NT)
@@ -7,7 +24,7 @@ ifeq ($(OS),Windows_NT)
 else
   EXE :=
 endif
-FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild -FUbuild
+FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild -FUbuild
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
@@ -99,12 +116,34 @@ TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             spells $(SPELLS) skills $(SKILLS) shops $(SHOPS) \
             encounters $(ENCOUNTERS) kits $(TILESETS) world $(WORLD)
 
-.PHONY: all run clean tools meshtools shottool test
+.PHONY: all run clean tools meshtools shottool test release-check
 
 all: $(TARGET) $(PAK)
 
-$(TARGET): crawler.lpr src/*.pas | build
+$(TARGET): crawler.lpr src/*.pas build/version.inc | build
 	$(FPC) $(FPCFLAGS) -o$(TARGET) crawler.lpr
+
+# The version string baked into the game, regenerated every build to track the
+# current git state. The cmp guard leaves the file's mtime alone when the
+# string is unchanged, so it does not cascade into a needless recompile.
+build/version.inc: version.mk FORCE | build
+	@printf "{ generated from version.mk and git describe; do not edit }\nBUILD_VERSION = '%s';\n" '$(VERSION)' > $@.tmp
+	@cmp -s $@.tmp $@ || mv $@.tmp $@
+	@rm -f $@.tmp
+
+FORCE:
+
+# Verify version.mk and the git tag agree before cutting a release: the tag
+# v$(PROJ_VERSION) must exist, sit on HEAD, and the tracked tree be clean.
+release-check:
+	@v=$(PROJ_VERSION); \
+	if ! git rev-parse --verify --quiet "refs/tags/v$$v" >/dev/null; then \
+	    echo "release-check: no tag v$$v (version.mk says $$v)" >&2; exit 1; fi; \
+	if [ "$$(git rev-parse "v$$v^{commit}")" != "$$(git rev-parse HEAD)" ]; then \
+	    echo "release-check: tag v$$v is not at HEAD" >&2; exit 1; fi; \
+	if ! git diff --quiet || ! git diff --cached --quiet; then \
+	    echo "release-check: tracked tree is dirty" >&2; exit 1; fi; \
+	echo "release-check: v$$v ok"
 
 tools: $(MKASSETS)
 

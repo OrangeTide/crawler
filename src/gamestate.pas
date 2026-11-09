@@ -38,6 +38,8 @@ const
 var
   State: TGameState;
   QuitRequested: boolean;
+  BuildVersion: string;     { the build version string, set by the platform
+                              layer from the generated include; '' if unknown }
 
   keys: PKeyArray;        { the SDL key-state snapshot for this frame }
   showMap: boolean;

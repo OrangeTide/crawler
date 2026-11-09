@@ -141,6 +141,8 @@ begin
   end;
 
   DrawCenter(FBH - 8, 'ARROWS SELECT   ENTER CONFIRM', RGB(120, 120, 150));
+  if BuildVersion <> '' then
+    DrawText(3, FBH - 8, 'v' + BuildVersion, RGB(96, 92, 112));
 end;
 
 procedure BuildPregenParty;
