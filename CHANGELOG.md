@@ -9,7 +9,43 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-09
+
+Character systems and modular geometry.
+
 ### Added
+- A modular-kit cladding pass: a tileset's sectors now draw from instanced
+  modular tile-meshes instead of the procedural surface quads. Floors, ceilings
+  and walls clad from a kit of pieces declared per tileset in tilesets.txt, each
+  with its grid footprint; the pass merges open cells into native-scale pieces
+  aligned to the kit grid and drops to one-unit base pieces at ragged edges, so
+  the tiling stays stable as the camera moves. Walls scale to each sector's
+  height, and the risers and lintels between sectors of differing height clad
+  too. The first kit is the SigilsVault mossy dungeon set on a dedicated tileset
+  past the biome range, so a map clads only when it opts in.
+- Themed modular dungeons. Crypt-themed generated levels wear the mossy kit and
+  gain vertical relief, each level painting coarse blocks of open cells with
+  varied floor and ceiling heights from its seed (floors step at most half a
+  unit so the level stays walkable, ceilings vary freely). The authored crypt
+  DUNGEON is clad to match, with kit-height ceilings and a sunken grand gallery
+  authored through new sector and fill map directives.
+- A cathedral theme, from a second modular kit. The SigilsVault cathedral kit
+  rides a tileset of its own at its native grand scale (an eight-unit module,
+  soaring vaults). The mountain biome now generates a cathedral: a cruciform of
+  eight-cell bays, a nave and transept with random corner chapels, lit by
+  braziers under a dim clerestory ambient. The town temple is rebuilt from the
+  same meshes in a warm candlelit tint, reusing the kit across two moods with no
+  new geometry.
+- A polygon trigger layer over the grid. A map may carry trigger polygons,
+  regions that act on the party while it stands inside, decoupled from the
+  geometry and tested with an all-integer point-in-polygon lookup. The first
+  effect is an encounter region that overrides the wandering-monster table
+  while the party is in it. The map format and its compiler gained the trigger,
+  and the map format version is bumped.
+- A build version scheme. version.mk holds the authoritative version; the build
+  refines it with git describe and bakes the string into the game, shown on the
+  title screen and in the window caption. A release-check target verifies the
+  version file and the git tag agree before a release is cut.
 - A sector layer in the map format, the foundation for height in levels.
   Sectors are regions of open cells that carry their own floor and ceiling
   height, laid over the wall grid. The polygon renderer draws floors and
@@ -268,4 +304,5 @@ World content and the critical path.
 - Refreshed the README and the screenshots to the current six-zone game, and
   regenerated the module layout from the current source tree.
 
+[0.27.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.0
 [0.24.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.24.0
