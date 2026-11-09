@@ -294,7 +294,12 @@ multi-cell mesh instances rather than per-cell quads.
   `@N` token in the kit text), so a multi-material kit clads floors, walls and
   ceilings from separate sheets, and a map that mixes a modular sector with a
   procedural one no longer shares a single atlas. This unblocks kits whose art
-  spans more than one trim sheet. Still open: stained-glass windows (the kit
+  spans more than one trim sheet. On that path the dungeon kit was replaced: the
+  modular tileset (10) now wears the loafbrr Mausoleum Dungeon kit, a
+  multi-material crypt kit (dressed-stone floor, ashlar wall, concrete ceiling
+  slab, stone pillar, each on its own atlas) in place of the SigilsVault mossy
+  kit, at the same 1-unit scale so the DUNGEON and the generated crypts clad
+  unchanged. Still open: stained-glass windows (the cathedral kit
   ships an emission atlas the renderer has no channel for yet); and the
   remaining authored zones (GROTTO crystal cave, INFERNAL volcanic) still want
   kits of their own themes.

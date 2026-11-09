@@ -5,27 +5,31 @@
 # quads as before.
 #
 # kit <tileset> <name>
-#   <role> <LUMP> <fw> <fh> [<fz>]
+#   <role> <LUMP> <fw> <fh> [<fz>] [@N]
 # roles: floor ceil wall pillar; fw fh are the ground footprint in grid
-# units, fz the height in units (default 1).
+# units, fz the height in units (default 1). An optional "@N" token names
+# the resident trim atlas the piece samples (default 0), for a kit whose
+# art spans more than one trim sheet.
 
-# Tileset 10: the SigilsVault mossy dungeon kit. This is the dedicated
+# Tileset 10: the loafbrr Mausoleum Dungeon kit. This is the dedicated
 # modular tileset, past the biome range 0..9, so a map clads only when it
-# points at it. Pieces authored at native ~4 metre scale, so the floor and
-# ceiling cover a 4x4 block and the wall spans 4 units and stands 3 tall.
-# See content/rooms/pieces.
-# Each role lists the native 4-unit pieces and a 1-unit base piece. The
-# cladding pass uses the largest that fits a merged run, so open areas draw
-# native pieces and ragged edges fall back to base tiles at the same texel
-# density, not a stretched native piece.
-kit 10 mossy
-  floor  MOD_FLOOR    4 4
-  floor  BASE_FLOOR   1 1
-  ceil   MOD_CEIL     4 4
-  ceil   BASE_CEIL    1 1
-  wall   MOD_WALL     4 1 3
-  wall   BASE_WALL    1 1 3
-  pillar MOD_PILLAR   1 1 3
+# points at it. Pieces authored at native 1 metre = 1 grid unit, so the
+# floor and ceiling cover a 3x3 block and the wall spans 3 units and stands
+# 3 tall. See content/rooms/pieces.
+# This is a multi-material kit: floors, walls, the ceiling slab and the
+# pillar each sample their own trim atlas (@0 floor, @1 wall, @2 ceiling
+# concrete, @3 pillar trim). Each role lists the native 3-unit piece and a
+# 1-unit base piece; the cladding pass uses the largest that fits a merged
+# run, so open areas draw native pieces and ragged edges fall back to base
+# tiles at the same texel density, not a stretched native piece.
+kit 10 mausoleum
+  floor  MAUS_FLOOR       3 3   @0
+  floor  MAUS_BASE_FLOOR  1 1   @0
+  ceil   MAUS_CEIL        3 3   @2
+  ceil   MAUS_BASE_CEIL   1 1   @2
+  wall   MAUS_WALL        3 1 3 @1
+  wall   MAUS_BASE_WALL   1 1 3 @1
+  pillar MAUS_PILLAR      1 1 3 @3
 
 # Tileset 11: the SigilsVault modular cathedral kit, kept at its native grand
 # scale. The module is 8 units, so a floor and its vaulted ceiling cover an

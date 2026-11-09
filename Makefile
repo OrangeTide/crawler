@@ -56,13 +56,16 @@ WORLD     = content/world.txt
 # Prop meshes only; monsters and NPCs are billboard sprites (see SPRITENAMES).
 MODELNAMES = barrel doorway
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
-# Modular kit tiles: shared-texture meshes baked from SigilsVault GLBs (OBJ
-# only), all drawing from one trim-sheet atlas. The theme G proof set.
-TILENAMES = mod_floor mod_wall mod_ceil mod_pillar base_floor base_wall base_ceil \
+# Modular kit tiles: trim-sheet meshes baked from kit GLBs (OBJ only). The
+# mausoleum kit (tileset 10) is multi-material, so its pieces draw from four
+# resident trim atlases; the cathedral kit (11/12) shares one atlas each.
+TILENAMES = maus_floor maus_wall maus_ceil maus_pillar \
+            maus_base_floor maus_base_wall maus_base_ceil \
             cath_floor cath_wall cath_ceil cath_pillar
 TILESRC   = $(foreach n,$(TILENAMES),content/rooms/pieces/$(n).obj)
-TRIMSRC   = content/rooms/trim_mossy.ppm content/rooms/trim_cathedral.ppm \
-            content/rooms/trim_temple.ppm
+TRIMSRC   = content/rooms/trim_maus_floor.ppm content/rooms/trim_maus_wall.ppm \
+            content/rooms/trim_maus_ceil.ppm content/rooms/trim_maus_trim.ppm \
+            content/rooms/trim_cathedral.ppm content/rooms/trim_temple.ppm
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
 SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
@@ -109,7 +112,11 @@ MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
 # per-piece texture) and the atlas bakes once onto the modular tileset.
 TILEARGS  = $(foreach n,$(TILENAMES),tile $(n) content/rooms/pieces/$(n).obj 256)
-TRIMARG   = trim 10 content/rooms/trim_mossy.ppm trim 11 content/rooms/trim_cathedral.ppm \
+TRIMARG   = trim 10 0 content/rooms/trim_maus_floor.ppm \
+            trim 10 1 content/rooms/trim_maus_wall.ppm \
+            trim 10 2 content/rooms/trim_maus_ceil.ppm \
+            trim 10 3 content/rooms/trim_maus_trim.ppm \
+            trim 11 content/rooms/trim_cathedral.ppm \
             trim 12 content/rooms/trim_temple.ppm
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)

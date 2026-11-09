@@ -27,6 +27,12 @@ whose development history is summarized in docs/roadmap.md.
   directive. The INFERNAL hall now carries a seam of lava.
 
 ### Changed
+- Replaced the dungeon kit. The modular tileset (10), which the authored DUNGEON
+  and the generated crypt levels ride, now wears the loafbrr Mausoleum Dungeon
+  kit in place of the SigilsVault mossy kit. It is a multi-material crypt kit:
+  dressed-stone floors, ashlar walls, a concrete ceiling slab and a stone
+  pillar, each sampling its own trim atlas through the new multi-atlas path. The
+  pieces sit on the same 1 metre = 1 grid unit scale, so the maps clad unchanged.
 - Kit cladding now supports multiple resident trim atlases per tileset. Each
   kit piece names the atlas it samples (an `@N` token in the kit text, default
   0), so a multi-material kit can clad its floors, walls and ceilings from

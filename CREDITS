@@ -89,18 +89,21 @@ content/skills.txt.
 Modular dungeon tiles
 ---------------------
 
-Source: "Modular Dungeon Kit" by Kevin Barany / SigilsVault
-(sigilsvault.itch.io, sigilsvault.gumroad.com). A low-poly dark-fantasy
-kit of walls, floors, ceilings, pillars and props on a 1-metre grid,
-trim-sheet textured.
-License: CC0 1.0 (public domain dedication). Credit is appreciated but
-not required. The full terms are in the kit's LICENSE.txt.
+Source: "Mausoleum Dungeon" by loafbrr (loafbrr.itch.io). A low-poly
+crypt kit of modular walls, floors, ceilings and pillars on a 1-metre
+grid, with per-material PBR textures.
+License: free to use in any project, personal or commercial, with no
+permission needed. Attribution is not required but is appreciated. The
+full terms are in the kit's README.txt.
 
-The pieces under content/rooms are the subset baked into the game: a
-floor, a wall, a ceiling, and a pillar, converted from the kit GLBs to
-shared-texture meshes that sample the kit's handpainted (mossy) trim
-sheet. They are the first modular-tile set, used by the chamber in
-content/rooms/chamber.room.
+The maus_* pieces under content/rooms/pieces are the subset baked into
+the game (a floor, a wall, a ceiling slab and a pillar, each with a
+1-unit base filler), converted from the kit's combined GLB to
+shared-texture meshes. It is a multi-material kit, so floors, walls, the
+ceiling and the pillar each sample their own trim atlas
+(content/rooms/trim_maus_*.ppm, from the kit's M_Floor_A, M_Wall_A,
+M_Concrete_A and M_Trim_A diffuse maps). It clads the modular tileset
+(10), which the authored DUNGEON and the generated crypt levels ride.
 
 Modular cathedral tiles
 -----------------------

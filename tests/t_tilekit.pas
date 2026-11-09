@@ -1,8 +1,9 @@
 program t_tilekit;
 
-{** Modular kit definitions: the codec round-trips, and the baked mossy kit
-  (tileset 9) loads from the pak with its floor, ceiling, wall and pillar
-  pieces and their footprints. }
+{** Modular kit definitions: the codec round-trips (including the per-piece
+  trim atlas index), TrimPtr selects among resident atlases, and the baked
+  mausoleum kit loads from the pak with its floor, ceiling, wall and pillar
+  pieces, their footprints and their atlas assignments. }
 
 {$mode objfpc}{$H+}
 
@@ -89,17 +90,18 @@ begin
   TrimSheets := nil;
   Check(TrimPtr(0, aw, ah) = nil, 'no resident sheets yields nil');
 
-  { the baked mossy kit from content/tilesets.txt }
+  { the baked mausoleum kit from content/tilesets.txt }
   Check(PakLoad('build/game.pak', p), 'load build/game.pak (run make first)');
   Check(LoadKits(p), 'load the baked kits');
   ki := KitIndexForTileset(TILESET_MODULAR);
   Check(ki >= 0, 'the modular tileset carries a kit');
-  Check(KitPieceByRole(ki, KITROLE_FLOOR) >= 0, 'the mossy kit has a floor');
-  Check(KitPieceByRole(ki, KITROLE_CEIL) >= 0, 'the mossy kit has a ceiling');
-  Check(KitPieceByRole(ki, KITROLE_WALL) >= 0, 'the mossy kit has a wall');
-  Check(KitPieceByRole(ki, KITROLE_PILLAR) >= 0, 'the mossy kit has a pillar');
-  Check(RoleLump(ki, KITROLE_FLOOR) = 'MOD_FLOOR', 'the floor names MOD_FLOOR');
-  CheckEqI(RoleFW(ki, KITROLE_FLOOR), 4, 'the mossy floor is 4 units wide');
+  Check(KitPieceByRole(ki, KITROLE_FLOOR) >= 0, 'the mausoleum kit has a floor');
+  Check(KitPieceByRole(ki, KITROLE_CEIL) >= 0, 'the mausoleum kit has a ceiling');
+  Check(KitPieceByRole(ki, KITROLE_WALL) >= 0, 'the mausoleum kit has a wall');
+  Check(KitPieceByRole(ki, KITROLE_PILLAR) >= 0, 'the mausoleum kit has a pillar');
+  Check(RoleLump(ki, KITROLE_FLOOR) = 'MAUS_FLOOR', 'the floor names MAUS_FLOOR');
+  CheckEqI(RoleFW(ki, KITROLE_FLOOR), 3, 'the mausoleum floor is 3 units wide');
+  CheckEqI(RoleAtlas(ki, KITROLE_CEIL), 2, 'the ceiling samples its own atlas');
 
   TestSummary('tilekit');
   halt(TestExit);
