@@ -40,6 +40,9 @@ uses
   dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
   skilldb, skillbook, rules, textures, roomdb, polyrender, math;
 
+const
+  {$I version.inc}   { BUILD_VERSION, so headless shots carry the version }
+
 procedure DumpPPM(const fn: string);
 var
   fs: TFileStream;
@@ -158,6 +161,7 @@ var
   secMap: TMapData;
 begin
   doGameRender := true;
+  BuildVersion := BUILD_VERSION;   { show the build on the title scene }
   if ParamCount < 2 then begin
     writeln(StdErr, 'usage: shot <out.ppm> title|combat|world|map ...');
     halt(2);

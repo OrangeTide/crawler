@@ -25,7 +25,7 @@ else
   EXE :=
 endif
 FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild -FUbuild
-TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -FEbuild/tools -FUbuild/tools
+TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
 TARGET    = build/crawler$(EXE)
@@ -168,7 +168,7 @@ build/tools/meshshot: tools/meshshot.pas src/*.pas | build
 # dummy video driver. Used by the headless-run skill.
 shottool: build/tools/shot
 
-build/tools/shot: tools/shot.pas src/*.pas | build
+build/tools/shot: tools/shot.pas src/*.pas build/version.inc | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
