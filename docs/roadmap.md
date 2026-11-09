@@ -399,9 +399,14 @@ multi-cell mesh instances rather than per-cell quads.
   on the sector edges scaled to any height (raster.RenderMeshAt3), and a
   non-kit tileset renders byte-identically. The first authored kit map
   (content/maps/kitroom.map, tileset 9) proves it through the live load path.
-- [gap] (0.27.0) A polygon trigger and zone layer for encounters and region
+- [partial] (0.27.0) A polygon trigger and zone layer for encounters and region
   effects, decoupled from the geometry (the gameplay half of the mesh-clad grid
-  model). Not started.
+  model). Landed: the map format carries trigger polygons (MAP_VERSION 11, an
+  all-integer point-in-polygon lookup, a map-compiler directive), and the first
+  effect is live, an encounter trigger that overrides the wandering-monster
+  table while the party stands inside it. Still open: more effect kinds (a
+  fire-on-enter event for messages and quest flags, which needs a fired flag in
+  the save; region damage or status; an ambient-light zone).
 - [gap] (0.27.0) Port mapgen and the authored zones to the kit. The cladding is
   in; this brings it to the real content. The generators emit sector geometry
   clad with kit meshes, and the authored zone maps migrate onto modular
