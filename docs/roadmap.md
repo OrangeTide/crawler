@@ -422,13 +422,15 @@ multi-cell mesh instances rather than per-cell quads.
   module, sixteen-unit walls, vaulted ceilings). The mountain biome now generates
   a cathedral theme from it, a cruciform of eight-cell bays (nave, transept, and
   random corner chapels) with soaring bay vaults, brazier lighting and a dim
-  clerestory ambient. Still open: migrate the authored TEMPLE onto the cathedral
-  kit with its own lighting and tint; stained-glass windows (the kit ships an
-  emission atlas the renderer has no channel for yet); the remaining authored
-  zones (GROTTO crystal cave, INFERNAL volcanic) still want kits of their own
-  themes; and multi-atlas residency for a map that mixes a modular sector with a
-  procedural one (one trim atlas is resident per map, which suffices while a
-  modular map is wholly modular).
+  clerestory ambient. The town TEMPLE is rebuilt from the same cathedral meshes
+  on tileset 12, drawn from a warm candlelit tint of the trim atlas and lit
+  bright as a sunlit sanctum, showing the kit reused across two moods with no new
+  geometry. Still open: stained-glass windows (the kit ships an emission atlas
+  the renderer has no channel for yet); the remaining authored zones (GROTTO
+  crystal cave, INFERNAL volcanic) still want kits of their own themes; and
+  multi-atlas residency for a map that mixes a modular sector with a procedural
+  one (one trim atlas is resident per map, which suffices while a modular map is
+  wholly modular).
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
