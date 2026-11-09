@@ -92,6 +92,9 @@ function TriggerAt(mx, my: longint): longint;
 { The encounter table in effect at a cell: an encounter trigger's table while
   the party stands inside it, else the map area's own table. }
 function EncTableHere(mask: byte; mx, my: longint): longint;
+{ The ambient light level at a cell: an ambient trigger's level while the party
+  stands inside it, else the given base level. }
+function AmbientHere(base, mx, my: longint): longint;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -508,6 +511,20 @@ begin
   ti := TriggerAt(mx, my);
   if (ti >= 0) and (CurMap.triggers[ti].kind = TRIG_ENCOUNTER) then
     EncTableHere := CurMap.triggers[ti].param;
+end;
+
+function AmbientHere(base, mx, my: longint): longint;
+var i, px, py: longint;
+begin
+  AmbientHere := base;
+  px := mx * TRIG_UNIT + TRIG_UNIT div 2;
+  py := my * TRIG_UNIT + TRIG_UNIT div 2;
+  for i := 0 to High(CurMap.triggers) do
+    if (CurMap.triggers[i].kind = TRIG_AMBIENT)
+      and PointInPoly(CurMap.triggers[i].verts, px, py) then begin
+      AmbientHere := CurMap.triggers[i].param;
+      exit;
+    end;
 end;
 
 function NpcTileOccupied(mx, my: longint): boolean;

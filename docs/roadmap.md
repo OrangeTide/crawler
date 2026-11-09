@@ -275,10 +275,12 @@ multi-cell mesh instances rather than per-cell quads.
   effects, decoupled from the geometry (the gameplay half of the mesh-clad grid
   model). Landed: the map format carries trigger polygons (MAP_VERSION 11, an
   all-integer point-in-polygon lookup, a map-compiler directive), and the first
-  effect is live, an encounter trigger that overrides the wandering-monster
-  table while the party stands inside it. Still open: more effect kinds (a
-  fire-on-enter event for messages and quest flags, which needs a fired flag in
-  the save; region damage or status; an ambient-light zone).
+  effect is live: an encounter trigger that overrides the wandering-monster
+  table while the party stands inside it, and an ambient-light zone that
+  overrides the scene light level while the party stands inside it (TRIG_AMBIENT,
+  used in the DUNGEON gallery). Still open: more effect kinds (a fire-on-enter
+  event for messages and quest flags, which needs a fired flag in the save;
+  region damage or status).
 - [partial] (0.27.0) Port mapgen and the authored zones to the kit. Landed: the
   modular kit has its own tileset (10, past the biomes, opt-in), base-unit (1x1)
   kit pieces so ragged non-grid-aligned rooms tile clean fillers instead of

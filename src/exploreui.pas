@@ -762,6 +762,9 @@ begin
       AmbientLight := 80   { dim clerestory light fills the vaulted halls }
     else
       AmbientLight := 48;  { a dim underworld, lifted by fires and glow }
+    { an ambient-zone trigger overrides the scene light where the party stands,
+      for a shadowed alcove or a glowing chamber within the same map }
+    AmbientLight := AmbientHere(AmbientLight, TileX, TileY);
     if TorchFuel >= TORCH_GUTTER then
       TorchGlow := 256
     else if TorchFuel > 0 then

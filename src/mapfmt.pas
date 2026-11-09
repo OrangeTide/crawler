@@ -39,6 +39,7 @@ const
     add here; the codec carries a byte kind and a word parameter either way. }
   TRIG_NONE      = 0;
   TRIG_ENCOUNTER = 1;       { param = the encounter table to roll inside }
+  TRIG_AMBIENT   = 2;       { param = ambient light level (0..256) while inside }
 
   { Trigger polygon vertices are stored in 1/16 cell units, so an edge can fall
     between cells. One cell is TRIG_UNIT steps. }

@@ -53,6 +53,8 @@ npc 22 22 SHRINE Shrine NPC_SHRINE2
 trap 5 9 6 12
 trap 18 9 8 13
 trap 12 18 7 13
+# the torch-lit sunken gallery reads brighter than the dim side halls
+trigger ambient 96 - 4 7 19 7 19 11 4 11
 moonwell 13 9
 torch 3 8
 torch 20 8

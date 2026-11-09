@@ -9,6 +9,13 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Added
+- An ambient-light zone trigger (TRIG_AMBIENT): a polygon that overrides the
+  scene's ambient light level while the party stands inside it, for a shadowed
+  alcove or a brighter chamber within one map. Authored with the `trigger
+  ambient` map directive; the DUNGEON's torch-lit sunken gallery now reads
+  brighter than its dim side halls.
+
 ### Changed
 - Re-authored the starter DUNGEON to the modular mossy kit's scale. The old
   hand-built level was one tile wide, so the 4-unit kit pieces could not tile
