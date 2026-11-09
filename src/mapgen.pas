@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 4;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 5;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -420,7 +420,10 @@ begin
   FloodFarthest(g, usx, usy, dsx, dsy, reach);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := 0;
+  { crypt-themed dungeons wear the modular kit so they clad from the mossy
+    pieces; other themes keep their procedural biome surfaces }
+  if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR else m.tileset := 0;
+  m.music := 0; m.flags := 0;
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 

@@ -57,6 +57,12 @@ const
   TILE_EMPTY = 0;
   TILE_DOOR  = 4;
 
+  { The dedicated modular-kit tileset, past the biome tilesets 0..9. A map or
+    sector that points here clads from a kit; it is tied to no biome, so
+    nothing clads by accident. Lives with the map format so the generators
+    can select it without pulling in the texture unit. }
+  TILESET_MODULAR = 10;
+
   { Celestial light wells: their strength tracks the sky (section 22). }
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }
   LIGHT_MOONWELL = 1;       { admits moonlight, strongest at the full moon }

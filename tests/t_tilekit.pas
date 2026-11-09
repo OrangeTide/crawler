@@ -7,7 +7,7 @@ program t_tilekit;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, tilekit, textures, testing;
+  sysutils, pak, mapfmt, tilekit, textures, testing;
 
 const
   TMP = 'build/tests/_tilekit.pak';

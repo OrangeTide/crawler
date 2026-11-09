@@ -38,8 +38,6 @@ const
     carries the trim-sheet atlas the modular kit pieces sample. Kept out
     of the authored maps' tileset range so the atlas is resident only when
     a modular area is entered. }
-  TILESET_MODULAR = 10;   { past the biome tilesets 0..9: the kit is opt-in,
-                            tied to no biome, so nothing clads by accident }
 
 type
   TTexture = array[0 .. TEXSIZE - 1] of TColor;

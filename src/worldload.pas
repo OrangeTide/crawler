@@ -157,9 +157,10 @@ begin
     md.area := DynMaps[di].area;   { the manifest declares its area }
     depth := DynMaps[di].depth;
   end;
-  { a generated map wears the tileset its area theme calls for; authored
-    maps keep the tileset their lump declares }
-  if isDyn then
+  { a generated map wears the tileset its area theme calls for, unless the
+    generator already chose one (e.g. the modular kit); authored maps keep
+    the tileset their lump declares }
+  if isDyn and (md.tileset = 0) then
     md.tileset := TilesetForArea(md.area);
   { a pinned authored zone leaves back to the wilderness that reaches it,
     not only to the town hub. Derived from the map, so it stays stable. }
