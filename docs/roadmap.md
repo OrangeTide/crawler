@@ -325,12 +325,24 @@ Tags: [gap] not started, [partial] exists but incomplete, [done] complete,
 ### G. Sector maps, modular tiles, and terrain (grows out of theme A)
 
 The target look shifts from the uniform-height tile grid to a late-1990s
-first-person RPG: Doom-style sectors with per-area floor and ceiling heights,
-built indoors from modular tile meshes and outdoors from heightfield terrain.
-Sprite billboards and turn-based grid movement stay; only the world geometry
-and its data format change. The polygon renderer (theme A) is the foundation,
-so this thread opens once that renderer is the default. The whole thread keeps
-one eye on the PS1: the modular kits are chosen and budgeted for it.
+first-person RPG: per-area floor and ceiling heights, built indoors from
+modular tile meshes and outdoors from heightfield terrain. Sprite billboards
+and turn-based grid movement stay; only the world geometry and its data format
+change. The polygon renderer (theme A) is the foundation, so this thread opens
+once that renderer is the default. The whole thread keeps one eye on the PS1:
+the modular kits are chosen and budgeted for it.
+
+The organizing principle is a split between a logical layer and a visual layer.
+A coarse grid carries movement, collision, and turn order, and stays identical
+on every target. The visual geometry over it is modular kit tile-meshes indoors
+or a heightfield mesh outdoors, chosen per area and tuned per target. Polygon
+trigger areas overlay the grid for encounters and region effects, decoupled
+from the geometry. This is the Neverwinter Nights approach, a grid of 3D tile
+modules plus polygon triggers, with the sector floor and ceiling heights giving
+the per-area elevation NWN handled poorly. The raycaster retires as the polygon
+path reaches full coverage; there is no flat-grid DOS fallback, so the geometry
+is not bound to the grid, and kit pieces that span several grid units ride as
+multi-cell mesh instances rather than per-cell quads.
 
 - [done] (0.26.0) Evaluated the SigilsVault CC0 kits for PS1 feasibility, written
   up in `docs/kit-evaluation.md`. Verdict: GO for the Modular Dungeon kit, a
@@ -375,18 +387,31 @@ one eye on the PS1: the modular kits are chosen and budgeted for it.
   lintels between sectors of differing height; the camera eye rides the sector
   floor, and movement gained a step-up rule. Flat maps render pixel-identically.
   The map compiler gained sector and fill directives for authoring height. Still
-  open: an explicit wall-segment (linedef) layer so sector edges need not be
-  grid-aligned, which the non-square, multi-unit kit pieces will need, and
-  cladding sectors with the modular meshes instead of the tileset surface quads.
+  open: cladding sectors with the instanced modular kit meshes in place of the
+  tileset surface quads (the tile-models placed over the logical grid, a mesh
+  per cell or multi-cell footprint, not bound to fill its cell), and a polygon
+  trigger and zone layer for encounters and region effects decoupled from the
+  geometry. The earlier linedef (explicit wall-segment) plan is dropped: with no
+  flat-grid renderer to keep geometry grid-aligned, non-square and multi-unit
+  kit pieces are handled as mesh instances, and the polygon idea is spent on
+  trigger areas instead of a wall-segment renderer.
 - [gap] (0.27.0) Port mapgen and the authored maps to sectors: the generators
-  emit sector geometry assembled from kit pieces, and content/maps/*.map migrate
-  to the new format. Vary floor and ceiling heights per area so the generated
+  emit sector geometry clad with kit meshes, and content/maps/*.map migrate to
+  the new format. Vary floor and ceiling heights per area so the generated
   dungeons gain vertical variety over the current single-height rooms.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
-  handled by the sector model (a cave mouth opens from a sector onto terrain).
-  Keep the billboard foliage and entities over the terrain, and keep the seeded,
-  deterministic generation the overworld already uses.
+  handled by the shared logical grid (a cave mouth opens from a sector onto
+  terrain). The heightfield is an asset, not part of the grid: a source
+  heightmap at whatever fidelity the content needs, built into a render mesh at
+  compile time or load time by sampling, interpolating, and decimating it. That
+  build is a per-target knob, the same shape as the trim-sheet size knob from
+  0.26.0: desktop gets a dense interpolated mesh and a high LOD, the PS1 gets a
+  coarse decimated mesh with vertex snapping, both from one source. The logical
+  grid stays coarse and target-independent, so collision and turn order are
+  identical no matter how detailed the terrain renders. Keep the billboard
+  foliage and entities over the terrain, and keep the seeded, deterministic
+  generation the overworld already uses.
 
 ## Sequenced roadmap
 
@@ -489,18 +514,24 @@ MAP_VERSION 10, GEN_VERSION 4), a polygon renderer that draws per-sector heights
 and the steps between them, the camera eye riding the sector floor, a movement
 step-up rule, and map-compiler directives for authoring height. Collision and
 the grid stay decoupled from the geometry, flat maps are pixel-identical, and
-the save and determinism are untouched. Still ahead in this milestone: an
-explicit wall-segment layer for non-grid-aligned kit geometry, cladding sectors
-with the modular meshes, and migrating mapgen and the authored maps to real
-verticality. This is the milestone that turns the flat grid into a late-90s
-first-person RPG. Depends on 0.26.0.
+the save and determinism are untouched. Still ahead in this milestone: cladding
+sectors with the instanced modular kit meshes over the logical grid, a polygon
+trigger and zone layer decoupled from the geometry, and migrating mapgen and the
+authored maps to real verticality. The earlier linedef plan is dropped, since
+the retiring raycaster leaves no flat-grid renderer to keep geometry
+grid-aligned and multi-unit kit pieces ride as mesh instances. This is the
+milestone that turns the flat grid into a late-90s first-person RPG. Depends on
+0.26.0.
 
 ### 0.28.0 Outdoor terrain (M)
 
 Theme G, the outdoor half. A heightfield terrain for the overworld surface and
-the open zones, rendered in the polygon path, with the indoor/outdoor seam
-handled by the sector model and the billboard foliage and entities kept over the
-terrain. Depends on 0.27.0.
+the open zones, rendered in the polygon path. The heightfield is a tunable
+asset: a source heightmap built into a render mesh at compile or load time, with
+the mesh density and LOD a per-target knob, so desktop renders dense terrain and
+the PS1 a coarse vertex-snapped mesh from one source. The indoor/outdoor seam is
+the shared logical grid, which stays coarse and target-independent, and the
+billboard foliage and entities are kept over the terrain. Depends on 0.27.0.
 
 ### 0.29.0 Follow-on arc: the lost cities (M)
 
@@ -579,11 +610,11 @@ sector layer, the polygon renderer draws per-sector heights and the steps
 between them, and height is authorable (see `docs/sector-heights.png`). The
 order from here is:
 
-- Continue 0.27.0. The next piece is an explicit wall-segment (linedef) layer so
-  sector edges are not bound to the grid, which the non-square, multi-unit kit
-  pieces need, followed by cladding sectors with the modular meshes and then
-  migrating mapgen and the authored maps to real verticality. Each is additive
-  over the foundation and leaves the game runnable.
+- Continue 0.27.0. The next piece is cladding sectors with the instanced modular
+  kit meshes over the logical grid, so the kit tile-models replace the tileset
+  surface quads, followed by a polygon trigger and zone layer and then migrating
+  mapgen and the authored maps to real verticality. Each is additive over the
+  foundation and leaves the game runnable.
 - 0.20.0 (navigation and AI) is independent of the renderer and can run in
   parallel at any time. It builds directly on the just-landed routing,
   auto-travel, and pursuit; the locked-door and NPC-pathing fixes are small and
