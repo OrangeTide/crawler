@@ -14,8 +14,15 @@
 # points at it. Pieces authored at native ~4 metre scale, so the floor and
 # ceiling cover a 4x4 block and the wall spans 4 units and stands 3 tall.
 # See content/rooms/pieces.
+# Each role lists the native 4-unit pieces and a 1-unit base piece. The
+# cladding pass uses the largest that fits a merged run, so open areas draw
+# native pieces and ragged edges fall back to base tiles at the same texel
+# density, not a stretched native piece.
 kit 10 mossy
-  floor  MOD_FLOOR   4 4
-  ceil   MOD_CEIL    4 4
-  wall   MOD_WALL    4 1 3
-  pillar MOD_PILLAR  1 1 3
+  floor  MOD_FLOOR    4 4
+  floor  BASE_FLOOR   1 1
+  ceil   MOD_CEIL     4 4
+  ceil   BASE_CEIL    1 1
+  wall   MOD_WALL     4 1 3
+  wall   BASE_WALL    1 1 3
+  pillar MOD_PILLAR   1 1 3

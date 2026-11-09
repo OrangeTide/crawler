@@ -1,0 +1,20 @@
+# A 1-wide, 3-tall base wall tile for the mossy kit: a flat quad, corner
+# anchored like the native wall (x in [0,1], up in [0,3]), double sided so it
+# reads from either face. It samples a per-unit-wide, three-unit-tall slice of
+# the brick region, matching the native wall's texel density. Y-up; the bake
+# converts to Z-up and the cladding scales it to the sector height.
+v 0 0 0
+v 1 0 0
+v 1 3 0
+v 0 3 0
+vt 0.230800 0.102200
+vt 0.381030 0.102200
+vt 0.381030 0.327500
+vt 0.230800 0.327500
+vn 0 0 1
+g base_wall
+usemtl trim sheet
+f 1/1/1 2/2/1 3/3/1
+f 1/1/1 3/3/1 4/4/1
+f 1/1/1 3/3/1 2/2/1
+f 1/1/1 4/4/1 3/3/1

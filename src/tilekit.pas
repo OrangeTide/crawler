@@ -57,9 +57,13 @@ function LoadKits(const p: TPak): boolean;
 function KitIndexForTileset(ts: longint): longint;
 { Whether a tileset carries a kit (so its sectors clad with meshes). }
 function TilesetHasKit(ts: longint): boolean;
-{ The first piece of a role in a kit, or -1. Later steps grow this to pick
-  by footprint; the foundation only needs the role lookup. }
+{ The first piece of a role in a kit, or -1. }
 function KitPieceByRole(kitIdx, role: longint): longint;
+{ The piece of a role that best fits a run of `run` grid units: the largest
+  footprint not exceeding the run, or the smallest piece if all are larger.
+  Lets the cladding pass draw native pieces over full runs and base-unit
+  pieces over ragged edges. Returns -1 if the role is absent. }
+function KitPieceForRun(kitIdx, role, run: longint): longint;
 
 implementation
 
@@ -187,6 +191,23 @@ begin
     if Kits[kitIdx].pieces[k].role = role then begin
       KitPieceByRole := k; exit;
     end;
+end;
+
+function KitPieceForRun(kitIdx, role, run: longint): longint;
+var k, best, small: longint;
+begin
+  KitPieceForRun := -1;
+  if (kitIdx < 0) or (kitIdx > High(Kits)) then exit;
+  best := -1; small := -1;
+  for k := 0 to High(Kits[kitIdx].pieces) do
+    if Kits[kitIdx].pieces[k].role = role then begin
+      if (small < 0) or (Kits[kitIdx].pieces[k].fw < Kits[kitIdx].pieces[small].fw) then
+        small := k;
+      if (Kits[kitIdx].pieces[k].fw <= run)
+        and ((best < 0) or (Kits[kitIdx].pieces[k].fw > Kits[kitIdx].pieces[best].fw)) then
+        best := k;
+    end;
+  if best >= 0 then KitPieceForRun := best else KitPieceForRun := small;
 end;
 
 end.

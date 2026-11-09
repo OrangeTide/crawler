@@ -32,7 +32,7 @@ MODELNAMES = barrel doorway
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 # Modular kit tiles: shared-texture meshes baked from SigilsVault GLBs (OBJ
 # only), all drawing from one trim-sheet atlas. The theme G proof set.
-TILENAMES = mod_floor mod_wall mod_ceil mod_pillar
+TILENAMES = mod_floor mod_wall mod_ceil mod_pillar base_floor base_wall base_ceil
 TILESRC   = $(foreach n,$(TILENAMES),content/rooms/pieces/$(n).obj)
 TRIMSRC   = content/rooms/trim_mossy.ppm
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and

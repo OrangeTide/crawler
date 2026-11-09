@@ -114,14 +114,14 @@ var
   fp: longint;
   cxw, cyw, dist, light: double;
 begin
-  fp := KitPieceByRole(kitIdx, KITROLE_FLOOR);
+  fp := KitPieceForRun(kitIdx, KITROLE_FLOOR, s);
   if fp < 0 then exit;
   cxw := ax + s / 2; cyw := ay + s / 2;
   dist := sqrt(sqr(cxw - ex) + sqr(cyw - ey));
   light := lightFn(ax + s div 2, ay + s div 2, dist);
   DrawPiece(mc, kitIdx, fp, cxw, cyw, fz, s, light);
   if drawCeil then
-    DrawPiece(mc, kitIdx, KitPieceByRole(kitIdx, KITROLE_CEIL),
+    DrawPiece(mc, kitIdx, KitPieceForRun(kitIdx, KITROLE_CEIL, s),
       cxw, cyw, cz, s, light);
 end;
 
@@ -220,7 +220,8 @@ end;
 procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; lightFn: TCladLightFn);
 var
-  dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx, wp, wfw, wh, s0, mi: longint;
+  dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx: longint;
+  wp, wpN, wfw, pfw, wh, s0, mi: longint;
   fz, cz, sxl, szl, yaw, mxw, myw, cxr, cyr, dist, light: double;
   atlas: PByte;
 begin
@@ -236,16 +237,14 @@ begin
         if kitIdx < 0 then continue;
         s0 := SectorAt(tx, ty);
         if not WallCell(tx, ty, dir, s0, kitIdx) then continue;
-        wp := KitPieceByRole(kitIdx, KITROLE_WALL);
-        if wp < 0 then continue;
-        mi := MeshIdx(Kits[kitIdx].pieces[wp].lump);
-        if (mi < 0) or (not cacheOk[mi]) then continue;
-        wfw := Kits[kitIdx].pieces[wp].fw; if wfw < 1 then wfw := 1;
-        wh := Kits[kitIdx].pieces[wp].fz; if wh < 1 then wh := 1;
+        { align runs to the native (largest) wall piece's footprint }
+        wpN := KitPieceForRun(kitIdx, KITROLE_WALL, MapW + MapH);
+        if wpN < 0 then continue;
+        wfw := Kits[kitIdx].pieces[wpN].fw; if wfw < 1 then wfw := 1;
 
         { a full kit-grid-aligned run draws as one native piece; an edge that
-          does not fill the run drops to one piece per cell. Aligning to the
-          world grid keeps the run stable as the camera moves }
+          does not fill the run drops to one base piece per cell. Aligning to
+          the world grid keeps the run stable as the camera moves }
         if WRunX[dir] then ax := (tx div wfw) * wfw else ax := tx;
         if WRunX[dir] then ay := ty else ay := (ty div wfw) * wfw;
         if WallRunFull(dir, ax, ay, wfw, s0, kitIdx) then begin
@@ -253,12 +252,20 @@ begin
         end else begin
           run := 1; rsx := tx; rsy := ty;
         end;
+
+        { native piece over a full run, base piece over a single filler }
+        wp := KitPieceForRun(kitIdx, KITROLE_WALL, run);
+        mi := MeshIdx(Kits[kitIdx].pieces[wp].lump);
+        if (mi < 0) or (not cacheOk[mi]) then continue;
+        pfw := Kits[kitIdx].pieces[wp].fw; if pfw < 1 then pfw := 1;
+        wh := Kits[kitIdx].pieces[wp].fz; if wh < 1 then wh := 1;
+
         for i := 0 to run - 1 do
           if WRunX[dir] then covered[rsy][rsx + i] := true
           else covered[rsy + i][rsx] := true;
 
         fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
-        sxl := run / wfw;              { run cells along the piece length }
+        sxl := run / pfw;              { run cells along the piece length }
         szl := (cz - fz) / wh;         { fit the piece height to the sector }
         if WRunX[dir] then yaw := 0 else yaw := pi / 2;
         mxw := rsx + WMOX[dir];
