@@ -19,15 +19,25 @@ macos: $(PAK) build/version.inc
 	  docker/macos-cross
 	docker run --rm -v "$(CURDIR)":/src -w /src $(MACOS_IMAGE) bash scripts/build-macos.sh
 
-# Package the macOS arm64 build as a release archive, matching the release
-# workflow's layout, for the local backfill the release step cannot run on CI.
-# Pass VER as the tag, e.g. make macos-dist VER=v0.24.0, then:
+# Package the macOS arm64 build as a self-contained Crawler.app, bundling SDL2
+# so the download needs no Homebrew. Pass VER as the tag, e.g.
+# make macos-dist VER=v0.24.0, then:
 #   gh release upload $(VER) dist/crawler-$(VER)-macos-aarch64.tar.gz --repo OrangeTide/crawler
-VER ?= dev
+#
+# You supply the macOS arm64 SDL2 dylib (zlib-licensed and redistributable,
+# unlike the SDK): place the official framework's binary at the path below. See
+# docker/macos-cross/README.md. The game dlopens it from Contents/Frameworks.
+VER        ?= dev
+MACOS_SDL2 ?= docker/macos-cross/libSDL2.dylib
 macos-dist: macos
-	@pkg="crawler-$(VER)-macos-aarch64"; \
-	rm -rf "dist/$$pkg" && mkdir -p "dist/$$pkg"; \
-	cp build/crawler-macos-aarch64 "dist/$$pkg/crawler"; \
-	cp build/game.pak README.md "dist/$$pkg/"; \
+	@test -f "$(MACOS_SDL2)" || { echo "Put a macOS arm64 libSDL2.dylib at $(MACOS_SDL2) (see docker/macos-cross/README.md)"; exit 1; }
+	@pkg="crawler-$(VER)-macos-aarch64"; app="dist/$$pkg/Crawler.app"; \
+	rm -rf "dist/$$pkg"; \
+	mkdir -p "$$app/Contents/MacOS" "$$app/Contents/Frameworks" "$$app/Contents/Resources"; \
+	cp build/crawler-macos-aarch64 "$$app/Contents/MacOS/crawler"; \
+	cp "$(MACOS_SDL2)" "$$app/Contents/Frameworks/libSDL2.dylib"; \
+	cp build/game.pak "$$app/Contents/Resources/game.pak"; \
+	sed 's/@VERSION@/$(PROJ_VERSION)/g' mk/macos-info.plist.in > "$$app/Contents/Info.plist"; \
+	cp README.md CREDITS "dist/$$pkg/"; \
 	tar -C dist -czf "dist/$$pkg.tar.gz" "$$pkg"; \
 	echo "packaged dist/$$pkg.tar.gz"

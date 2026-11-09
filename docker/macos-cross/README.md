@@ -52,6 +52,24 @@ macOS 26 is Darwin 25. A mid-range SDK (14 or 15) is the best tested with
 OSXCross; a very new SDK (26) may need OSXCross at HEAD (the Dockerfile already
 clones that) and, if the link fails, a newer FPC via the FPC_TAG build arg.
 
+## One-time: supply the SDL2 dylib
+
+The packaged `.app` bundles SDL2 so a download needs no Homebrew. Unlike the
+SDK, SDL2 is redistributable (zlib license), so you may ship it. Supply the
+official arm64 macOS build, which depends only on system frameworks.
+
+On a Mac, or from the SDL2 release's `SDL2-2.x.y.dmg`
+(<https://github.com/libsdl-org/SDL/releases>, the SDL2 line), take the
+framework's binary and drop it here as `libSDL2.dylib`:
+
+```sh
+cp /Library/Frameworks/SDL2.framework/Versions/A/SDL2 libSDL2.dylib
+scp libSDL2.dylib <user>@<linux-host>:~/Vibe/crawler/docker/macos-cross/
+```
+
+It is git-ignored here. The game `dlopen`s it from the app's
+`Contents/Frameworks` by absolute path, so its install name does not matter.
+
 ## Build
 
 From the repository root:
@@ -60,17 +78,16 @@ From the repository root:
 make macos DARWIN_VER=24      # 24 for a macOS 15 SDK; 23 for 14, 25 for 26
 ```
 
-This builds `build/crawler-macos-aarch64`. The data pak is platform neutral and
-host-built, so ship it alongside:
+This builds `build/crawler-macos-aarch64`, a loose binary that still loads a
+system or Homebrew SDL2 (`brew install sdl2`) by name. To make the shipping
+bundle instead, which carries its own SDL2 and needs no Homebrew:
 
 ```sh
-scp build/crawler-macos-aarch64 build/game.pak <user>@<mac>:~/crawler/
-# on the Mac:
-mv crawler-macos-aarch64 crawler && ./crawler
+make macos-dist VER=v0.27.1   # builds dist/crawler-vX.Y.Z-macos-aarch64.tar.gz
 ```
 
-The Mac needs the SDL2 runtime (`brew install sdl2`), which the program loads by
-name at startup.
+That archive holds `Crawler.app` (binary, bundled SDL2, `game.pak`, Info.plist)
+alongside the README and CREDITS. Copy it to a Mac, unzip, and open the app.
 
 ## Notes
 

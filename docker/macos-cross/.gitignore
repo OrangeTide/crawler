@@ -2,3 +2,8 @@
 # license ties it to Apple hardware). Keep it out of the repository.
 *.sdk.tar.*
 *.sdk
+
+# The bundled SDL2 dylib is supplied by you (zlib-licensed, redistributable,
+# but a large binary we keep out of the tree). See README.md.
+*.dylib
+*.framework

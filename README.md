@@ -195,20 +195,20 @@ A `portable.txt` beside the binary keeps everything in one folder instead.
 
 ### Running a downloaded macOS build
 
-The macOS archive is not notarized by Apple, so Gatekeeper quarantines it on
-download. The first launch reports that macOS "could not verify" the app is
-free of malware and offers only Move to Trash or Done. To run it, clear the
-quarantine attribute on the extracted folder, then launch from there:
+The macOS archive holds a self-contained `Crawler.app` that bundles SDL2, so it
+needs no Homebrew. It is not notarized by Apple, though, so Gatekeeper
+quarantines it on download. The first launch reports that macOS "could not
+verify" the app is free of malware and offers only Move to Trash or Done. To
+run it, clear the quarantine attribute on the extracted folder, then open the
+app:
 
 ```sh
 xattr -dr com.apple.quarantine crawler-*-macos-aarch64
-cd crawler-*-macos-aarch64
-./crawler
+open crawler-*-macos-aarch64/Crawler.app
 ```
 
 Opening the app once and then choosing Open Anyway under System Settings,
-Privacy and Security also works. The build needs the SDL2 runtime, which
-Homebrew provides with `brew install sdl2`.
+Privacy and Security also works.
 
 ## Continuous integration
 

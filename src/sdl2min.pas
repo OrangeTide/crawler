@@ -208,7 +208,7 @@ procedure UnloadSDL2;
 implementation
 
 uses
-  dynlibs;
+  dynlibs, sysutils, apppaths;
 
 const
 {$IFDEF WINDOWS}
@@ -240,11 +240,20 @@ function LoadSDL2: boolean;
 var
   i: longint;
 begin
-  for i := 0 to High(SDL_SONAMES) do begin
-    libHandle := LoadLibrary(SDL_SONAMES[i]);
-    if libHandle <> NilHandle then
-      break;
-  end;
+  libHandle := NilHandle;
+{$IFDEF DARWIN}
+  { A shipped .app carries its own SDL2 under Contents/Frameworks, because
+    macOS has no system-wide SDL2 to find by name. Load that copy first, by
+    absolute path; fall back to the search names for a development build. }
+  libHandle := LoadLibrary(ExpandFileName(ExeDir + '..' + PathDelim +
+    'Frameworks' + PathDelim + 'libSDL2.dylib'));
+{$ENDIF}
+  if libHandle = NilHandle then
+    for i := 0 to High(SDL_SONAMES) do begin
+      libHandle := LoadLibrary(SDL_SONAMES[i]);
+      if libHandle <> NilHandle then
+        break;
+    end;
   if libHandle = NilHandle then begin
     LoadSDL2 := false;
     exit;
