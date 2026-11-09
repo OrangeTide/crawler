@@ -1,20 +1,37 @@
-# The town temple: a quiet shrine where the apothecary keeps the remedies.
+# The town temple, rebuilt as a small cathedral sanctum clad in the
+# cathedral kit with a warm candlelit tint (tileset 12). The apothecary
+# keeps the remedies here. One eight-cell bay, bright with skylights and
+# braziers, reached from the town square.
 map TEMPLE
-size 8 7
-tileset 1
+size 16 16
+tileset 12
 music 0
+sector 0 0 160
 walls
-22222222
-20000002
-20000002
-20000002
-20000002
-20000002
-22222222
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111111111111
+1111111100000000
+1111111100000000
+1111111100000000
+1111111100000000
+1111111100000000
+1111111100000000
+1111111100000000
+1111111100000000
 end
-marker entry 4 4 N
-portal 4 5 TOWN templedoor door
-torch 1 1
-torch 6 1
-prop 4 1 DOORWAY
-npc 4 2 APOTHECARY Apothecary NPC_APOTH
+marker entry 11 14 N
+portal 11 15 TOWN templedoor door
+prop 11 15 DOORWAY
+npc 11 9 APOTHECARY Apothecary NPC_APOTH
+skylight 11 11
+skylight 12 12
+brazier 9 9
+brazier 14 9
+torch 9 14
+torch 14 14

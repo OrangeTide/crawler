@@ -63,6 +63,7 @@ const
     can select it without pulling in the texture unit. }
   TILESET_MODULAR = 10;
   TILESET_CATHEDRAL = 11;
+  TILESET_TEMPLE = 12;
 
   { Celestial light wells: their strength tracks the sky (section 22). }
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }

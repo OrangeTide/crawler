@@ -37,3 +37,12 @@ kit 11 cathedral
   ceil   CATH_CEIL    8 8
   wall   CATH_WALL    8 1 16
   pillar CATH_PILLAR  2 2 9
+
+# Tileset 12: the town temple. Reuses the cathedral meshes (CATH_*) but draws
+# them from a warm, candlelit tint of the cathedral trim atlas (trim 12), so
+# the shrine reads as holy and lived-in rather than the cold dungeon vaults.
+kit 12 temple
+  floor  CATH_FLOOR   8 8
+  ceil   CATH_CEIL    8 8
+  wall   CATH_WALL    8 1 16
+  pillar CATH_PILLAR  2 2 9

@@ -35,7 +35,8 @@ MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n
 TILENAMES = mod_floor mod_wall mod_ceil mod_pillar base_floor base_wall base_ceil \
             cath_floor cath_wall cath_ceil cath_pillar
 TILESRC   = $(foreach n,$(TILENAMES),content/rooms/pieces/$(n).obj)
-TRIMSRC   = content/rooms/trim_mossy.ppm content/rooms/trim_cathedral.ppm
+TRIMSRC   = content/rooms/trim_mossy.ppm content/rooms/trim_cathedral.ppm \
+            content/rooms/trim_temple.ppm
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
 SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
@@ -82,7 +83,8 @@ MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
 # per-piece texture) and the atlas bakes once onto the modular tileset.
 TILEARGS  = $(foreach n,$(TILENAMES),tile $(n) content/rooms/pieces/$(n).obj 256)
-TRIMARG   = trim 10 content/rooms/trim_mossy.ppm trim 11 content/rooms/trim_cathedral.ppm
+TRIMARG   = trim 10 content/rooms/trim_mossy.ppm trim 11 content/rooms/trim_cathedral.ppm \
+            trim 12 content/rooms/trim_temple.ppm
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)

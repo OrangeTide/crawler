@@ -756,7 +756,9 @@ begin
     AmbientLight := OutdoorAmbient;
     TorchGlow := 256;
   end else begin
-    if CurMap.tileset = TILESET_CATHEDRAL then
+    if CurMap.tileset = TILESET_TEMPLE then
+      AmbientLight := 184  { a bright, sunlit shrine }
+    else if CurMap.tileset = TILESET_CATHEDRAL then
       AmbientLight := 80   { dim clerestory light fills the vaulted halls }
     else
       AmbientLight := 48;  { a dim underworld, lifted by fires and glow }

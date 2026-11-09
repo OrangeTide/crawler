@@ -115,7 +115,9 @@ not required. The full terms are in the kit's LICENSE.txt.
 The cath_* pieces under content/rooms/pieces are the subset baked into
 the game (floor, wall, vaulted ceiling, column), converted from the kit
 GLBs to shared-texture meshes that sample the kit's cathedral trim
-sheet. Kept at the kit's native grand scale for the cathedral theme.
+sheet. Kept at the kit's native grand scale for the cathedral theme,
+and reused for the town temple from a warm-tinted bake of the same
+trim sheet.
 
 Spell catalog
 -------------
