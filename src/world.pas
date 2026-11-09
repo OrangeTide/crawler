@@ -95,6 +95,8 @@ function EncTableHere(mask: byte; mx, my: longint): longint;
 { The ambient light level at a cell: an ambient trigger's level while the party
   stands inside it, else the given base level. }
 function AmbientHere(base, mx, my: longint): longint;
+{ The index of the first fire-on-enter event trigger covering a cell, or -1. }
+function EventHere(mx, my: longint): longint;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -523,6 +525,20 @@ begin
     if (CurMap.triggers[i].kind = TRIG_AMBIENT)
       and PointInPoly(CurMap.triggers[i].verts, px, py) then begin
       AmbientHere := CurMap.triggers[i].param;
+      exit;
+    end;
+end;
+
+function EventHere(mx, my: longint): longint;
+var i, px, py: longint;
+begin
+  EventHere := -1;
+  px := mx * TRIG_UNIT + TRIG_UNIT div 2;
+  py := my * TRIG_UNIT + TRIG_UNIT div 2;
+  for i := 0 to High(CurMap.triggers) do
+    if (CurMap.triggers[i].kind = TRIG_EVENT)
+      and PointInPoly(CurMap.triggers[i].verts, px, py) then begin
+      EventHere := i;
       exit;
     end;
 end;

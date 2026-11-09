@@ -58,6 +58,7 @@ function TrigKind(const s: string): byte;
 begin
   if LowerCase(s) = 'encounter' then TrigKind := TRIG_ENCOUNTER
   else if LowerCase(s) = 'ambient' then TrigKind := TRIG_AMBIENT
+  else if LowerCase(s) = 'event' then TrigKind := TRIG_EVENT
   else TrigKind := TRIG_NONE;
 end;
 
@@ -206,6 +207,7 @@ begin
         tg.kind := TrigKind(tok[1]);
         tg.param := StrToIntDef(tok[2], 0);
         if tok[3] = '-' then tg.tag := '' else tg.tag := tok[3];
+        tg.msg := '';
         nv := (ntok - 4) div 2;
         tg.verts := nil;
         SetLength(tg.verts, nv);
@@ -215,6 +217,22 @@ begin
         end;
         SetLength(m.triggers, Length(m.triggers) + 1);
         m.triggers[High(m.triggers)] := tg;
+      end else if tok[0] = 'eventmsg' then begin
+        { eventmsg TAG message text...: attach a message to the event trigger
+          tagged TAG (which must be declared earlier). The rest of the line,
+          rejoined, is the message. }
+        if ntok < 3 then begin
+          errmsg := 'eventmsg needs a TAG and a message'; exit;
+        end;
+        idx := -1;
+        for k := 0 to High(m.triggers) do
+          if m.triggers[k].tag = tok[1] then begin idx := k; break; end;
+        if idx < 0 then begin
+          errmsg := 'eventmsg TAG ' + tok[1] + ' matches no trigger'; exit;
+        end;
+        line := tok[2];
+        for k := 3 to ntok - 1 do line := line + ' ' + tok[k];
+        m.triggers[idx].msg := line;
       end else if tok[0] = 'walls' then begin
         if m.w = 0 then begin errmsg := 'walls before size'; exit; end;
         inWalls := true;

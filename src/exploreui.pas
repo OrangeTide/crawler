@@ -501,6 +501,24 @@ begin
   saveMsgT := 2.0;
 end;
 
+procedure EventCheck;
+{** A fire-on-enter event trigger springs once: it sets its story flag and
+  shows its message, then the flag keeps it from firing again. The flag rides
+  in the save like a trap's sprung flag, so a revisit stays quiet. }
+var ti: longint;
+begin
+  ti := EventHere(TileX, TileY);
+  if ti < 0 then exit;
+  if CurMap.triggers[ti].tag = '' then exit;   { no flag means no fire-once }
+  if FlagHas(CurMap.triggers[ti].tag) then exit;
+  FlagSet(CurMap.triggers[ti].tag);
+  if CurMap.triggers[ti].msg <> '' then begin
+    saveMsg := CurMap.triggers[ti].msg;
+    saveMsgT := 3.0;
+    JournalAdd(CurMap.triggers[ti].msg);
+  end;
+end;
+
 procedure OpenAdjacentDoor(tx, ty: longint);
 {** Force a closed door tile open, used when a light well is lit. }
 begin
@@ -666,6 +684,7 @@ begin
   PoisonTick;
   TrapCheck;
   LootCheck;
+  EventCheck;
   LightPuzzleCheck;
   AutoPinDiscovered;
   ChargeWagesDue;

@@ -31,15 +31,26 @@ begin
         m.walls[y * m.w + x] := TILE_EMPTY;
   EnsureSectors(m);
 
-  SetLength(m.triggers, 1);
+  SetLength(m.triggers, 2);
   m.triggers[0].kind := TRIG_ENCOUNTER;
   m.triggers[0].param := 5;
   m.triggers[0].tag := 'crypt';
+  m.triggers[0].msg := '';
   SetLength(m.triggers[0].verts, 4);
   m.triggers[0].verts[0].x := 2 * TRIG_UNIT; m.triggers[0].verts[0].y := 2 * TRIG_UNIT;
   m.triggers[0].verts[1].x := 6 * TRIG_UNIT; m.triggers[0].verts[1].y := 2 * TRIG_UNIT;
   m.triggers[0].verts[2].x := 6 * TRIG_UNIT; m.triggers[0].verts[2].y := 6 * TRIG_UNIT;
   m.triggers[0].verts[3].x := 2 * TRIG_UNIT; m.triggers[0].verts[3].y := 6 * TRIG_UNIT;
+  { a fire-on-enter event over the same cells, carrying a message }
+  m.triggers[1].kind := TRIG_EVENT;
+  m.triggers[1].param := 0;
+  m.triggers[1].tag := 'seen';
+  m.triggers[1].msg := 'A COLD DRAFT STIRS THE DUST.';
+  SetLength(m.triggers[1].verts, 4);
+  m.triggers[1].verts[0].x := 2 * TRIG_UNIT; m.triggers[1].verts[0].y := 2 * TRIG_UNIT;
+  m.triggers[1].verts[1].x := 6 * TRIG_UNIT; m.triggers[1].verts[1].y := 2 * TRIG_UNIT;
+  m.triggers[1].verts[2].x := 6 * TRIG_UNIT; m.triggers[1].verts[2].y := 6 * TRIG_UNIT;
+  m.triggers[1].verts[3].x := 2 * TRIG_UNIT; m.triggers[1].verts[3].y := 6 * TRIG_UNIT;
 end;
 
 procedure WriteMapText;
@@ -49,6 +60,8 @@ begin
   s.Add('map TRIGTEST');
   s.Add('size 8 8');
   s.Add('trigger encounter 3 lair 2 2 6 2 6 6 2 6');
+  s.Add('trigger event 0 seen 2 2 6 2 6 6 2 6');
+  s.Add('eventmsg seen A cold draft stirs the dust.');
   s.Add('walls');
   s.Add('22222222');
   s.Add('20000002');
@@ -79,12 +92,14 @@ begin
   Check(PakLoad(TMP, p), 'reload the pak');
   Check(PakGet(p, 'MAP0', blob), 'read the map lump');
   Check(DecodeMap(blob, dm), 'decode the map');
-  CheckEqI(Length(dm.triggers), 1, 'the trigger round-trips');
+  CheckEqI(Length(dm.triggers), 2, 'the triggers round-trip');
   CheckEqI(dm.triggers[0].kind, TRIG_ENCOUNTER, 'the kind round-trips');
   CheckEqI(dm.triggers[0].param, 5, 'the parameter round-trips');
   Check(dm.triggers[0].tag = 'crypt', 'the tag round-trips');
   CheckEqI(Length(dm.triggers[0].verts), 4, 'the polygon round-trips');
   CheckEqI(dm.triggers[0].verts[1].x, 6 * TRIG_UNIT, 'a vertex coord round-trips');
+  CheckEqI(dm.triggers[1].kind, TRIG_EVENT, 'the event kind round-trips');
+  Check(dm.triggers[1].msg = 'A COLD DRAFT STIRS THE DUST.', 'the event message round-trips');
 
   { point-in-polygon through the live lookup }
   Check(LoadMapData(dm), 'load the decoded map');
@@ -97,13 +112,20 @@ begin
   CheckEqI(EncTableHere(0, 3, 3), 5, 'inside, the trigger table applies');
   CheckEqI(EncTableHere(0, 0, 0), EncTableOf(0), 'outside, the area table applies');
 
+  { the event lookup is kind-filtered and finds the event polygon }
+  CheckEqI(EventHere(3, 3), 1, 'inside, the event trigger is found');
+  CheckEqI(EventHere(0, 0), -1, 'outside, no event trigger');
+
   { the map compiler parses the directive }
   WriteMapText;
   Check(ParseMapText(FN, m, name, err), 'the trigger directive parses');
-  CheckEqI(Length(m.triggers), 1, 'the compiler built the trigger');
+  CheckEqI(Length(m.triggers), 2, 'the compiler built both triggers');
   CheckEqI(m.triggers[0].kind, TRIG_ENCOUNTER, 'the compiled kind is right');
   CheckEqI(m.triggers[0].param, 3, 'the compiled parameter is right');
   CheckEqI(Length(m.triggers[0].verts), 4, 'the compiled polygon has four verts');
+  CheckEqI(m.triggers[1].kind, TRIG_EVENT, 'the compiled event kind is right');
+  Check(m.triggers[1].msg = 'A cold draft stirs the dust.',
+    'the eventmsg directive attaches the message');
 
   TestSummary('trigger');
   halt(TestExit);

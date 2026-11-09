@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 11;         { 11 adds the polygon trigger layer }
+  MAP_VERSION = 12;         { 12 adds the event-trigger message string }
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -40,6 +40,7 @@ const
   TRIG_NONE      = 0;
   TRIG_ENCOUNTER = 1;       { param = the encounter table to roll inside }
   TRIG_AMBIENT   = 2;       { param = ambient light level (0..256) while inside }
+  TRIG_EVENT     = 3;       { fire-on-enter once: set the flag `tag`, show `msg` }
 
   { Trigger polygon vertices are stored in 1/16 cell units, so an edge can fall
     between cells. One cell is TRIG_UNIT steps. }
@@ -168,6 +169,7 @@ type
     kind: byte;           { TRIG_* }
     param: word;          { kind-specific, e.g. an encounter table number }
     tag: string[12];      { optional label or target, empty for none }
+    msg: string[80];      { fire-on-enter event message, empty for none }
     verts: array of TTrigPt;
   end;
 
@@ -367,6 +369,7 @@ begin
     BByte(b, m.triggers[i].kind);
     BU16(b, m.triggers[i].param);
     BName(b, m.triggers[i].tag, 12);
+    BName(b, m.triggers[i].msg, 80);
     BU16(b, Length(m.triggers[i].verts));
     for j := 0 to High(m.triggers[i].verts) do begin
       BU16(b, word(m.triggers[i].verts[j].x));
@@ -587,6 +590,7 @@ begin
     m.triggers[i].kind := RByte(r);
     m.triggers[i].param := RU16(r);
     m.triggers[i].tag := RName(r, 12);
+    m.triggers[i].msg := RName(r, 80);
     vcount := RU16(r);
     SetLength(m.triggers[i].verts, vcount);
     for j := 0 to vcount - 1 do begin

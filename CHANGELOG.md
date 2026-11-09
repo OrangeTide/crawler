@@ -15,6 +15,12 @@ whose development history is summarized in docs/roadmap.md.
   alcove or a brighter chamber within one map. Authored with the `trigger
   ambient` map directive; the DUNGEON's torch-lit sunken gallery now reads
   brighter than its dim side halls.
+- A fire-on-enter event trigger (TRIG_EVENT): a polygon that, the first time the
+  party enters it, sets a story flag and shows a one-line message, then stays
+  quiet on return. The fire-once state reuses the save's flag system, so it
+  persists like a sprung trap. Authored with a `trigger event` polygon plus an
+  `eventmsg` line for the message text (map format bumped to 12). The DUNGEON
+  announces its sunken gallery on first descent.
 
 ### Changed
 - Re-authored the starter DUNGEON to the modular mossy kit's scale. The old
