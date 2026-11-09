@@ -2,9 +2,14 @@
 # 1=brick 2=stone 3=moss 4=door, 0=open floor.
 map DUNGEON
 size 24 24
-tileset 4
+tileset 10
 music 0
 area crypt
+# the modular crypt kit wants roughly three-unit ceilings, so the base
+# sector is taller than the old flat default; the central gallery is taller
+# still and its floor drops half a unit for a grand sunken hall
+sector 0 0 48
+sector 1 -8 64
 walls
 111111111111111111111111
 100000000002220000000001
@@ -31,6 +36,8 @@ walls
 100000111002220111000001
 111111111111111111111111
 end
+# the full-width east-west hall at row 7 is the sunken grand gallery
+fill 1 1 7 22 7
 marker start 2 1 E
 marker back 5 1 E
 marker grotto 3 22 E
