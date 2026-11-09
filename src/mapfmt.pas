@@ -30,9 +30,19 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 10;         { 10 adds the sector layer over the wall grid }
+  MAP_VERSION = 11;         { 11 adds the polygon trigger layer }
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
+
+  { Trigger-area kinds. A trigger is a polygon over the logical grid, decoupled
+    from the geometry, that acts on the party while it stands inside. New kinds
+    add here; the codec carries a byte kind and a word parameter either way. }
+  TRIG_NONE      = 0;
+  TRIG_ENCOUNTER = 1;       { param = the encounter table to roll inside }
+
+  { Trigger polygon vertices are stored in 1/16 cell units, so an edge can fall
+    between cells. One cell is TRIG_UNIT steps. }
+  TRIG_UNIT   = 16;
 
   { Sector heights are stored in 1/16 world unit, so one world unit (the old
     flat floor-to-ceiling height) is HZ_UNIT steps. The default room is floor
@@ -138,6 +148,20 @@ type
     light: byte;               { reserved; 0 = the per-cell light as today }
   end;
 
+  { A polygon point in 1/16 cell units (TRIG_UNIT per cell). }
+  TTrigPt = packed record
+    x, y: smallint;
+  end;
+
+  { A trigger area: a polygon over the logical grid that acts on the party
+    while it stands inside, decoupled from the geometry. }
+  TTrigger = record
+    kind: byte;           { TRIG_* }
+    param: word;          { kind-specific, e.g. an encounter table number }
+    tag: string[12];      { optional label or target, empty for none }
+    verts: array of TTrigPt;
+  end;
+
   TMapData = record
     w, h: longint;
     tileset, music, flags, area: byte;
@@ -152,6 +176,7 @@ type
     lights: array of TLightTile;
     props: array of TProp;
     loot: array of TLoot;
+    triggers: array of TTrigger;          { polygon trigger areas, may be empty }
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -224,7 +249,7 @@ end;
 function EncodeMap(const m: TMapData): TByteArray;
 var
   b: TBuf;
-  i: longint;
+  i, j: longint;
 begin
   BInit(b);
   BU32(b, MAP_MAGIC);
@@ -327,6 +352,19 @@ begin
     else
       BByte(b, SECTOR_NONE);
 
+  { trigger layer: each a kind, a parameter, a tag, then its polygon }
+  BU16(b, Length(m.triggers));
+  for i := 0 to High(m.triggers) do begin
+    BByte(b, m.triggers[i].kind);
+    BU16(b, m.triggers[i].param);
+    BName(b, m.triggers[i].tag, 12);
+    BU16(b, Length(m.triggers[i].verts));
+    for j := 0 to High(m.triggers[i].verts) do begin
+      BU16(b, word(m.triggers[i].verts[j].x));
+      BU16(b, word(m.triggers[i].verts[j].y));
+    end;
+  end;
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -417,13 +455,13 @@ end;
 function DecodeMap(const blob: TByteArray; out m: TMapData): boolean;
 var
   r: TRdr;
-  i, count: longint;
+  i, j, count, vcount: longint;
 begin
   DecodeMap := false;
   m.w := 0; m.h := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
-  m.loot := nil; m.sectors := nil; m.cellSector := nil;
+  m.loot := nil; m.sectors := nil; m.cellSector := nil; m.triggers := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -533,6 +571,20 @@ begin
   SetLength(m.cellSector, m.w * m.h);
   for i := 0 to m.w * m.h - 1 do
     m.cellSector[i] := RByte(r);
+
+  count := RU16(r);
+  SetLength(m.triggers, count);
+  for i := 0 to count - 1 do begin
+    m.triggers[i].kind := RByte(r);
+    m.triggers[i].param := RU16(r);
+    m.triggers[i].tag := RName(r, 12);
+    vcount := RU16(r);
+    SetLength(m.triggers[i].verts, vcount);
+    for j := 0 to vcount - 1 do begin
+      m.triggers[i].verts[j].x := smallint(RU16(r));
+      m.triggers[i].verts[j].y := smallint(RU16(r));
+    end;
+  end;
 
   { belt and braces: a map that somehow lacks a sector table gets the flat
     default so the renderer always has heights to read. Clearing cellSector

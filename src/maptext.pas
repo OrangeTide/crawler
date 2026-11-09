@@ -53,6 +53,13 @@ begin
   else DirCode := DIR_W;
 end;
 
+{ Map a trigger kind name to its TRIG_* value; TRIG_NONE if unknown. }
+function TrigKind(const s: string): byte;
+begin
+  if LowerCase(s) = 'encounter' then TrigKind := TRIG_ENCOUNTER
+  else TrigKind := TRIG_NONE;
+end;
+
 procedure Split(const line: string; out tok: array of string; out ntok: longint);
 var
   i, start, len: longint;
@@ -78,7 +85,7 @@ var
   lines: TStringList;
   li, ntok, row, x: longint;
   k, j, oldn, fx, fy, fx0, fy0, fx1, fy1, idx: longint;
-  tok: array[0 .. 15] of string;
+  tok: array[0 .. 63] of string;   { wide enough for a trigger polygon's verts }
   line: string;
   inWalls, wallsDone: boolean;
   mk: TMarker;
@@ -89,6 +96,8 @@ var
   lt: TLightTile;
   pr: TProp;
   lo: TLoot;
+  tg: TTrigger;
+  nv, vi: longint;
 begin
   ParseMapText := false;
   errmsg := '';
@@ -184,6 +193,27 @@ begin
               idx := fy * m.w + fx;
               if CellHasSector(m.walls[idx]) then m.cellSector[idx] := k;
             end;
+      end else if tok[0] = 'trigger' then begin
+        { trigger KIND PARAM TAG X0 Y0 X1 Y1 ...: a polygon area. The vertex
+          coords are in cells and stored in 1/16 cell units. Needs >= 3. }
+        if ntok < 10 then begin
+          errmsg := 'trigger needs KIND PARAM TAG and >= 3 X Y pairs'; exit;
+        end;
+        if ((ntok - 4) mod 2) <> 0 then begin
+          errmsg := 'trigger vertex coords must come in X Y pairs'; exit;
+        end;
+        tg.kind := TrigKind(tok[1]);
+        tg.param := StrToIntDef(tok[2], 0);
+        if tok[3] = '-' then tg.tag := '' else tg.tag := tok[3];
+        nv := (ntok - 4) div 2;
+        tg.verts := nil;
+        SetLength(tg.verts, nv);
+        for vi := 0 to nv - 1 do begin
+          tg.verts[vi].x := StrToInt(tok[4 + vi * 2]) * TRIG_UNIT;
+          tg.verts[vi].y := StrToInt(tok[5 + vi * 2]) * TRIG_UNIT;
+        end;
+        SetLength(m.triggers, Length(m.triggers) + 1);
+        m.triggers[High(m.triggers)] := tg;
       end else if tok[0] = 'walls' then begin
         if m.w = 0 then begin errmsg := 'walls before size'; exit; end;
         inWalls := true;

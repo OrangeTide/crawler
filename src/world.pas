@@ -86,6 +86,9 @@ function CeilZAt(mx, my: longint): double;
 { The tileset that clads a cell: its sector's own tileset when set, else the
   map's tileset. Drives whether the cell renders from a modular kit. }
 function CellTileset(mx, my: longint): longint;
+{ The trigger area whose polygon contains a cell's centre, or -1. The first
+  matching trigger in the map wins. Integer test, no FPU. }
+function TriggerAt(mx, my: longint): longint;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -453,6 +456,46 @@ begin
   s := SectorAt(mx, my);
   if (s >= 0) and (s <= High(CurMap.sectors)) and (CurMap.sectors[s].tileset > 0) then
     CellTileset := CurMap.sectors[s].tileset;
+end;
+
+{ Even-odd ray cast: is (px,py), in 1/16 cell units, inside the polygon? All
+  integer, so it holds on the no-FPU targets. }
+function PointInPoly(const verts: array of TTrigPt; px, py: longint): boolean;
+var
+  i, k, n: longint;
+  dy, num, lhs: longint;
+  inside, cross: boolean;
+begin
+  inside := false;
+  n := Length(verts);
+  if n < 3 then begin PointInPoly := false; exit; end;
+  k := n - 1;
+  for i := 0 to n - 1 do begin
+    if (verts[i].y > py) <> (verts[k].y > py) then begin
+      { x where edge k->i meets the ray y=py is verts[i].x + num/dy }
+      dy := verts[k].y - verts[i].y;
+      num := (verts[k].x - verts[i].x) * (py - verts[i].y);
+      lhs := (px - verts[i].x) * dy;        { px < x_edge, cross-multiplied }
+      if dy > 0 then cross := lhs < num else cross := lhs > num;
+      if cross then inside := not inside;
+    end;
+    k := i;
+  end;
+  PointInPoly := inside;
+end;
+
+function TriggerAt(mx, my: longint): longint;
+var
+  i, px, py: longint;
+begin
+  TriggerAt := -1;
+  px := mx * TRIG_UNIT + TRIG_UNIT div 2;
+  py := my * TRIG_UNIT + TRIG_UNIT div 2;
+  for i := 0 to High(CurMap.triggers) do
+    if PointInPoly(CurMap.triggers[i].verts, px, py) then begin
+      TriggerAt := i;
+      exit;
+    end;
 end;
 
 function NpcTileOccupied(mx, my: longint): boolean;
