@@ -193,6 +193,23 @@ go to a per-user directory (`~/.config/crawler`, `~/Library/Application
 Support/crawler`, or `%APPDATA%\crawler`), so a read-only install still works.
 A `portable.txt` beside the binary keeps everything in one folder instead.
 
+### Running a downloaded macOS build
+
+The macOS archive is not notarized by Apple, so Gatekeeper quarantines it on
+download. The first launch reports that macOS "could not verify" the app is
+free of malware and offers only Move to Trash or Done. To run it, clear the
+quarantine attribute on the extracted folder, then launch from there:
+
+```sh
+xattr -dr com.apple.quarantine crawler-*-macos-aarch64
+cd crawler-*-macos-aarch64
+./crawler
+```
+
+Opening the app once and then choosing Open Anyway under System Settings,
+Privacy and Security also works. The build needs the SDL2 runtime, which
+Homebrew provides with `brew install sdl2`.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` builds the game and runs the full test suite on
