@@ -11,7 +11,7 @@ MACOS_IMAGE ?= crawler-macos-cross
 OSX_SDK     ?= $(notdir $(firstword $(wildcard docker/macos-cross/MacOSX*.sdk.tar.*)))
 DARWIN_VER  ?= 24
 
-macos: $(PAK)
+macos: $(PAK) build/version.inc
 	@test -n "$(OSX_SDK)" || { echo "Put the MacOSX*.sdk.tar.* SDK in docker/macos-cross/ (see its README)"; exit 1; }
 	docker build -t $(MACOS_IMAGE) \
 	  --build-arg OSX_SDK="$(OSX_SDK)" \
