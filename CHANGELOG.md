@@ -9,6 +9,20 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+## [0.27.1] - 2026-11-09
+
+Release tooling fixes for the 0.27 line.
+
+### Fixed
+- The release and CI builds install ImageMagick, so the asset bake's `convert`
+  step runs on the GitHub and GitLab runners instead of failing the build.
+- The macOS cross-build generates and includes `build/version.inc`, so the
+  version-stamped binary compiles through the docker cross path.
+
+### Changed
+- Headless title screenshots now show the build version string.
+- CI also runs when `version.mk` changes.
+
 ## [0.27.0] - 2026-11-09
 
 Character systems and modular geometry.
@@ -304,5 +318,6 @@ World content and the critical path.
 - Refreshed the README and the screenshots to the current six-zone game, and
   regenerated the module layout from the current source tree.
 
+[0.27.1]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.1
 [0.27.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.0
 [0.24.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.24.0
