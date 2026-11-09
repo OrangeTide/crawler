@@ -407,16 +407,17 @@ multi-cell mesh instances rather than per-cell quads.
   table while the party stands inside it. Still open: more effect kinds (a
   fire-on-enter event for messages and quest flags, which needs a fired flag in
   the save; region damage or status; an ambient-light zone).
-- [gap] (0.27.0) Port mapgen and the authored zones to the kit. The cladding is
-  in; this brings it to the real content. The generators emit sector geometry
-  clad with kit meshes, and the authored zone maps migrate onto modular
-  tilesets with varied floor and ceiling heights for vertical variety. Needs
-  the pieces to cover arbitrary layouts well: either base-unit (1x1) kit pieces
-  so ragged, non-grid-aligned rooms do not fall back to stretched fillers, or
-  authoring the zones on the kit grid. A map that mixes a modular sector with a
-  procedural one also needs more than one trim atlas resident at once (today
-  one atlas is resident per map). Larger than the cladding itself, so it is its
-  own effort rather than a tail of the renderer work.
+- [partial] (0.27.0) Port mapgen and the authored zones to the kit. Landed: the
+  modular kit has its own tileset (10, past the biomes, opt-in), base-unit (1x1)
+  kit pieces so ragged non-grid-aligned rooms tile clean fillers instead of
+  stretched ones, and crypt-themed generated dungeon levels now wear the kit and
+  clad in play. Still open: migrate the authored zone maps onto modular tilesets;
+  vary the generated dungeons' floor and ceiling heights for vertical variety
+  (they clad flat today); and multi-atlas residency for a map that mixes a
+  modular sector with a procedural one (one trim atlas is resident per map, which
+  suffices while a modular map is wholly modular). Only the crypt theme fits the
+  one mossy kit; other biomes need their own kits (future art) before they go
+  modular.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
