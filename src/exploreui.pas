@@ -654,6 +654,9 @@ begin
     exit;
   lastTX := TileX;
   lastTY := TileY;
+  { an encounter trigger overrides the map's table while the party stands
+    inside its polygon; outside, the area's own table applies }
+  CurEncTable := EncTableHere(CurAreaMask, TileX, TileY);
   TimeAdvance(3);   { a few minutes pass each tile }
   if PortalAt(TileX, TileY, target, marker) then begin
     LoadMapByName(target, marker);

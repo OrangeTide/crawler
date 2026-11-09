@@ -7,7 +7,7 @@ program t_trigger;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, classes, pak, mapfmt, maptext, world, testing;
+  sysutils, classes, pak, mapfmt, maptext, world, encounters, testing;
 
 const
   TMP = 'build/tests/_trigger.pak';
@@ -92,6 +92,10 @@ begin
   CheckEqI(TriggerAt(5, 5), 0, 'the far inside corner still hits');
   CheckEqI(TriggerAt(0, 0), -1, 'a cell outside misses');
   CheckEqI(TriggerAt(6, 6), -1, 'a cell past the edge misses');
+
+  { the encounter table in effect: the trigger's inside it, the area's out }
+  CheckEqI(EncTableHere(0, 3, 3), 5, 'inside, the trigger table applies');
+  CheckEqI(EncTableHere(0, 0, 0), EncTableOf(0), 'outside, the area table applies');
 
   { the map compiler parses the directive }
   WriteMapText;

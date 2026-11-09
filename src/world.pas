@@ -17,7 +17,7 @@ unit world;
 interface
 
 uses
-  textures, mapfmt, gfx, models;
+  textures, mapfmt, gfx, models, encounters;
 
 const
   MAXMAP = 64;
@@ -89,6 +89,9 @@ function CellTileset(mx, my: longint): longint;
 { The trigger area whose polygon contains a cell's centre, or -1. The first
   matching trigger in the map wins. Integer test, no FPU. }
 function TriggerAt(mx, my: longint): longint;
+{ The encounter table in effect at a cell: an encounter trigger's table while
+  the party stands inside it, else the map area's own table. }
+function EncTableHere(mask: byte; mx, my: longint): longint;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -496,6 +499,15 @@ begin
       TriggerAt := i;
       exit;
     end;
+end;
+
+function EncTableHere(mask: byte; mx, my: longint): longint;
+var ti: longint;
+begin
+  EncTableHere := EncTableOf(mask);
+  ti := TriggerAt(mx, my);
+  if (ti >= 0) and (CurMap.triggers[ti].kind = TRIG_ENCOUNTER) then
+    EncTableHere := CurMap.triggers[ti].param;
 end;
 
 function NpcTileOccupied(mx, my: longint): boolean;
