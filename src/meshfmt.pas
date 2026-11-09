@@ -5,14 +5,21 @@ unit meshfmt;
   A mesh is a flat list of triangles, three corners each, every corner
   carrying a position and a texture coordinate. Corners are not shared
   between triangles, which keeps the renderer a simple loop and suits
-  the small PSX-scale models this engine uses. One paletted texture
-  travels with the mesh, already quantized to the game palette.
+  the small PSX-scale models this engine uses.
+
+  A mesh carries its texture one of two ways, by texKind. An embedded
+  mesh (texKind 0, the prop case) ships its own paletted texture inside
+  the lump, already quantized to the game palette. A shared-texture mesh
+  (texKind 1, the modular tile case) ships no texture: its UVs index a
+  trim-sheet atlas that the renderer supplies, so a whole modular room
+  draws from one resident texture, the PS1-friendly path.
 
   The on-disk lump is 'CMSH': a header, the corners as 32-bit floats,
-  then the texture as one byte per texel (a palette index). The offline
-  baker reads a Wavefront OBJ (positions and UVs) and a binary PPM
-  texture and produces this. Model space is converted to the engine's
-  Z-up world on the way in, so the renderer needs no axis juggling. }
+  then, for an embedded mesh, the texture as one byte per texel (a
+  palette index). The offline baker reads a Wavefront OBJ (positions and
+  UVs), plus a binary PPM for the embedded case, and produces this. Model
+  space is converted to the engine's Z-up world on the way in, so the
+  renderer needs no axis juggling. }
 
 {$mode objfpc}{$H+}
 
@@ -23,7 +30,11 @@ uses
 
 const
   MESH_MAGIC   = $48534D43;   { 'CMSH' little-endian }
-  MESH_VERSION = 1;
+  MESH_VERSION = 2;           { v2 adds texKind; v1 lumps still decode }
+
+  { how a mesh carries its texture }
+  TEXKIND_EMBED  = 0;   { the mesh ships its own paletted texture }
+  TEXKIND_SHARED = 1;   { no texture; UVs index a shared trim atlas }
 
   { default triangle ceiling for a baked model, sized for the PSX and
     DOS targets; the baker reduces anything heavier to fit }
@@ -41,24 +52,33 @@ type
 
   TMesh = record
     verts: array of TTriVert;   { 3 per triangle, length = triCount * 3 }
-    texW, texH: longint;
-    tex: array of byte;         { texW * texH palette indices, top-left origin }
+    texKind: byte;              { TEXKIND_EMBED or TEXKIND_SHARED }
+    texW, texH: longint;        { 0 for a shared-texture mesh }
+    tex: array of byte;         { texW * texH palette indices, empty if shared }
   end;
 
 function EncodeMesh(const m: TMesh): TByteArray;
 function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
 
 { Offline baker: read an OBJ and a binary PPM, quantize the texture to
-  the game palette (InitGfx must have run), and build the mesh. }
+  the game palette (InitGfx must have run), and build the mesh. The prop
+  path: the mesh is centered on its footprint and ships its own texture. }
 function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
+
+{ Offline baker: read an OBJ only, as a shared-texture modular tile. The
+  authored coordinates are kept (not recentered), so pieces built on one
+  grid tile together, and the UVs are left to index the trim atlas. }
+function LoadMeshObj(const objFn: string; out m: TMesh): boolean;
 
 { Read a binary PPM (P6) into a flat RGB byte buffer (w*h*3). }
 function ReadPpm(const fn: string; out w, h: longint; out pixbuf: TByteArray): boolean;
 
 { Offline baker: reduce a mesh to at most maxTris triangles by clustering
   vertices onto a spatial grid. A mesh already within budget is left as
-  is. Returns the triangle count after the pass. }
-function DecimateMesh(var m: TMesh; maxTris: longint): longint;
+  is. Returns the triangle count after the pass. recenter reseats the
+  result on its footprint and z=0, which props want but modular tiles do
+  not, since tiles must keep the authored origin they align on. }
+function DecimateMesh(var m: TMesh; maxTris: longint; recenter: boolean = true): longint;
 
 implementation
 
@@ -104,11 +124,12 @@ var
   n, i, nv, nt: longint;
 begin
   nv := Length(m.verts);
-  nt := m.texW * m.texH;
-  SetLength(b, 4 + 4 + 4 + nv * 5 * 4 + 4 + 4 + nt);
+  if m.texKind = TEXKIND_SHARED then nt := 0 else nt := m.texW * m.texH;
+  SetLength(b, 4 + 4 + 4 + 4 + nv * 5 * 4 + 4 + 4 + nt);
   n := 0;
   PutU32(b, n, MESH_MAGIC);
   PutU32(b, n, MESH_VERSION);
+  PutU32(b, n, m.texKind);
   PutU32(b, n, nv);
   for i := 0 to nv - 1 do begin
     PutF(b, n, m.verts[i].x); PutF(b, n, m.verts[i].y); PutF(b, n, m.verts[i].z);
@@ -123,14 +144,22 @@ end;
 
 function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
 var
-  n, i, nv, nt: longint;
+  n, i, nv, nt, ver: longint;
 begin
   DecodeMesh := false;
-  m.verts := nil; m.tex := nil; m.texW := 0; m.texH := 0;
+  m.verts := nil; m.tex := nil; m.texKind := TEXKIND_EMBED;
+  m.texW := 0; m.texH := 0;
   if Length(blob) < 12 then exit;
   n := 0;
   if GetU32(blob, n) <> MESH_MAGIC then exit;
-  if GetU32(blob, n) <> MESH_VERSION then exit;
+  ver := GetU32(blob, n);
+  { v1 has no texKind field; v2 stores it right after the version }
+  if ver = 1 then
+    m.texKind := TEXKIND_EMBED
+  else if ver = MESH_VERSION then
+    m.texKind := GetU32(blob, n)
+  else
+    exit;
   nv := GetU32(blob, n);
   if (nv < 0) or (nv mod 3 <> 0) then exit;
   if Length(blob) < n + nv * 5 * 4 + 8 then exit;
@@ -362,6 +391,7 @@ begin
 
   dst.verts := nil;
   SetLength(dst.verts, kept * 3);
+  dst.texKind := src.texKind;
   dst.texW := src.texW; dst.texH := src.texH;
   SetLength(dst.tex, Length(src.tex));
   if Length(src.tex) > 0 then Move(src.tex[0], dst.tex[0], Length(src.tex));
@@ -375,7 +405,7 @@ begin
   ClusterAtRes := kept;
 end;
 
-function DecimateMesh(var m: TMesh; maxTris: longint): longint;
+function DecimateMesh(var m: TMesh; maxTris: longint; recenter: boolean = true): longint;
 var
   lo, hi, mid, bestG, cnt: longint;
   tmp: TMesh;
@@ -396,19 +426,22 @@ begin
 
   ClusterAtRes(m, bestG, tmp);
   m := tmp;
-  CenterMesh(m);   { averaging may lift the base; reseat it on z=0 }
+  if recenter then
+    CenterMesh(m);   { averaging may lift the base; reseat it on z=0 }
   DecimateMesh := Length(m.verts) div 3;
 end;
 
-function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
+{ Parse a Wavefront OBJ (positions and UVs, triangulated) into m.verts.
+  The texture fields are left untouched; the callers set those. Model
+  space is Y-up and stored Z-up. Returns true if any triangle was read. }
+function ParseObjVerts(const objFn: string; var m: TMesh): boolean;
 var
   lines: TStringList;
   li, i, ntok, vi0, ti0, vi1, ti1, vi2, ti2: longint;
   tok: array[0 .. 63] of string;
   pos: array of TVec3;
   uvs: array of TVec2;
-  np, nu, tw, th: longint;
-  pixbuf: TByteArray;
+  np, nu: longint;
   line: string;
 
   procedure AddCorner(vi, ti: longint);
@@ -427,16 +460,8 @@ var
   end;
 
 begin
-  LoadMeshObjPpm := false;
-  m.verts := nil; m.tex := nil; m.texW := 0; m.texH := 0;
+  m.verts := nil;
   np := 0; nu := 0;
-
-  if not ReadPpm(ppmFn, tw, th, pixbuf) then exit;
-  m.texW := tw; m.texH := th;
-  SetLength(m.tex, tw * th);
-  for i := 0 to tw * th - 1 do
-    m.tex[i] := Quantize(RGB(pixbuf[i * 3], pixbuf[i * 3 + 1], pixbuf[i * 3 + 2]));
-
   lines := TStringList.Create;
   try
     lines.LoadFromFile(objFn);
@@ -476,12 +501,43 @@ begin
   finally
     lines.Free;
   end;
+  ParseObjVerts := Length(m.verts) >= 3;
+end;
+
+function LoadMeshObjPpm(const objFn, ppmFn: string; out m: TMesh): boolean;
+var
+  i, tw, th: longint;
+  pixbuf: TByteArray;
+begin
+  LoadMeshObjPpm := false;
+  m.verts := nil; m.tex := nil; m.texKind := TEXKIND_EMBED;
+  m.texW := 0; m.texH := 0;
+
+  if not ReadPpm(ppmFn, tw, th, pixbuf) then exit;
+  m.texW := tw; m.texH := th;
+  SetLength(m.tex, tw * th);
+  for i := 0 to tw * th - 1 do
+    m.tex[i] := Quantize(RGB(pixbuf[i * 3], pixbuf[i * 3 + 1], pixbuf[i * 3 + 2]));
+
+  if not ParseObjVerts(objFn, m) then exit;
 
   { center the model on its footprint and rest its base on z=0, so it
     rotates about its own axis and sits on the floor when placed }
   CenterMesh(m);
 
   LoadMeshObjPpm := Length(m.verts) >= 3;
+end;
+
+function LoadMeshObj(const objFn: string; out m: TMesh): boolean;
+begin
+  LoadMeshObj := false;
+  m.verts := nil; m.tex := nil; m.texKind := TEXKIND_SHARED;
+  m.texW := 0; m.texH := 0;
+
+  if not ParseObjVerts(objFn, m) then exit;
+
+  { no centering: a modular tile keeps the authored origin it tiles on }
+  LoadMeshObj := Length(m.verts) >= 3;
 end;
 
 end.

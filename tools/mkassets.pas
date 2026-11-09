@@ -263,6 +263,50 @@ begin
       vram, ' B vram, ', ram, ' B ram) from ', objFn);
 end;
 
+procedure AddTile(const name, objFn: string; budget: longint);
+{ Bake a modular kit piece as a shared-texture tile: geometry only, its
+  UVs indexing the tileset trim atlas, decimated to the per-tile budget.
+  The authored origin is kept (recenter off) so pieces tile together. }
+var
+  mesh: TMesh;
+  before, after, ram: longint;
+begin
+  if not LoadMeshObj(objFn, mesh) then begin
+    writeln(StdErr, 'mkassets: tile ', name, ': cannot bake ', objFn);
+    halt(1);
+  end;
+  before := Length(mesh.verts) div 3;
+  after := DecimateMesh(mesh, budget, false);
+  PakWAdd(w, UpperCase(name), EncodeMesh(mesh));
+  ram := Length(mesh.verts) * MODEL_GEOM_VERT_BYTES;
+  modelRam := modelRam + ram;   { no VRAM: every tile shares the one atlas }
+  if after < before then
+    writeln('  tile ', UpperCase(name), ' (', after, ' tris, cut from ',
+      before, ', shared tex, ', ram, ' B ram) from ', objFn)
+  else
+    writeln('  tile ', UpperCase(name), ' (', after, ' tris, shared tex, ',
+      ram, ' B ram) from ', objFn);
+end;
+
+procedure AddTrimSheet(tileset: longint; const ppmFn: string);
+{ Bake a tileset's trim-sheet atlas from a binary PPM into a TRIM<n> PIC,
+  the one shared texture its modular tiles draw from. }
+var
+  sw, sh, i: longint;
+  pixbuf: TByteArray;
+  atlas: TImage;
+begin
+  if not ReadPpm(ppmFn, sw, sh, pixbuf) then begin
+    writeln(StdErr, 'mkassets: trim ', tileset, ': cannot read ', ppmFn);
+    halt(1);
+  end;
+  ImgNew(atlas, sw, sh);
+  for i := 0 to sw * sh - 1 do
+    atlas.pix[i] := RGB(pixbuf[i * 3], pixbuf[i * 3 + 1], pixbuf[i * 3 + 2]);
+  PakWAdd(w, 'TRIM' + IntToStr(tileset), PicEncodeDirect(atlas));
+  writeln('  trim TRIM', tileset, ' (', sw, 'x', sh, ') from ', ppmFn);
+end;
+
 procedure AddSprite(const name, ppmFn: string);
 { Ingest a billboard sprite from a binary PPM. Magenta (255,0,255) pixels
   become the transparent key; the rest keep their colour. Shipped as a
@@ -375,6 +419,11 @@ begin
       AddMusic(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'model' then begin
       AddModel(ParamStr(i + 1), ParamStr(i + 2), ParamStr(i + 3)); inc(i, 4);
+    end else if ParamStr(i) = 'tile' then begin
+      AddTile(ParamStr(i + 1), ParamStr(i + 2),
+        StrToIntDef(ParamStr(i + 3), 128)); inc(i, 4);
+    end else if ParamStr(i) = 'trim' then begin
+      AddTrimSheet(StrToIntDef(ParamStr(i + 1), 0), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'sprite' then begin
       AddSprite(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else begin

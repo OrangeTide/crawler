@@ -34,12 +34,25 @@ const
   TEX_CEILING = 6;
   TEX_COUNT   = 7;
 
+  { The modular-tile tileset. Its surfaces fall back to tileset 0, but it
+    carries the trim-sheet atlas the modular kit pieces sample. Kept out
+    of the authored maps' tileset range so the atlas is resident only when
+    a modular area is entered. }
+  TILESET_MODULAR = 9;
+
 type
   TTexture = array[0 .. TEXSIZE - 1] of TColor;
 
 var
   Tex: array[0 .. TEX_COUNT - 1] of TTexture;
   CurTileset: longint = -1;
+
+  { The resident trim-sheet atlas for the current tileset, as palette
+    indices (the shared texture every modular tile samples). Empty when
+    the tileset defines no modular pieces. One atlas is resident at a
+    time, the same flat-memory rule the surfaces follow. }
+  TrimTex: array of byte;
+  TrimW, TrimH: longint;
 
 { Load the surfaces of tileset 0, the default. Call once at startup. }
 function LoadTextures(const p: TPak): boolean;
@@ -86,6 +99,32 @@ begin
   LoadOne := true;
 end;
 
+{ Load the TRIM<tileset> atlas into TrimTex as palette indices. A tileset
+  without a trim lump leaves the atlas empty, which simply means it has no
+  modular pieces. Returns true when an atlas was loaded. }
+function LoadTrim(const p: TPak; tileset: longint): boolean;
+var
+  blob: TByteArray;
+  img: TImage;
+  i, n: longint;
+  nm: string;
+begin
+  LoadTrim := false;
+  TrimTex := nil; TrimW := 0; TrimH := 0;
+  Str(tileset, nm);
+  nm := 'TRIM' + nm;
+  if not PakGet(p, nm, blob) then
+    exit;
+  if not PicDecode(blob, img) then
+    exit;
+  n := img.w * img.h;
+  SetLength(TrimTex, n);
+  for i := 0 to n - 1 do
+    TrimTex[i] := Quantize(img.pix[i]);
+  TrimW := img.w; TrimH := img.h;
+  LoadTrim := true;
+end;
+
 function SetTileset(const p: TPak; tileset: longint): boolean;
 var
   id: longint;
@@ -100,6 +139,8 @@ begin
       { this tileset lacks the surface: use tileset 0's }
       if not LoadOne(p, id, LumpName(id, 0)) then
         SetTileset := false;
+  { the trim atlas is optional; its absence is not a failure }
+  LoadTrim(p, tileset);
   CurTileset := tileset;
 end;
 
