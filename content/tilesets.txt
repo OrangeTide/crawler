@@ -9,10 +9,12 @@
 # roles: floor ceil wall pillar; fw fh are the ground footprint in grid
 # units, fz the height in units (default 1).
 
-# Tileset 9: the SigilsVault mossy dungeon kit. Pieces authored at native
-# ~4 metre scale, so the floor and ceiling cover a 4x4 block and the wall
-# spans 4 units and stands 3 tall. See content/rooms/pieces.
-kit 9 mossy
+# Tileset 10: the SigilsVault mossy dungeon kit. This is the dedicated
+# modular tileset, past the biome range 0..9, so a map clads only when it
+# points at it. Pieces authored at native ~4 metre scale, so the floor and
+# ceiling cover a 4x4 block and the wall spans 4 units and stands 3 tall.
+# See content/rooms/pieces.
+kit 10 mossy
   floor  MOD_FLOOR   4 4
   ceil   MOD_CEIL    4 4
   wall   MOD_WALL    4 1 3

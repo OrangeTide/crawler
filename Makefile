@@ -81,7 +81,7 @@ MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
 # per-piece texture) and the atlas bakes once onto the modular tileset.
 TILEARGS  = $(foreach n,$(TILENAMES),tile $(n) content/rooms/pieces/$(n).obj 256)
-TRIMARG   = trim 9 content/rooms/trim_mossy.ppm
+TRIMARG   = trim 10 content/rooms/trim_mossy.ppm
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)
