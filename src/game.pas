@@ -25,7 +25,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, spelldb, spellbook, skilldb, skillbook, shops, encounters,
-  tilekit, worldfmt, overworld, gamestate,
+  tilekit, clad, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   miscui, overworldui, gametime, audio, settings, codex, apppaths;
 
@@ -82,6 +82,7 @@ begin
   LoadShops(GamePak);     { optional; shop stock lists }
   LoadEncounters(GamePak); { optional; per-area encounter tables }
   LoadKits(GamePak);      { optional; per-tileset modular kit definitions }
+  CladInit(GamePak);      { decode the kit piece meshes for the cladding pass }
   LoadWorld(GamePak);     { optional; dynamic-map manifest }
   LoadModels(GamePak);    { optional; polygon-renderer props }
   CodexReset;             { size the bestiary and item knowledge to the tables }

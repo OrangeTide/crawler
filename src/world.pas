@@ -83,6 +83,9 @@ function SectorAt(mx, my: longint): longint;
   out-of-bounds cell reads as the default flat room (floor 0, ceiling 1). }
 function FloorZAt(mx, my: longint): double;
 function CeilZAt(mx, my: longint): double;
+{ The tileset that clads a cell: its sector's own tileset when set, else the
+  map's tileset. Drives whether the cell renders from a modular kit. }
+function CellTileset(mx, my: longint): longint;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -440,6 +443,16 @@ begin
     CeilZAt := 1.0
   else
     CeilZAt := CurMap.sectors[s].ceilZ / HZ_UNIT;
+end;
+
+function CellTileset(mx, my: longint): longint;
+var
+  s: longint;
+begin
+  CellTileset := CurMap.tileset;
+  s := SectorAt(mx, my);
+  if (s >= 0) and (s <= High(CurMap.sectors)) and (CurMap.sectors[s].tileset > 0) then
+    CellTileset := CurMap.sectors[s].tileset;
 end;
 
 function NpcTileOccupied(mx, my: longint): boolean;

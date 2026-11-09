@@ -20,6 +20,8 @@ program shot;
     shot <out.ppm> create       (the character-creation screen)
     shot <out.ppm> sheet [N]    (the character sheet for party member N)
     shot <out.ppm> fieldcast [cast]   (the SPELLS tab field-casting; cast opens the picker)
+    shot <out.ppm> sector [X] [Y] [N|E|S|W]   (the sector height proof)
+    shot <out.ppm> clad [X] [Y] [N|E|S|W]     (the modular cladding proof)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -110,6 +112,37 @@ begin
     end;
   for y := 3 to 6 do for x := 3 to 6 do m.cellSector[y * m.w + x] := 1;   { pit }
   for y := 8 to 10 do for x := 8 to 10 do m.cellSector[y * m.w + x] := 2;  { dais }
+end;
+
+{ Build a flat room on the modular tileset so the cladding pass draws its
+  floor and ceiling from the mossy kit meshes instead of the surface quads.
+  One sector, three units tall to match the kit's native wall height. }
+procedure BuildCladDemo(out m: TMapData);
+var
+  x, y, i: longint;
+begin
+  m.w := 10; m.h := 10;
+  m.tileset := TILESET_MODULAR; m.music := 0; m.flags := 0; m.area := 0;
+  SetLength(m.walls, m.w * m.h);
+  SetLength(m.cellSector, m.w * m.h);
+  m.markers := nil; m.portals := nil; m.doors := nil; m.npcs := nil;
+  m.traps := nil; m.lights := nil; m.props := nil; m.loot := nil;
+
+  SetLength(m.sectors, 1);
+  m.sectors[0].floorZ := 0;  m.sectors[0].ceilZ := 48;   { 3 units tall }
+  m.sectors[0].tileset := 0; m.sectors[0].light := 0;
+
+  for y := 0 to m.h - 1 do
+    for x := 0 to m.w - 1 do begin
+      i := y * m.w + x;
+      if (x = 0) or (y = 0) or (x = m.w - 1) or (y = m.h - 1) then begin
+        m.walls[i] := 2;                 { stone border wall }
+        m.cellSector[i] := SECTOR_NONE;
+      end else begin
+        m.walls[i] := TILE_EMPTY;
+        m.cellSector[i] := 0;
+      end;
+    end;
 end;
 
 var
@@ -332,6 +365,27 @@ begin
       PlaceAt(StrToInt(ParamStr(3)), StrToInt(ParamStr(4)), DirCode(ParamStr(5)))
     else
       PlaceAt(7, 12, DIR_N);
+  end else if scene = 'clad' then begin
+    { the theme G cladding proof: a flat room on the modular tileset, drawn
+      through the normal explore view so its floor and ceiling clad from the
+      mossy kit meshes. Optional args: <camX> <camY> <N|E|S|W> <pitch> }
+    QuickStart;
+    BuildCladDemo(secMap);
+    if not LoadMapData(secMap) then begin
+      writeln(StdErr, 'shot: could not load the clad demo'); halt(1);
+    end;
+    CurMapName := 'CLADDEMO';
+    if not SetTileset(GamePak, TILESET_MODULAR) then
+      writeln(StdErr, 'shot: warning, modular tileset incomplete');
+    if Length(TrimTex) = 0 then
+      writeln(StdErr, 'shot: warning, no trim atlas resident (TRIM',
+        TILESET_MODULAR, ' missing)');
+    if ParamCount >= 5 then
+      PlaceAt(StrToInt(ParamStr(3)), StrToInt(ParamStr(4)), DirCode(ParamStr(5)))
+    else
+      PlaceAt(5, 8, DIR_N);
+    if ParamCount >= 6 then Cam.pitch := StrToFloatDef(ParamStr(6), 0);
+    UsePoly := true;   { cladding draws only in the polygon path }
   end else if scene = 'room' then begin
     { the theme G modular-room proof: load a hand-placed set of kit pieces
       and draw them from the resident trim atlas through the polygon path.

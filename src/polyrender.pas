@@ -29,7 +29,7 @@ implementation
 
 uses
   math, gfx, textures, world, mapfmt, raster, models, meshfmt,
-  sprites, worldspr;
+  sprites, worldspr, tilekit, clad;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
@@ -177,7 +177,7 @@ var
   tx, ty, x0, y0, x1, y1: longint;
   cx, cy, dist, fwd, light, fcx, fcy, fd, fz, cz: double;
   cyaw, syaw: double;
-  ftex, gk, gw: longint;
+  ftex, gk, gw, kitIdx: longint;
   gcol: TColor;
   shor, syy, sxx: longint;
   sb: byte;
@@ -244,17 +244,25 @@ begin
       end else begin
         light := TileLight(tx, ty, dist);
         fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
-        { floor at this cell's sector height, with an emissive tile's glow tint
-          mixed in, as the raycaster does for a light well, brazier or vent }
-        gw := 0; gcol := 0;
-        gk := LightTileKind(tx, ty);
-        if gk >= 0 then LightGlow(gk, gcol, gw);
-        DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
-          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
-        { ceiling at this cell's sector height, unless an open-air surface map }
-        if not CurMapSurface then
-          DrawTexQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+        kitIdx := KitIndexForTileset(CellTileset(tx, ty));
+        { clad from the modular kit when the tileset has one and its pieces
+          drew; otherwise fall through to the procedural surface quads. The
+          and is short-circuit, so the cladding runs only for a kit cell }
+        if not ((kitIdx >= 0)
+          and CladFloorCeil(mc, kitIdx, tx, ty, fz, cz, light, not CurMapSurface)) then
+        begin
+          { floor at this cell's sector height, with an emissive tile's glow tint
+            mixed in, as the raycaster does for a light well, brazier or vent }
+          gw := 0; gcol := 0;
+          gk := LightTileKind(tx, ty);
+          if gk >= 0 then LightGlow(gk, gcol, gw);
+          DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
+            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+          { ceiling at this cell's sector height, unless an open-air surface map }
+          if not CurMapSurface then
+            DrawTexQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
+              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+        end;
         { risers and lintels where open neighbors differ in height }
         StepFaces(mc, tx, ty, fz, cz, ex, ey);
       end;
