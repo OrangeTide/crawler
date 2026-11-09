@@ -45,6 +45,14 @@ procedure CladView(const mc: TMeshCam; x0, y0, x1, y1: longint;
 procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; lightFn: TCladLightFn);
 
+{ Clad one step face on edge dir of the kit cell (tx,ty): a single wall piece
+  spanning world height z0..z1, for a riser or lintel between two open cells of
+  different height. Uses the single-cell (base) wall piece, which is double
+  sided, so the step reads from the lower neighbour's side. The caller draws
+  each step once from the taller cell, as its stone-quad path does. }
+procedure CladStep(const mc: TMeshCam; dir, tx, ty: longint;
+  z0, z1, light: double);
+
 implementation
 
 uses
@@ -283,6 +291,33 @@ begin
           light, atlas, TrimW, TrimH);
       end;
   end;
+end;
+
+procedure CladStep(const mc: TMeshCam; dir, tx, ty: longint;
+  z0, z1, light: double);
+var
+  kitIdx, wp, pfw, wh, mi: longint;
+  sxl, szl, yaw, mxw, myw: double;
+  atlas: PByte;
+begin
+  if z1 <= z0 then exit;
+  kitIdx := KitIndexForTileset(CellTileset(tx, ty));
+  if kitIdx < 0 then exit;
+  wp := KitPieceForRun(kitIdx, KITROLE_WALL, 1);   { the single-cell wall }
+  if wp < 0 then exit;
+  mi := MeshIdx(Kits[kitIdx].pieces[wp].lump);
+  if (mi < 0) or (not cacheOk[mi]) then exit;
+  pfw := Kits[kitIdx].pieces[wp].fw; if pfw < 1 then pfw := 1;
+  wh := Kits[kitIdx].pieces[wp].fz; if wh < 1 then wh := 1;
+  sxl := 1 / pfw;                { one cell wide }
+  szl := (z1 - z0) / wh;         { fit the piece height to the step }
+  if WRunX[dir] then yaw := 0 else yaw := pi / 2;
+  mxw := tx + WMOX[dir];
+  myw := ty + WMOY[dir];
+  atlas := nil;
+  if Length(TrimTex) > 0 then atlas := @TrimTex[0];
+  RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
+    light, atlas, TrimW, TrimH);
 end;
 
 end.

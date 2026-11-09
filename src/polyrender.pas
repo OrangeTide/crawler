@@ -118,7 +118,9 @@ const
 var
   side, nbx, nby: longint;
   nfz, ncz, nd, lightN, nsscale: double;
+  kitHere: boolean;
 begin
+  kitHere := KitIndexForTileset(CellTileset(tx, ty)) >= 0;
   for side := 0 to 3 do begin
     nbx := tx + SDX[side]; nby := ty + SDY[side];
     if IsWallTile(nbx, nby) then continue;     { a solid neighbor is a full wall }
@@ -127,10 +129,14 @@ begin
     nd := sqrt(sqr(nbx + 0.5 - ex) + sqr(nby + 0.5 - ey));
     if side >= 2 then nsscale := NS_DARK else nsscale := 1.0;
     lightN := TileLight(nbx, nby, nd) * nsscale;
-    if fz > nfz + EPS then
-      WallQuad(mc, side, tx, ty, nfz, fz, TEX_STONE, lightN);    { floor riser }
-    if cz > ncz + EPS then
-      WallQuad(mc, side, tx, ty, ncz, cz, TEX_STONE, lightN);    { ceiling lintel }
+    if fz > nfz + EPS then begin                                 { floor riser }
+      if kitHere then CladStep(mc, side, tx, ty, nfz, fz, lightN)
+      else WallQuad(mc, side, tx, ty, nfz, fz, TEX_STONE, lightN);
+    end;
+    if cz > ncz + EPS then begin                                 { ceiling lintel }
+      if kitHere then CladStep(mc, side, tx, ty, ncz, cz, lightN)
+      else WallQuad(mc, side, tx, ty, ncz, cz, TEX_STONE, lightN);
+    end;
   end;
 end;
 
