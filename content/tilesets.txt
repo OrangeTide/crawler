@@ -26,3 +26,14 @@ kit 10 mossy
   wall   MOD_WALL     4 1 3
   wall   BASE_WALL    1 1 3
   pillar MOD_PILLAR   1 1 3
+
+# Tileset 11: the SigilsVault modular cathedral kit, kept at its native grand
+# scale. The module is 8 units, so a floor and its vaulted ceiling cover an
+# 8x8 block, the wall spans 8 units and stands 16 tall (the cladding scales it
+# to each sector's ceiling), and the columns rise about 9. Gothic stone and
+# marble from the cathedral trim atlas (trim 11). See content/rooms/pieces.
+kit 11 cathedral
+  floor  CATH_FLOOR   8 8
+  ceil   CATH_CEIL    8 8
+  wall   CATH_WALL    8 1 16
+  pillar CATH_PILLAR  2 2 9

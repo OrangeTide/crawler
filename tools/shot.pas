@@ -340,6 +340,10 @@ begin
       writeln(StdErr, 'shot: no map lump ', ParamStr(3)); halt(1);
     end;
     PlaceAt(StrToInt(ParamStr(4)), StrToInt(ParamStr(5)), DirCode(ParamStr(6)));
+    { map only: an optional 7th arg tilts the view up (positive) or down, to
+      inspect ceilings and vaults the level horizon would cut off }
+    if (scene = 'map') and (ParamCount >= 7) then
+      Cam.pitch := StrToFloatDef(ParamStr(7), 0);
     if scene = 'foe' then begin
       if ParamCount < 9 then begin
         writeln(StdErr,

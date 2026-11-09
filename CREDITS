@@ -102,6 +102,21 @@ shared-texture meshes that sample the kit's handpainted (mossy) trim
 sheet. They are the first modular-tile set, used by the chamber in
 content/rooms/chamber.room.
 
+Modular cathedral tiles
+-----------------------
+
+Source: "Modular Cathedral Kit" by Kevin Barany / SigilsVault
+(sigilsvault.itch.io). A low-poly gothic cathedral kit of walls,
+floors, vaulted ceilings, columns and props on a 1-metre grid,
+trim-sheet textured, with a separate stained-glass atlas.
+License: CC0 1.0 (public domain dedication). Credit is appreciated but
+not required. The full terms are in the kit's LICENSE.txt.
+
+The cath_* pieces under content/rooms/pieces are the subset baked into
+the game (floor, wall, vaulted ceiling, column), converted from the kit
+GLBs to shared-texture meshes that sample the kit's cathedral trim
+sheet. Kept at the kit's native grand scale for the cathedral theme.
+
 Spell catalog
 -------------
 
