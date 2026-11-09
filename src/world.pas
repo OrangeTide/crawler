@@ -32,6 +32,9 @@ const
   LOOK_PITCH_MAX = 120;  { framebuffer pixels }
   LIGHT_RADIUS = 5;      { tiles the party can see }
 
+  EYE_H    = 0.5;    { the camera eye above the sector floor, world units }
+  STEP_MAX = 0.5;    { the tallest floor rise the party can step up, world units }
+
   VIS_UNSEEN     = 0;
   VIS_REMEMBERED = 1;
   VIS_VISIBLE    = 2;
@@ -39,6 +42,8 @@ const
 type
   TCamera = record
     posX, posY: double;
+    posZ: double;          { eye height, world units; the polygon renderer uses
+                             it, the flat raycaster ignores it }
     dirX, dirY: double;
     planeX, planeY: double;
     pitch: double;
@@ -71,6 +76,13 @@ procedure PlaceAt(tx, ty, face: longint);
 function TileAt(mx, my: longint): byte;
 function IsBlocking(mx, my: longint): boolean;
 function IsWallTile(mx, my: longint): boolean;
+
+{ The sector a cell belongs to, or -1 for a solid or out-of-bounds cell. }
+function SectorAt(mx, my: longint): longint;
+{ The cell's sector floor and ceiling height in world units. A solid or
+  out-of-bounds cell reads as the default flat room (floor 0, ceiling 1). }
+function FloorZAt(mx, my: longint): double;
+function CeilZAt(mx, my: longint): double;
 
 procedure RequestStep(fwd, strafe: longint);
 procedure RequestTurn(dir: longint);
@@ -178,6 +190,9 @@ begin
   Cam.planeY := cos(viewAng) * 0.66;
   Cam.posX := curX;
   Cam.posY := curY;
+  { the eye rides the floor of the sector the party stands over. Flat maps keep
+    this at EYE_H, so the view is unchanged; height content moves it per step. }
+  Cam.posZ := FloorZAt(Trunc(curX), Trunc(curY)) + EYE_H;
   Cam.pitch := viewPitch;
 end;
 
@@ -393,6 +408,40 @@ begin
     TileAt := Map[my][mx];
 end;
 
+function SectorAt(mx, my: longint): longint;
+var
+  idx: longint;
+begin
+  SectorAt := -1;
+  if (mx < 0) or (mx >= MapW) or (my < 0) or (my >= MapH) then exit;
+  idx := my * MapW + mx;
+  if idx >= Length(CurMap.cellSector) then exit;
+  if CurMap.cellSector[idx] = SECTOR_NONE then exit;
+  SectorAt := CurMap.cellSector[idx];
+end;
+
+function FloorZAt(mx, my: longint): double;
+var
+  s: longint;
+begin
+  s := SectorAt(mx, my);
+  if (s < 0) or (s > High(CurMap.sectors)) then
+    FloorZAt := 0
+  else
+    FloorZAt := CurMap.sectors[s].floorZ / HZ_UNIT;
+end;
+
+function CeilZAt(mx, my: longint): double;
+var
+  s: longint;
+begin
+  s := SectorAt(mx, my);
+  if (s < 0) or (s > High(CurMap.sectors)) then
+    CeilZAt := 1.0
+  else
+    CeilZAt := CurMap.sectors[s].ceilZ / HZ_UNIT;
+end;
+
 function NpcTileOccupied(mx, my: longint): boolean;
 var
   i: longint;
@@ -450,6 +499,13 @@ begin
   MotionBusy := moving or aligning;
 end;
 
+function StepTooHigh(fx, fy, tx, ty: longint): boolean;
+{** Whether a floor rise from (fx,fy) to (tx,ty) is too tall to step up. A drop
+  (equal or lower target) is always allowed. Inert on flat maps. }
+begin
+  StepTooHigh := (FloorZAt(tx, ty) - FloorZAt(fx, fy)) > STEP_MAX;
+end;
+
 procedure RequestStep(fwd, strafe: longint);
 {** Stepping first aligns the facing to the nearest cardinal of the
   current view, then moves one tile along it. }
@@ -468,6 +524,7 @@ begin
   nx := TileX + dx;
   ny := TileY + dy;
   if IsBlocking(nx, ny) then exit;
+  if StepTooHigh(TileX, TileY, nx, ny) then exit;
   fromX := curX; fromY := curY;
   toX := nx + 0.5; toY := ny + 0.5;
   TileX := nx; TileY := ny;
@@ -498,6 +555,7 @@ begin
   dy := ny - TileY;
   if (Abs(dx) + Abs(dy)) <> 1 then exit;   { must be a single cardinal step }
   if IsBlocking(nx, ny) then exit;
+  if StepTooHigh(TileX, TileY, nx, ny) then exit;
   if dx = 1 then d := DIR_E
   else if dx = -1 then d := DIR_W
   else if dy = 1 then d := DIR_S

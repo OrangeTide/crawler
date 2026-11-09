@@ -30,9 +30,15 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 9;
+  MAP_VERSION = 10;         { 10 adds the sector layer over the wall grid }
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
+
+  { Sector heights are stored in 1/16 world unit, so one world unit (the old
+    flat floor-to-ceiling height) is HZ_UNIT steps. The default room is floor
+    at 0 and ceiling at HZ_UNIT, which renders exactly like the old flat grid. }
+  HZ_UNIT     = 16;         { one world unit, in height steps }
+  SECTOR_NONE = 255;        { a solid wall cell belongs to no sector }
 
   { Tile semantics in the walls grid: 0 is open floor, a door tile holds
     the door texture value, any other value is a solid wall. These live
@@ -122,10 +128,22 @@ type
     qty: byte;          { how many of the item }
   end;
 
+  { A sector is a region of open cells sharing a floor and a ceiling height.
+    Walls are the segments between sectors, or between a sector and a solid
+    cell; the renderer derives them from cell adjacency. Movement stays on the
+    wall grid, laid over the sectors and decoupled from this geometry. }
+  TSector = packed record
+    floorZ, ceilZ: smallint;   { height in 1/16 world unit }
+    tileset: byte;             { 0 = the map's own tileset }
+    light: byte;               { reserved; 0 = the per-cell light as today }
+  end;
+
   TMapData = record
     w, h: longint;
     tileset, music, flags, area: byte;
     walls: array of byte;                 { w*h, row major }
+    sectors: array of TSector;            { at least one; 0 is the default room }
+    cellSector: array of byte;            { w*h; SECTOR_NONE for solid cells }
     markers: array of TMarker;
     portals: array of TPortal;
     doors: array of TDoorMeta;
@@ -138,6 +156,16 @@ type
 
 function EncodeMap(const m: TMapData): TByteArray;
 function DecodeMap(const blob: TByteArray; out m: TMapData): boolean;
+
+{ Whether a cell value takes part in a sector (floor or door), as opposed to a
+  permanently solid wall. }
+function CellHasSector(v: byte): boolean;
+
+{ Give a map a default flat sector layer when it has none: one sector (floor 0,
+  ceiling one unit) with every open cell assigned to it and solid cells left
+  out. A generator or the map compiler calls this after laying the wall grid to
+  get the old flat look for free. It also resizes cellSector if it is missing. }
+procedure EnsureSectors(var m: TMapData);
 
 implementation
 
@@ -285,8 +313,46 @@ begin
     BByte(b, 0);
   end;
 
+  { sector layer: the sector table then one sector id per cell }
+  BU16(b, Length(m.sectors));
+  for i := 0 to High(m.sectors) do begin
+    BU16(b, word(m.sectors[i].floorZ));
+    BU16(b, word(m.sectors[i].ceilZ));
+    BByte(b, m.sectors[i].tileset);
+    BByte(b, m.sectors[i].light);
+  end;
+  for i := 0 to m.w * m.h - 1 do
+    if i < Length(m.cellSector) then
+      BByte(b, m.cellSector[i])
+    else
+      BByte(b, SECTOR_NONE);
+
   BFinish(b);
   EncodeMap := b.data;
+end;
+
+function CellHasSector(v: byte): boolean;
+begin
+  CellHasSector := (v = TILE_EMPTY) or (v = TILE_DOOR);
+end;
+
+procedure EnsureSectors(var m: TMapData);
+var
+  i: longint;
+begin
+  if Length(m.cellSector) <> m.w * m.h then begin
+    SetLength(m.cellSector, m.w * m.h);
+    for i := 0 to m.w * m.h - 1 do
+      if CellHasSector(m.walls[i]) then m.cellSector[i] := 0
+      else m.cellSector[i] := SECTOR_NONE;
+  end;
+  if Length(m.sectors) = 0 then begin
+    SetLength(m.sectors, 1);
+    m.sectors[0].floorZ := 0;
+    m.sectors[0].ceilZ := HZ_UNIT;
+    m.sectors[0].tileset := 0;
+    m.sectors[0].light := 0;
+  end;
 end;
 
 { ---- readers ---- }
@@ -357,7 +423,7 @@ begin
   m.w := 0; m.h := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
-  m.loot := nil;
+  m.loot := nil; m.sectors := nil; m.cellSector := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -454,6 +520,26 @@ begin
     m.loot[i].item := RName(r, 12);
     m.loot[i].qty := RByte(r);
     RByte(r);
+  end;
+
+  count := RU16(r);
+  SetLength(m.sectors, count);
+  for i := 0 to count - 1 do begin
+    m.sectors[i].floorZ := smallint(RU16(r));
+    m.sectors[i].ceilZ := smallint(RU16(r));
+    m.sectors[i].tileset := RByte(r);
+    m.sectors[i].light := RByte(r);
+  end;
+  SetLength(m.cellSector, m.w * m.h);
+  for i := 0 to m.w * m.h - 1 do
+    m.cellSector[i] := RByte(r);
+
+  { belt and braces: a map that somehow lacks a sector table gets the flat
+    default so the renderer always has heights to read. Clearing cellSector
+    first forces a rebuild from the wall grid in that case. }
+  if r.ok then begin
+    if Length(m.sectors) = 0 then m.cellSector := nil;
+    EnsureSectors(m);
   end;
 
   DecodeMap := r.ok;

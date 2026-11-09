@@ -62,6 +62,24 @@ begin
   end;
 end;
 
+{ One vertical wall quad on cell (tx,ty)'s edge, facing the open neighbor on
+  side 0..3 (west, east, south, north), spanning z in [zLo,zHi]. The winding
+  matches the old full-height faces, so a flat zLo=0,zHi=1 draws identically. }
+procedure WallQuad(const mc: TMeshCam; side, tx, ty: longint;
+  zLo, zHi: double; texId: longint; light: double);
+begin
+  case side of
+    0: DrawTexQuad(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    1: DrawTexQuad(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    2: DrawTexQuad(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    3: DrawTexQuad(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+  end;
+end;
+
 { The raycaster's fog curve: full to 1.5, fading to a floor of 32 by 9.0. }
 function FogAt(dist: double): double;
 begin
@@ -78,6 +96,34 @@ begin
   if scene > 256 then scene := 256;
   TileLight := FogAt(dist) * TorchGlow / 256;   { party light dims as it burns }
   if scene > TileLight then TileLight := scene;
+end;
+
+{ The step walls of an open cell: a lower riser where an open neighbor's floor
+  sits below this cell's, and an upper lintel where its ceiling sits below.
+  Each step is drawn once, from the cell with the higher floor or ceiling, so
+  flat maps (no height difference) draw nothing here. }
+procedure StepFaces(const mc: TMeshCam; tx, ty: longint; fz, cz, ex, ey: double);
+const
+  SDX: array[0 .. 3] of longint = (-1, 1, 0, 0);
+  SDY: array[0 .. 3] of longint = (0, 0, -1, 1);
+  EPS = 0.001;
+var
+  side, nbx, nby: longint;
+  nfz, ncz, nd, lightN, nsscale: double;
+begin
+  for side := 0 to 3 do begin
+    nbx := tx + SDX[side]; nby := ty + SDY[side];
+    if IsWallTile(nbx, nby) then continue;     { a solid neighbor is a full wall }
+    nfz := FloorZAt(nbx, nby); ncz := CeilZAt(nbx, nby);
+    if (fz <= nfz + EPS) and (cz <= ncz + EPS) then continue;
+    nd := sqrt(sqr(nbx + 0.5 - ex) + sqr(nby + 0.5 - ey));
+    if side >= 2 then nsscale := NS_DARK else nsscale := 1.0;
+    lightN := TileLight(nbx, nby, nd) * nsscale;
+    if fz > nfz + EPS then
+      WallQuad(mc, side, tx, ty, nfz, fz, TEX_STONE, lightN);    { floor riser }
+    if cz > ncz + EPS then
+      WallQuad(mc, side, tx, ty, ncz, cz, TEX_STONE, lightN);    { ceiling lintel }
+  end;
 end;
 
 { Instance every placed prop near the camera as a model. }
@@ -129,7 +175,7 @@ var
   mc: TMeshCam;
   ex, ey: double;
   tx, ty, x0, y0, x1, y1: longint;
-  cx, cy, dist, fwd, light, fcx, fcy, fd: double;
+  cx, cy, dist, fwd, light, fcx, fcy, fd, fz, cz: double;
   cyaw, syaw: double;
   ftex, gk, gw: longint;
   gcol: TColor;
@@ -156,7 +202,7 @@ begin
     ClearFB(RGB(6, 6, 10));
 
   ex := Cam.posX; ey := Cam.posY;
-  mc.x := ex; mc.y := ey; mc.z := 0.5;
+  mc.x := ex; mc.y := ey; mc.z := Cam.posZ;
   mc.yaw := arctan2(Cam.dirY, Cam.dirX);
   mc.pitch := Cam.pitch / FOCAL;   { pixel horizon shift to an angle }
   cyaw := cos(mc.yaw); syaw := sin(mc.yaw);
@@ -173,44 +219,44 @@ begin
 
       if IsWallTile(tx, ty) then begin
         ftex := WallTexId(TileAt(tx, ty));
-        { a face toward each open neighbor, lit from that neighbor tile }
+        { a face toward each open neighbor, spanning that neighbor's sector
+          floor to ceiling, lit from that neighbor tile }
         if not IsWallTile(tx - 1, ty) then begin   { west face, x = tx }
           fcx := tx; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx - 1, ty, fd);
-          DrawTexQuad(mc, tx, ty, 0,  tx, ty + 1, 0,  tx, ty + 1, 1,  tx, ty, 1,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
+          WallQuad(mc, 0, tx, ty, FloorZAt(tx - 1, ty), CeilZAt(tx - 1, ty), ftex, light);
         end;
         if not IsWallTile(tx + 1, ty) then begin   { east face, x = tx+1 }
           fcx := tx + 1; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx + 1, ty, fd);
-          DrawTexQuad(mc, tx + 1, ty + 1, 0,  tx + 1, ty, 0,  tx + 1, ty, 1,  tx + 1, ty + 1, 1,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
+          WallQuad(mc, 1, tx, ty, FloorZAt(tx + 1, ty), CeilZAt(tx + 1, ty), ftex, light);
         end;
         if not IsWallTile(tx, ty - 1) then begin   { south face, y = ty }
           fcx := cx; fcy := ty; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty - 1, fd) * NS_DARK;
-          DrawTexQuad(mc, tx + 1, ty, 0,  tx, ty, 0,  tx, ty, 1,  tx + 1, ty, 1,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
+          WallQuad(mc, 2, tx, ty, FloorZAt(tx, ty - 1), CeilZAt(tx, ty - 1), ftex, light);
         end;
         if not IsWallTile(tx, ty + 1) then begin   { north face, y = ty+1 }
           fcx := cx; fcy := ty + 1; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
           light := TileLight(tx, ty + 1, fd) * NS_DARK;
-          DrawTexQuad(mc, tx, ty + 1, 0,  tx + 1, ty + 1, 0,  tx + 1, ty + 1, 1,  tx, ty + 1, 1,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[ftex][0], TEXW, TEXH, light);
+          WallQuad(mc, 3, tx, ty, FloorZAt(tx, ty + 1), CeilZAt(tx, ty + 1), ftex, light);
         end;
       end else begin
         light := TileLight(tx, ty, dist);
-        { floor, with an emissive tile's glow tint mixed in, as the raycaster
-          does for a light well, brazier or vent }
+        fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
+        { floor at this cell's sector height, with an emissive tile's glow tint
+          mixed in, as the raycaster does for a light well, brazier or vent }
         gw := 0; gcol := 0;
         gk := LightTileKind(tx, ty);
         if gk >= 0 then LightGlow(gk, gcol, gw);
-        DrawTexQuad(mc, tx, ty, 0,  tx + 1, ty, 0,  tx + 1, ty + 1, 0,  tx, ty + 1, 0,
+        DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
           0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
-        { ceiling, unless this is an open-air surface map }
+        { ceiling at this cell's sector height, unless an open-air surface map }
         if not CurMapSurface then
-          DrawTexQuad(mc, tx, ty + 1, 1,  tx + 1, ty + 1, 1,  tx + 1, ty, 1,  tx, ty, 1,
+          DrawTexQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
             0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+        { risers and lintels where open neighbors differ in height }
+        StepFaces(mc, tx, ty, fz, cz, ex, ey);
       end;
     end;
 

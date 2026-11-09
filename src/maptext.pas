@@ -260,6 +260,9 @@ begin
 
   if m.w = 0 then begin errmsg := 'no size'; exit; end;
   if inWalls then begin errmsg := 'walls not terminated by end'; exit; end;
+  { give the map its sector layer: any sectors painted by directives are kept,
+    and every open cell not otherwise assigned falls into the default sector }
+  EnsureSectors(m);
   ParseMapText := true;
 end;
 

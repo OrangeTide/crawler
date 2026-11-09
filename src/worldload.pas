@@ -165,6 +165,10 @@ begin
     not only to the town hub. Derived from the map, so it stays stable. }
   if PinnedCellOf(name, pcx, pcy) then
     AddWildernessExit(md, pcx, pcy);
+  { a generated map has no sector layer yet; give it the flat default so the
+    renderer and collision always have heights to read. Authored maps already
+    carry sectors from DecodeMap, so this is a no-op for them. }
+  EnsureSectors(md);
   SourceMap := true;
 end;
 
