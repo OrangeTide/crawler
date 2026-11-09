@@ -1,23 +1,23 @@
-name: Setup FPC
-description: Install Free Pascal for this host (and make on Windows) and put it on PATH.
+name: Setup build tools
+description: Install Free Pascal and ImageMagick (and make on Windows) for this host and put them on PATH.
 
 runs:
   using: composite
   steps:
-    - name: Install FPC (Linux)
+    - name: Install FPC and ImageMagick (Linux)
       if: runner.os == 'Linux'
       shell: bash
-      run: sudo apt-get update && sudo apt-get install -y fpc
+      run: sudo apt-get update && sudo apt-get install -y fpc imagemagick
 
-    - name: Install FPC (macOS)
+    - name: Install FPC and ImageMagick (macOS)
       if: runner.os == 'macOS'
       shell: bash
-      run: brew install fpc
+      run: brew install fpc imagemagick
 
-    - name: Install FPC and make (Windows)
+    - name: Install FPC, make and ImageMagick (Windows)
       if: runner.os == 'Windows'
       shell: pwsh
-      run: choco install lazarus make -y --no-progress
+      run: choco install lazarus make imagemagick -y --no-progress
 
     - name: Put FPC on PATH (Windows)
       if: runner.os == 'Windows'

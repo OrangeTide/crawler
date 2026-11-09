@@ -24,6 +24,15 @@ ifeq ($(OS),Windows_NT)
 else
   EXE :=
 endif
+
+# The asset bake shells out to ImageMagick. On Windows "convert" is a built-in
+# filesystem tool that shadows ImageMagick's, so use the IM7 "magick" command
+# there; elsewhere the IM6 "convert" command. Override IM to force one.
+ifeq ($(OS),Windows_NT)
+  IM ?= magick
+else
+  IM ?= convert
+endif
 FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild -FUbuild
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Futests -FEbuild/tests -FUbuild/tests
@@ -178,28 +187,28 @@ $(PAK): $(MKASSETS) $(CONTENT)
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
 content/sprites/%.ppm: content/sprites/%.png
-	convert $< -filter point -resize 64x96 -alpha on -channel A -threshold 50% +channel \
+	$(IM) $< -filter point -resize 64x96 -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 # Portrait source: a 64x64 PNG (with alpha) flattened onto the magenta key.
 # Kept at native size, no scaling, so the face stays square.
 content/portraits/%.ppm: content/portraits/%.png
-	convert $< -alpha on -channel A -threshold 50% +channel \
+	$(IM) $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 # Spell icon source: a 64x64 PNG, opaque, passed through like a portrait.
 content/icons/%.ppm: content/icons/%.png
-	convert $< -alpha on -channel A -threshold 50% +channel \
+	$(IM) $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 content/skillicons/%.ppm: content/skillicons/%.png
-	convert $< -alpha on -channel A -threshold 50% +channel \
+	$(IM) $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 # Title background: an opaque 320x240 PNG, already dithered to the palette.
 # Passed straight through to a PPM; no resize or colour key.
 content/title/%.ppm: content/title/%.png
-	convert $< -depth 8 ppm:$@
+	$(IM) $< -depth 8 ppm:$@
 
 build:
 	mkdir -p build
