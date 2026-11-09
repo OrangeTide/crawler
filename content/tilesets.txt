@@ -78,3 +78,29 @@ kit 14 clerestory
   floor  CATH_FLOOR    8 8
   ceil   CATH_CEIL     8 8
   wall   CATH_GLASS    8 1 16 @1 !2
+
+# Tileset 15: the infernal volcanic rock, from the loafbrr Canyon Terrain kit.
+# Warm rusty basalt on a 4-unit module: flat ground and wall tiles (the wall is
+# double-sided so the flat plane shows whichever way the cladder turns it).
+# Floor and ceiling sample the ground atlas (@0), walls the canyon-rock atlas
+# (@1). Base pieces are flat 1-unit fillers for ragged edges.
+kit 15 volcanic
+  floor  VOLC_FLOOR       4 4   @0
+  floor  VOLC_BASE_FLOOR  1 1   @0
+  ceil   VOLC_CEIL        4 4   @0
+  ceil   VOLC_BASE_CEIL   1 1   @0
+  wall   VOLC_WALL        4 1 4 @1
+  wall   VOLC_BASE_WALL   1 1 4 @1
+
+# Tileset 16: a molten lava pool, the same volcanic rock but with a glowing
+# lava floor. The floor reuses the canyon ground mesh and diffuse (@0) and adds
+# a lava emission atlas (!2), so the floor glows with molten veins even in the
+# dark through the emission channel. A sunken sector on this tileset makes a
+# lava lake within a volcanic cavern on tileset 15.
+kit 16 lava
+  floor  VOLC_FLOOR       4 4   @0 !2
+  floor  VOLC_BASE_FLOOR  1 1   @0 !2
+  ceil   VOLC_CEIL        4 4   @0
+  ceil   VOLC_BASE_CEIL   1 1   @0
+  wall   VOLC_WALL        4 1 4 @1
+  wall   VOLC_BASE_WALL   1 1 4 @1

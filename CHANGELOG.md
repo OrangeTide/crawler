@@ -27,6 +27,15 @@ whose development history is summarized in docs/roadmap.md.
   directive. The INFERNAL hall now carries a seam of lava.
 
 ### Added
+- An infernal volcanic kit. The INFERNAL zone now wears the loafbrr Canyon
+  Terrain kit (warm basalt) on tileset 15, re-authored to a wide volcanic cavern
+  with rock-pillar islands and a sunken lava lake. The lake is a sector on a
+  lava tileset (16) whose floor glows molten through the emission channel. The
+  lava emission is a procedural placeholder.
+- Per-tileset trim-atlas residency. The trim atlases are now keyed by tileset
+  and every kit tileset's atlases load at once, so a map whose sectors point at
+  different tilesets (a lava lake inside a rock cavern) can clad each sector from
+  its own atlases. Previously only the map's base tileset had atlases resident.
 - An emission channel for kit cladding. A kit piece can name an emission atlas
   (an `!N` token in the kit text) whose colour is added over the scene-lit
   surface, so it glows regardless of the scene light. A new clerestory tileset

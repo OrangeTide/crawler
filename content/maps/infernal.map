@@ -1,36 +1,48 @@
-# Infernal and volcanic zone. Brick vaults deep below.
+# The Infernal Deep: a volcanic cavern re-authored to the Canyon Terrain kit's
+# 4-unit scale, so the warm basalt pieces clad the open hall cleanly. A sunken
+# lava lake glows at its heart (a sector on the lava tileset, through the
+# emission channel), ringed by rock ledges and pillar islands, with the
+# demon-lord's altar across the fire. 1=wall, 0=open floor.
 map INFERNAL
-size 18 14
-tileset 6
+size 20 16
+tileset 15
 music 0
 area infernal
+# the cavern stands about four units tall; the lava lake sinks over a unit and
+# rides the lava tileset (16), so its floor glows molten
+sector 0 0 64
+sector 1 -20 64 16
 walls
-111111111111111111
-100000000000000001
-101110111110111101
-101000100010100001
-101011101010111101
-100010001010100001
-111010111010101111
-100000000000000001
-101111011110111101
-100000010000400001
-101110010111110101
-101000000100000101
-100000000100000001
-111111111111111111
+11111111111111111111
+10000000000000000001
+10000000000000000001
+10001100000000110001
+10001100000000110001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10001100000000110001
+10001100000000110001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+11111111111111111111
 end
-marker start 2 1 E
-portal 16 1 DUNGEON back
-npc 8 7 DEMONLORD Altar NPC_ALTAR
-trap 7 7 10 13 fire
-trap 4 7 10 13 fire
-trap 12 7 10 13 fire
-# a seam of lava across the central hall burns those who cross it
-trigger hazard 3 fire 9 7 12 7 12 8 9 8
-gasvent 4 7
-gasvent 12 7
+# the central lava lake
+fill 1 7 6 12 9
+marker start 2 13 N
+marker back 2 2 S
+portal 2 14 DUNGEON back
+npc 10 2 DEMONLORD Altar NPC_ALTAR
+# the lava lake burns those who wade into it, and lights the cavern around it
+trigger hazard 4 fire 7 6 12 6 12 9 7 9
+trigger ambient 120 - 7 6 12 6 12 9 7 9
+trap 4 12 10 13 fire
+trap 16 12 10 13 fire
+gasvent 4 6
+gasvent 15 6
 bonfire 2 12
-gasvent 14 1
-prop 3 12 BARREL
-loot 3 12 200 HARMOR 1
+prop 3 13 BARREL
+loot 3 13 200 HARMOR 1

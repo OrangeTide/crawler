@@ -70,6 +70,8 @@ const
   TILESET_TEMPLE = 12;
   TILESET_GROTTO = 13;
   TILESET_CLERESTORY = 14;
+  TILESET_VOLCANIC = 15;
+  TILESET_LAVA = 16;
 
   { Celestial light wells: their strength tracks the sky (section 22). }
   LIGHT_SKYLIGHT = 0;       { admits sunlight by day }

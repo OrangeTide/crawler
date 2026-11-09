@@ -52,25 +52,31 @@ var
   Tex: array[0 .. TEX_COUNT - 1] of TTexture;
   CurTileset: longint = -1;
 
-  { The resident trim-sheet atlases for the current tileset, as palette
-    indices (the shared textures the modular tiles sample). Most kits use one
-    (atlas 0); a multi-material kit lists several, and each piece names the one
-    it samples. Empty when the tileset defines no modular pieces. The set is
-    resident only while its tileset is, the same flat-memory rule the surfaces
-    follow. }
-  TrimSheets: array of TTrimSheet;
+const
+  MAX_TILESET = 31;       { tileset indices 0..31; kits live past the biomes }
 
-  { Atlas 0, kept as its own fields for the single-atlas callers (the authored
-    .room render path and the headless tool). }
+var
+  { The resident trim-sheet atlases, one set per tileset, as palette indices
+    (the shared textures the modular tiles sample). Most kits use one (atlas 0);
+    a multi-material kit lists several, and each piece names the one it samples.
+    Keyed by tileset so a map that mixes sectors of different tilesets (a lava
+    lake in a rock cavern) can reach each sector's own atlases. Empty when the
+    tileset defines no modular pieces. }
+  TrimSets: array[0 .. MAX_TILESET] of array of TTrimSheet;
+  TrimLoaded: array[0 .. MAX_TILESET] of boolean;
+
+  { Atlas 0 of the current tileset, kept as its own fields for the single-atlas
+    callers (the authored .room render path and the headless tool). }
   TrimTex: array of byte;
   TrimW, TrimH: longint;
 
-{ The atlas at `index` as a pointer and dimensions, falling back to atlas 0
-  for an out-of-range or empty index. Returns nil when no atlas is resident. }
-function TrimPtr(index: longint; out w, h: longint): PByte;
-{ The emission atlas at `index`, or nil for index 255 (none) or a non-resident
-  index. Never falls back to atlas 0. }
-function EmisPtr(index: longint; out w, h: longint): PByte;
+{ A tileset's atlas at `index` as a pointer and dimensions, falling back to
+  that tileset's atlas 0 for an out-of-range or empty index. Returns nil when
+  the tileset has no atlas resident. }
+function TrimPtr(tileset, index: longint; out w, h: longint): PByte;
+{ A tileset's emission atlas at `index`, or nil for index 255 (none) or a
+  non-resident index. Never falls back to atlas 0. }
+function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
 
 { Load the surfaces of tileset 0, the default. Call once at startup. }
 function LoadTextures(const p: TPak): boolean;
@@ -139,54 +145,59 @@ var
   img: TImage;
   i, n, a: longint;
 begin
-  TrimSheets := nil;
-  TrimTex := nil; TrimW := 0; TrimH := 0;
+  if (tileset < 0) or (tileset > MAX_TILESET) then begin
+    LoadTrims := false; exit;
+  end;
+  if TrimLoaded[tileset] then begin
+    LoadTrims := Length(TrimSets[tileset]) > 0; exit;
+  end;
+  TrimLoaded[tileset] := true;
+  TrimSets[tileset] := nil;
   a := 0;
   while PakGet(p, TrimLumpName(tileset, a), blob) do begin
     if not PicDecode(blob, img) then break;
-    SetLength(TrimSheets, a + 1);
+    SetLength(TrimSets[tileset], a + 1);
     n := img.w * img.h;
-    SetLength(TrimSheets[a].data, n);
+    SetLength(TrimSets[tileset][a].data, n);
     for i := 0 to n - 1 do
-      TrimSheets[a].data[i] := Quantize(img.pix[i]);
-    TrimSheets[a].w := img.w; TrimSheets[a].h := img.h;
+      TrimSets[tileset][a].data[i] := Quantize(img.pix[i]);
+    TrimSets[tileset][a].w := img.w; TrimSets[tileset][a].h := img.h;
     inc(a);
   end;
-  if Length(TrimSheets) > 0 then begin
-    TrimTex := TrimSheets[0].data;   { atlas 0 for the single-atlas callers }
-    TrimW := TrimSheets[0].w; TrimH := TrimSheets[0].h;
-  end;
-  LoadTrims := Length(TrimSheets) > 0;
+  LoadTrims := Length(TrimSets[tileset]) > 0;
 end;
 
-function TrimPtr(index: longint; out w, h: longint): PByte;
+function TrimPtr(tileset, index: longint; out w, h: longint): PByte;
+var sheets: longint;
 begin
-  if (index < 0) or (index >= Length(TrimSheets))
-    or (Length(TrimSheets[index].data) = 0) then
+  TrimPtr := nil; w := 0; h := 0;
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  sheets := Length(TrimSets[tileset]);
+  if sheets = 0 then exit;
+  if (index < 0) or (index >= sheets)
+    or (Length(TrimSets[tileset][index].data) = 0) then
     index := 0;
-  if (Length(TrimSheets) = 0) or (Length(TrimSheets[index].data) = 0) then begin
-    TrimPtr := nil; w := 0; h := 0;
-    exit;
-  end;
-  w := TrimSheets[index].w; h := TrimSheets[index].h;
-  TrimPtr := @TrimSheets[index].data[0];
+  if Length(TrimSets[tileset][index].data) = 0 then exit;
+  w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
+  TrimPtr := @TrimSets[tileset][index].data[0];
 end;
 
-function EmisPtr(index: longint; out w, h: longint): PByte;
+function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
 {** The emission atlas for a piece, or nil when the piece names none (255) or
   the index is not a resident sheet. Unlike TrimPtr it never falls back to
   atlas 0, so a non-emissive piece adds no glow. }
 begin
   EmisPtr := nil; w := 0; h := 0;
-  if (index < 0) or (index >= Length(TrimSheets)) then exit;
-  if Length(TrimSheets[index].data) = 0 then exit;
-  w := TrimSheets[index].w; h := TrimSheets[index].h;
-  EmisPtr := @TrimSheets[index].data[0];
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  if (index < 0) or (index >= Length(TrimSets[tileset])) then exit;
+  if Length(TrimSets[tileset][index].data) = 0 then exit;
+  w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
+  EmisPtr := @TrimSets[tileset][index].data[0];
 end;
 
 function SetTileset(const p: TPak; tileset: longint): boolean;
 var
-  id: longint;
+  id, ts: longint;
 begin
   if tileset = CurTileset then begin
     SetTileset := true;
@@ -198,8 +209,18 @@ begin
       { this tileset lacks the surface: use tileset 0's }
       if not LoadOne(p, id, LumpName(id, 0)) then
         SetTileset := false;
-  { the trim atlases are optional; their absence is not a failure }
-  LoadTrims(p, tileset);
+  { Load every tileset's trim atlases, not just this one, so a map whose sectors
+    point at other tilesets (a lava lake in a rock cavern) can reach their
+    atlases while cladding. Each set loads once and is cached. The atlases are
+    optional; their absence is not a failure. }
+  for ts := 0 to MAX_TILESET do LoadTrims(p, ts);
+  { atlas 0 of the base tileset, for the single-atlas .room and polygon paths }
+  TrimTex := nil; TrimW := 0; TrimH := 0;
+  if (Length(TrimSets[tileset]) > 0)
+    and (Length(TrimSets[tileset][0].data) > 0) then begin
+    TrimTex := TrimSets[tileset][0].data;
+    TrimW := TrimSets[tileset][0].w; TrimH := TrimSets[tileset][0].h;
+  end;
   CurTileset := tileset;
 end;
 

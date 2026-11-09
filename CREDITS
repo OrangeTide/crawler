@@ -144,6 +144,25 @@ from the kit's Mines_Ground and Mine_Walls diffuse maps). It clads the
 crystal grotto on tileset 13. The 1-unit base fillers are flat quads,
 not kit meshes.
 
+Volcanic rock tiles
+-------------------
+
+Source: "Canyon Terrain" by loafbrr (loafbrr.itch.io). A low-poly canyon
+kit of warm rusty rock ground and wall tiles, rock formations and desert
+plants on a 4-metre module, with per-material textures.
+License: CC0 1.0 (public domain dedication). Attribution is not required
+but is appreciated. The full terms are in the kit's README.txt.
+
+The volc_* pieces under content/rooms/pieces are the ground and wall
+tiles (plus flat 1-unit fillers), converted to shared-texture meshes that
+sample the kit's CanyonGround and CanyonWall_3 diffuse maps
+(content/rooms/trim_volc_*.ppm). The warm basalt clads the INFERNAL
+volcanic cavern on tileset 15, and a lava-lake sector on tileset 16 adds
+a lava emission atlas (content/rooms/trim_lava_emis.ppm) so the floor
+glows molten. The lava emission is a procedural placeholder (a fire
+colour ramp over fractal noise, made with ImageMagick, not from any kit),
+marked for replacement with authored lava art.
+
 Spell catalog
 -------------
 

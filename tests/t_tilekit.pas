@@ -81,20 +81,28 @@ begin
     'the emission atlas round-trips');
   Check(not TilesetHasKit(3), 'a tileset with no kit reports none');
 
-  { TrimPtr selects the resident atlas by index and falls back to atlas 0 }
-  SetLength(TrimSheets, 2);
-  SetLength(TrimSheets[0].data, 4);
-  TrimSheets[0].w := 2; TrimSheets[0].h := 2;
-  SetLength(TrimSheets[1].data, 16);
-  TrimSheets[1].w := 4; TrimSheets[1].h := 4;
-  Check(TrimPtr(0, aw, ah) <> nil, 'atlas 0 resolves to a sheet');
+  { TrimPtr selects a tileset's resident atlas by index, falls back to atlas 0,
+    and EmisPtr does not; a second tileset keeps its own atlases }
+  SetLength(TrimSets[7], 2);
+  SetLength(TrimSets[7][0].data, 4);
+  TrimSets[7][0].w := 2; TrimSets[7][0].h := 2;
+  SetLength(TrimSets[7][1].data, 16);
+  TrimSets[7][1].w := 4; TrimSets[7][1].h := 4;
+  SetLength(TrimSets[8], 1);
+  SetLength(TrimSets[8][0].data, 64);
+  TrimSets[8][0].w := 8; TrimSets[8][0].h := 8;
+  Check(TrimPtr(7, 0, aw, ah) <> nil, 'atlas 0 resolves to a sheet');
   CheckEqI(aw, 2, 'atlas 0 reports its width');
-  Check(TrimPtr(1, aw, ah) <> nil, 'atlas 1 resolves to a sheet');
+  Check(TrimPtr(7, 1, aw, ah) <> nil, 'atlas 1 resolves to a sheet');
   CheckEqI(aw, 4, 'atlas 1 reports its width');
-  Check(TrimPtr(5, aw, ah) <> nil, 'an out-of-range atlas falls back');
+  Check(TrimPtr(7, 5, aw, ah) <> nil, 'an out-of-range atlas falls back');
   CheckEqI(aw, 2, 'the fallback uses atlas 0');
-  TrimSheets := nil;
-  Check(TrimPtr(0, aw, ah) = nil, 'no resident sheets yields nil');
+  Check(TrimPtr(8, 0, aw, ah) <> nil, 'another tileset keeps its own atlas');
+  CheckEqI(aw, 8, 'that tileset reports its own width');
+  Check(EmisPtr(7, 1, aw, ah) <> nil, 'EmisPtr resolves a resident atlas');
+  Check(EmisPtr(7, 5, aw, ah) = nil, 'EmisPtr does not fall back to atlas 0');
+  TrimSets[7] := nil; TrimSets[8] := nil;
+  Check(TrimPtr(7, 0, aw, ah) = nil, 'no resident sheets yields nil');
 
   { the baked mausoleum kit from content/tilesets.txt }
   Check(PakLoad('build/game.pak', p), 'load build/game.pak (run make first)');

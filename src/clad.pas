@@ -110,8 +110,8 @@ begin
   fw := Kits[kitIdx].pieces[pieceIdx].fw;
   if fw < 1 then fw := 1;
   sc := s / fw;
-  atlas := TrimPtr(Kits[kitIdx].pieces[pieceIdx].atlas, aw, ah);
-  emis := EmisPtr(Kits[kitIdx].pieces[pieceIdx].emis, ew, eh);
+  atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[pieceIdx].atlas, aw, ah);
+  emis := EmisPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[pieceIdx].emis, ew, eh);
   RenderMeshAt(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
     atlas, aw, ah, emis, ew, eh);
 end;
@@ -286,8 +286,8 @@ begin
         end;
         dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
         light := lightFn(tx, ty, dist);
-        atlas := TrimPtr(Kits[kitIdx].pieces[wp].atlas, aw, ah);
-        emis := EmisPtr(Kits[kitIdx].pieces[wp].emis, ew, eh);
+        atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].atlas, aw, ah);
+        emis := EmisPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].emis, ew, eh);
         RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
           light, atlas, aw, ah, emis, ew, eh);
       end;
@@ -315,7 +315,7 @@ begin
   if WRunX[dir] then yaw := 0 else yaw := pi / 2;
   mxw := tx + WMOX[dir];
   myw := ty + WMOY[dir];
-  atlas := TrimPtr(Kits[kitIdx].pieces[wp].atlas, aw, ah);
+  atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].atlas, aw, ah);
   RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
     light, atlas, aw, ah);
 end;

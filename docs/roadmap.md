@@ -309,10 +309,17 @@ multi-cell mesh instances rather than per-cell quads.
   glass clerestory (tileset 14, the GLASSHALL proof map) built from the cathedral
   kit's window glass. A full window wall with a stone frame around the glass
   still wants per-piece multi-material meshes (the cladding draws one atlas per
-  piece), so the proof uses the glass pane alone as a curtain wall. Still open:
-  the INFERNAL volcanic zone still wants a kit of its own theme; and the
+  piece), so the proof uses the glass pane alone as a curtain wall. The INFERNAL
+  zone got its volcanic kit too: the loafbrr Canyon Terrain rock (warm basalt) on
+  tileset 15, re-authored to a cavern with a sunken lava lake that glows through
+  the emission channel. The lake is a sector on a lava tileset (16), which needed
+  per-tileset trim-atlas residency: the atlases are now keyed by tileset and all
+  kit tilesets load at once, so a map can mix sectors of different tilesets and
+  clad each from its own atlases. The lava emission texture is a procedural
+  placeholder, marked for replacement with authored lava art. Still open: the
   cladding pass does not place kit pillars yet (the pillar role is defined but
-  inert).
+  inert), and a framed stained-glass window (stone around glass) still wants
+  per-piece multi-material meshes.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
