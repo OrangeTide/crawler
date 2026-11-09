@@ -44,6 +44,7 @@ const
   THEME_DESERTTOMB = 2;   { dusty tomb beneath the desert }
   THEME_UNDERWATER = 3;   { ocean floor and shipwrecks beneath the sea }
   THEME_BASALT     = 4;   { lava tubes beneath basalt and volcanic cells }
+  THEME_CATHEDRAL  = 5;   { a vast vaulted cathedral beneath the mountains }
 
 var
   WorldSeed: longword = $1A2B3C4D;   { later loaded from the save }
@@ -243,6 +244,7 @@ begin
     BIOME_DESERT:             BiomeTheme := THEME_DESERTTOMB;
     BIOME_VOLCAN, BIOME_BASALT: BiomeTheme := THEME_BASALT;
     BIOME_ARBOREAL, BIOME_SWAMP: BiomeTheme := THEME_CRYPT;
+    BIOME_MOUNT:              BiomeTheme := THEME_CATHEDRAL;
   else
     BiomeTheme := THEME_CAVE;
   end;
@@ -315,6 +317,7 @@ begin
     THEME_DESERTTOMB: ThemeArea := AREA_CRYPT;
     THEME_UNDERWATER: ThemeArea := AREA_COAST;
     THEME_BASALT:     ThemeArea := AREA_INFERNAL;
+    THEME_CATHEDRAL:  ThemeArea := AREA_CRYPT;
   else
     ThemeArea := AREA_CAVE;
   end;

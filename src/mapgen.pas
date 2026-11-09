@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 6;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 7;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -447,6 +447,70 @@ begin
     m.cellSector[0] := byte(HeightSector(m, 0, HZ_UNIT));
 end;
 
+{ Carve a cathedral floor plan: a cruciform of 8-cell bays over a 3x3 bay
+  grid, so every open hall aligns to the cathedral kit's 8-unit module and
+  clads from native pieces with no ragged fillers. A nave runs down the centre
+  column and a transept across the centre row; corner chapels open at random,
+  each touching an arm so the plan stays one connected space. }
+procedure GenCathedral(var g: TGrid; var r: TRng);
+const
+  BAY = 8;
+var
+  x, y, i, bx, by: longint;
+  open: array[0 .. 2, 0 .. 2] of boolean;
+begin
+  for i := 0 to gw * gh - 1 do g[i] := 1;        { all solid to start }
+  for bx := 0 to 2 do
+    for by := 0 to 2 do
+      open[bx][by] := false;
+  open[1][0] := true; open[1][1] := true; open[1][2] := true;  { nave }
+  open[0][1] := true; open[2][1] := true;                      { transept }
+  { corner chapels, each orthogonally adjacent to an open arm }
+  if RngRange(r, 0, 1) = 1 then open[0][0] := true;
+  if RngRange(r, 0, 1) = 1 then open[2][0] := true;
+  if RngRange(r, 0, 1) = 1 then open[0][2] := true;
+  if RngRange(r, 0, 1) = 1 then open[2][2] := true;
+  for by := 0 to 2 do
+    for bx := 0 to 2 do
+      if open[bx][by] then
+        for y := by * BAY to by * BAY + BAY - 1 do
+          for x := bx * BAY to bx * BAY + BAY - 1 do
+            if (x < gw) and (y < gh) then SetAt(g, x, y, 0);
+end;
+
+{ Give a cathedral level its soaring vaults: a tall ceiling over every open
+  bay, tallest at the crossing where nave and transept meet, lower in the
+  corner chapels. Floors stay flat so the vast halls are freely walkable, and
+  the kit vault pieces spring from the scaled walls. }
+procedure CathedralHeights(var m: TMapData; const g: TGrid);
+const
+  BAY = 8;
+  CROSS_Z  = 224;   { 14 units at the crossing }
+  ARM_Z    = 176;   { 11 units down the nave and transept }
+  CHAPEL_Z = 128;   {  8 units in the corner chapels }
+var
+  x, y, i, bx, by: longint;
+  cz: smallint;
+begin
+  SetLength(m.cellSector, m.w * m.h);
+  SetLength(m.sectors, 0);
+  for y := 0 to m.h - 1 do
+    for x := 0 to m.w - 1 do begin
+      i := y * m.w + x;
+      if g[i] <> 0 then begin
+        m.cellSector[i] := SECTOR_NONE;
+        continue;
+      end;
+      bx := x div BAY; by := y div BAY;
+      if (bx = 1) and (by = 1) then cz := CROSS_Z
+      else if (bx = 1) or (by = 1) then cz := ARM_Z
+      else cz := CHAPEL_Z;
+      m.cellSector[i] := HeightSector(m, 0, cz);
+    end;
+  if Length(m.sectors) = 0 then
+    m.cellSector[0] := byte(HeightSector(m, 0, HZ_UNIT));
+end;
+
 function GenerateDungeonLevel(cx, cy, depth: longint; seed: longword): TMapData;
 const
   W = 28; H = 28;
@@ -455,7 +519,7 @@ var
   g: TGrid;
   m: TMapData;
   i, theme, wallTile, usx, usy, dsx, dsy, reach, nx, ny: longint;
-  upx, upy, dnx, dny: longint;
+  upx, upy, dnx, dny, bx, by: longint;
   pin, arr, upTarget, upMarker, downTarget: string;
 begin
   gw := W; gh := H;
@@ -466,6 +530,7 @@ begin
 
   case theme of
     THEME_CAVE, THEME_UNDERWATER: GenCave(g, r);
+    THEME_CATHEDRAL: GenCathedral(g, r);
   else
     GenRooms(g, r, depth);
   end;
@@ -479,7 +544,9 @@ begin
   m.w := gw; m.h := gh;
   { crypt-themed dungeons wear the modular kit so they clad from the mossy
     pieces; other themes keep their procedural biome surfaces }
-  if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR else m.tileset := 0;
+  if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR
+  else if theme = THEME_CATHEDRAL then m.tileset := TILESET_CATHEDRAL
+  else m.tileset := 0;
   m.music := 0; m.flags := 0;
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
@@ -503,9 +570,20 @@ begin
   PlaceVerticalExit(m, g, dsx, dsy, PK_DOWN, true, downTarget, 'uparr',
     'downarr', dnx, dny);
 
-  { natural underground light: bioluminescence and small gas vents }
-  ScatterLights(m, g, r, 3 + RngRange(r, 0, 3), LIGHT_BIOLUME);
-  ScatterLights(m, g, r, 1 + RngRange(r, 0, 2), LIGHT_GASVENT);
+  if theme = THEME_CATHEDRAL then begin
+    { the cathedral is lit by fire, not cave glow: a brazier at the centre of
+      every open bay so the vast vaulted halls read }
+    for by := 0 to 2 do
+      for bx := 0 to 2 do begin
+        nx := bx * 8 + 4; ny := by * 8 + 4;
+        if (nx < gw) and (ny < gh) and (g[ny * gw + nx] = 0) then
+          AddLight(m, nx, ny, LIGHT_BRAZIER);
+      end;
+  end else begin
+    { natural underground light: bioluminescence and small gas vents }
+    ScatterLights(m, g, r, 3 + RngRange(r, 0, 3), LIGHT_BIOLUME);
+    ScatterLights(m, g, r, 1 + RngRange(r, 0, 2), LIGHT_GASVENT);
+  end;
   { a torch-lit landing at the way up, a brazier if this is a tomb }
   if FloorNeighbor(g, upx, upy, nx, ny) then AddLight(m, nx, ny, LIGHT_TORCH);
   if (theme = THEME_CRYPT) or (theme = THEME_DESERTTOMB) then
@@ -515,9 +593,11 @@ begin
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
 
-  { the modular crypt wears varied floor and ceiling heights; other themes
-    keep the flat default that EnsureSectors supplies at load }
-  if theme = THEME_CRYPT then VaryHeights(m, g, r);
+  { the modular crypt wears varied floor and ceiling heights; the cathedral
+    wears soaring bay vaults; other themes keep the flat default that
+    EnsureSectors supplies at load }
+  if theme = THEME_CRYPT then VaryHeights(m, g, r)
+  else if theme = THEME_CATHEDRAL then CathedralHeights(m, g);
 
   GenerateDungeonLevel := m;
 end;
