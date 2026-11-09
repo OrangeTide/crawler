@@ -100,9 +100,9 @@ end;
 procedure DrawPiece(const mc: TMeshCam; kitIdx, pieceIdx: longint;
   cxw, cyw, mz, s, light: double);
 var
-  mi, fw, aw, ah: longint;
+  mi, fw, aw, ah, ew, eh: longint;
   sc: double;
-  atlas: PByte;
+  atlas, emis: PByte;
 begin
   if pieceIdx < 0 then exit;
   mi := MeshIdx(Kits[kitIdx].pieces[pieceIdx].lump);
@@ -111,8 +111,9 @@ begin
   if fw < 1 then fw := 1;
   sc := s / fw;
   atlas := TrimPtr(Kits[kitIdx].pieces[pieceIdx].atlas, aw, ah);
+  emis := EmisPtr(Kits[kitIdx].pieces[pieceIdx].emis, ew, eh);
   RenderMeshAt(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
-    atlas, aw, ah);
+    atlas, aw, ah, emis, ew, eh);
 end;
 
 { Draw the floor (and ceiling) of an s-by-s block anchored at cell (ax,ay). }
@@ -229,9 +230,9 @@ procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; lightFn: TCladLightFn);
 var
   dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx: longint;
-  wp, wpN, wfw, pfw, wh, s0, mi, aw, ah: longint;
+  wp, wpN, wfw, pfw, wh, s0, mi, aw, ah, ew, eh: longint;
   fz, cz, sxl, szl, yaw, mxw, myw, cxr, cyr, dist, light: double;
-  atlas: PByte;
+  atlas, emis: PByte;
 begin
   for dir := 0 to 3 do begin
     for ty := 0 to MapH - 1 do
@@ -286,8 +287,9 @@ begin
         dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
         light := lightFn(tx, ty, dist);
         atlas := TrimPtr(Kits[kitIdx].pieces[wp].atlas, aw, ah);
+        emis := EmisPtr(Kits[kitIdx].pieces[wp].emis, ew, eh);
         RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
-          light, atlas, aw, ah);
+          light, atlas, aw, ah, emis, ew, eh);
       end;
   end;
 end;

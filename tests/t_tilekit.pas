@@ -54,10 +54,12 @@ begin
   src[0].pieces[0].lump := 'T_FLOOR'; src[0].pieces[0].fw := 2;
   src[0].pieces[0].fh := 2; src[0].pieces[0].fz := 1;
   src[0].pieces[0].atlas := 0;
+  src[0].pieces[0].emis := 255;
   src[0].pieces[1].role := KITROLE_WALL;
   src[0].pieces[1].lump := 'T_WALL'; src[0].pieces[1].fw := 3;
   src[0].pieces[1].fh := 1; src[0].pieces[1].fz := 4;
   src[0].pieces[1].atlas := 2;
+  src[0].pieces[1].emis := 3;
 
   PakWInit(w);
   PakWAdd(w, 'KITS', EncodeKits(src));
@@ -73,6 +75,10 @@ begin
   Check(RoleLump(ki, KITROLE_WALL) = 'T_WALL', 'the wall lump round-trips');
   CheckEqI(RoleAtlas(ki, KITROLE_FLOOR), 0, 'the floor atlas round-trips');
   CheckEqI(RoleAtlas(ki, KITROLE_WALL), 2, 'the wall atlas round-trips');
+  CheckEqI(Kits[ki].pieces[KitPieceByRole(ki, KITROLE_FLOOR)].emis, 255,
+    'a non-emissive piece round-trips as none');
+  CheckEqI(Kits[ki].pieces[KitPieceByRole(ki, KITROLE_WALL)].emis, 3,
+    'the emission atlas round-trips');
   Check(not TilesetHasKit(3), 'a tileset with no kit reports none');
 
   { TrimPtr selects the resident atlas by index and falls back to atlas 0 }

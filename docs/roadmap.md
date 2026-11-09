@@ -303,8 +303,13 @@ multi-cell mesh instances rather than per-cell quads.
   Set on tileset 13, an organic 4-unit cave kit (rocky ground and cave-rock
   walls on two atlases, the ceiling reused from the floor flipped), with the
   cave re-authored to a wide open cavern, rock-pillar islands and a sunken
-  crystal pool lit by bioluminescence. Still open: stained-glass windows (the
-  cathedral kit ships an emission atlas the renderer has no channel for yet);
+  crystal pool lit by bioluminescence. The emission channel has landed too: a
+  kit piece can name an emission atlas (an `!N` token) whose colour is added
+  over the scene-lit surface so it glows in the dark, demonstrated by a stained
+  glass clerestory (tileset 14, the GLASSHALL proof map) built from the cathedral
+  kit's window glass. A full window wall with a stone frame around the glass
+  still wants per-piece multi-material meshes (the cladding draws one atlas per
+  piece), so the proof uses the glass pane alone as a curtain wall. Still open:
   the INFERNAL volcanic zone still wants a kit of its own theme; and the
   cladding pass does not place kit pillars yet (the pillar role is defined but
   inert).

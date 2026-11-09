@@ -8,12 +8,14 @@ unit kittext;
     wall  MOD_WALL  4 1 3  a wall: 4 units of span, 1 deep, 3 units tall
     pillar MOD_PILLAR 1 1  a pillar
 
-  A piece line is "<role> <LUMP> <fw> <fh> [<fz>] [@N]": the role, the baked
-  tile lump, the ground footprint in grid units, an optional height in units
-  (fz, default 1), and an optional "@N" token naming the resident trim atlas
-  the piece samples (default 0, for a multi-material kit). Roles are floor,
-  ceil, wall, pillar. Lines attach to the current kit opened by the last "kit"
-  line. Blank lines and '#' comments are ignored. }
+  A piece line is "<role> <LUMP> <fw> <fh> [<fz>] [@N] [!N]": the role, the
+  baked tile lump, the ground footprint in grid units, an optional height in
+  units (fz, default 1), an optional "@N" token naming the resident trim atlas
+  the piece samples (default 0, for a multi-material kit), and an optional "!N"
+  token naming an emission atlas added over it (default none), for a glowing
+  surface such as stained glass. Roles are floor, ceil, wall, pillar. Lines
+  attach to the current kit opened by the last "kit" line. Blank lines and '#'
+  comments are ignored. }
 
 {$mode objfpc}{$H+}
 
@@ -109,12 +111,16 @@ begin
         pc.fw := StrToIntDef(tok[2], 1);
         pc.fh := StrToIntDef(tok[3], 1);
         { fz is the optional 5th field; an "@N" token anywhere past the
-          footprint names the trim atlas this piece samples (default 0). }
+          footprint names the trim atlas this piece samples (default 0), and
+          an "!N" token names the emission atlas added over it (default none). }
         pc.fz := 1;
         pc.atlas := 0;
+        pc.emis := 255;
         for ai := 4 to n - 1 do
           if (Length(tok[ai]) >= 1) and (tok[ai][1] = '@') then
             pc.atlas := StrToIntDef(Copy(tok[ai], 2, 8), 0)
+          else if (Length(tok[ai]) >= 1) and (tok[ai][1] = '!') then
+            pc.emis := StrToIntDef(Copy(tok[ai], 2, 8), 255)
           else if ai = 4 then
             pc.fz := StrToIntDef(tok[ai], 1);
         np := Length(kits[cur].pieces);

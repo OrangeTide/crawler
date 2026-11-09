@@ -41,14 +41,16 @@ procedure RasterBeginFrame;
   caller makes resident. Passing atlas=nil for a shared mesh skips it. }
 procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, scale, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
 
 { As RenderMeshAt, but with an independent scale per local axis (sx along the
   mesh's own x, sy along y, sz along z), applied before the yaw rotation. Used
   to fit a fixed-size wall piece to a cell-edge run and a sector's height. }
 procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, sx, sy, sz, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
 
 { Draw one textured quad given four world-space corners (wound in order)
   and their texture coordinates. tex points at tw*th palette indices.
@@ -123,9 +125,13 @@ begin
   Project := true;
 end;
 
-{ Affine textured, z-buffered span fill of one screen triangle. }
+{ Affine textured, z-buffered span fill of one screen triangle. An optional
+  emission texture (emis, ew by eh, sampled at the same uv as the diffuse) is
+  added over the shaded texel, so an emissive surface glows regardless of the
+  scene light: black emission texels add nothing, coloured ones glow. }
 procedure FillTriTex(const t0, t1, t2: TCorner; tex: PByte; tw, th: longint;
-  light: double; glow: TColor = 0; glowW: longint = 0);
+  light: double; glow: TColor = 0; glowW: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
 var
   p: array[0 .. 2] of TCorner;
   tmp: TCorner;
@@ -134,9 +140,10 @@ var
   spanw, du, dv, dz, tstart: double;
   uf, vf, zf, duf, dvf, dzf: TFix;
   fy0, fy1, fy2: double;
-  litI, tsx, tsy: longint;
+  litI, tsx, tsy, esx, esy: longint;
   idx: byte;
-  glowS, c: TColor;
+  glowS, c, ec: TColor;
+  hasEmis: boolean;
 
   procedure Edge(ay, by, ax, bx, au, bu, av, bv, az, bz, yy: double;
     out ox, ou, ov, oz: double);
@@ -160,6 +167,7 @@ begin
   if fy2 - fy0 < 0.001 then exit;
 
   litI := round(light);
+  hasEmis := (emis <> nil) and (ew > 0) and (eh > 0);
   if glowW > 0 then glowS := Shade(glow, litI);   { tint, shaded like the tile }
   iy0 := round(fy0); iy1 := round(fy2);
   if iy0 < 0 then iy0 := 0;
@@ -207,9 +215,19 @@ begin
         tsy := (((int64(FONE - vf) + FONE) * th + FHALF) shr FBITS) mod th;
         idx := tex[tsy * tw + tsx];
         ZBuf[fbo + x] := zf;
-        if glowW > 0 then begin
+        if (glowW > 0) or hasEmis then begin
           if litI >= 256 then c := Palette[idx] else c := Shade(Palette[idx], litI);
-          FB[fbo + x] := DitherQuant(MixColor(c, glowS, glowW), x, y);
+          if glowW > 0 then c := MixColor(c, glowS, glowW);
+          if hasEmis then begin
+            esx := (((int64(uf) + FONE) * ew + FHALF) shr FBITS) mod ew;
+            esy := (((int64(FONE - vf) + FONE) * eh + FHALF) shr FBITS) mod eh;
+            { the emission atlas holds the emitted colour; add it full-bright so
+              the surface glows in those colours regardless of scene light, with
+              black texels adding nothing }
+            ec := Palette[emis[esy * ew + esx]];
+            if (ec and $00FFFFFF) <> 0 then c := AddColor(c, ec);
+          end;
+          FB[fbo + x] := DitherQuant(c, x, y);
         end else if litI >= 256 then
           FB[fbo + x] := idx
         else
@@ -375,7 +393,8 @@ end;
 
 procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, scale, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
 var
   base, k: longint;
   cmy, smy, lx, ly, wx, wy, wz, area: double;
@@ -410,7 +429,7 @@ begin
       area := (c[1].sx - c[0].sx) * (c[2].sy - c[0].sy)
             - (c[2].sx - c[0].sx) * (c[1].sy - c[0].sy);
       if area > 0 then
-        FillTriTex(c[0], c[1], c[2], tex, tw, th, light);
+        FillTriTex(c[0], c[1], c[2], tex, tw, th, light, 0, 0, emis, ew, eh);
     end;
     inc(base, 3);
   end;
@@ -418,7 +437,8 @@ end;
 
 procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, sx, sy, sz, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0);
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
 var
   base, k: longint;
   cmy, smy, px, py, lx, ly, wx, wy, wz, area: double;
@@ -455,7 +475,7 @@ begin
       area := (c[1].sx - c[0].sx) * (c[2].sy - c[0].sy)
             - (c[2].sx - c[0].sx) * (c[1].sy - c[0].sy);
       if area > 0 then
-        FillTriTex(c[0], c[1], c[2], tex, tw, th, light);
+        FillTriTex(c[0], c[1], c[2], tex, tw, th, light, 0, 0, emis, ew, eh);
     end;
     inc(base, 3);
   end;

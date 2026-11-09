@@ -68,6 +68,9 @@ var
 { The atlas at `index` as a pointer and dimensions, falling back to atlas 0
   for an out-of-range or empty index. Returns nil when no atlas is resident. }
 function TrimPtr(index: longint; out w, h: longint): PByte;
+{ The emission atlas at `index`, or nil for index 255 (none) or a non-resident
+  index. Never falls back to atlas 0. }
+function EmisPtr(index: longint; out w, h: longint): PByte;
 
 { Load the surfaces of tileset 0, the default. Call once at startup. }
 function LoadTextures(const p: TPak): boolean;
@@ -167,6 +170,18 @@ begin
   end;
   w := TrimSheets[index].w; h := TrimSheets[index].h;
   TrimPtr := @TrimSheets[index].data[0];
+end;
+
+function EmisPtr(index: longint; out w, h: longint): PByte;
+{** The emission atlas for a piece, or nil when the piece names none (255) or
+  the index is not a resident sheet. Unlike TrimPtr it never falls back to
+  atlas 0, so a non-emissive piece adds no glow. }
+begin
+  EmisPtr := nil; w := 0; h := 0;
+  if (index < 0) or (index >= Length(TrimSheets)) then exit;
+  if Length(TrimSheets[index].data) = 0 then exit;
+  w := TrimSheets[index].w; h := TrimSheets[index].h;
+  EmisPtr := @TrimSheets[index].data[0];
 end;
 
 function SetTileset(const p: TPak; tileset: longint): boolean;

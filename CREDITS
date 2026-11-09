@@ -120,7 +120,11 @@ the game (floor, wall, vaulted ceiling, column), converted from the kit
 GLBs to shared-texture meshes that sample the kit's cathedral trim
 sheet. Kept at the kit's native grand scale for the cathedral theme,
 and reused for the town temple from a warm-tinted bake of the same
-trim sheet.
+trim sheet. cath_glass is the glass pane from the kit's window mesh,
+used as an emissive clerestory wall: its diffuse is the kit's
+window_diffuse, and its emission atlas (trim_cathglass_emis.ppm) is the
+kit's window_emission mask tinted with stained-glass colours, so the
+glass glows through the emission channel.
 
 Modular cave tiles
 ------------------

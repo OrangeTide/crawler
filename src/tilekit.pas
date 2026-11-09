@@ -40,6 +40,7 @@ type
     fw, fh: byte;           { ground footprint in grid units }
     fz: byte;               { height in grid units (1 for a slab) }
     atlas: byte;            { which resident trim sheet this piece samples }
+    emis: byte;             { emission atlas index, or 255 for none }
   end;
 
   TKit = record
@@ -109,6 +110,7 @@ begin
       PutB(a, n, kits[i].pieces[k].fh);
       PutB(a, n, kits[i].pieces[k].fz);
       PutB(a, n, kits[i].pieces[k].atlas);
+      PutB(a, n, kits[i].pieces[k].emis);
     end;
   end;
   SetLength(a, n);
@@ -167,6 +169,7 @@ begin
       Kits[i].pieces[k].fh := RB(blob, pos);
       Kits[i].pieces[k].fz := RB(blob, pos);
       Kits[i].pieces[k].atlas := RB(blob, pos);
+      Kits[i].pieces[k].emis := RB(blob, pos);
     end;
   end;
   LoadKits := true;

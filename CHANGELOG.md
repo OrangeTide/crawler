@@ -27,6 +27,13 @@ whose development history is summarized in docs/roadmap.md.
   directive. The INFERNAL hall now carries a seam of lava.
 
 ### Added
+- An emission channel for kit cladding. A kit piece can name an emission atlas
+  (an `!N` token in the kit text) whose colour is added over the scene-lit
+  surface, so it glows regardless of the scene light. A new clerestory tileset
+  (14) uses it for stained-glass walls: a glass pane from the cathedral kit's
+  window mesh, glowing in tinted colours through a dim nave. The GLASSHALL proof
+  map shows it. A full window wall with a stone frame around the glass still
+  wants per-piece multi-material meshes; this proof uses the glass pane alone.
 - A crystal-grotto theme kit. The GROTTO cave now wears the loafbrr Mines and
   Cave Set on its own tileset (13): organic rocky ground, cave-rock walls, and a
   ceiling reused from the floor piece flipped to face down, floors and ceiling on

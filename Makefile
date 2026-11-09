@@ -63,12 +63,14 @@ TILENAMES = maus_floor maus_wall maus_ceil maus_pillar \
             maus_base_floor maus_base_wall maus_base_ceil \
             cath_floor cath_wall cath_ceil cath_pillar \
             grotto_floor grotto_wall grotto_ceil \
-            grotto_base_floor grotto_base_wall grotto_base_ceil
+            grotto_base_floor grotto_base_wall grotto_base_ceil \
+            cath_glass
 TILESRC   = $(foreach n,$(TILENAMES),content/rooms/pieces/$(n).obj)
 TRIMSRC   = content/rooms/trim_maus_floor.ppm content/rooms/trim_maus_wall.ppm \
             content/rooms/trim_maus_ceil.ppm content/rooms/trim_maus_trim.ppm \
             content/rooms/trim_cathedral.ppm content/rooms/trim_temple.ppm \
-            content/rooms/trim_grotto_ground.ppm content/rooms/trim_grotto_wall.ppm
+            content/rooms/trim_grotto_ground.ppm content/rooms/trim_grotto_wall.ppm \
+            content/rooms/trim_cathglass.ppm content/rooms/trim_cathglass_emis.ppm
 # Billboard sprites: a PNG per id in content/sprites, keyed to magenta and
 # compiled to a PIC lump. Omit a monster's id here to fall back to a glyph.
 SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
@@ -122,7 +124,10 @@ TRIMARG   = trim 10 0 content/rooms/trim_maus_floor.ppm \
             trim 11 content/rooms/trim_cathedral.ppm \
             trim 12 content/rooms/trim_temple.ppm \
             trim 13 0 content/rooms/trim_grotto_ground.ppm \
-            trim 13 1 content/rooms/trim_grotto_wall.ppm
+            trim 13 1 content/rooms/trim_grotto_wall.ppm \
+            trim 14 0 content/rooms/trim_cathedral.ppm \
+            trim 14 1 content/rooms/trim_cathglass.ppm \
+            trim 14 2 content/rooms/trim_cathglass_emis.ppm
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)

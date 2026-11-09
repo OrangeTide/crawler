@@ -66,3 +66,15 @@ kit 13 grotto
   ceil   GROTTO_BASE_CEIL   1 1   @0
   wall   GROTTO_WALL        4 1 4 @1
   wall   GROTTO_BASE_WALL   1 1 4 @1
+
+# Tileset 14: a cathedral clerestory, to show the emission channel. It reuses
+# the cathedral floor and vault (atlas 0, the cathedral trim) but its walls are
+# panes of stained glass from the SigilsVault window mesh. The glass samples its
+# own diffuse atlas (@1) and an emission atlas (!2, the kit's window_emission
+# map), so the glass glows in its own colours even in a dim nave while the stone
+# stays scene-lit. A proper window wall (stone frame plus glass) needs per-piece
+# multi-material meshes; this proof uses the glass pane alone as a curtain wall.
+kit 14 clerestory
+  floor  CATH_FLOOR    8 8
+  ceil   CATH_CEIL     8 8
+  wall   CATH_GLASS    8 1 16 @1 !2

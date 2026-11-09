@@ -39,6 +39,8 @@ procedure UseGamePalette;                          { restore the game palette }
 function RGB(r, g, b: byte): TColor; inline;
 function Shade(c: TColor; f: longint): TColor; inline;
 function MixColor(a, b: TColor; t: longint): TColor; inline;
+function AddColor(a, b: TColor): TColor; inline;    { saturating RGB add }
+function MulColor(a, b: TColor): TColor; inline;    { per-channel a*b/255 }
 procedure ClearFB(c: TColor);
 procedure PutPixel(x, y: longint; c: TColor); inline;
 procedure FillRect(x, y, w, h: longint; c: TColor);
@@ -85,6 +87,33 @@ begin
     or (TColor(ar + ((br - ar) * t shr 8)) shl 16)
     or (TColor(ag + ((bg - ag) * t shr 8)) shl 8)
     or TColor(ab + ((bb - ab) * t shr 8));
+end;
+
+function AddColor(a, b: TColor): TColor;
+{** Add b's RGB channels onto a, each clamped to 255. For emissive surfaces:
+  a glow colour laid over a scene-lit texel. }
+var
+  r, g, bl: longint;
+begin
+  r := ((a shr 16) and $FF) + ((b shr 16) and $FF);
+  g := ((a shr 8) and $FF) + ((b shr 8) and $FF);
+  bl := (a and $FF) + (b and $FF);
+  if r > 255 then r := 255;
+  if g > 255 then g := 255;
+  if bl > 255 then bl := 255;
+  AddColor := TColor($FF000000) or (TColor(r) shl 16) or (TColor(g) shl 8) or TColor(bl);
+end;
+
+function MulColor(a, b: TColor): TColor;
+{** Multiply a's RGB channels by b's, each scaled by 1/255. Used to mask a
+  colour by a greyscale weight, such as a diffuse colour by an emission mask. }
+var
+  r, g, bl: longint;
+begin
+  r := (((a shr 16) and $FF) * ((b shr 16) and $FF)) div 255;
+  g := (((a shr 8) and $FF) * ((b shr 8) and $FF)) div 255;
+  bl := ((a and $FF) * (b and $FF)) div 255;
+  MulColor := TColor($FF000000) or (TColor(r) shl 16) or (TColor(g) shl 8) or TColor(bl);
 end;
 
 var
