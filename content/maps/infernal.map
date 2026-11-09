@@ -26,6 +26,8 @@ npc 8 7 DEMONLORD Altar NPC_ALTAR
 trap 7 7 10 13 fire
 trap 4 7 10 13 fire
 trap 12 7 10 13 fire
+# a seam of lava across the central hall burns those who cross it
+trigger hazard 3 fire 9 7 12 7 12 8 9 8
 gasvent 4 7
 gasvent 12 7
 bonfire 2 12

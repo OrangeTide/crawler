@@ -41,6 +41,8 @@ const
   TRIG_ENCOUNTER = 1;       { param = the encounter table to roll inside }
   TRIG_AMBIENT   = 2;       { param = ambient light level (0..256) while inside }
   TRIG_EVENT     = 3;       { fire-on-enter once: set the flag `tag`, show `msg` }
+  TRIG_HAZARD    = 4;       { each step inside: param damage of element `tag`,
+                              or param poison ticks when `tag` is 'poison' }
 
   { Trigger polygon vertices are stored in 1/16 cell units, so an edge can fall
     between cells. One cell is TRIG_UNIT steps. }

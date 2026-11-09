@@ -59,6 +59,7 @@ begin
   if LowerCase(s) = 'encounter' then TrigKind := TRIG_ENCOUNTER
   else if LowerCase(s) = 'ambient' then TrigKind := TRIG_AMBIENT
   else if LowerCase(s) = 'event' then TrigKind := TRIG_EVENT
+  else if LowerCase(s) = 'hazard' then TrigKind := TRIG_HAZARD
   else TrigKind := TRIG_NONE;
 end;
 

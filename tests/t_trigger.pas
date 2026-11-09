@@ -31,7 +31,7 @@ begin
         m.walls[y * m.w + x] := TILE_EMPTY;
   EnsureSectors(m);
 
-  SetLength(m.triggers, 2);
+  SetLength(m.triggers, 3);
   m.triggers[0].kind := TRIG_ENCOUNTER;
   m.triggers[0].param := 5;
   m.triggers[0].tag := 'crypt';
@@ -51,6 +51,16 @@ begin
   m.triggers[1].verts[1].x := 6 * TRIG_UNIT; m.triggers[1].verts[1].y := 2 * TRIG_UNIT;
   m.triggers[1].verts[2].x := 6 * TRIG_UNIT; m.triggers[1].verts[2].y := 6 * TRIG_UNIT;
   m.triggers[1].verts[3].x := 2 * TRIG_UNIT; m.triggers[1].verts[3].y := 6 * TRIG_UNIT;
+  { a fire hazard over the same cells }
+  m.triggers[2].kind := TRIG_HAZARD;
+  m.triggers[2].param := 4;
+  m.triggers[2].tag := 'fire';
+  m.triggers[2].msg := '';
+  SetLength(m.triggers[2].verts, 4);
+  m.triggers[2].verts[0].x := 2 * TRIG_UNIT; m.triggers[2].verts[0].y := 2 * TRIG_UNIT;
+  m.triggers[2].verts[1].x := 6 * TRIG_UNIT; m.triggers[2].verts[1].y := 2 * TRIG_UNIT;
+  m.triggers[2].verts[2].x := 6 * TRIG_UNIT; m.triggers[2].verts[2].y := 6 * TRIG_UNIT;
+  m.triggers[2].verts[3].x := 2 * TRIG_UNIT; m.triggers[2].verts[3].y := 6 * TRIG_UNIT;
 end;
 
 procedure WriteMapText;
@@ -62,6 +72,7 @@ begin
   s.Add('trigger encounter 3 lair 2 2 6 2 6 6 2 6');
   s.Add('trigger event 0 seen 2 2 6 2 6 6 2 6');
   s.Add('eventmsg seen A cold draft stirs the dust.');
+  s.Add('trigger hazard 4 fire 2 2 6 2 6 6 2 6');
   s.Add('walls');
   s.Add('22222222');
   s.Add('20000002');
@@ -92,7 +103,7 @@ begin
   Check(PakLoad(TMP, p), 'reload the pak');
   Check(PakGet(p, 'MAP0', blob), 'read the map lump');
   Check(DecodeMap(blob, dm), 'decode the map');
-  CheckEqI(Length(dm.triggers), 2, 'the triggers round-trip');
+  CheckEqI(Length(dm.triggers), 3, 'the triggers round-trip');
   CheckEqI(dm.triggers[0].kind, TRIG_ENCOUNTER, 'the kind round-trips');
   CheckEqI(dm.triggers[0].param, 5, 'the parameter round-trips');
   Check(dm.triggers[0].tag = 'crypt', 'the tag round-trips');
@@ -115,17 +126,22 @@ begin
   { the event lookup is kind-filtered and finds the event polygon }
   CheckEqI(EventHere(3, 3), 1, 'inside, the event trigger is found');
   CheckEqI(EventHere(0, 0), -1, 'outside, no event trigger');
+  CheckEqI(HazardHere(3, 3), 2, 'inside, the hazard trigger is found');
+  CheckEqI(HazardHere(0, 0), -1, 'outside, no hazard trigger');
 
   { the map compiler parses the directive }
   WriteMapText;
   Check(ParseMapText(FN, m, name, err), 'the trigger directive parses');
-  CheckEqI(Length(m.triggers), 2, 'the compiler built both triggers');
+  CheckEqI(Length(m.triggers), 3, 'the compiler built the triggers');
   CheckEqI(m.triggers[0].kind, TRIG_ENCOUNTER, 'the compiled kind is right');
   CheckEqI(m.triggers[0].param, 3, 'the compiled parameter is right');
   CheckEqI(Length(m.triggers[0].verts), 4, 'the compiled polygon has four verts');
   CheckEqI(m.triggers[1].kind, TRIG_EVENT, 'the compiled event kind is right');
   Check(m.triggers[1].msg = 'A cold draft stirs the dust.',
     'the eventmsg directive attaches the message');
+  CheckEqI(m.triggers[2].kind, TRIG_HAZARD, 'the compiled hazard kind is right');
+  CheckEqI(m.triggers[2].param, 4, 'the compiled hazard damage is right');
+  Check(m.triggers[2].tag = 'fire', 'the compiled hazard element is right');
 
   TestSummary('trigger');
   halt(TestExit);

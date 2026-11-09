@@ -21,6 +21,10 @@ whose development history is summarized in docs/roadmap.md.
   persists like a sprung trap. Authored with a `trigger event` polygon plus an
   `eventmsg` line for the message text (map format bumped to 12). The DUNGEON
   announces its sunken gallery on first descent.
+- A hazard zone trigger (TRIG_HAZARD): a polygon that bites the party each step
+  they linger in it, element-typed and halved by warding gear, or seeps poison
+  when its tag is `poison`. Authored with a `trigger hazard <damage> <element>`
+  directive. The INFERNAL hall now carries a seam of lava.
 
 ### Changed
 - Re-authored the starter DUNGEON to the modular mossy kit's scale. The old

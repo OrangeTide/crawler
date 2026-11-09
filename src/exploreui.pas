@@ -519,6 +519,58 @@ begin
   end;
 end;
 
+function HazardElem(const t: string): longint;
+{ The element a hazard's tag names; physical when it names none. }
+begin
+  if t = 'fire' then HazardElem := EL_FIRE
+  else if t = 'frost' then HazardElem := EL_FROST
+  else if t = 'shock' then HazardElem := EL_SHOCK
+  else if t = 'holy' then HazardElem := EL_HOLY
+  else HazardElem := EL_PHYS;
+end;
+
+procedure HazardCheck;
+{** A hazard zone bites the party each step they stand in it, element-typed and
+  halved by warding gear, or seeps poison when its tag is 'poison'. Unlike a
+  trap it has no fire-once flag: it ticks for as long as they linger. }
+var
+  ti, i, hit, elem: longint;
+  t: string;
+begin
+  ti := HazardHere(TileX, TileY);
+  if ti < 0 then exit;
+  if CurMap.triggers[ti].param < 1 then exit;
+  t := LowerCase(CurMap.triggers[ti].tag);
+  if t = 'poison' then begin
+    for i := 0 to High(Roster) do
+      if Roster[i].alive and (not Roster[i].downed)
+        and (Roster[i].poison < 250) then
+        Roster[i].poison := Roster[i].poison + CurMap.triggers[ti].param;
+    saveMsg := 'POISON GAS FILLS THE AIR';
+    saveMsgT := 2.0;
+    exit;
+  end;
+  elem := HazardElem(t);
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) then begin
+      hit := D(CurMap.triggers[ti].param);
+      if (elem <> 0) and ((CharResist(Roster[i]) and elem) <> 0) then
+        hit := (hit + 1) div 2;   { warded gear halves it }
+      Roster[i].hp := Roster[i].hp - hit;
+      if Roster[i].hp <= 0 then begin
+        Roster[i].hp := 0;
+        Roster[i].downed := true;
+      end;
+    end;
+  PlaySfx(SFX_HIT);
+  if elem = EL_FIRE then saveMsg := 'FLAMES SEAR THE PARTY'
+  else if elem = EL_FROST then saveMsg := 'A BITTER COLD BITES'
+  else if elem = EL_SHOCK then saveMsg := 'ARCS OF LIGHTNING LASH'
+  else if elem = EL_HOLY then saveMsg := 'SEARING RADIANCE BURNS'
+  else saveMsg := 'THE GROUND TEARS AT THE PARTY';
+  saveMsgT := 2.0;
+end;
+
 procedure OpenAdjacentDoor(tx, ty: longint);
 {** Force a closed door tile open, used when a light well is lit. }
 begin
@@ -685,6 +737,7 @@ begin
   TrapCheck;
   LootCheck;
   EventCheck;
+  HazardCheck;
   LightPuzzleCheck;
   AutoPinDiscovered;
   ChargeWagesDue;
