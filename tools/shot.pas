@@ -22,6 +22,7 @@ program shot;
     shot <out.ppm> fieldcast [cast]   (the SPELLS tab field-casting; cast opens the picker)
     shot <out.ppm> sector [X] [Y] [N|E|S|W]   (the sector height proof)
     shot <out.ppm> clad [X] [Y] [N|E|S|W]     (the modular cladding proof)
+    shot <out.ppm> carve [TILESET] [X] [Y] [N|E|S|W]   (a carved kit level)
     shot <out.ppm> map <MAP> <X> <Y> <N|E|S|W>
     shot <out.ppm> foe <MAP> <X> <Y> <N|E|S|W> <MON> <MX> <MY>
 
@@ -38,7 +39,7 @@ uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combat, combatui, combatstate, party, chardata,
   dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
-  skilldb, skillbook, rules, textures, roomdb, polyrender, math;
+  skilldb, skillbook, rules, textures, roomdb, polyrender, carve, math;
 
 const
   {$I version.inc}   { BUILD_VERSION, so headless shots carry the version }
@@ -395,6 +396,29 @@ begin
     else
       PlaceAt(5, 7, DIR_E);
     if ParamCount >= 6 then Cam.pitch := StrToFloatDef(ParamStr(6), 0);
+    UsePoly := true;   { cladding draws only in the polygon path }
+  end else if scene = 'carve' then begin
+    { the carve-and-clad proof: generate a level on a kit's module grid, so its
+      rooms, corridors, floors, walls and ceilings all clad from whole native
+      pieces with no scaled fillers. An optional tileset picks the kit (default
+      the mausoleum); optional <camX> <camY> <N|E|S|W> frame the view. }
+    QuickStart;
+    ci := TILESET_MODULAR;
+    if ParamCount >= 3 then ci := StrToInt(ParamStr(3));
+    secMap := CarveLevel($C0FFEE, ci, 4);
+    if not LoadMapData(secMap) then begin
+      writeln(StdErr, 'shot: could not load the carve demo'); halt(1);
+    end;
+    CurMapName := 'CARVEDEMO';
+    if not SetTileset(GamePak, ci) then
+      writeln(StdErr, 'shot: warning, tileset ', ci, ' incomplete');
+    if Length(TrimTex) = 0 then
+      writeln(StdErr, 'shot: warning, no trim atlas resident (TRIM', ci,
+        ' missing)');
+    if ParamCount >= 6 then
+      PlaceAt(StrToInt(ParamStr(4)), StrToInt(ParamStr(5)), DirCode(ParamStr(6)))
+    else
+      PlaceAt(secMap.markers[0].x, secMap.markers[0].y, DIR_E);
     UsePoly := true;   { cladding draws only in the polygon path }
   end else if scene = 'room' then begin
     { the theme G modular-room proof: load a hand-placed set of kit pieces

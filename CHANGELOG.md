@@ -10,6 +10,18 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Carve-and-clad map generation (`carve`). A level is carved on a coarse module
+  grid, one module per kit floor piece, then each module expands to its N by N
+  cells, so every open region is a union of grid-aligned single-sector blocks and
+  the smallest corridor is one module wide. That is exactly the cladding's
+  native-piece condition, so a carved level clads from whole kit pieces with no
+  scaled fillers, proven headlessly by the `shot carve` scene and by the
+  claddable-invariant test. A companion repair pass conforms an arbitrary grid
+  (carved or hand-authored) to the module: it snaps rooms by a majority rule,
+  drops sub-module notches, reconnects anything the snap strands, and relocates
+  stranded entities, so random generation and manual authoring can share the same
+  carve and repair steps. Foundation only for now; not yet wired into the live
+  dungeon generators.
 - Outdoor terrain heightfield. A surface map's ground can carry relief: hills,
   slopes and valleys drawn in the polygon path, with the camera and the
   floor-anchored billboards and props riding the slope. The height is a

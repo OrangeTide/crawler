@@ -263,6 +263,7 @@ World, maps and navigation:
 | `src/mapstate.pas` | Per-map fog, door and seed snapshots across visits. |
 | `src/mapgen.pas` | Seeded roguelike generators (rooms, cave, maze). |
 | `src/gridgen.pas` | Grid toolkit shared by the generators. |
+| `src/carve.pas` | Carves and repairs maps on a kit's module grid so they clad from native pieces. |
 | `src/overworld.pas` | The seeded overworld terrain and biomes. |
 | `src/worldarea.pas` | Encounter areas and their names. |
 | `src/worldname.pas` | Names of the synthesized overworld maps. |

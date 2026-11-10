@@ -344,23 +344,26 @@ multi-cell mesh instances rather than per-cell quads.
   props ride the relief, and surface obstacles became walk-through foliage
   billboards. The logical grid stays coarse, so collision and turn order are
   identical no matter how detailed the terrain renders.
-- [future] Formula-driven carve-and-clad generation. Today a modular map is
+- [partial] Formula-driven carve-and-clad generation. Today a modular map is
   authored by hand: the wall grid, the sectors, and discrete props each placed,
   sized and rotated by a person (the town door's yaw, for one). The cladding
   itself is already rule-driven (CladView merges aligned floor blocks, CladWalls
   snaps wall runs to the largest fitting piece, pillars and steps place from the
-  grid), so the missing half is the layout. Add a high-level generator that
-  carves a map subtractively from a solid block by rules (rooms, halls and
-  junctions removed from fill), producing the logical grid and sector heights,
-  which the existing theme cladding then dresses with no hand placement. A
-  repair/filter pass conforms the carve to what the kit can tile before cladding:
-  snap openings and room edges to the kit's footprint grid, widen or square
-  sub-footprint gaps, and resolve adjacencies a piece cannot clad, so an
-  arbitrary carve always clads cleanly. Discrete props (doors, braziers) get
-  their orientation from the carve too, derived from the wall or opening they sit
-  on rather than an authored yaw. This generalizes the crypt-level generator
-  (which already paints coarse height blocks from a seed) into a full
-  carve-then-clad pipeline, and pairs with the authored-ruin content in theme F.
+  grid), so the missing half is the layout. The foundation has landed (`carve`):
+  a generator carves on a coarse module grid, one module per floor piece, then
+  expands each module to its N by N cells, so every open region is a union of
+  N-aligned single-sector blocks (the cladding's native-piece condition) and the
+  smallest corridor is one module wide. A repair pass conforms an arbitrary grid
+  (carved or hand-authored) to the module: it snaps rooms to the module by a
+  majority rule, drops sub-module notches, reconnects anything the snap strands,
+  and relocates stranded entities, so both random generation and manual authoring
+  can share the same carve and repair steps. Still open: wiring the carve path
+  into the live dungeon generators (a generator-version bump) and giving manual
+  authoring an opt-in conform step at bake time, then deriving discrete-prop
+  orientation (doors, braziers) from the carve rather than an authored yaw. This
+  generalizes the crypt-level generator (which already paints coarse height
+  blocks from a seed) into a full carve-then-clad pipeline, and pairs with the
+  authored-ruin content in theme F.
 
 ## Sequenced roadmap
 
