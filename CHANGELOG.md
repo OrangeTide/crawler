@@ -106,6 +106,13 @@ whose development history is summarized in docs/roadmap.md.
   `optionsui`, `keybindui`, `gameoverui`, `victoryui`). No behaviour change; the
   split also resolves a latent `LearnableCount`/`LearnableNth` name clash by
   giving the spell and skill learn screens only their own backing unit.
+- Moved combat logic out of the combat UI unit. `combatui` had held game rules
+  that do not belong in a screen unit: the two item-usability checks now live in
+  `items` (`ItemUsableInCombat`, `ItemRevives`) and the won-fight spoils (the
+  loot roll and the boss story-flag award) now live in `combat`, so the UI unit
+  only renders, routes input and announces the result. No behaviour change; the
+  loot roll still draws from the global RNG stream, not the combat core's, so
+  the deterministic combat rolls are undisturbed.
 - Replaced the dungeon kit. The modular tileset (10), which the authored DUNGEON
   and the generated crypt levels ride, now wears the loafbrr Mausoleum Dungeon
   kit in place of the SigilsVault mossy kit. It is a multi-material crypt kit:
@@ -124,6 +131,12 @@ whose development history is summarized in docs/roadmap.md.
   geometry with glitched corners. It is now built from wide open halls joined by
   short doorways, with pillar blocks for crypt character, so the kit clads it
   cleanly. All portals, markers, and features are preserved.
+- Brought the README up to date. The Layout tables now list every source unit:
+  the cladding, kit, sprite, combat-core and field-cast units that had fallen
+  off, and the combat row split to match the current driver. The renderer notes
+  now say the polygon path is the default view, which it has been since the
+  terrain work, in place of the old "experimental" and "raycaster is the
+  default" wording.
 
 ## [0.27.1] - 2026-11-09
 

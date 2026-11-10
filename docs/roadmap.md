@@ -190,10 +190,6 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   derived from that collection, add its CC BY-NC-SA 4.0 line to CREDITS. This
   touches gfx.pas (the bitmap font) and every HUD and UI unit that measures text
   by a fixed glyph width, so proportional metrics are the real work.
-- [gap] Update the README. It is out of date in several areas (for example it
-  still describes the raycaster as the main renderer, when the polygon path with
-  sector heights and modular-kit cladding is now the default). Audit it against
-  the current engine, controls and module map.
 - [gap] Capture screenshots of the new modular areas (the clad crypt DUNGEON,
   the cathedral theme, the warm-tinted town temple) through the headless shot
   tool, and fold the best into the README screenshot set.
