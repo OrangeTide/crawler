@@ -63,6 +63,16 @@ procedure DrawTexQuad(const cam: TMeshCam;
   tex: PByte; tw, th: longint; light: double;
   glow: TColor = 0; glowW: longint = 0);
 
+{ Tint one cell's floor with an emissive glow: a flat decal over cell
+  (tx,ty) at height z, mixing glow at glowW/256 over whatever is already
+  drawn there and shaded by light. For a light tile (brazier, torch,
+  biolume) on a kit-clad floor, whose merged native floor piece cannot
+  carry a per-cell glow. It reads and tints the framebuffer, is z-tested so
+  nearer walls and props occlude it, and leaves the depth buffer untouched
+  so it never occludes anything itself. }
+procedure DrawFloorGlow(const cam: TMeshCam; tx, ty: longint; z: double;
+  glow: TColor; glowW: longint; light: double);
+
 { Draw a front-facing billboard: a camera-facing quad standing on the floor
   at world (wx,wy), wscale wide and hscale tall in tiles, textured with the
   ARGB image img. Transparent texels are skipped, so the key color shows the
@@ -254,6 +264,99 @@ begin
   c2.u := u2; c2.v := v2; c3.u := u3; c3.v := v3;
   FillTriTex(c0, c1, c2, tex, tw, th, light, glow, glowW);
   FillTriTex(c0, c2, c3, tex, tw, th, light, glow, glowW);
+end;
+
+{ Span fill of one screen triangle that tints the framebuffer toward glowS
+  at glowW/256, instead of drawing a texture. It interpolates only screen x
+  and inverse depth, reads the pixel already there, mixes, and writes back.
+  The depth test passes where the decal is at or nearer than what stands
+  there, and the depth buffer is left unchanged. }
+procedure FillTriGlow(const t0, t1, t2: TCorner; glowS: TColor; glowW: longint);
+var
+  p: array[0 .. 2] of TCorner;
+  tmp: TCorner;
+  y, iy0, iy1, ix0, ix1, x, fbo: longint;
+  xa, za, xb, zb, tx: double;
+  spanw, dz, tstart: double;
+  zf, dzf: TFix;
+  fy0, fy1, fy2: double;
+  c: TColor;
+
+  procedure Edge(ay, by, ax, bx, az, bz, yy: double; out ox, oz: double);
+  var tt: double;
+  begin
+    if by = ay then tt := 0 else tt := (yy - ay) / (by - ay);
+    if tt < 0 then tt := 0 else if tt > 1 then tt := 1;
+    ox := ax + (bx - ax) * tt;
+    oz := az + (bz - az) * tt;
+  end;
+
+begin
+  p[0] := t0; p[1] := t1; p[2] := t2;
+  if p[1].sy < p[0].sy then begin tmp := p[0]; p[0] := p[1]; p[1] := tmp; end;
+  if p[2].sy < p[1].sy then begin tmp := p[1]; p[1] := p[2]; p[2] := tmp; end;
+  if p[1].sy < p[0].sy then begin tmp := p[0]; p[0] := p[1]; p[1] := tmp; end;
+
+  fy0 := p[0].sy; fy1 := p[1].sy; fy2 := p[2].sy;
+  if fy2 - fy0 < 0.001 then exit;
+  if glowW <= 0 then exit;
+
+  iy0 := round(fy0); iy1 := round(fy2);
+  if iy0 < 0 then iy0 := 0;
+  if iy1 > FBH - 1 then iy1 := FBH - 1;
+
+  for y := iy0 to iy1 do begin
+    Edge(fy0, fy2, p[0].sx, p[2].sx, p[0].iz, p[2].iz, y, xa, za);
+    if y < fy1 then begin
+      if fy1 - fy0 < 0.001 then continue;
+      Edge(fy0, fy1, p[0].sx, p[1].sx, p[0].iz, p[1].iz, y, xb, zb);
+    end else begin
+      if fy2 - fy1 < 0.001 then continue;
+      Edge(fy1, fy2, p[1].sx, p[2].sx, p[1].iz, p[2].iz, y, xb, zb);
+    end;
+    if xb < xa then begin
+      tx := xa; xa := xb; xb := tx;
+      tx := za; za := zb; zb := tx;
+    end;
+    ix0 := round(xa); ix1 := round(xb);
+    if ix0 < 0 then ix0 := 0;
+    if ix1 > FBW - 1 then ix1 := FBW - 1;
+    fbo := y * FBW;
+    spanw := xb - xa;
+    if spanw < 0.001 then begin dz := 0; tstart := 0; end
+    else begin dz := (zb - za) / spanw; tstart := ix0 - xa; end;
+    zf := FixF(za + dz * tstart);
+    dzf := FixF(dz);
+    for x := ix0 to ix1 do begin
+      if zf >= ZBuf[fbo + x] then begin   { on, or nearer than, the floor here }
+        c := MixColor(Palette[FB[fbo + x]], glowS, glowW);
+        FB[fbo + x] := DitherQuant(c, x, y);
+      end;
+      inc(zf, dzf);
+    end;
+  end;
+end;
+
+procedure DrawFloorGlow(const cam: TMeshCam; tx, ty: longint; z: double;
+  glow: TColor; glowW: longint; light: double);
+const
+  { lift the decal a hair above the floor so it beats the kit floor mesh's
+    own depth without reaching a wall riser, which is at least a half unit }
+  GLOW_LIFT = 0.05;
+var
+  c0, c1, c2, c3: TCorner;
+  zz: double;
+  glowS: TColor;
+begin
+  if glowW <= 0 then exit;
+  zz := z + GLOW_LIFT;
+  if not Project(cam, tx, ty, zz, c0) then exit;
+  if not Project(cam, tx + 1, ty, zz, c1) then exit;
+  if not Project(cam, tx + 1, ty + 1, zz, c2) then exit;
+  if not Project(cam, tx, ty + 1, zz, c3) then exit;
+  glowS := Shade(glow, round(light));   { the glow dims with distance like the floor }
+  FillTriGlow(c0, c1, c2, glowS, glowW);
+  FillTriGlow(c0, c2, c3, glowS, glowW);
 end;
 
 { Affine z-buffered span fill of one screen triangle from an ARGB image,

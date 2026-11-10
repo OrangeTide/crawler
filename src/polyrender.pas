@@ -327,6 +327,24 @@ begin
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
 
+  { a light tile on a kit-clad floor cannot glow through its merged native
+    floor piece, so tint those cells with a per-cell decal here, the way the
+    non-kit floor quad above mixes the glow in directly }
+  for ty := y0 to y1 do
+    for tx := x0 to x1 do
+      if (not IsWallTile(tx, ty))
+         and (KitIndexForTileset(CellTileset(tx, ty)) >= 0) then begin
+        gk := LightTileKind(tx, ty);
+        if gk < 0 then continue;
+        gw := 0; gcol := 0;
+        if not LightGlow(gk, gcol, gw) then continue;
+        cx := tx + 0.5; cy := ty + 0.5;
+        fwd := (cx - ex) * cyaw + (cy - ey) * syaw;
+        if fwd < -1.3 then continue;         { behind the camera }
+        dist := sqrt(sqr(cx - ex) + sqr(cy - ey));
+        DrawFloorGlow(mc, tx, ty, FloorZAt(tx, ty), gcol, gw, TileLight(tx, ty, dist));
+      end;
+
   { the outdoor ground, drawn as relief where a surface map carries terrain }
   if CurMapSurface and TerrainActive then
     DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
