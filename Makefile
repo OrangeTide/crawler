@@ -33,9 +33,9 @@ ifeq ($(OS),Windows_NT)
 else
   IM ?= convert
 endif
-FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild -FUbuild
-TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fibuild -FEbuild/tools -FUbuild/tools
-TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Futests -FEbuild/tests -FUbuild/tests
+FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild -FUbuild
+TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild/tools -FUbuild/tools
+TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
 TARGET    = build/crawler$(EXE)
 PAK       = build/game.pak
@@ -163,7 +163,7 @@ TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
 
 all: $(TARGET) $(PAK)
 
-$(TARGET): crawler.lpr src/*.pas build/version.inc | build
+$(TARGET): crawler.lpr src/*.pas src/ui/*.pas build/version.inc | build
 	$(FPC) $(FPCFLAGS) -o$(TARGET) crawler.lpr
 
 # The version string baked into the game, regenerated every build to track the
@@ -190,7 +190,7 @@ release-check:
 
 tools: $(MKASSETS)
 
-$(MKASSETS): tools/mkassets.pas src/*.pas | build
+$(MKASSETS): tools/mkassets.pas src/*.pas src/ui/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -o$(MKASSETS) tools/mkassets.pas
 
@@ -198,11 +198,11 @@ $(MKASSETS): tools/mkassets.pas src/*.pas | build
 # a CMSH lump; meshshot renders a baked mesh to a PPM for inspection.
 meshtools: build/tools/mkmesh build/tools/meshshot
 
-build/tools/mkmesh: tools/mkmesh.pas src/*.pas | build
+build/tools/mkmesh: tools/mkmesh.pas src/*.pas src/ui/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -obuild/tools/mkmesh tools/mkmesh.pas
 
-build/tools/meshshot: tools/meshshot.pas src/*.pas | build
+build/tools/meshshot: tools/meshshot.pas src/*.pas src/ui/*.pas | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -obuild/tools/meshshot tools/meshshot.pas
 
@@ -211,7 +211,7 @@ build/tools/meshshot: tools/meshshot.pas src/*.pas | build
 # dummy video driver. Used by the headless-run skill.
 shottool: build/tools/shot
 
-build/tools/shot: tools/shot.pas src/*.pas build/version.inc | build
+build/tools/shot: tools/shot.pas src/*.pas src/ui/*.pas build/version.inc | build
 	mkdir -p build/tools
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 

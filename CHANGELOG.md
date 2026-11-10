@@ -100,6 +100,12 @@ whose development history is summarized in docs/roadmap.md.
   passages on the biome tileset.
 
 ### Changed
+- Reorganized the UI source. The per-state screen units now live under `src/ui`,
+  one unit per game state, and the catch-all `miscui` was split into its nine
+  screens (`fullmapui`, `menuui`, `charsheetui`, `learnspellui`, `learnskillui`,
+  `optionsui`, `keybindui`, `gameoverui`, `victoryui`). No behaviour change; the
+  split also resolves a latent `LearnableCount`/`LearnableNth` name clash by
+  giving the spell and skill learn screens only their own backing unit.
 - Replaced the dungeon kit. The modular tileset (10), which the authored DUNGEON
   and the generated crypt levels ride, now wears the loafbrr Mausoleum Dungeon
   kit in place of the SigilsVault mossy kit. It is a multi-material crypt kit:

@@ -38,7 +38,7 @@ program shot;
 uses
   sysutils, classes, sdl2min, gfx, gamestate, game, world, worldload,
   mapfmt, monsters, pursuit, titleui, combat, combatui, combatstate, party, chardata,
-  dialog, charcreateui, spellbook, miscui, spelldb, fieldcast,
+  dialog, charcreateui, spellbook, menuui, charsheetui, spelldb, fieldcast,
   skilldb, skillbook, rules, textures, roomdb, polyrender, carve, math;
 
 const

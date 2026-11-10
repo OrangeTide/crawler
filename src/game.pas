@@ -5,9 +5,10 @@ unit game;
   The game is a set of states (title, exploration, combat, and so on).
   One state is active at a time, held in gamestate. This unit is the thin
   top level: it loads the pak and tables at startup, then each frame routes
-  input, update and render to the unit that owns the active state (titleui,
-  exploreui, combatui, dialogui, shopui, charcreateui, miscui). The
-  platform layer in crawler.lpr only pumps SDL and uploads the framebuffer. }
+  input, update and render to the unit that owns the active state (the *ui
+  units under src/ui, one per state: titleui, exploreui, combatui, menuui,
+  charsheetui and the rest). The platform layer in crawler.lpr only pumps SDL
+  and uploads the framebuffer. }
 
 {$mode objfpc}{$H+}
 
@@ -27,7 +28,9 @@ uses
   monsters, dialog, spelldb, spellbook, skilldb, skillbook, shops, encounters,
   tilekit, clad, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
-  miscui, overworldui, gametime, audio, settings, codex, apppaths;
+  fullmapui, menuui, charsheetui, learnspellui, learnskillui, optionsui,
+  keybindui, gameoverui, victoryui,
+  overworldui, gametime, audio, settings, codex, apppaths;
 
 var
   palIsTitle: boolean = false;   { the title's CLUT is active }

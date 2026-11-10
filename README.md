@@ -310,14 +310,23 @@ UI states and tools:
 
 | File | Role |
 |------|------|
-| `src/titleui.pas` | Title menu, pregen party and the quick entry points. |
-| `src/charcreateui.pas` | Character creation screen. |
-| `src/exploreui.pas` | First-person exploration, interaction, traps and lighting. |
-| `src/combatui.pas` | The combat screen and its input. |
-| `src/dialogui.pas` | NPC conversation over the frozen view. |
-| `src/shopui.pas` | The buy shop screen. |
-| `src/overworldui.pas` | Coarse overworld travel. |
-| `src/miscui.pas` | Full-map overlay, journal and bestiary, game over, options, victory. |
+| `src/ui/*.pas` | The per-state screen units, one per game state, routed from `game`. |
+| `src/ui/titleui.pas` | Title menu, pregen party and the quick entry points. |
+| `src/ui/charcreateui.pas` | Character creation screen. |
+| `src/ui/exploreui.pas` | First-person exploration, interaction, traps and lighting. |
+| `src/ui/combatui.pas` | The combat screen and its input. |
+| `src/ui/dialogui.pas` | NPC conversation over the frozen view. |
+| `src/ui/shopui.pas` | The buy shop screen. |
+| `src/ui/overworldui.pas` | Coarse overworld travel. |
+| `src/ui/fullmapui.pas` | The full-map overlay, pins and auto-travel picking. |
+| `src/ui/menuui.pas` | The J menu: journal, bestiary and the spells tab's field casting. |
+| `src/ui/charsheetui.pas` | The character sheet, spell browser, first aid and skill training door. |
+| `src/ui/learnspellui.pas` | The learn-a-spell screen. |
+| `src/ui/learnskillui.pas` | The train-a-skill screen. |
+| `src/ui/optionsui.pas` | The options screen. |
+| `src/ui/keybindui.pas` | The key-binding sub-screen. |
+| `src/ui/gameoverui.pas` | The game-over screen. |
+| `src/ui/victoryui.pas` | The victory screen. |
 | `src/uihelp.pas` | Shared centered and word-wrapped text helpers. |
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art and tables. |
 | `tools/mkmesh.pas` | Bakes an OBJ plus a texture into a mesh lump. |
