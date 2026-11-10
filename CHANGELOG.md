@@ -10,6 +10,12 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Light-source glows on kit-clad floors. A brazier, torch, biolume or vent on a
+  kit-clad floor now casts its coloured glow onto the floor in the polygon path,
+  as it always did on non-kit floors. A kit floor is one merged native piece per
+  block, so the glow is drawn as a per-cell decal that tints the floor already
+  there, z-tested so walls and props occlude it. This was the last 0.19.0 render
+  item, so the raycaster's retirement leaves no visible gap.
 - Carve-and-clad map generation (`carve`). A level is carved on a coarse module
   grid, one module per kit floor piece, then each module expands to its N by N
   cells, so every open region is a union of grid-aligned single-sector blocks and
@@ -142,10 +148,9 @@ whose development history is summarized in docs/roadmap.md.
 - Retired the raycaster. The PSX-style polygon renderer has been the default
   view since the terrain work and now carries everything the game draws, so the
   raycaster fallback and its `P`-key A/B toggle are gone and `src/raycast.pas` is
-  deleted. The polygon path is the only renderer. Its PlayStation look (vertex
-  snap and 4x4 Bayer ordered dither) and its fixed-point per-pixel hot path are
-  in place; one 0.19.0 polish item remains, a per-tile light glow on kit-clad
-  floors (tracked in the roadmap).
+  deleted. The polygon path is the only renderer, with its PlayStation look
+  (vertex snap and 4x4 Bayer ordered dither) and its fixed-point per-pixel hot
+  path in place.
 
 ## [0.27.1] - 2026-11-09
 

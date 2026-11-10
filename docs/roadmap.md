@@ -105,13 +105,15 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
-- [partial] (0.19.0) Light-source glows on kit-clad floors. A brazier, torch or
-  biolume tile tints its own floor in the non-kit quad path, and the kit
-  emission channel carries a piece's static glow, but a per-tile light glow on a
-  kit-clad floor is not drawn, because that floor is one merged native piece per
-  block rather than a per-cell quad. It needs a per-cell floor-glow decal
-  blended over the clad floor in the rasterizer. Vertex snap and ordered dither
-  for the PSX look are done.
+- [done] (0.19.0) Light-source glows on kit-clad floors. A light tile's glow is
+  mixed into the non-kit floor quad directly, but a kit-clad floor is one merged
+  native piece per block and cannot carry a per-cell tint, so a brazier, torch
+  or biolume on a kit floor showed no glow. A per-cell floor-glow decal in the
+  rasterizer (`DrawFloorGlow`) now reads the framebuffer, mixes the glow over
+  the clad floor shaded by the cell light, and writes it back, z-tested so walls
+  and props occlude it. With vertex snap and ordered dither already in place,
+  this was the last 0.19.0 render item, so the raycaster's retirement left no
+  visible gap.
 
 ### B. Navigation and AI (continues the recent track, 0.20.0)
 
