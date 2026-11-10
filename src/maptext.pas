@@ -100,6 +100,7 @@ var
   pr: TProp;
   lo: TLoot;
   pl: TPillar;
+  fo: TFoliage;
   tg: TTrigger;
   nv, vi: longint;
 begin
@@ -110,7 +111,7 @@ begin
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   m.loot := nil; m.sectors := nil; m.cellSector := nil; m.pillars := nil;
-  m.triggers := nil;
+  m.triggers := nil; m.foliage := nil;
   m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   inWalls := false;
   wallsDone := false;
@@ -349,6 +350,14 @@ begin
         pl.y := StrToInt(tok[2]);
         SetLength(m.pillars, Length(m.pillars) + 1);
         m.pillars[High(m.pillars)] := pl;
+      end else if tok[0] = 'foliage' then begin
+        { foliage X Y [KIND]: a decorative tree or rock billboard on open ground }
+        if ntok < 3 then begin errmsg := 'foliage needs X Y [KIND]'; exit; end;
+        fo.x := StrToInt(tok[1]);
+        fo.y := StrToInt(tok[2]);
+        if ntok >= 4 then fo.kind := StrToInt(tok[3]) else fo.kind := 0;
+        SetLength(m.foliage, Length(m.foliage) + 1);
+        m.foliage[High(m.foliage)] := fo;
       end else if tok[0] = 'heightmap' then begin
         { heightmap LUMP ZMIN ZMAX: outdoor terrain relief from a baked height
           lump. ZMIN and ZMAX are the world height, in 1/HZ_UNIT units like a

@@ -141,7 +141,7 @@ const
 var
   r: TRng;
   g: TGrid;
-  i, j, n, bx, by, mx, my, biome, wallTile, np: longint;
+  i, j, n, bx, by, mx, my, biome, fx, fy, np: longint;
   m: TMapData;
 begin
   gw := W; gh := H;
@@ -149,19 +149,27 @@ begin
   SetLength(g, gw * gh);
   RngSeed(r, seed);
   biome := BiomeAt(cx, cy);
-  wallTile := BiomeWallTile(biome);
+  m.foliage := nil;
 
   for i := 0 to gw * gh - 1 do g[i] := 0;   { open ground }
   Borders(g);
 
-  { scattered obstacle clusters, density by biome }
+  { scattered foliage clusters, density by biome. These stand on open ground as
+    billboards the party walks among, not grid walls, so the wilderness reads as
+    an open field dotted with trees and rocks rather than a maze. The kind
+    carries the biome, so a later pass can pick the right sprite per biome. }
   n := BiomeDensity(biome);
   for i := 1 to n do begin
     bx := 2 + RngRange(r, 0, gw - 5);
     by := 2 + RngRange(r, 0, gh - 5);
-    for j := 0 to RngRange(r, 1, 4) do
-      SetAt(g, Min(gw - 2, bx + RngRange(r, 0, 2)),
-               Min(gh - 2, by + RngRange(r, 0, 2)), wallTile);
+    for j := 0 to RngRange(r, 1, 4) do begin
+      fx := Min(gw - 2, bx + RngRange(r, 0, 2));
+      fy := Min(gh - 2, by + RngRange(r, 0, 2));
+      SetLength(m.foliage, Length(m.foliage) + 1);
+      m.foliage[High(m.foliage)].x := fx;
+      m.foliage[High(m.foliage)].y := fy;
+      m.foliage[High(m.foliage)].kind := byte(biome);
+    end;
   end;
 
   { keep the center and routes to every edge clear }

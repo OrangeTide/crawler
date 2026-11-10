@@ -22,8 +22,14 @@ whose development history is summarized in docs/roadmap.md.
   Generated wilderness cells also carry relief, built from the world seed: the
   elevation rides the broad terrain field so high ground rises and plains stay
   flat, and because it samples absolute world coordinates, neighbor cells seam
-  with nothing stored (generator version bumped to 8). Billboard foliage over
-  the terrain follows in a later step.
+  with nothing stored (generator version bumped to 8).
+- Billboard foliage over the terrain. Surface obstacles (trees, rocks) are now
+  walk-through billboards standing on the ground instead of grid walls, so the
+  wilderness reads as an open field dotted with trees rather than a maze. A
+  `foliage X Y [KIND]` map directive places them, generated cells scatter them
+  by biome, and each rides the terrain through the shared ground anchor (map
+  format bumped to 15). The tree sprite is a placeholder, to be replaced with
+  the loafbrr foliage art.
 - Kit pillars. A `pillar X Y` map directive marks a cell to carry a pillar; the
   cladding pass draws the tileset kit's pillar piece there at native scale, and
   the cell blocks movement. Previously the pillar role was defined but inert.

@@ -22,7 +22,7 @@ begin
   m.markers := nil; m.portals := nil; m.doors := nil; m.npcs := nil;
   m.traps := nil; m.lights := nil; m.props := nil; m.loot := nil;
   m.sectors := nil; m.cellSector := nil; m.triggers := nil;
-  m.pillars := nil;
+  m.pillars := nil; m.foliage := nil;
   m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   SetLength(m.walls, m.w * m.h);
   for y := 0 to m.h - 1 do
@@ -104,6 +104,10 @@ begin
 
   m.heightLump := 'HM_HILL'; m.heightZMin := -8; m.heightZMax := 48;
 
+  SetLength(m.foliage, 2);
+  m.foliage[0].x := 2; m.foliage[0].y := 3; m.foliage[0].kind := 4;
+  m.foliage[1].x := 5; m.foliage[1].y := 6; m.foliage[1].kind := 0;
+
   { codec round-trip }
   PakWInit(w);
   PakWAdd(w, 'MAP0', EncodeMap(m));
@@ -125,6 +129,9 @@ begin
   Check(dm.heightLump = 'HM_HILL', 'the terrain height lump round-trips');
   CheckEqI(dm.heightZMin, -8, 'the terrain min height round-trips');
   CheckEqI(dm.heightZMax, 48, 'the terrain max height round-trips');
+  CheckEqI(Length(dm.foliage), 2, 'the foliage round-trips');
+  CheckEqI(dm.foliage[0].kind, 4, 'a foliage kind round-trips');
+  CheckEqI(dm.foliage[1].x, 5, 'a foliage x round-trips');
 
   { point-in-polygon through the live lookup }
   Check(LoadMapData(dm), 'load the decoded map');

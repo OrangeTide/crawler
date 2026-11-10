@@ -62,10 +62,11 @@ SigilsVault CC0 kits for the PS1 budget and built the trim-sheet mesh pipeline.
 movement grid, the modular-kit cladding, a polygon trigger layer, and the port
 of the generators and authored zones to the kits: themed crypt dungeons, the
 cathedral theme, the reused town temple, and the starter DUNGEON re-authored to
-the kit's scale. That leaves 0.19.0 and 0.20.0 as the open low-numbered
-milestones, the 0.27.0 follow-ons under theme G (GROTTO and INFERNAL kits,
-stained glass, multi-atlas residency), and 0.28.0 outdoor terrain next, with
-themes E and F as the further forward work.
+the kit's scale. 0.28.0 then landed the outdoor half of theme G: a heightfield
+terrain for surface maps, from a baked heightmap asset and from the world seed,
+with the camera, billboards and props riding the relief and surface obstacles
+turned into walk-through foliage billboards. That leaves 0.20.0 as the open
+low-numbered milestone, with themes E and F as the further forward work.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
@@ -451,15 +452,23 @@ flat-grid renderer to keep geometry grid-aligned and multi-unit kit pieces ride
 as mesh instances. This is the milestone that turns the flat grid into a
 late-90s first-person RPG. Depends on 0.26.0.
 
-### 0.28.0 Outdoor terrain (M)
+### 0.28.0 Outdoor terrain (M) [done]
 
 Theme G, the outdoor half. A heightfield terrain for the overworld surface and
 the open zones, rendered in the polygon path. The heightfield is a tunable
-asset: a source heightmap built into a render mesh at compile or load time, with
-the mesh density and LOD a per-target knob, so desktop renders dense terrain and
-the PS1 a coarse vertex-snapped mesh from one source. The indoor/outdoor seam is
-the shared logical grid, which stays coarse and target-independent, and the
-billboard foliage and entities are kept over the terrain. Depends on 0.27.0.
+asset: a source heightmap built into a render grid at load time, with the
+subdivision density and height-snap a per-target knob, so desktop renders dense
+terrain and a coarse build renders a sparse, snapped mesh from one source. The
+indoor/outdoor seam is the shared logical grid, which stays coarse and
+target-independent, and the billboard foliage and entities are kept over the
+terrain. Delivered: the terrain layer (`src/terrain.pas`) with a baked-heightmap
+source (`src/heightfmt.pas`, the `heightmap` bake verb and map directive) and a
+procedural wilderness source from the world seed (edge-matched, generator version
+8); the renderer draws subdivided height-displaced ground and the camera,
+billboards and props ride it; and surface obstacles became walk-through foliage
+billboards (the tree sprite a placeholder for the loafbrr foliage art). The
+fixed-point conversion of the terrain vertex math rides the rest of the polygon
+path on the theme E track. Depends on 0.27.0.
 
 ### 0.29.0 Follow-on arc: the lost cities (M)
 

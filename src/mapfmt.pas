@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 14;         { 14 adds the terrain heightfield reference }
+  MAP_VERSION = 15;         { 15 adds the foliage billboard list }
 
   MAP_SURFACE     = 1;      { flags bit: an outdoor map, sees the sky }
   MAP_PROCTERRAIN = 2;      { flags bit: build terrain relief from the seed }
@@ -162,6 +162,15 @@ type
     x, y: word;
   end;
 
+  { A foliage billboard: a tree or rock standing on the ground as a sprite, not
+    a grid wall. It is decorative cover the party walks among; whether a cell
+    blocks stays a wall-grid decision, independent of the billboard. kind selects
+    the sprite variant. }
+  TFoliage = packed record
+    x, y: word;
+    kind: byte;
+  end;
+
   { A sector is a region of open cells sharing a floor and a ceiling height.
     Walls are the segments between sectors, or between a sector and a solid
     cell; the renderer derives them from cell adjacency. Movement stays on the
@@ -210,6 +219,7 @@ type
       no MAP_PROCTERRAIN means a flat map, which renders as before. }
     heightLump: string[16];               { baked height lump, empty for none }
     heightZMin, heightZMax: smallint;     { world height for sample 0 and 255 }
+    foliage: array of TFoliage;           { decorative billboards, may be empty }
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -410,6 +420,14 @@ begin
   BU16(b, word(m.heightZMin));
   BU16(b, word(m.heightZMax));
 
+  BU16(b, Length(m.foliage));
+  for i := 0 to High(m.foliage) do begin
+    BU16(b, m.foliage[i].x);
+    BU16(b, m.foliage[i].y);
+    BByte(b, m.foliage[i].kind);
+    BByte(b, 0);
+  end;
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -507,7 +525,7 @@ begin
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   m.loot := nil; m.sectors := nil; m.cellSector := nil; m.triggers := nil;
-  m.pillars := nil;
+  m.pillars := nil; m.foliage := nil;
   m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
@@ -644,6 +662,15 @@ begin
   m.heightLump := RName(r, 16);
   m.heightZMin := smallint(RU16(r));
   m.heightZMax := smallint(RU16(r));
+
+  count := RU16(r);
+  SetLength(m.foliage, count);
+  for i := 0 to count - 1 do begin
+    m.foliage[i].x := RU16(r);
+    m.foliage[i].y := RU16(r);
+    m.foliage[i].kind := RByte(r);
+    RByte(r);
+  end;
 
   { belt and braces: a map that somehow lacks a sector table gets the flat
     default so the renderer always has heights to read. Clearing cellSector

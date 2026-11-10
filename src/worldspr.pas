@@ -36,6 +36,11 @@ uses
 
 const
   NPC_SPRITE = 'NPC';   { the default art for an NPC that names no sprite }
+  { placeholder foliage art, to be replaced with the loafbrr tree and rock
+    sprites once they are downloaded; one sprite serves every kind for now }
+  FOLIAGE_SPRITE = 'FOLIAGE_TREE';
+  FOLIAGE_H = 1.6;      { billboard height in tiles }
+  FOLIAGE_R = 16;       { only gather foliage within this many tiles of the party }
 
 { The billboard art and height for a portal of this kind. An unknown kind
   draws nothing (name stays empty), leaving only the floor cue. }
@@ -98,6 +103,23 @@ begin
     lst[n].wh := eh;
     lst[n].img := si;
     inc(n);
+  end;
+  { decorative foliage: trees and rocks the party walks among, billboarded on
+    the ground. Only the foliage near the party is gathered, so the near set
+    fits the list; each sits on the terrain through the shared ground-Z path. }
+  if Length(CurMap.foliage) > 0 then begin
+    si := LoadSprite(GamePak, FOLIAGE_SPRITE);
+    if si >= 0 then
+      for i := 0 to High(CurMap.foliage) do begin
+        if n > High(lst) then break;
+        if Abs(longint(CurMap.foliage[i].x) - TileX)
+          + Abs(longint(CurMap.foliage[i].y) - TileY) > FOLIAGE_R then continue;
+        lst[n].x := CurMap.foliage[i].x + 0.5;
+        lst[n].y := CurMap.foliage[i].y + 0.5;
+        lst[n].wh := FOLIAGE_H;
+        lst[n].img := si;
+        inc(n);
+      end;
   end;
   GatherWorldSprites := n;
 end;
