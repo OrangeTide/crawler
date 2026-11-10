@@ -28,8 +28,8 @@ whose development history is summarized in docs/roadmap.md.
   wilderness reads as an open field dotted with trees rather than a maze. A
   `foliage X Y [KIND]` map directive places them, generated cells scatter them
   by biome, and each rides the terrain through the shared ground anchor (map
-  format bumped to 15). The tree sprite is a placeholder, to be replaced with
-  the loafbrr foliage art.
+  format bumped to 15). The tree sprite is the loafbrr Generic Foliage conifer
+  (CC BY 1.0, credited).
 - Kit pillars. A `pillar X Y` map directive marks a cell to carry a pillar; the
   cladding pass draws the tileset kit's pillar piece there at native scale, and
   the cell blocks movement. Previously the pillar role was defined but inert.

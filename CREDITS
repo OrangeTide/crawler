@@ -179,6 +179,21 @@ remapped to it so the small prop texture carries full detail. It replaces
 the earlier image-generated doorway prop and stands at the town, outskirts
 and temple building entrances.
 
+Foliage billboard
+-----------------
+
+Source: "Generic Foliage" by loafbrr (loafbrr.itch.io). A set of low-poly
+plants and leaf cards with seasonal albedo trim sheets.
+License: Creative Commons Attribution 1.0 International (CC BY 1.0).
+Attribution is required: this asset is by loafbrr. The full terms are in
+the kit's README.txt.
+
+content/sprites/foliage_tree.png is the conifer card cut from the kit's
+LeafSetTrim_1 summer albedo sheet, keyed to transparency and used as a
+floor-anchored billboard. It stands in for the scattered trees on the
+outdoor terrain. Unlike the CC0 kits, this one requires attribution, so
+this entry is not optional.
+
 Spell catalog
 -------------
 

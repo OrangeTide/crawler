@@ -36,8 +36,8 @@ uses
 
 const
   NPC_SPRITE = 'NPC';   { the default art for an NPC that names no sprite }
-  { placeholder foliage art, to be replaced with the loafbrr tree and rock
-    sprites once they are downloaded; one sprite serves every kind for now }
+  { foliage billboard art: the loafbrr Generic Foliage conifer. One sprite
+    serves every kind for now; a later pass can pick per biome from the kit. }
   FOLIAGE_SPRITE = 'FOLIAGE_TREE';
   FOLIAGE_H = 1.6;      { billboard height in tiles }
   FOLIAGE_R = 16;       { only gather foliage within this many tiles of the party }
