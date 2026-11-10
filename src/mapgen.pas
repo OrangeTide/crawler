@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 8;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 9;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -30,7 +30,7 @@ function GenerateDepthsCell(cx, cy: longint; seed: longword): TMapData;
 implementation
 
 uses
-  gridgen, overworld, worldname;
+  gridgen, overworld, worldname, carve;
 
 const
   LADDER_SNAP = 3;   { how far an exit may shift to reach open floor for a ladder }
@@ -531,6 +531,7 @@ var
   i, theme, wallTile, usx, usy, dsx, dsy, reach, nx, ny: longint;
   upx, upy, dnx, dny, bx, by: longint;
   pin, arr, upTarget, upMarker, downTarget: string;
+  carveCrypt: boolean;
 begin
   gw := W; gh := H;
   SetLength(g, gw * gh);
@@ -538,12 +539,23 @@ begin
   theme := BiomeTheme(BiomeAt(cx, cy));
   wallTile := ThemeWall(theme);
 
-  case theme of
-    THEME_CAVE, THEME_UNDERWATER: GenCave(g, r);
-    THEME_CATHEDRAL: GenCathedral(g, r);
-  else
-    GenRooms(g, r, depth);
-  end;
+  { a crypt carves on the mausoleum kit's module grid so it clads from whole
+    native pieces, when that kit is loaded (it is in play, not in a kit-less
+    test, which keeps the legacy rooms-and-corridors crypt) }
+  carveCrypt := (theme = THEME_CRYPT) and (KitModule(TILESET_MODULAR) >= 2);
+  if carveCrypt then begin
+    m := CarveLevel(seed, TILESET_MODULAR, depth);
+    gw := m.w; gh := m.h;
+    SetLength(g, gw * gh);
+    for i := 0 to gw * gh - 1 do
+      if m.walls[i] = 0 then g[i] := 0 else g[i] := 1;
+  end else
+    case theme of
+      THEME_CAVE, THEME_UNDERWATER: GenCave(g, r);
+      THEME_CATHEDRAL: GenCathedral(g, r);
+    else
+      GenRooms(g, r, depth);
+    end;
 
   if not FirstFloor(g, usx, usy) then begin
     usx := gw div 2; usy := gh div 2;
@@ -603,10 +615,11 @@ begin
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
 
-  { the modular crypt wears varied floor and ceiling heights; the cathedral
+  { the carved crypt already carries its per-module heights from CarveLevel; a
+    legacy (kit-less) crypt wears varied floor and ceiling heights; the cathedral
     wears soaring bay vaults; other themes keep the flat default that
     EnsureSectors supplies at load }
-  if theme = THEME_CRYPT then VaryHeights(m, g, r)
+  if (theme = THEME_CRYPT) and (not carveCrypt) then VaryHeights(m, g, r)
   else if theme = THEME_CATHEDRAL then CathedralHeights(m, g);
 
   GenerateDungeonLevel := m;

@@ -357,13 +357,14 @@ multi-cell mesh instances rather than per-cell quads.
   (carved or hand-authored) to the module: it snaps rooms to the module by a
   majority rule, drops sub-module notches, reconnects anything the snap strands,
   and relocates stranded entities, so both random generation and manual authoring
-  can share the same carve and repair steps. Still open: wiring the carve path
-  into the live dungeon generators (a generator-version bump) and giving manual
-  authoring an opt-in conform step at bake time, then deriving discrete-prop
-  orientation (doors, braziers) from the carve rather than an authored yaw. This
-  generalizes the crypt-level generator (which already paints coarse height
-  blocks from a seed) into a full carve-then-clad pipeline, and pairs with the
-  authored-ruin content in theme F.
+  can share the same carve and repair steps. Generated crypt dungeons now carve
+  this way (generator version 9), and a hand-authored map opts into the same
+  conform with a `conform N` directive applied at bake time. Still open:
+  extending the carve to the other kit themes (the cave and cathedral paths still
+  use their own carvers), and deriving discrete-prop orientation (doors, braziers)
+  from the carve rather than an authored yaw. This generalizes the crypt-level
+  generator into a full carve-then-clad pipeline, and pairs with the authored-ruin
+  content in theme F.
 
 ## Sequenced roadmap
 

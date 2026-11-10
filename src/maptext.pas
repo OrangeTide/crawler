@@ -32,7 +32,7 @@ function ParseMapText(const fn: string; out m: TMapData;
 implementation
 
 uses
-  classes, sysutils, worldarea, monsters, beings;
+  classes, sysutils, worldarea, monsters, beings, carve;
 
 { Map an element name to its EL_* flag, 0 if unknown or omitted. }
 function ElemFlag(const t: string): byte;
@@ -102,9 +102,10 @@ var
   pl: TPillar;
   fo: TFoliage;
   tg: TTrigger;
-  nv, vi: longint;
+  nv, vi, conformN: longint;
 begin
   ParseMapText := false;
+  conformN := 0;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
@@ -366,6 +367,15 @@ begin
         m.heightLump := UpperCase(tok[1]);
         m.heightZMin := StrToInt(tok[2]);
         m.heightZMax := StrToInt(tok[3]);
+      end else if tok[0] = 'conform' then begin
+        { conform N: after the whole map is read, snap its grid to the kit's
+          N-unit module so it clads from whole native pieces. The same carve
+          repair the generators use, so a hand-authored rough layout cleans up
+          before a final edit. N is given explicitly (the kit tables are not
+          loaded at bake time); use the kit's floor footprint. }
+        if ntok < 2 then begin errmsg := 'conform needs N'; exit; end;
+        conformN := StrToInt(tok[1]);
+        if conformN < 1 then begin errmsg := 'conform N must be at least 1'; exit; end;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;
@@ -377,6 +387,10 @@ begin
 
   if m.w = 0 then begin errmsg := 'no size'; exit; end;
   if inWalls then begin errmsg := 'walls not terminated by end'; exit; end;
+  { an opted-in map conforms its grid to the kit module before the sector layer
+    is finalized, snapping rooms, dropping sub-module notches, reconnecting any
+    stranded region and relocating stranded entities }
+  if conformN >= 1 then RepairToModule(m, conformN);
   { give the map its sector layer: any sectors painted by directives are kept,
     and every open cell not otherwise assigned falls into the default sector }
   EnsureSectors(m);

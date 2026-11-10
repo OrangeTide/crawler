@@ -20,8 +20,11 @@ whose development history is summarized in docs/roadmap.md.
   (carved or hand-authored) to the module: it snaps rooms by a majority rule,
   drops sub-module notches, reconnects anything the snap strands, and relocates
   stranded entities, so random generation and manual authoring can share the same
-  carve and repair steps. Foundation only for now; not yet wired into the live
-  dungeon generators.
+  carve and repair steps. Generated crypt dungeons now carve this way, so they
+  clad from whole mausoleum pieces instead of the old ragged fillers (generator
+  version bumped to 9). A hand-authored map can opt into the same conform with a
+  `conform N` directive, which snaps its grid to the kit module at bake time
+  before a final edit.
 - Outdoor terrain heightfield. A surface map's ground can carry relief: hills,
   slopes and valleys drawn in the polygon path, with the camera and the
   floor-anchored billboards and props riding the slope. The height is a
