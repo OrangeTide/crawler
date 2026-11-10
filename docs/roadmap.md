@@ -332,19 +332,35 @@ multi-cell mesh instances rather than per-cell quads.
   movement. The DUNGEON's sunken gallery wears a colonnade of them. Still open:
   a framed stained-glass window (stone around glass) still wants per-piece
   multi-material meshes.
-- [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
+- [done] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
   terrain). The heightfield is an asset, not part of the grid: a source
-  heightmap at whatever fidelity the content needs, built into a render mesh at
-  compile time or load time by sampling, interpolating, and decimating it. That
-  build is a per-target knob, the same shape as the trim-sheet size knob from
-  0.26.0: desktop gets a dense interpolated mesh and a high LOD, the PS1 gets a
-  coarse decimated mesh with vertex snapping, both from one source. The logical
-  grid stays coarse and target-independent, so collision and turn order are
-  identical no matter how detailed the terrain renders. Keep the billboard
-  foliage and entities over the terrain, and keep the seeded, deterministic
-  generation the overworld already uses.
+  heightmap at whatever fidelity the content needs, built into a render grid at
+  load time by sampling and interpolating. That build is a per-target knob, the
+  same shape as the trim-sheet size knob from 0.26.0: desktop gets a dense grid,
+  a coarse build a sparse vertex-snapped one, both from one source. Landed from
+  a baked heightmap asset and from the world seed; the camera, billboards and
+  props ride the relief, and surface obstacles became walk-through foliage
+  billboards. The logical grid stays coarse, so collision and turn order are
+  identical no matter how detailed the terrain renders.
+- [future] Formula-driven carve-and-clad generation. Today a modular map is
+  authored by hand: the wall grid, the sectors, and discrete props each placed,
+  sized and rotated by a person (the town door's yaw, for one). The cladding
+  itself is already rule-driven (CladView merges aligned floor blocks, CladWalls
+  snaps wall runs to the largest fitting piece, pillars and steps place from the
+  grid), so the missing half is the layout. Add a high-level generator that
+  carves a map subtractively from a solid block by rules (rooms, halls and
+  junctions removed from fill), producing the logical grid and sector heights,
+  which the existing theme cladding then dresses with no hand placement. A
+  repair/filter pass conforms the carve to what the kit can tile before cladding:
+  snap openings and room edges to the kit's footprint grid, widen or square
+  sub-footprint gaps, and resolve adjacencies a piece cannot clad, so an
+  arbitrary carve always clads cleanly. Discrete props (doors, braziers) get
+  their orientation from the carve too, derived from the wall or opening they sit
+  on rather than an authored yaw. This generalizes the crypt-level generator
+  (which already paints coarse height blocks from a seed) into a full
+  carve-then-clad pipeline, and pairs with the authored-ruin content in theme F.
 
 ## Sequenced roadmap
 
