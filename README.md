@@ -1,16 +1,16 @@
 # Cities of the Sunless Depths
 
 A first person dungeon crawler written in Free Pascal (OBJFPC mode) with a
-textured raycasting engine. The build is named `crawler`. It renders at 320x240 into a software framebuffer
+PSX-style textured polygon renderer. The build is named `crawler`. It renders at 320x240 into a software framebuffer
 and upscales with nearest-neighbour filtering for a crisp retro look. The
 camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
 as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
 
 The engine is renderer and content agnostic and targets three desktop hosts
 today (Linux, Windows and macOS), with MS-DOS and PlayStation 1 as the
-long-term goals the architecture is kept ready for. A second, PSX-style
-polygon renderer draws the same world and is now the default view, with the
-raycaster kept as a live-toggle alternative.
+long-term goals the architecture is kept ready for. The software rasterizer's
+per-pixel hot path runs in fixed point, so the renderer is shaped for those
+FPU-less targets.
 
 ## Screenshots
 
@@ -53,11 +53,11 @@ spells and bows strike over them.
 
 ## Features
 
-- Textured raycasting walls (DDA grid cast) with per-face shading, plus floor
-  and ceiling casting under the same distance fog.
-- A second PSX-style polygon renderer (rasterizer, baked meshes, instanced
-  props, monster meshes in the combat slots) that draws the same world. It is
-  now the default view, with the raycaster kept as a live-toggle alternative.
+- A PSX-style textured polygon renderer: a software rasterizer draws the tile
+  grid as walls, floors and ceilings under distance fog, with baked meshes,
+  instanced props and monster meshes in the combat slots. Vertex snap and
+  ordered (Bayer) dither give the PlayStation look, and the per-pixel hot path
+  runs in fixed point for the FPU-less targets.
 - Turn-based grid movement: step tile by tile and turn in 90 degree steps, each
   tweened so the motion stays smooth. Holding the right mouse button free-looks
   anywhere; stepping or turning realigns the view. A cursor allows clicking the
@@ -162,7 +162,6 @@ The core exploration keys are rebindable in Options; the defaults are below.
 | R | Rest to recover health, when no foe is near |
 | G | Recall and auto-travel toward a known destination |
 | O | Enter the coarse overworld travel mode |
-| P | Toggle between the polygon and raycast renderers |
 | C | Force a test encounter (while a party exists) |
 | F5 / F9 | Save / load the game |
 | Esc | Back out of a screen, or quit from exploration |
@@ -234,7 +233,7 @@ The platform layer and core:
 | `src/xmpmin.pas` | Minimal libxmp binding, loaded at runtime for module music. |
 | `src/apppaths.pas` | Relocatable asset search and the per-user save directory. |
 | `src/gfx.pas` | Framebuffer, drawing primitives and the bitmap font. |
-| `src/fixedpt.pas` | Signed 16.16 fixed-point math for the raycaster hot path. |
+| `src/fixedpt.pas` | Signed 16.16 fixed-point math for the rasterizer hot path. |
 | `src/rng.pas` | Deterministic xorshift PRNG with independent streams. |
 | `src/pak.pas` | Pack archive reader, plus a writer for the tools. |
 | `src/pic.pas` | Custom image codec (PackBits, direct or indexed colour). |
@@ -248,7 +247,6 @@ Rendering:
 
 | File | Role |
 |------|------|
-| `src/raycast.pas` | The textured raycasting renderer. |
 | `src/raster.pas` | A small fixed-function polygon rasterizer, PSX style. |
 | `src/meshfmt.pas` | Baked triangle mesh format, drawn by the polygon renderer. |
 | `src/heightfmt.pas` | Baked terrain heightmap format, the source for outdoor relief. |

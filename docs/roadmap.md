@@ -30,12 +30,12 @@ the six zones in skeleton, rest, traps, poison, options for volume, the seeded
 overworld and biomes, vertical space and the Sunless Depths, and the time,
 day-night, and moon systems with lycanthropy and the light-well puzzles.
 
-Milestone 0.19.0 (the PSX-style polygon renderer) is nearly complete: the
+Milestone 0.19.0 (the PSX-style polygon renderer) is essentially complete: the
 rasterizer, mesh format, bake pipeline, grid-through-rasterizer draw, and
-instanced props all exist, and the polygon renderer is now the default view,
-with the raycaster kept as a P-toggle fallback. It carries the PSX look (vertex
-snap and ordered dither), emissive-tile floor glows, and the 3D props the
-raycaster cannot draw. Monsters and NPCs are front-facing billboard sprites in
+instanced props all exist, the polygon renderer is the view the game runs, and
+the raycaster has been retired, so the polygon path is the only renderer. It
+carries the PSX look (vertex snap and ordered dither), emissive-tile floor
+glows, and 3D props. Monsters and NPCs are front-facing billboard sprites in
 both the combat slots and the world view; map exits draw as floor-anchored
 billboards, replacing the old coloured floor pads; and surface maps open onto a
 gradient sky instead of a ceiling. The rasterizer's per-pixel hot path now runs
@@ -105,9 +105,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### A. Polygon renderer and the target path (finish 0.19.0)
 
-- [partial] (0.19.0) Draw the remaining light-source glows in the polygon path
-  that the raycaster already shows.
-- [gap] (0.19.0) Vertex snap and ordered dither for the PSX look.
+- [partial] (0.19.0) Light-source glows on kit-clad floors. A brazier, torch or
+  biolume tile tints its own floor in the non-kit quad path, and the kit
+  emission channel carries a piece's static glow, but a per-tile light glow on a
+  kit-clad floor is not drawn, because that floor is one merged native piece per
+  block rather than a per-cell quad. It needs a per-cell floor-glow decal
+  blended over the clad floor in the rasterizer. Vertex snap and ordered dither
+  for the PSX look are done.
 
 ### B. Navigation and AI (continues the recent track, 0.20.0)
 
@@ -376,8 +380,9 @@ it needs the polygon renderer promoted to default in 0.19.0.
 
 Theme A. Glows in the polygon path, vertex snap and ordered dither, the
 prop-collision decision, the promote to default (parity reached, the polygon
-renderer is the view the game runs, the raycaster is a P-toggle fallback), and
-the rasterizer's per-pixel hot path ported to fixed point. This made the
+renderer is the view the game runs, the raycaster has since been retired so the
+polygon path is the only view), and the rasterizer's per-pixel hot path ported
+to fixed point. This made the
 target-shaped renderer the one the game runs and opened the theme G map rework.
 Only the per-vertex camera and edge math still floats, the boundary that
 converts last on the theme E hardware track.

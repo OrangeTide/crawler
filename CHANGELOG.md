@@ -138,6 +138,15 @@ whose development history is summarized in docs/roadmap.md.
   terrain work, in place of the old "experimental" and "raycaster is the
   default" wording.
 
+### Removed
+- Retired the raycaster. The PSX-style polygon renderer has been the default
+  view since the terrain work and now carries everything the game draws, so the
+  raycaster fallback and its `P`-key A/B toggle are gone and `src/raycast.pas` is
+  deleted. The polygon path is the only renderer. Its PlayStation look (vertex
+  snap and 4x4 Bayer ordered dither) and its fixed-point per-pixel hot path are
+  in place; one 0.19.0 polish item remains, a per-tile light glow on kit-clad
+  floors (tracked in the roadmap).
+
 ## [0.27.1] - 2026-11-09
 
 Release tooling fixes for the 0.27 line.
