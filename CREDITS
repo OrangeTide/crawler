@@ -163,6 +163,22 @@ glows molten. The lava emission is a procedural placeholder (a fire
 colour ramp over fractal noise, made with ImageMagick, not from any kit),
 marked for replacement with authored lava art.
 
+Door prop
+---------
+
+Source: "Low Poly Doors" by loafbrr (loafbrr.itch.io). A low-poly set of
+framed doors with a shared colour-variant texture atlas.
+License: CC0 1.0 (public domain dedication). Attribution is not required
+but is appreciated. The full terms are in the kit's README.txt.
+
+content/models/doorway.obj is the first door group (the panel, frame and
+outer frame), converted from the kit's GLTF to an embedded-texture prop
+mesh. Its texture (content/models/doorway.ppm) is the brown colour
+variant, cropped to the door's region of the atlas and the mesh UVs
+remapped to it so the small prop texture carries full detail. It replaces
+the earlier image-generated doorway prop and stands at the town, outskirts
+and temple building entrances.
+
 Spell catalog
 -------------
 

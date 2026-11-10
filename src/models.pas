@@ -82,7 +82,7 @@ const
     through, so both stay passable; furniture added later sets solid. }
   ModelDefs: array[0 .. 1] of TModelDef = (
     (name: 'BARREL';  targetHeight: 0.7; solid: false),
-    (name: 'DOORWAY'; targetHeight: 1.7; solid: false)
+    (name: 'DOORWAY'; targetHeight: 2.1; solid: false)
   );
 
 { The model's height in its own units, to derive a scale. }

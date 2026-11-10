@@ -172,15 +172,24 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   from another project. The DOS original's hard limit was a tiny palette; our
   content is mostly 32 colours or fewer, so that constraint is not a real
   blocker.
-- [gap] (0.19.0) Remove the AI-generated exit and prop art. The six exit
-  billboards (content/sprites/exit_door, exit_up, exit_down, exit_ladder,
-  exit_cave, exit_shaft) and the doorway and barrel prop models
-  (content/models/doorway.*, barrel.*) were image-generated and look poor; none
-  carry a CREDITS entry, unlike the CC0 source art, which always does. Replace
-  them with CC0 source art (the SigilsVault kit in theme G ships doors and
-  arches, and the public-domain Dungeon Crawl set has stairs, ladders and cave
-  features) or fold the exits into the theme G modular-tile geometry. Generate
-  no replacement art; see the cross-cutting constraint below.
+- [partial] (0.19.0) Remove the AI-generated exit and prop art. The doorway prop
+  is done: it is now the CC0 loafbrr Low Poly Doors mesh (content/models/doorway.*),
+  with a CREDITS entry. Still generated and looking poor: the six exit billboards
+  (content/sprites/exit_door, exit_up, exit_down, exit_ladder, exit_cave,
+  exit_shaft) and the barrel prop model (content/models/barrel.*); none carry a
+  CREDITS entry, unlike the CC0 source art, which always does. Replace them with
+  CC0 source art (the public-domain Dungeon Crawl set has stairs, ladders and
+  cave features) or fold the exits into the theme G modular-tile geometry.
+  Generate no replacement art; see the cross-cutting constraint below.
+- [future] Replace the retro 8-bit monospace font with a nicer proportional
+  one. TTF is not required and a baked font atlas is likely preferable, so the
+  glyphs suit PS1 rendering later (the same pre-baked, fixed-palette shape the
+  textures and sprites take) rather than being rasterized at runtime. Candidate
+  sources are the Palm Pilot bitmap fonts at ~/Source/fonts/PalmOS-Fonts. The
+  bitmap rendering is public domain in the author's jurisdiction; if anything is
+  derived from that collection, add its CC BY-NC-SA 4.0 line to CREDITS. This
+  touches gfx.pas (the bitmap font) and every HUD and UI unit that measures text
+  by a fixed glyph width, so proportional metrics are the real work.
 - [gap] Update the README. It is out of date in several areas (for example it
   still describes the raycaster as the main renderer, when the polygon path with
   sector heights and modular-kit cladding is now the default). Audit it against
