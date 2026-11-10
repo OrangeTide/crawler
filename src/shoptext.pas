@@ -16,7 +16,7 @@ interface
 uses
   shops;
 
-function ParseShops(const fn: string; out cs: array of TShopDef;
+function ParseShops(const fn: string; var cs: array of TShopDef;
   out count: longint; out err: string): boolean;
 
 implementation
@@ -48,7 +48,7 @@ begin
     if cs[i].id = id then begin FindShop := i; exit; end;
 end;
 
-function ParseShops(const fn: string; out cs: array of TShopDef;
+function ParseShops(const fn: string; var cs: array of TShopDef;
   out count: longint; out err: string): boolean;
 var
   lines: TStringList;
