@@ -9,7 +9,8 @@ as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
 The engine is renderer and content agnostic and targets three desktop hosts
 today (Linux, Windows and macOS), with MS-DOS and PlayStation 1 as the
 long-term goals the architecture is kept ready for. A second, PSX-style
-polygon renderer is in progress alongside the raycaster.
+polygon renderer draws the same world and is now the default view, with the
+raycaster kept as a live-toggle alternative.
 
 ## Screenshots
 
@@ -56,7 +57,7 @@ spells and bows strike over them.
   and ceiling casting under the same distance fog.
 - A second PSX-style polygon renderer (rasterizer, baked meshes, instanced
   props, monster meshes in the combat slots) that draws the same world. It is
-  toggled live for comparison; the raycaster is still the default.
+  now the default view, with the raycaster kept as a live-toggle alternative.
 - Turn-based grid movement: step tile by tile and turn in 90 degree steps, each
   tweened so the motion stays smooth. Holding the right mouse button free-looks
   anywhere; stepping or turning realigns the view. A cursor allows clicking the
@@ -161,7 +162,7 @@ The core exploration keys are rebindable in Options; the defaults are below.
 | R | Rest to recover health, when no foe is near |
 | G | Recall and auto-travel toward a known destination |
 | O | Enter the coarse overworld travel mode |
-| P | Toggle the experimental polygon renderer |
+| P | Toggle between the polygon and raycast renderers |
 | C | Force a test encounter (while a party exists) |
 | F5 / F9 | Save / load the game |
 | Esc | Back out of a screen, or quit from exploration |
@@ -255,7 +256,11 @@ Rendering:
 | `src/models.pas` | Registry of baked meshes the polygon renderer instances. |
 | `src/roomdb.pas` | A hand-placed modular-tile room: the theme G pre-format proof. |
 | `src/polyrender.pas` | Draws the tile grid as textured polygons via the rasterizer. |
+| `src/clad.pas` | Cladding pass: draws a tileset's sectors from its modular kit meshes at native scale. |
+| `src/tilekit.pas` / `src/kittext.pas` | Per-tileset modular kit definitions, and the kit-text parser. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
+| `src/sprites.pas` | Runtime store of billboard sprites (monsters, NPCs) from the pak. |
+| `src/worldspr.pas` | Gathers the world-view billboard sprites for both renderers. |
 | `src/texgen.pas` | Procedural texture and per-zone tileset generation (tool side). |
 | `src/hud.pas` | Border, compass, crosshair, minimap and full map. |
 
@@ -273,7 +278,7 @@ World, maps and navigation:
 | `src/overworld.pas` | The seeded overworld terrain and biomes. |
 | `src/worldarea.pas` | Encounter areas and their names. |
 | `src/worldname.pas` | Names of the synthesized overworld maps. |
-| `src/worldfmt.pas` | Manifest of dynamic (generated) maps. |
+| `src/worldfmt.pas` / `src/worldtext.pas` | Manifest of dynamic (generated) maps, and its text parser. |
 | `src/worldload.pas` | Map and session loading, and the save path. |
 | `src/pathfind.pas` | Grid pathfinding (A*) over a single map. |
 | `src/maproute.pas` | Cross-map routing over portal links. |
@@ -287,15 +292,20 @@ Gameplay systems and content tables (each `*text` unit is the tool-side parser):
 | `src/rules.pas` | AX&X rules math: abilities, classes, dice resolution. |
 | `src/dice.pas` | A small dice and arithmetic expression evaluator. |
 | `src/party.pas` | Characters, derived stats and character creation. |
+| `src/beings.pas` | Shared traits common to party, NPCs and monsters (gender). |
 | `src/chardata.pas` / `src/chartext.pas` | Species, class and background tables. |
 | `src/items.pas` / `src/itemtext.pas` | Item database and table codec. |
 | `src/monsters.pas` / `src/montext.pas` | Monster database and table codec. |
-| `src/combat.pas` | Turn-based AX&X combat: initiative, bands, elements, morale. |
+| `src/combat.pas` | Combat turn-order driver: initiative, pacing and the action procedures. |
+| `src/combatstate.pas` | The shared fight state every combat unit reads and writes. |
+| `src/combatcore.pas` | Leaf combat logic: hit resolution, tactics, status and spell effects. |
+| `src/combatai.pas` | The foe side's AI: how a monster moves, harries, casts or holds. |
 | `src/encounters.pas` / `src/enctext.pas` | Encounter tables. |
 | `src/shops.pas` / `src/shoptext.pas` | Shop stock tables. |
 | `src/dialog.pas` / `src/dialogtext.pas` | Conversation data, decoder and runtime. |
 | `src/spelldb.pas` / `src/spelltext.pas` | Spell catalog, decoder and table codec. |
 | `src/spellbook.pas` | Known spells: the per-caster learned list and its rules. |
+| `src/fieldcast.pas` | Out-of-combat casting: the SPELLS tab heals, cures, refuels and reveals. |
 | `src/skilldb.pas` / `src/skilltext.pas` | Skill catalog, decoder and table codec. |
 | `src/skillbook.pas` | Trained skills: proficiency slots, ranks and checks. |
 | `src/flags.pas` | Story flags and the quest journal. |
@@ -331,6 +341,7 @@ UI states and tools:
 | `tools/mkassets.pas` | Offline tool: builds `game.pak` from generated art and tables. |
 | `tools/mkmesh.pas` | Bakes an OBJ plus a texture into a mesh lump. |
 | `tools/meshshot.pas` | Renders a baked mesh to a PPM for inspection. |
+| `tools/shot.pas` | Headless screenshot tool: renders the real game offscreen to a PPM. |
 
 ## Notes
 
