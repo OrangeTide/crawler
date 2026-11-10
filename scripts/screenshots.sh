@@ -25,7 +25,7 @@ set -- \
   "forest:map FOREST 2 7 E" \
   "crypt:map D270_0_1 29 20 E" \
   "cathedral:map D284_0_2 10 10 E 0.15" \
-  "grotto:map GROTTO 3 8 N" \
+  "grotto:map GROTTO 3 5 N" \
   "infernal:map INFERNAL 2 7 E" \
   "monster:foe DUNGEON 2 7 E SKELETON 8 7" \
   "shop:map TAVERN 3 5 N" \
