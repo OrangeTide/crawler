@@ -840,6 +840,11 @@ begin
           cmdSel := (cmdSel + 1) mod CMD_COUNT;
         SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE:
           CombatConfirmCommand;
+        { the command menu is the root, so Escape has nothing to back out to;
+          move the cursor to FLEE, so Escape reads as leaving the battle and the
+          player still confirms with Enter rather than fleeing on a stray press }
+        SDL_SCANCODE_ESCAPE:
+          cmdSel := CMD_FLEE;
       end;
     CB_TARGET:
       case scancode of
