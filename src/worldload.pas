@@ -181,12 +181,14 @@ procedure BuildTerrain(const m: TMapData; const name: string);
 var
   blob: TByteArray;
   samples: TByteArray;
-  sw, sh: longint;
+  sw, sh, cx, cy: longint;
 begin
   TerrainReset;
   if (m.heightLump <> '') and PakGet(GamePak, m.heightLump, blob)
     and DecodeHeight(blob, sw, sh, samples) then
-    TerrainSetHeightmap(m, samples, sw, sh);
+    TerrainSetHeightmap(m, samples, sw, sh)
+  else if ((m.flags and MAP_PROCTERRAIN) <> 0) and ParseCellName(name, cx, cy) then
+    TerrainSetProcedural(m, cx, cy);
 end;
 
 function LoadMapLump(const name: string): boolean;

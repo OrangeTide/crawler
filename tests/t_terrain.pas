@@ -7,7 +7,7 @@ program t_terrain;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, mapfmt, terrain, testing;
+  sysutils, pak, mapfmt, overworld, terrain, testing;
 
 { True when a is within 0.01 of b. }
 function Near(a, b: double): boolean;
@@ -48,6 +48,20 @@ begin
   leftOfSeam := TerrainHeightAt(2.0 - 0.0001, 1.5);
   rightOfSeam := TerrainHeightAt(2.0 + 0.0001, 1.5);
   Check(Abs(leftOfSeam - rightOfSeam) < 0.001, 'the height is continuous across a cell boundary');
+
+  { procedural elevation seams across a cell edge: the east edge of cell (cx,cy)
+    matches the west edge of (cx+1,cy) at the same y, so neighbor wilderness
+    terrain has no crack, with nothing stored }
+  Check(Abs(TerrainElevation(400, 400, 1.0, 0.3)
+          - TerrainElevation(401, 400, 0.0, 0.3)) < 1e-9,
+    'procedural terrain seams across the east edge');
+  Check(Abs(TerrainElevation(400, 400, 0.6, 1.0)
+          - TerrainElevation(400, 401, 0.6, 0.0)) < 1e-9,
+    'procedural terrain seams across the south edge');
+  { and it stays within its height range, never underground }
+  Check((TerrainElevation(400, 400, 0.5, 0.5) >= 0.0)
+    and (TerrainElevation(400, 400, 0.5, 0.5) <= 2.5),
+    'procedural height stays in range');
 
   { reset deactivates and reads flat }
   TerrainReset;

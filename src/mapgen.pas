@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 7;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 8;   { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -67,7 +67,7 @@ begin
   FloodFarthest(g, sx, sy, ex, ey, reach);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.tileset := 0; m.music := 0; m.flags := 0; m.heightLump := '';
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
@@ -172,7 +172,9 @@ begin
   CarveLine(g, mx, my, gw - 2, my);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := MAP_SURFACE;
+  { a surface cell with procedural terrain relief built from the world seed }
+  m.tileset := 0; m.music := 0; m.flags := MAP_SURFACE or MAP_PROCTERRAIN;
+  m.heightLump := '';
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
@@ -547,7 +549,7 @@ begin
   if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR
   else if theme = THEME_CATHEDRAL then m.tileset := TILESET_CATHEDRAL
   else m.tileset := 0;
-  m.music := 0; m.flags := 0;
+  m.music := 0; m.flags := 0; m.heightLump := '';
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
@@ -620,7 +622,7 @@ begin
   SetAt(g, mx, my, 0);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := 0;
+  m.tileset := 0; m.music := 0; m.flags := 0; m.heightLump := '';
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 
@@ -675,7 +677,7 @@ begin
   Borders(g);
 
   m.w := gw; m.h := gh;
-  m.tileset := 0; m.music := 0; m.flags := 0;   { indoors, lamp-lit, no sky }
+  m.tileset := 0; m.music := 0; m.flags := 0; m.heightLump := '';   { indoors, lamp-lit, no sky }
   m.markers := nil; m.portals := nil;
   m.doors := nil; m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
 

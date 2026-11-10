@@ -59,6 +59,13 @@ function BiomeWallTile(b: byte): byte;    { 1 brick, 2 stone, 3 moss }
 function BiomeDensity(b: byte): longint;  { obstacle clusters per cell }
 function BiomeTheme(b: byte): byte;       { underground theme under a cell }
 
+{ Outdoor terrain relief height in world units at a normalized position (lx and
+  ly in 0..1) inside a surface cell, derived from the world seed. The amplitude
+  rides the broad elevation field, so high ground gets tall relief and low
+  ground stays flat, and because it samples absolute world coordinates it is
+  continuous across cell edges: neighbor cells seam with no crack. }
+function TerrainElevation(cx, cy: longint; lx, ly: double): double;
+
 { Whether a surface cell has a dungeon entrance, derived from the seed. }
 function HasDungeon(cx, cy: longint): boolean;
 
@@ -195,6 +202,30 @@ begin
     else
       BiomeAt := BIOME_ARBOREAL;
   end;
+end;
+
+function TerrainElevation(cx, cy: longint; lx, ly: double): double;
+const
+  MAXAMP = 2.5;   { world units of relief on the highest ground }
+var
+  wx, wy, e, amp, detail: double;
+begin
+  { absolute world position, continuous across the cell edge (lx=1 of cell cx
+    equals lx=0 of cell cx+1) so neighbor terrain matches with nothing stored }
+  wx := cx + lx;
+  wy := cy + ly;
+  { the broad elevation field, the same octaves BiomeAt reads, sampled in world
+    space so the amplitude is continuous and biome boundaries do not crack }
+  e := 0.55 * ValNoise(wx / 80.0, wy / 80.0, 1)
+     + 0.30 * ValNoise(wx / 32.0, wy / 32.0, 2)
+     + 0.15 * ValNoise(wx / 12.0, wy / 12.0, 3);
+  amp := (e - 0.40) / 0.26;
+  if amp < 0 then amp := 0 else if amp > 1 then amp := 1;
+  amp := amp * MAXAMP;
+  { two octaves of sub-cell detail, 0..1, shaped by the amplitude }
+  detail := 0.6 * ValNoise(wx * 2.5, wy * 2.5, 11)
+          + 0.4 * ValNoise(wx * 6.0, wy * 6.0, 12);
+  TerrainElevation := amp * detail;
 end;
 
 function BiomeName(b: byte): string;

@@ -19,8 +19,11 @@ whose development history is summarized in docs/roadmap.md.
   format bumped to 14) and renders at a per-target subdivision knob
   (`terrain.TERRAIN_SUBDIV`), mirroring the trim-sheet knob: dense on the
   desktop, coarse and vertex-snapped on the PlayStation path from one source.
-  Procedural wilderness terrain from the world seed, and billboard foliage over
-  it, follow in later steps.
+  Generated wilderness cells also carry relief, built from the world seed: the
+  elevation rides the broad terrain field so high ground rises and plains stay
+  flat, and because it samples absolute world coordinates, neighbor cells seam
+  with nothing stored (generator version bumped to 8). Billboard foliage over
+  the terrain follows in a later step.
 - Kit pillars. A `pillar X Y` map directive marks a cell to carry a pillar; the
   cladding pass draws the tileset kit's pillar piece there at native scale, and
   the cell blocks movement. Previously the pillar role was defined but inert.

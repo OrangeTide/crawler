@@ -25,7 +25,7 @@ unit terrain;
 interface
 
 uses
-  pak, mapfmt;
+  pak, mapfmt, overworld;
 
 const
   { Sub-quads per cell edge: the per-target terrain density knob. The default
@@ -52,6 +52,12 @@ procedure TerrainReset;
   units) across the whole map. Makes the layer active. }
 procedure TerrainSetHeightmap(const m: TMapData; const samples: TByteArray;
   sw, sh: longint);
+
+{ Build the height grid for a procedural surface cell (cx,cy) from the world
+  seed, sampling overworld.TerrainElevation across the cell. Neighbor cells seam
+  because the elevation field is continuous in world space. Makes the layer
+  active. }
+procedure TerrainSetProcedural(const m: TMapData; cx, cy: longint);
 
 { True when a height source is resident, so the renderer draws terrain relief and
   the camera and billboards ride it. False on flat and indoor maps. }
@@ -134,13 +140,16 @@ begin
   SampleSrc := a + (b - a) * ty;
 end;
 
-{ Optionally snap a height to the coarse-target terrace step. }
+{ Optionally snap a height to the coarse-target terrace step. The branch is
+  chosen at compile time by the target's TERRAIN_ZSTEP, so no dead code is
+  emitted and a zero step never divides. }
 function SnapZ(z: double): double;
 begin
-  if TERRAIN_ZSTEP > 0 then
-    SnapZ := Round(z / TERRAIN_ZSTEP) * TERRAIN_ZSTEP
-  else
-    SnapZ := z;
+{$if TERRAIN_ZSTEP > 0}
+  SnapZ := Round(z / TERRAIN_ZSTEP) * TERRAIN_ZSTEP;
+{$else}
+  SnapZ := z;
+{$endif}
 end;
 
 procedure TerrainSetHeightmap(const m: TMapData; const samples: TByteArray;
@@ -166,6 +175,27 @@ begin
       s := SampleSrc(samples, sw, sh, u, v) / 255.0;
       z := zmin + (zmax - zmin) * s;
       grid[ny * cols + nx] := SnapZ(z);
+    end;
+  active := true;
+end;
+
+procedure TerrainSetProcedural(const m: TMapData; cx, cy: longint);
+var
+  nx, ny: longint;
+  lx, ly: double;
+begin
+  TerrainReset;
+  if (m.w <= 0) or (m.h <= 0) then exit;
+  mw := m.w; mh := m.h;
+  cols := mw * TERRAIN_SUBDIV + 1;
+  rows := mh * TERRAIN_SUBDIV + 1;
+  SetLength(grid, cols * rows);
+  for ny := 0 to rows - 1 do
+    for nx := 0 to cols - 1 do begin
+      { node position, normalized 0..1 across the cell }
+      lx := (nx / TERRAIN_SUBDIV) / mw;
+      ly := (ny / TERRAIN_SUBDIV) / mh;
+      grid[ny * cols + nx] := SnapZ(TerrainElevation(cx, cy, lx, ly));
     end;
   active := true;
 end;
