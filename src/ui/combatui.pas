@@ -25,10 +25,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pic, sprites, party, chardata, items,
   monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
-  rng, flags, pcportrait, spellicon, skilldb, skillicon;
-
-var
-  BossRewardFlag: string;   { set a story flag when the current boss is beaten }
+  pcportrait, spellicon, skilldb, skillicon;
 
 const
   { combat command UI phases }
@@ -65,38 +62,15 @@ var
   itemSel: longint;       { highlighted item, a pack slot }
   pendingItem: longint;   { item chosen, awaiting a target, -1 none }
 
-const
-  LOOT_CHANCE = 12;   { percent chance a won fight yields an unknown find }
-
-{ A won fight sometimes leaves an unidentified potion among the spoils. The
-  roll runs here, in the UI, so the combat core's RNG stream is untouched. }
-procedure MaybeDropLoot;
-var i, wi: longint;
-begin
-  if (not Victory) or FromQuickBattle then exit;
-  if ItemIndex('ELIXIR') < 0 then exit;
-  if Range(1, 100) > LOOT_CHANCE then exit;
-  wi := -1;
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and (not Roster[i].downed) then begin wi := i; break; end;
-  if wi < 0 then exit;
-  PackAdd(Roster[wi], 'ELIXIR', 1);
-  saveMsg := 'AN UNKNOWN POTION AMONG THE SPOILS';
-  saveMsgT := 2.5;
-end;
-
-{ On beating a boss, raise the story flag the fight carried, then forget it so
-  an ordinary fight never trips it. }
-procedure AwardBoss;
-begin
-  if Victory and (BossRewardFlag <> '') then FlagSet(BossRewardFlag);
-  BossRewardFlag := '';
-end;
-
 procedure EndCombat;
 begin
-  MaybeDropLoot;
-  AwardBoss;
+  { the fight's spoils resolve in combat; the UI only announces the find. A
+    quick test battle has no world to carry loot into, so it is skipped. }
+  if (not FromQuickBattle) and GrantVictoryLoot then begin
+    saveMsg := 'AN UNKNOWN POTION AMONG THE SPOILS';
+    saveMsgT := 2.5;
+  end;
+  AwardBossFlag;
   if FromQuickBattle then begin
     FromQuickBattle := false;
     State := gsTitle;
@@ -176,29 +150,24 @@ const
 { The FF-style command window at the lower left, one list per phase. The
   cursor moves vertically; target and ally picks drive a chevron out on
   the battlefield, so this box only names the current pick. }
-{ Whether pack slot of the acting character is a consumable it can use. }
+{ Whether pack slot of the acting character is a consumable it can use. The
+  item rule lives in items; this adds the actor, slot and quantity guards. }
 function CombatItemUsable(slot: longint): boolean;
-var def: longint;
 begin
   CombatItemUsable := false;
   if CurActor < 0 then exit;
   if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
   if Roster[CurActor].pack[slot].qty <= 0 then exit;
-  def := Roster[CurActor].pack[slot].def;
-  if (def < 0) or (def > High(ItemDefs)) then exit;
-  CombatItemUsable := ItemDefs[def].kind = IK_POTION;
+  CombatItemUsable := ItemUsableInCombat(Roster[CurActor].pack[slot].def);
 end;
 
 { Whether the item in that pack slot raises a fallen ally (vs heals). }
 function CombatSlotRevives(slot: longint): boolean;
-var def: longint;
 begin
   CombatSlotRevives := false;
   if CurActor < 0 then exit;
   if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
-  def := Roster[CurActor].pack[slot].def;
-  if (def < 0) or (def > High(ItemDefs)) then exit;
-  CombatSlotRevives := (ItemDefs[def].flags and IF_REVIVE) <> 0;
+  CombatSlotRevives := ItemRevives(Roster[CurActor].pack[slot].def);
 end;
 
 { A command whose slot the current actor has already spent this turn is

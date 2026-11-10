@@ -26,7 +26,7 @@ interface
 
 uses
   sysutils, rng, rules, items, monsters, party, chardata, spelldb, skilldb,
-  skillbook, encounters, codex, combatstate, combatcore, combatai;
+  skillbook, encounters, codex, flags, combatstate, combatcore, combatai;
 
 { Start a fight at a dungeon depth. tableNum selects the weighted encounter
   table to draw foes from; an empty or unknown table draws from every
@@ -63,6 +63,23 @@ procedure ActCast(spellIdx, target: longint);
 { Use the i-th combat maneuver from the current actor's skill menu. target is
   the foe for the attacking maneuvers, ignored for the party-wide rally. }
 procedure ActSkill(skillIdx, target: longint);
+
+{ ---- post-fight spoils ---- }
+
+{ The story flag a scripted boss fight raises on a win, empty for an ordinary
+  fight. Set it before the fight; the game awards it when the fight ends. }
+var
+  BossRewardFlag: string;
+
+{ Raise and clear the boss story flag when the party has won. Harmless on a
+  loss or when no flag was carried. }
+procedure AwardBossFlag;
+
+{ Sometimes grant an unidentified potion to a standing member after a win.
+  Returns true when a drop was made, so the caller can announce it. The roll
+  uses the global RNG stream, not the combat core's GameRng, so it never
+  shifts the deterministic combat rolls. }
+function GrantVictoryLoot: boolean;
 
 implementation
 
@@ -774,6 +791,32 @@ begin
     CurTarget := FirstLivingFoe;
 
   FinishSubAction(false);
+end;
+
+{ ---- post-fight spoils ---- }
+
+const
+  LOOT_CHANCE = 12;   { percent chance a won fight yields an unknown find }
+
+procedure AwardBossFlag;
+begin
+  if Victory and (BossRewardFlag <> '') then FlagSet(BossRewardFlag);
+  BossRewardFlag := '';
+end;
+
+function GrantVictoryLoot: boolean;
+var i, wi: longint;
+begin
+  GrantVictoryLoot := false;
+  if not Victory then exit;
+  if ItemIndex('ELIXIR') < 0 then exit;
+  if Range(1, 100) > LOOT_CHANCE then exit;
+  wi := -1;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and (not Roster[i].downed) then begin wi := i; break; end;
+  if wi < 0 then exit;
+  PackAdd(Roster[wi], 'ELIXIR', 1);
+  GrantVictoryLoot := true;
 end;
 
 end.

@@ -54,6 +54,10 @@ function EncodeItems(const defs: array of TItemDef): TByteArray;
 function LoadItems(const p: TPak): boolean;
 function ItemIndex(const id: string): longint;
 function ItemKindName(kind: byte): string;
+{ Whether a definition is a consumable the party can use in a fight. }
+function ItemUsableInCombat(def: longint): boolean;
+{ Whether a consumable raises a fallen ally rather than healing a standing one. }
+function ItemRevives(def: longint): boolean;
 
 implementation
 
@@ -162,6 +166,18 @@ begin
   else
     ItemKindName := 'misc';
   end;
+end;
+
+function ItemUsableInCombat(def: longint): boolean;
+begin
+  ItemUsableInCombat := (def >= 0) and (def <= High(ItemDefs))
+    and (ItemDefs[def].kind = IK_POTION);
+end;
+
+function ItemRevives(def: longint): boolean;
+begin
+  ItemRevives := (def >= 0) and (def <= High(ItemDefs))
+    and ((ItemDefs[def].flags and IF_REVIVE) <> 0);
 end;
 
 end.
