@@ -58,6 +58,11 @@ trigger ambient 96 - 4 7 19 7 19 11 4 11
 # a one-time line when the party first descends into the gallery
 trigger event 0 SAWGALLERY 4 7 19 7 19 11 4 11
 eventmsg SAWGALLERY A VAST SUNKEN GALLERY OPENS BELOW, RIBBED IN OLD STONE.
+# a colonnade of stone pillars flanking the sunken gallery
+pillar 6 8
+pillar 17 8
+pillar 6 10
+pillar 17 10
 moonwell 13 9
 torch 3 8
 torch 20 8

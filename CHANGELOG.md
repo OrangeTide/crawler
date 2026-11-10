@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Kit pillars. A `pillar X Y` map directive marks a cell to carry a pillar; the
+  cladding pass draws the tileset kit's pillar piece there at native scale, and
+  the cell blocks movement. Previously the pillar role was defined but inert.
+  The DUNGEON's sunken gallery now wears a colonnade of stone columns (map
+  format bumped to 13).
 - An ambient-light zone trigger (TRIG_AMBIENT): a polygon that overrides the
   scene's ambient light level while the party stands inside it, for a shadowed
   alcove or a brighter chamber within one map. Authored with the `trigger

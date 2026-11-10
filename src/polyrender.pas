@@ -284,6 +284,7 @@ begin
     aligned cells into whole kit pieces, then the walls on their edges }
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+  CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);

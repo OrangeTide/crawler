@@ -54,6 +54,12 @@ procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
 procedure CladStep(const mc: TMeshCam; dir, tx, ty: longint;
   z0, z1, light: double);
 
+{ Draw the kit pillar piece on every pillar cell in the view window, standing
+  on the cell's floor at the piece's native scale. A pillar cell keeps its open
+  floor (drawn by CladView); this sets a column on top of it. }
+procedure CladPillars(const mc: TMeshCam; x0, y0, x1, y1: longint;
+  ex, ey: double; lightFn: TCladLightFn);
+
 implementation
 
 uses
@@ -318,6 +324,29 @@ begin
   atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].atlas, aw, ah);
   RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
     light, atlas, aw, ah);
+end;
+
+procedure CladPillars(const mc: TMeshCam; x0, y0, x1, y1: longint;
+  ex, ey: double; lightFn: TCladLightFn);
+var
+  tx, ty, kitIdx, pp, fw: longint;
+  fz, dist, light: double;
+begin
+  for ty := y0 to y1 do
+    for tx := x0 to x1 do begin
+      if (tx < 0) or (ty < 0) or (tx >= MapW) or (ty >= MapH) then continue;
+      if not IsPillar(tx, ty) then continue;
+      kitIdx := KitIndexForTileset(CellTileset(tx, ty));
+      if kitIdx < 0 then continue;
+      pp := KitPieceByRole(kitIdx, KITROLE_PILLAR);
+      if pp < 0 then continue;
+      fw := Kits[kitIdx].pieces[pp].fw; if fw < 1 then fw := 1;
+      fz := FloorZAt(tx, ty);
+      dist := sqrt(sqr(tx + 0.5 - ex) + sqr(ty + 0.5 - ey));
+      light := lightFn(tx, ty, dist);
+      { pass s = fw so DrawPiece scales by s/fw = 1, the piece's native size }
+      DrawPiece(mc, kitIdx, pp, tx + 0.5, ty + 0.5, fz, fw, light);
+    end;
 end;
 
 end.

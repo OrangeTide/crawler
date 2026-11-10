@@ -99,6 +99,7 @@ var
   lt: TLightTile;
   pr: TProp;
   lo: TLoot;
+  pl: TPillar;
   tg: TTrigger;
   nv, vi: longint;
 begin
@@ -108,7 +109,7 @@ begin
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
-  m.loot := nil; m.sectors := nil; m.cellSector := nil;
+  m.loot := nil; m.sectors := nil; m.cellSector := nil; m.pillars := nil;
   inWalls := false;
   wallsDone := false;
   row := 0;
@@ -339,6 +340,13 @@ begin
           pr.yaw := 0;
         SetLength(m.props, Length(m.props) + 1);
         m.props[High(m.props)] := pr;
+      end else if tok[0] = 'pillar' then begin
+        { pillar X Y: a freestanding kit pillar on an open floor cell }
+        if ntok < 3 then begin errmsg := 'pillar needs X Y'; exit; end;
+        pl.x := StrToInt(tok[1]);
+        pl.y := StrToInt(tok[2]);
+        SetLength(m.pillars, Length(m.pillars) + 1);
+        m.pillars[High(m.pillars)] := pl;
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;

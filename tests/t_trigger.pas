@@ -22,6 +22,7 @@ begin
   m.markers := nil; m.portals := nil; m.doors := nil; m.npcs := nil;
   m.traps := nil; m.lights := nil; m.props := nil; m.loot := nil;
   m.sectors := nil; m.cellSector := nil; m.triggers := nil;
+  m.pillars := nil;
   SetLength(m.walls, m.w * m.h);
   for y := 0 to m.h - 1 do
     for x := 0 to m.w - 1 do
@@ -73,6 +74,7 @@ begin
   s.Add('trigger event 0 seen 2 2 6 2 6 6 2 6');
   s.Add('eventmsg seen A cold draft stirs the dust.');
   s.Add('trigger hazard 4 fire 2 2 6 2 6 6 2 6');
+  s.Add('pillar 4 4');
   s.Add('walls');
   s.Add('22222222');
   s.Add('20000002');
@@ -95,6 +97,9 @@ var
   name, err: string;
 begin
   BuildMap(m);
+  SetLength(m.pillars, 2);
+  m.pillars[0].x := 3; m.pillars[0].y := 4;
+  m.pillars[1].x := 5; m.pillars[1].y := 2;
 
   { codec round-trip }
   PakWInit(w);
@@ -111,9 +116,15 @@ begin
   CheckEqI(dm.triggers[0].verts[1].x, 6 * TRIG_UNIT, 'a vertex coord round-trips');
   CheckEqI(dm.triggers[1].kind, TRIG_EVENT, 'the event kind round-trips');
   Check(dm.triggers[1].msg = 'A COLD DRAFT STIRS THE DUST.', 'the event message round-trips');
+  CheckEqI(Length(dm.pillars), 2, 'the pillars round-trip');
+  CheckEqI(dm.pillars[0].x, 3, 'a pillar x round-trips');
+  CheckEqI(dm.pillars[1].y, 2, 'a pillar y round-trips');
 
   { point-in-polygon through the live lookup }
   Check(LoadMapData(dm), 'load the decoded map');
+  Check(IsPillar(3, 4), 'a pillar cell reports a pillar');
+  Check(IsBlocking(3, 4), 'a pillar cell blocks movement');
+  Check(not IsPillar(4, 4), 'a bare floor cell has no pillar');
   CheckEqI(TriggerAt(3, 3), 0, 'a cell inside the polygon hits the trigger');
   CheckEqI(TriggerAt(5, 5), 0, 'the far inside corner still hits');
   CheckEqI(TriggerAt(0, 0), -1, 'a cell outside misses');
@@ -142,6 +153,9 @@ begin
   CheckEqI(m.triggers[2].kind, TRIG_HAZARD, 'the compiled hazard kind is right');
   CheckEqI(m.triggers[2].param, 4, 'the compiled hazard damage is right');
   Check(m.triggers[2].tag = 'fire', 'the compiled hazard element is right');
+  CheckEqI(Length(m.pillars), 1, 'the pillar directive compiles');
+  CheckEqI(m.pillars[0].x, 4, 'the compiled pillar x is right');
+  CheckEqI(m.pillars[0].y, 4, 'the compiled pillar y is right');
 
   TestSummary('trigger');
   halt(TestExit);

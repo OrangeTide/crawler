@@ -76,6 +76,9 @@ procedure PlaceAt(tx, ty, face: longint);
 function TileAt(mx, my: longint): byte;
 function IsBlocking(mx, my: longint): boolean;
 function IsWallTile(mx, my: longint): boolean;
+{ Whether a freestanding kit pillar stands on this cell. Pillar cells keep
+  their open floor but block movement, the way a column would. }
+function IsPillar(mx, my: longint): boolean;
 
 { The sector a cell belongs to, or -1 for a solid or out-of-bounds cell. }
 function SectorAt(mx, my: longint): longint;
@@ -605,10 +608,20 @@ begin
     end;
 end;
 
+function IsPillar(mx, my: longint): boolean;
+var i: longint;
+begin
+  IsPillar := false;
+  for i := 0 to High(CurMap.pillars) do
+    if (CurMap.pillars[i].x = mx) and (CurMap.pillars[i].y = my) then begin
+      IsPillar := true; exit;
+    end;
+end;
+
 function IsBlocking(mx, my: longint): boolean;
 begin
   IsBlocking := NpcTileOccupied(mx, my) or IsWallTile(mx, my)
-    or PropSolidAt(mx, my);
+    or PropSolidAt(mx, my) or IsPillar(mx, my);
 end;
 
 function MotionBusy: boolean;

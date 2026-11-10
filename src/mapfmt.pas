@@ -30,7 +30,7 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 12;         { 12 adds the event-trigger message string }
+  MAP_VERSION = 13;         { 13 adds the pillar cell list }
 
   MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
 
@@ -154,6 +154,13 @@ type
     qty: byte;          { how many of the item }
   end;
 
+  { A freestanding pillar: an open floor cell that carries the tileset kit's
+    pillar piece and blocks movement, a column standing in the room rather than
+    a wall. The cladding pass draws it; collision stops the party on it. }
+  TPillar = packed record
+    x, y: word;
+  end;
+
   { A sector is a region of open cells sharing a floor and a ceiling height.
     Walls are the segments between sectors, or between a sector and a solid
     cell; the renderer derives them from cell adjacency. Movement stays on the
@@ -194,6 +201,7 @@ type
     props: array of TProp;
     loot: array of TLoot;
     triggers: array of TTrigger;          { polygon trigger areas, may be empty }
+    pillars: array of TPillar;            { freestanding kit pillars, may be empty }
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -383,6 +391,12 @@ begin
     end;
   end;
 
+  BU16(b, Length(m.pillars));
+  for i := 0 to High(m.pillars) do begin
+    BU16(b, m.pillars[i].x);
+    BU16(b, m.pillars[i].y);
+  end;
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -480,6 +494,7 @@ begin
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   m.loot := nil; m.sectors := nil; m.cellSector := nil; m.triggers := nil;
+  m.pillars := nil;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -603,6 +618,13 @@ begin
       m.triggers[i].verts[j].x := smallint(RU16(r));
       m.triggers[i].verts[j].y := smallint(RU16(r));
     end;
+  end;
+
+  count := RU16(r);
+  SetLength(m.pillars, count);
+  for i := 0 to count - 1 do begin
+    m.pillars[i].x := RU16(r);
+    m.pillars[i].y := RU16(r);
   end;
 
   { belt and braces: a map that somehow lacks a sector table gets the flat

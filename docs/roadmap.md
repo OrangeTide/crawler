@@ -316,10 +316,12 @@ multi-cell mesh instances rather than per-cell quads.
   per-tileset trim-atlas residency: the atlases are now keyed by tileset and all
   kit tilesets load at once, so a map can mix sectors of different tilesets and
   clad each from its own atlases. The lava emission texture is a procedural
-  placeholder, marked for replacement with authored lava art. Still open: the
-  cladding pass does not place kit pillars yet (the pillar role is defined but
-  inert), and a framed stained-glass window (stone around glass) still wants
-  per-piece multi-material meshes.
+  placeholder, marked for replacement with authored lava art. Kit pillars now
+  place too: a `pillar X Y` map directive marks a cell, the cladding pass draws
+  the tileset kit's pillar piece there at native scale, and the cell blocks
+  movement. The DUNGEON's sunken gallery wears a colonnade of them. Still open:
+  a framed stained-glass window (stone around glass) still wants per-piece
+  multi-material meshes.
 - [gap] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto
