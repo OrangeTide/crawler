@@ -1,9 +1,9 @@
 unit fixedpt;
 
-{** Signed 16.16 fixed-point math for the raycaster hot path.
+{** Signed 16.16 fixed-point math for the software rasterizer hot path.
 
   Neither the MS-DOS nor the PlayStation 1 target has a dependable FPU,
-  so the per-pixel and per-column raycaster math runs in fixed point.
+  so the per-pixel and per-span rasterizer math runs in fixed point.
   The camera is converted from the engine's doubles to fixed once per
   frame at the boundary, which is the only floating point left on the
   render path and is a handful of operations, not millions. }

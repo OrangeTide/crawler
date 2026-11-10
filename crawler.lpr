@@ -1,6 +1,6 @@
 program crawler;
 
-{** A first person dungeon crawler with a textured raycasting engine.
+{** A first person dungeon crawler with a textured polygon renderer.
 
   Renders at 320x240 into a software framebuffer, then upscales with
   nearest-neighbour filtering to a larger window for the retro look.

@@ -2,8 +2,8 @@ unit polyrender;
 
 {** Draws the tile grid as textured polygons through the rasterizer.
 
-  This is the polygon-renderer counterpart to raycast.RenderView. The
-  world is the same tile grid; only the drawing changes. Each floor tile
+  This is the engine's renderer. The world is a tile grid walked by the
+  party; the view draws it as polygons rather than casting it. Each floor tile
   becomes a floor quad and a ceiling quad, and each wall tile contributes
   a vertical face toward every open neighbor. Props and monsters are
   instanced on top later. The existing wall, floor and ceiling textures

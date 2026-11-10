@@ -29,7 +29,7 @@ function AutoTravelTargetOnMap(out tx, ty: longint): boolean;
 implementation
 
 uses
-  sysutils, sdl2min, gfx, mapfmt, world, raycast, polyrender, hud, dialog,
+  sysutils, sdl2min, gfx, mapfmt, world, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, items, encounters, monsters, audio,
   gamestate, worldload, combatui, save, pathfind, maproute, pursuit,
   overworldui, keymap, mappins, skilldb, skillbook;
@@ -325,11 +325,10 @@ begin
     ord(gaMap):      begin State := gsFullMap; exit; end;
     ord(gaRest):     begin RestHere; exit; end;
   end;
-  { the fixed keys: menus, renderer A/B, quit, and the save slots }
+  { the fixed keys: menus, quit, and the save slots }
   case scancode of
     SDL_SCANCODE_ESCAPE: QuitRequested := true;
     SDL_SCANCODE_M:      showMap := not showMap;
-    SDL_SCANCODE_P:      UsePoly := not UsePoly;   { A/B the renderers }
     SDL_SCANCODE_J:      State := gsMenu;
     SDL_SCANCODE_I:
       if Length(Roster) > 0 then begin
@@ -873,7 +872,7 @@ end;
 procedure ExploreRender(fps: longint);
 begin
   UpdateWorldLight;
-  if UsePoly then RenderViewPoly else RenderView;
+  RenderViewPoly;
   DrawHud(showMap, fps);
   if saveMsgT > 0 then
     DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));

@@ -396,7 +396,6 @@ begin
     else
       PlaceAt(5, 7, DIR_E);
     if ParamCount >= 6 then Cam.pitch := StrToFloatDef(ParamStr(6), 0);
-    UsePoly := true;   { cladding draws only in the polygon path }
   end else if scene = 'carve' then begin
     { the carve-and-clad proof: generate a level on a kit's module grid, so its
       rooms, corridors, floors, walls and ceilings all clad from whole native
@@ -419,7 +418,6 @@ begin
       PlaceAt(StrToInt(ParamStr(4)), StrToInt(ParamStr(5)), DirCode(ParamStr(6)))
     else
       PlaceAt(secMap.markers[0].x, secMap.markers[0].y, DIR_E);
-    UsePoly := true;   { cladding draws only in the polygon path }
   end else if scene = 'room' then begin
     { the theme G modular-room proof: load a hand-placed set of kit pieces
       and draw them from the resident trim atlas through the polygon path.
@@ -454,11 +452,6 @@ begin
   end else begin
     writeln(StdErr, 'shot: unknown scene ', scene); halt(2);
   end;
-
-  { any 'poly' argument draws the world view through the polygon renderer
-    instead of the raycaster, to frame the PSX-style rasterizer headlessly }
-  for mi := 2 to ParamCount do
-    if LowerCase(ParamStr(mi)) = 'poly' then UsePoly := true;
 
   if doGameRender then GameRender(60);
   DumpPPM(outPath);

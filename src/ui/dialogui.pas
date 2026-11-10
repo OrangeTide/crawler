@@ -14,7 +14,7 @@ procedure DialogKeyDown(scancode: longint);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, raycast, polyrender, dialog, flags, uihelp,
+  sysutils, sdl2min, gfx, polyrender, dialog, flags, uihelp,
   gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic,
   spellbook, pcportrait;
 
@@ -36,7 +36,7 @@ procedure DialogRender;
 var
   i, py, n, pi, tx, tw: longint;
 begin
-  if UsePoly then RenderViewPoly else RenderView;
+  RenderViewPoly;
   FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
   py := 118;
   FillRectBlend(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);

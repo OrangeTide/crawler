@@ -43,8 +43,6 @@ var
 
   keys: PKeyArray;        { the SDL key-state snapshot for this frame }
   showMap: boolean;
-  UsePoly: boolean;       { the polygon renderer is default; P toggles the
-                            raycaster, kept as a fallback (see gamestate init) }
   GamePak: TPak;
 
   lastTX, lastTY: longint;
@@ -87,12 +85,5 @@ function KeyDown(scancode: longint): boolean; inline;
 begin
   KeyDown := (keys <> nil) and (keys^[scancode] <> 0);
 end;
-
-initialization
-  { The polygon renderer is the default view now that it reaches parity with
-    the raycaster and draws the 3D props the raycaster cannot. The raycaster
-    stays compiled as a fallback, toggled with P, until the sector-based level
-    format (roadmap theme G) retires it. }
-  UsePoly := true;
 
 end.

@@ -1,6 +1,6 @@
 unit world;
 
-{** Active map, grid movement and the raycasting camera.
+{** Active map, grid movement and the render camera.
 
   Movement is turn based on the tile grid: the party faces one of four
   cardinal directions and steps one tile at a time, and a 90 degree turn
@@ -10,7 +10,7 @@ unit world;
   facing and eases back to centre when released.
 
   The rendered camera (Cam) is recomputed from the animated base each
-  frame, so the raycaster and HUD are unchanged. }
+  frame, so the renderer and HUD are unchanged. }
 
 {$mode objfpc}{$H+}
 
@@ -42,8 +42,7 @@ const
 type
   TCamera = record
     posX, posY: double;
-    posZ: double;          { eye height, world units; the polygon renderer uses
-                             it, the flat raycaster ignores it }
+    posZ: double;          { eye height in world units, used by the renderer }
     dirX, dirY: double;
     planeX, planeY: double;
     pitch: double;
