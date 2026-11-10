@@ -54,6 +54,14 @@ function CarveLevel(seed: longword; tileset, depth, style: longint): TMapData;
   for one module). }
 function RepairToModule(var m: TMapData; N: longint): boolean;
 
+{ Derive a prop's facing from the walls around its cell: a door or other
+  wall-backed prop faces away from the wall behind it, into the open, so its
+  orientation follows the carved layout rather than an authored yaw. A cell with
+  no single backing wall returns 0, the default south facing. The result is in
+  the 0..255 byte units a prop stores, where 0 faces +Y (south), 64 west, 128
+  north and 192 east. }
+function FaceFromWalls(const m: TMapData; x, y: longint): byte;
+
 implementation
 
 { Per-module height palette, matching the crypt's VaryHeights: floors step by
@@ -94,6 +102,33 @@ begin
   m.sectors[k].tileset := 0;
   m.sectors[k].light := 0;
   InternSector := k;
+end;
+
+{ Whether the cell at (x,y) is a wall; a cell off the map counts as wall, so a
+  prop on the map edge backs the edge. }
+function WallAt(const m: TMapData; x, y: longint): boolean;
+begin
+  if (x < 0) or (y < 0) or (x >= m.w) or (y >= m.h) then
+    WallAt := true
+  else
+    WallAt := m.walls[y * m.w + x] <> 0;
+end;
+
+function FaceFromWalls(const m: TMapData; x, y: longint): byte;
+var
+  wN, wS, wE, wW: boolean;
+begin
+  wN := WallAt(m, x, y - 1);
+  wS := WallAt(m, x, y + 1);
+  wE := WallAt(m, x + 1, y);
+  wW := WallAt(m, x - 1, y);
+  { face away from a single backing wall, resolving the north-south axis before
+    the east-west one at a corner }
+  if wN and (not wS) then FaceFromWalls := 0          { wall north, face south }
+  else if wS and (not wN) then FaceFromWalls := 128   { wall south, face north }
+  else if wE and (not wW) then FaceFromWalls := 64    { wall east,  face west }
+  else if wW and (not wE) then FaceFromWalls := 192   { wall west,  face east }
+  else FaceFromWalls := 0;                            { freestanding: south }
 end;
 
 function CarveStyleFor(tileset: longint): longint;

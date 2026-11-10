@@ -102,10 +102,12 @@ var
   pl: TPillar;
   fo: TFoliage;
   tg: TTrigger;
-  nv, vi, conformN: longint;
+  nv, vi, conformN, ai: longint;
+  autoX, autoY: array of longint;   { cells of props whose yaw is wall-derived }
 begin
   ParseMapText := false;
   conformN := 0;
+  autoX := nil; autoY := nil;
   errmsg := '';
   name := '';
   m.w := 0; m.h := 0; m.tileset := 0; m.music := 0; m.flags := 0; m.area := 0;
@@ -338,10 +340,13 @@ begin
         pr.x := StrToInt(tok[1]);
         pr.y := StrToInt(tok[2]);
         pr.name := UpperCase(tok[3]);
-        if ntok >= 5 then
-          pr.yaw := (StrToInt(tok[4]) * 256 div 360) and $FF
-        else
-          pr.yaw := 0;
+        pr.yaw := 0;
+        if (ntok >= 5) and (LowerCase(tok[4]) = 'auto') then begin
+          { yaw derived from the walls once the whole map is read (and conformed) }
+          SetLength(autoX, Length(autoX) + 1); autoX[High(autoX)] := pr.x;
+          SetLength(autoY, Length(autoY) + 1); autoY[High(autoY)] := pr.y;
+        end else if ntok >= 5 then
+          pr.yaw := (StrToInt(tok[4]) * 256 div 360) and $FF;
         SetLength(m.props, Length(m.props) + 1);
         m.props[High(m.props)] := pr;
       end else if tok[0] = 'pillar' then begin
@@ -391,6 +396,13 @@ begin
     is finalized, snapping rooms, dropping sub-module notches, reconnecting any
     stranded region and relocating stranded entities }
   if conformN >= 1 then RepairToModule(m, conformN);
+  { props marked `auto` take their facing from the final walls: a door or other
+    wall-backed prop faces away from the wall behind it. Matched by cell so a
+    conform that dropped or kept props does not disturb the mapping }
+  for ai := 0 to High(autoX) do
+    for idx := 0 to High(m.props) do
+      if (m.props[idx].x = autoX[ai]) and (m.props[idx].y = autoY[ai]) then
+        m.props[idx].yaw := FaceFromWalls(m, m.props[idx].x, m.props[idx].y);
   { give the map its sector layer: any sectors painted by directives are kept,
     and every open cell not otherwise assigned falls into the default sector }
   EnsureSectors(m);

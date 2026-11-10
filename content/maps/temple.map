@@ -27,7 +27,7 @@ walls
 end
 marker entry 11 14 N
 portal 11 15 TOWN templedoor door
-prop 11 15 DOORWAY 180
+prop 11 15 DOORWAY auto
 npc 11 9 APOTHECARY Apothecary NPC_APOTH
 skylight 11 11
 skylight 12 12

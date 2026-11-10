@@ -344,7 +344,7 @@ multi-cell mesh instances rather than per-cell quads.
   props ride the relief, and surface obstacles became walk-through foliage
   billboards. The logical grid stays coarse, so collision and turn order are
   identical no matter how detailed the terrain renders.
-- [partial] Formula-driven carve-and-clad generation. Today a modular map is
+- [done] Formula-driven carve-and-clad generation. Today a modular map is
   authored by hand: the wall grid, the sectors, and discrete props each placed,
   sized and rotated by a person (the town door's yaw, for one). The cladding
   itself is already rule-driven (CladView merges aligned floor blocks, CladWalls
@@ -362,10 +362,12 @@ multi-cell mesh instances rather than per-cell quads.
   mausoleum rooms, a cave carves organic grotto caverns (kit-clad now, where they
   were flat before), and the cathedral carves its cruciform bays. A hand-authored
   map opts into the same conform with a `conform N` directive applied at bake
-  time. Still open: deriving discrete-prop orientation (doors, braziers) from the
-  carve rather than an authored yaw. This generalizes the crypt-level generator
-  into a full carve-then-clad pipeline, and pairs with the authored-ruin content
-  in theme F.
+  time. Discrete props now take their facing from the carve: a prop authored as
+  `auto` faces away from the wall behind it (the town, outskirts and temple
+  doorways use it), so a door follows the layout rather than an authored yaw.
+  Braziers stay point lights with no facing to derive. This generalizes the
+  crypt-level generator into a full carve-then-clad pipeline, and pairs with the
+  authored-ruin content in theme F.
 
 ## Sequenced roadmap
 

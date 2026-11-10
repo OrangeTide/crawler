@@ -27,6 +27,12 @@ whose development history is summarized in docs/roadmap.md.
   with no ragged fillers (generator version bumped to 10). A hand-authored map
   can opt into the same conform with a `conform N` directive, which snaps its
   grid to the kit module at bake time before a final edit.
+- Wall-derived prop facing. A prop authored as `prop X Y NAME auto` takes its
+  yaw from the walls around its cell: a door (or any wall-backed prop) faces away
+  from the wall behind it, into the open, and a freestanding cell defaults to
+  facing south. The town, outskirts and temple doorways now use `auto` instead of
+  a hand-set yaw, so their facing follows the layout and survives a conform.
+  Braziers stay point lights with no facing to derive.
 - Outdoor terrain heightfield. A surface map's ground can carry relief: hills,
   slopes and valleys drawn in the polygon path, with the camera and the
   floor-anchored billboards and props riding the slope. The height is a
