@@ -23,6 +23,7 @@ begin
   m.traps := nil; m.lights := nil; m.props := nil; m.loot := nil;
   m.sectors := nil; m.cellSector := nil; m.triggers := nil;
   m.pillars := nil;
+  m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   SetLength(m.walls, m.w * m.h);
   for y := 0 to m.h - 1 do
     for x := 0 to m.w - 1 do
@@ -101,6 +102,8 @@ begin
   m.pillars[0].x := 3; m.pillars[0].y := 4;
   m.pillars[1].x := 5; m.pillars[1].y := 2;
 
+  m.heightLump := 'HM_HILL'; m.heightZMin := -8; m.heightZMax := 48;
+
   { codec round-trip }
   PakWInit(w);
   PakWAdd(w, 'MAP0', EncodeMap(m));
@@ -119,6 +122,9 @@ begin
   CheckEqI(Length(dm.pillars), 2, 'the pillars round-trip');
   CheckEqI(dm.pillars[0].x, 3, 'a pillar x round-trips');
   CheckEqI(dm.pillars[1].y, 2, 'a pillar y round-trips');
+  Check(dm.heightLump = 'HM_HILL', 'the terrain height lump round-trips');
+  CheckEqI(dm.heightZMin, -8, 'the terrain min height round-trips');
+  CheckEqI(dm.heightZMax, 48, 'the terrain max height round-trips');
 
   { point-in-polygon through the live lookup }
   Check(LoadMapData(dm), 'load the decoded map');

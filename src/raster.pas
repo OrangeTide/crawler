@@ -69,7 +69,7 @@ procedure DrawTexQuad(const cam: TMeshCam;
   world behind, and the depth buffer occludes the sprite behind nearer walls
   and sprites. }
 procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light: double);
+  wx, wy, wscale, hscale, light: double; baseZ: double = 0);
 
 implementation
 
@@ -353,7 +353,7 @@ begin
 end;
 
 procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light: double);
+  wx, wy, wscale, hscale, light: double; baseZ: double = 0);
 const
   { A billboard shares the floor's depth buffer, and its base is coplanar with
     the floor of the tile it stands on, so at distance the floor wins the
@@ -372,10 +372,10 @@ begin
   { camera right vector in the world XY plane, so the quad faces the eye }
   rx := sin(cam.yaw); ry := -cos(cam.yaw);
   hw := wscale * 0.5;
-  ok := Project(cam, wx - rx * hw, wy - ry * hw, 0,      c[0]);      { bottom left }
-  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, 0,      c[1]);  { bottom right }
-  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, hscale, c[2]);  { top right }
-  ok := ok and Project(cam, wx - rx * hw, wy - ry * hw, hscale, c[3]);  { top left }
+  ok := Project(cam, wx - rx * hw, wy - ry * hw, baseZ,           c[0]);  { bottom left }
+  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, baseZ,          c[1]);  { bottom right }
+  ok := ok and Project(cam, wx + rx * hw, wy + ry * hw, baseZ + hscale, c[2]);  { top right }
+  ok := ok and Project(cam, wx - rx * hw, wy - ry * hw, baseZ + hscale, c[3]);  { top left }
   if not ok then exit;
   { pull each corner's depth toward the camera for the z-test only }
   for k := 0 to 3 do begin

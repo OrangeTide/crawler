@@ -1,0 +1,38 @@
+# A terrain proof: an open hilltop clearing on a surface map, its ground given
+# relief by a baked heightmap. The HM_HILL lump is a radial gradient, so the
+# centre rises into a rounded hill and the edges fall away. The logical grid is
+# flat and open, so movement and collision are unchanged; only the rendered
+# ground has height. 1=wall (a ring of cliff), 0=open ground.
+map OVERLOOK
+size 20 20
+tileset 2
+surface
+area forest
+# the clearing's ground rises toward the centre: sample 0 sits at world height 0,
+# sample 255 at 48/16 = 3 world units
+heightmap HM_HILL 0 48
+walls
+11111111111111111111
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+10000000000000000001
+11111111111111111111
+end
+marker start 3 16 N
+marker back 3 16 N
+portal 1 16 DUNGEON back

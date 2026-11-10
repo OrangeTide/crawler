@@ -30,9 +30,10 @@ uses
 
 const
   MAP_MAGIC   = $50414D43;  { 'CMAP' little-endian }
-  MAP_VERSION = 13;         { 13 adds the pillar cell list }
+  MAP_VERSION = 14;         { 14 adds the terrain heightfield reference }
 
-  MAP_SURFACE = 1;          { flags bit: an outdoor map, sees the sky }
+  MAP_SURFACE     = 1;      { flags bit: an outdoor map, sees the sky }
+  MAP_PROCTERRAIN = 2;      { flags bit: build terrain relief from the seed }
 
   { Trigger-area kinds. A trigger is a polygon over the logical grid, decoupled
     from the geometry, that acts on the party while it stands inside. New kinds
@@ -202,6 +203,13 @@ type
     loot: array of TLoot;
     triggers: array of TTrigger;          { polygon trigger areas, may be empty }
     pillars: array of TPillar;            { freestanding kit pillars, may be empty }
+    { Outdoor terrain heightfield, a render-only layer beside the grid. An
+      authored map names a baked height lump; a generated surface cell sets
+      MAP_PROCTERRAIN and leaves the lump empty. heightZMin/Max map the source
+      0..255 samples to a world height range, in 1/HZ_UNIT units. Empty lump and
+      no MAP_PROCTERRAIN means a flat map, which renders as before. }
+    heightLump: string[16];               { baked height lump, empty for none }
+    heightZMin, heightZMax: smallint;     { world height for sample 0 and 255 }
   end;
 
 function EncodeMap(const m: TMapData): TByteArray;
@@ -397,6 +405,11 @@ begin
     BU16(b, m.pillars[i].y);
   end;
 
+  { terrain heightfield reference: the lump name and its world height range }
+  BName(b, m.heightLump, 16);
+  BU16(b, word(m.heightZMin));
+  BU16(b, word(m.heightZMax));
+
   BFinish(b);
   EncodeMap := b.data;
 end;
@@ -495,6 +508,7 @@ begin
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   m.loot := nil; m.sectors := nil; m.cellSector := nil; m.triggers := nil;
   m.pillars := nil;
+  m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   RInit(r, blob);
   if RU32(r) <> MAP_MAGIC then exit;
   if RU16(r) <> MAP_VERSION then exit;
@@ -626,6 +640,10 @@ begin
     m.pillars[i].x := RU16(r);
     m.pillars[i].y := RU16(r);
   end;
+
+  m.heightLump := RName(r, 16);
+  m.heightZMin := smallint(RU16(r));
+  m.heightZMax := smallint(RU16(r));
 
   { belt and braces: a map that somehow lacks a sector table gets the flat
     default so the renderer always has heights to read. Clearing cellSector

@@ -30,7 +30,7 @@ implementation
 uses
   sysutils, pak, world, textures, models, sprites, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
-  gamestate, pursuit, codex, mappins, apppaths;
+  gamestate, pursuit, codex, mappins, apppaths, terrain, heightfmt;
 
 function SavePath: string;
 begin
@@ -173,6 +173,22 @@ begin
   SourceMap := true;
 end;
 
+procedure BuildTerrain(const m: TMapData; const name: string);
+{** Make the outdoor terrain heightfield resident for the map just loaded. An
+  authored map names a baked height lump; a flat or indoor map leaves the layer
+  inactive. The procedural wilderness branch (MAP_PROCTERRAIN from the seed)
+  lands in a later phase. }
+var
+  blob: TByteArray;
+  samples: TByteArray;
+  sw, sh: longint;
+begin
+  TerrainReset;
+  if (m.heightLump <> '') and PakGet(GamePak, m.heightLump, blob)
+    and DecodeHeight(blob, sw, sh, samples) then
+    TerrainSetHeightmap(m, samples, sw, sh);
+end;
+
 function LoadMapLump(const name: string): boolean;
 {** Bring a map into the world. A static map is decoded from its pak
   lump; a dynamic map is generated from its stored or a fresh seed. The
@@ -191,6 +207,7 @@ begin
     MapStateCapture(CurMapName);
   if not LoadMapData(md) then exit;
   SetTileset(GamePak, md.tileset);   { make this zone's textures resident }
+  BuildTerrain(md, name);            { make the outdoor heightfield resident }
   CurMapName := name;
   CurAreaMask := md.area;   { authored maps carry it in the lump, generated
                              maps get it set above: no name list in code }

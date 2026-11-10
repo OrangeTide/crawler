@@ -244,6 +244,8 @@ Rendering:
 | `src/raycast.pas` | The textured raycasting renderer. |
 | `src/raster.pas` | A small fixed-function polygon rasterizer, PSX style. |
 | `src/meshfmt.pas` | Baked triangle mesh format, drawn by the polygon renderer. |
+| `src/heightfmt.pas` | Baked terrain heightmap format, the source for outdoor relief. |
+| `src/terrain.pas` | Outdoor terrain heightfield layer, drawn as relief on surface maps. |
 | `src/models.pas` | Registry of baked meshes the polygon renderer instances. |
 | `src/roomdb.pas` | A hand-placed modular-tile room: the theme G pre-format proof. |
 | `src/polyrender.pas` | Draws the tile grid as textured polygons via the rasterizer. |

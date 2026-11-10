@@ -110,6 +110,8 @@ begin
   m.walls := nil; m.markers := nil; m.portals := nil; m.doors := nil;
   m.npcs := nil; m.traps := nil; m.lights := nil; m.props := nil;
   m.loot := nil; m.sectors := nil; m.cellSector := nil; m.pillars := nil;
+  m.triggers := nil;
+  m.heightLump := ''; m.heightZMin := 0; m.heightZMax := 0;
   inWalls := false;
   wallsDone := false;
   row := 0;
@@ -347,6 +349,14 @@ begin
         pl.y := StrToInt(tok[2]);
         SetLength(m.pillars, Length(m.pillars) + 1);
         m.pillars[High(m.pillars)] := pl;
+      end else if tok[0] = 'heightmap' then begin
+        { heightmap LUMP ZMIN ZMAX: outdoor terrain relief from a baked height
+          lump. ZMIN and ZMAX are the world height, in 1/HZ_UNIT units like a
+          sector, that sample 0 and sample 255 map to. }
+        if ntok < 4 then begin errmsg := 'heightmap needs LUMP ZMIN ZMAX'; exit; end;
+        m.heightLump := UpperCase(tok[1]);
+        m.heightZMin := StrToInt(tok[2]);
+        m.heightZMax := StrToInt(tok[3]);
       end else begin
         errmsg := 'unknown directive: ' + tok[0];
         exit;

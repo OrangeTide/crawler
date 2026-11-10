@@ -17,7 +17,7 @@ unit world;
 interface
 
 uses
-  textures, mapfmt, gfx, models, encounters;
+  textures, mapfmt, gfx, models, encounters, terrain;
 
 const
   MAXMAP = 64;
@@ -89,6 +89,10 @@ function CeilZAt(mx, my: longint): double;
 { The tileset that clads a cell: its sector's own tileset when set, else the
   map's tileset. Drives whether the cell renders from a modular kit. }
 function CellTileset(mx, my: longint): longint;
+{ The ground height at a world position: the terrain heightfield on a surface map
+  that carries one, else the cell's sector floor. The camera eye and the
+  floor-anchored billboards and props ride this. }
+function GroundZAt(wx, wy: double): double;
 { The trigger area whose polygon contains a cell's centre, or -1. The first
   matching trigger in the map wins. Integer test, no FPU. }
 function TriggerAt(mx, my: longint): longint;
@@ -209,9 +213,11 @@ begin
   Cam.planeY := cos(viewAng) * 0.66;
   Cam.posX := curX;
   Cam.posY := curY;
-  { the eye rides the floor of the sector the party stands over. Flat maps keep
-    this at EYE_H, so the view is unchanged; height content moves it per step. }
-  Cam.posZ := FloorZAt(Trunc(curX), Trunc(curY)) + EYE_H;
+  { the eye rides the ground the party stands over: the terrain heightfield on a
+    surface map that has one, else the sector floor. Flat maps keep this at
+    EYE_H, so the view is unchanged; relief moves it smoothly per step as the
+    tweened curX/curY cross the slope. }
+  Cam.posZ := GroundZAt(curX, curY) + EYE_H;
   Cam.pitch := viewPitch;
 end;
 
@@ -249,6 +255,10 @@ begin
       TileLight[y][x] := 0;
     end;
   CurMapSurface := (m.flags and MAP_SURFACE) <> 0;
+  { clear any terrain from the map just left; the loader (worldload) rebuilds it
+    for this map after the tileset is resident. A direct load, as in a test or
+    the headless tool, leaves it inactive and so renders flat. }
+  TerrainReset;
   AmbientLight := 256;
   for y := 0 to MapH - 1 do
     for x := 0 to MapW - 1 do
@@ -469,6 +479,14 @@ begin
   s := SectorAt(mx, my);
   if (s >= 0) and (s <= High(CurMap.sectors)) and (CurMap.sectors[s].tileset > 0) then
     CellTileset := CurMap.sectors[s].tileset;
+end;
+
+function GroundZAt(wx, wy: double): double;
+begin
+  if CurMapSurface and TerrainActive then
+    GroundZAt := TerrainHeightAt(wx, wy)
+  else
+    GroundZAt := FloorZAt(Trunc(wx), Trunc(wy));
 end;
 
 { Even-odd ray cast: is (px,py), in 1/16 cell units, inside the polygon? All

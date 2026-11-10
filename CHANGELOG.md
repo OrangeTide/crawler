@@ -10,6 +10,17 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Outdoor terrain heightfield. A surface map's ground can carry relief: hills,
+  slopes and valleys drawn in the polygon path, with the camera and the
+  floor-anchored billboards and props riding the slope. The height is a
+  render-only layer beside the logical grid, so collision and turn order are
+  unchanged. It builds from a baked heightmap asset (a grayscale image, the
+  `heightmap` bake verb, and a `heightmap LUMP ZMIN ZMAX` map directive; map
+  format bumped to 14) and renders at a per-target subdivision knob
+  (`terrain.TERRAIN_SUBDIV`), mirroring the trim-sheet knob: dense on the
+  desktop, coarse and vertex-snapped on the PlayStation path from one source.
+  Procedural wilderness terrain from the world seed, and billboard foliage over
+  it, follow in later steps.
 - Kit pillars. A `pillar X Y` map directive marks a cell to carry a pillar; the
   cladding pass draws the tileset kit's pillar piece there at native scale, and
   the cell blocks movement. Previously the pillar role was defined but inert.

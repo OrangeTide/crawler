@@ -29,7 +29,7 @@ implementation
 
 uses
   math, gfx, textures, world, mapfmt, raster, models, meshfmt,
-  sprites, worldspr, tilekit, clad;
+  sprites, worldspr, tilekit, clad, terrain;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
@@ -157,8 +157,44 @@ begin
     if mi < 0 then continue;
     yaw := CurMap.props[i].yaw / 256.0 * 2 * Pi;
     light := TileLight(ptx, pty, dist);
-    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, 0, ModelReg[mi].scale, yaw, light);
+    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
+      ModelReg[mi].scale, yaw, light);
   end;
+end;
+
+{ Draw the outdoor terrain heightfield: for each visible open, non-kit cell on a
+  surface map that carries terrain, emit TERRAIN_SUBDIV^2 textured sub-quads whose
+  corner heights come from the resident height grid. This replaces the flat floor
+  quad. UVs are world positions, so the ground texture tiles once per cell exactly
+  as the flat floor did; adjacent cells share corner heights, so the terrain
+  seams with no cracks. Reuses the floor texture, projection, z-buffer and
+  lighting, so it adds no new per-pixel math. }
+procedure DrawTerrain(const mc: TMeshCam; x0, y0, x1, y1: longint; ex, ey: double);
+var
+  tx, ty, sxi, syi: longint;
+  dist, light, step, wx0, wy0, wx1, wy1, z00, z10, z11, z01: double;
+begin
+  step := 1.0 / TERRAIN_SUBDIV;
+  for ty := y0 to y1 do
+    for tx := x0 to x1 do begin
+      if IsWallTile(tx, ty) then continue;                  { no ground under a wall }
+      if KitIndexForTileset(CellTileset(tx, ty)) >= 0 then continue;  { clad separately }
+      dist := sqrt(sqr(tx + 0.5 - ex) + sqr(ty + 0.5 - ey));
+      light := TileLight(tx, ty, dist);
+      for syi := 0 to TERRAIN_SUBDIV - 1 do
+        for sxi := 0 to TERRAIN_SUBDIV - 1 do begin
+          wx0 := tx + sxi * step; wx1 := wx0 + step;
+          wy0 := ty + syi * step; wy1 := wy0 + step;
+          z00 := TerrainHeightAt(wx0, wy0);
+          z10 := TerrainHeightAt(wx1, wy0);
+          z11 := TerrainHeightAt(wx1, wy1);
+          z01 := TerrainHeightAt(wx0, wy1);
+          DrawTexQuad(mc,
+            wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
+            wx0, wy0, wx1, wy0, wx1, wy1, wx0, wy1,
+            @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
+        end;
+    end;
 end;
 
 { Billboard every NPC and active pursuer on the current map. }
@@ -180,7 +216,7 @@ begin
     with SpriteReg[ents[i].img].img do
       if h > 0 then wscale := ents[i].wh * w / h else wscale := ents[i].wh;
     DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
-      ents[i].wh, light);
+      ents[i].wh, light, GroundZAt(px, py));
   end;
 end;
 
@@ -264,12 +300,17 @@ begin
         if KitIndexForTileset(CellTileset(tx, ty)) < 0 then
         begin
           { floor at this cell's sector height, with an emissive tile's glow tint
-            mixed in, as the raycaster does for a light well, brazier or vent }
-          gw := 0; gcol := 0;
-          gk := LightTileKind(tx, ty);
-          if gk >= 0 then LightGlow(gk, gcol, gw);
-          DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
-            0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+            mixed in, as the raycaster does for a light well, brazier or vent. On
+            a surface map with terrain relief, DrawTerrain draws the ground
+            instead, after this loop. }
+          if not (CurMapSurface and TerrainActive) then
+          begin
+            gw := 0; gcol := 0;
+            gk := LightTileKind(tx, ty);
+            if gk >= 0 then LightGlow(gk, gcol, gw);
+            DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
+              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+          end;
           { ceiling at this cell's sector height, unless an open-air surface map }
           if not CurMapSurface then
             DrawTexQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
@@ -285,6 +326,10 @@ begin
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+
+  { the outdoor ground, drawn as relief where a surface map carries terrain }
+  if CurMapSurface and TerrainActive then
+    DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);

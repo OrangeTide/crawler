@@ -111,11 +111,17 @@ TITLEBGSRC = content/title/title_bg.ppm content/title/title_pal.ppm
 # absent; a missing track just stays silent.
 MUSICTRACKS = MUS_TITLE:title MUS_TOWN:town MUS_DUNGEON:dungeon MUS_COMBAT:combat
 MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst :, ,$(t))).*))
+# Outdoor terrain heightmaps: grayscale PNG sources baked to CHGT lumps. The
+# lump name is the upper-cased base name, which a map's heightmap directive
+# references. The source resolution is the asset-side terrain knob; the runtime
+# subdivision (terrain.TERRAIN_SUBDIV) sets the rendered density.
+HEIGHTNAMES = hm_hill
+HEIGHTSRC = $(foreach n,$(HEIGHTNAMES),content/heightmaps/$(n).ppm)
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
-            $(MUSICSRC)
+            $(MUSICSRC) $(HEIGHTSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
@@ -138,6 +144,7 @@ TRIMARG   = trim 10 0 content/rooms/trim_maus_floor.ppm \
             trim 16 1 content/rooms/trim_volc_wall.ppm \
             trim 16 2 content/rooms/trim_lava_emis.ppm
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
+HEIGHTARGS = $(foreach n,$(HEIGHTNAMES),heightmap $(n) content/heightmaps/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)
 SPELLICONARGS = $(foreach f,$(SPELLICONPNG),sprite $(basename $(notdir $(f))) $(f:.png=.ppm))
@@ -208,7 +215,7 @@ build/tools/shot: tools/shot.pas src/*.pas build/version.inc | build
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
@@ -235,6 +242,12 @@ content/skillicons/%.ppm: content/skillicons/%.png
 # Passed straight through to a PPM; no resize or colour key.
 content/title/%.ppm: content/title/%.png
 	$(IM) $< -depth 8 ppm:$@
+
+# Terrain heightmap source: a grayscale PNG flattened to an opaque 8-bit PPM.
+# No colour key; the baker reads the red channel as the height sample. The
+# resize here is the asset-side density knob, kept modest for the small maps.
+content/heightmaps/%.ppm: content/heightmaps/%.png
+	$(IM) $< -colorspace Gray -alpha off -depth 8 ppm:$@
 
 build:
 	mkdir -p build

@@ -16,7 +16,7 @@ uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
-  skilldb, skilltext, tilekit, kittext;
+  skilldb, skilltext, tilekit, kittext, heightfmt;
 
 var
   w: TPakWriter;
@@ -327,6 +327,26 @@ begin
   writeln('  trim ', lump, ' (', sw, 'x', sh, ') from ', ppmFn);
 end;
 
+procedure AddHeightmap(const name, ppmFn: string);
+{ Bake a terrain heightmap from a grayscale PPM into a CHGT lump. The red
+  channel is the sample, 0..255; the terrain layer upsamples it at load. The
+  lump keeps the given uppercase name, which the map's heightmap directive
+  references. }
+var
+  sw, sh, i: longint;
+  pixbuf, samples: TByteArray;
+begin
+  if not ReadPpm(ppmFn, sw, sh, pixbuf) then begin
+    writeln(StdErr, 'mkassets: heightmap ', name, ': cannot read ', ppmFn);
+    halt(1);
+  end;
+  SetLength(samples, sw * sh);
+  for i := 0 to sw * sh - 1 do
+    samples[i] := pixbuf[i * 3];   { grayscale: red channel is the height }
+  PakWAdd(w, UpperCase(name), EncodeHeight(sw, sh, samples));
+  writeln('  heightmap ', UpperCase(name), ' (', sw, 'x', sh, ') from ', ppmFn);
+end;
+
 procedure AddSprite(const name, ppmFn: string);
 { Ingest a billboard sprite from a binary PPM. Magenta (255,0,255) pixels
   become the transparent key; the rest keep their colour. Shipped as a
@@ -456,6 +476,8 @@ begin
       end;
     end else if ParamStr(i) = 'sprite' then begin
       AddSprite(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
+    end else if ParamStr(i) = 'heightmap' then begin
+      AddHeightmap(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else begin
       writeln(StdErr, 'mkassets: unknown input keyword ', ParamStr(i));
       halt(1);
