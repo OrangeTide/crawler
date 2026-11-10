@@ -14,12 +14,17 @@ trap 'rm -rf "$TMP"' EXIT
 SHOT=build/tools/shot
 
 # name  :  shot-tool scene and arguments
+# The crypt and cathedral shots stand in procedurally carved dungeon cells
+# (named D<cx>_<cy>_<depth>), so the gallery shows the carve-and-clad layout,
+# not a hand-authored lump. These are deterministic from the generator version
+# and the cell seed; regenerate if either changes.
 set -- \
-  "hero:map DUNGEON 2 7 E" \
+  "hero:map D270_0_1 24 34 E" \
   "town:map TOWN 6 8 N" \
   "seaside:map SEASIDE 10 9 E" \
   "forest:map FOREST 2 7 E" \
-  "crypt:map DUNGEON 13 7 W" \
+  "crypt:map D270_0_1 29 20 E" \
+  "cathedral:map D284_0_2 10 10 E 0.15" \
   "grotto:map GROTTO 3 8 N" \
   "infernal:map INFERNAL 2 7 E" \
   "monster:foe DUNGEON 2 7 E SKELETON 8 7" \

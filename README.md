@@ -16,7 +16,7 @@ polygon renderer is in progress alongside the raycaster.
 The images are the 320x240 framebuffer upscaled 4x with nearest-neighbour
 filtering, the same way the game presents it.
 
-![A crypt corridor with the compass, crosshair, automap and party strip](screenshots/hero.png)
+![A carved crypt corridor with the compass, crosshair, automap and party strip](screenshots/hero.png)
 
 The six zones each wear their own tileset, one colour scheme over the shared
 wall and floor patterns, so even a generated map themes from its area.
@@ -26,9 +26,15 @@ wall and floor patterns, so even a generated map themes from its area.
 | ![The town hub](screenshots/town.png) | ![The seaside](screenshots/seaside.png) |
 | The town hub, where the party starts near the elder and the tavern. | The seaside, with its ferryman and a wreck down the strand. |
 | ![The forest](screenshots/forest.png) | ![The crypt](screenshots/crypt.png) |
-| The forest, a hedge avenue running into the fog. | The torch-lit crypt, a glowing light tile on the flagstones. |
+| The forest, a hedge avenue running into the fog. | A carved crypt, its floor stepping between heights under the mausoleum kit. |
 | ![The grotto](screenshots/grotto.png) | ![The infernal depth](screenshots/infernal.png) |
 | The glowing grotto, a cave of warm stone. | The infernal depth, a rust corridor falling into the dark. |
+
+A generated dungeon carves itself on the kit's module grid, so a procedural
+level clads from whole native pieces with no ragged fillers. The cathedral theme
+raises a nave and vaulted bays from the same carve.
+
+![The carved cathedral nave](screenshots/cathedral.png)
 
 The party meets the folk of each place, runs into what walks the halls, and
 fights foes drawn up in two ranks.
