@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 9;   { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 10;  { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -531,7 +531,7 @@ var
   i, theme, wallTile, usx, usy, dsx, dsy, reach, nx, ny: longint;
   upx, upy, dnx, dny, bx, by: longint;
   pin, arr, upTarget, upMarker, downTarget: string;
-  carveCrypt: boolean;
+  carveTs, carveStyle: longint;
 begin
   gw := W; gh := H;
   SetLength(g, gw * gh);
@@ -539,12 +539,21 @@ begin
   theme := BiomeTheme(BiomeAt(cx, cy));
   wallTile := ThemeWall(theme);
 
-  { a crypt carves on the mausoleum kit's module grid so it clads from whole
+  { kit-clad themes carve on their kit's module grid so they clad from whole
     native pieces, when that kit is loaded (it is in play, not in a kit-less
-    test, which keeps the legacy rooms-and-corridors crypt) }
-  carveCrypt := (theme = THEME_CRYPT) and (KitModule(TILESET_MODULAR) >= 2);
-  if carveCrypt then begin
-    m := CarveLevel(seed, TILESET_MODULAR, depth);
+    test, which keeps the legacy carvers). The crypt wears the mausoleum rooms,
+    a cave the grotto caverns, the cathedral its bays }
+  carveTs := -1; carveStyle := CARVE_ROOMS;
+  if (theme = THEME_CRYPT) and (KitModule(TILESET_MODULAR) >= 2) then begin
+    carveTs := TILESET_MODULAR; carveStyle := CARVE_ROOMS;
+  end else if (theme = THEME_CAVE) and (KitModule(TILESET_GROTTO) >= 2) then begin
+    carveTs := TILESET_GROTTO; carveStyle := CARVE_CAVE;
+  end else if (theme = THEME_CATHEDRAL) and (KitModule(TILESET_CATHEDRAL) >= 2) then begin
+    carveTs := TILESET_CATHEDRAL; carveStyle := CARVE_CATHEDRAL;
+  end;
+
+  if carveTs >= 0 then begin
+    m := CarveLevel(seed, carveTs, depth, carveStyle);
     gw := m.w; gh := m.h;
     SetLength(g, gw * gh);
     for i := 0 to gw * gh - 1 do
@@ -564,9 +573,10 @@ begin
   FloodFarthest(g, usx, usy, dsx, dsy, reach);
 
   m.w := gw; m.h := gh;
-  { crypt-themed dungeons wear the modular kit so they clad from the mossy
-    pieces; other themes keep their procedural biome surfaces }
-  if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR
+  { a carved level already wears its kit; a legacy crypt or cathedral keeps its
+    kit tileset, and the other themes keep their procedural biome surfaces }
+  if carveTs >= 0 then m.tileset := carveTs
+  else if theme = THEME_CRYPT then m.tileset := TILESET_MODULAR
   else if theme = THEME_CATHEDRAL then m.tileset := TILESET_CATHEDRAL
   else m.tileset := 0;
   m.music := 0; m.flags := 0; m.heightLump := '';
@@ -615,12 +625,13 @@ begin
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
 
-  { the carved crypt already carries its per-module heights from CarveLevel; a
-    legacy (kit-less) crypt wears varied floor and ceiling heights; the cathedral
-    wears soaring bay vaults; other themes keep the flat default that
+  { a carved level already carries its per-module heights from CarveLevel; a
+    legacy (kit-less) crypt wears varied floor and ceiling heights, a legacy
+    cathedral its soaring bay vaults; other themes keep the flat default that
     EnsureSectors supplies at load }
-  if (theme = THEME_CRYPT) and (not carveCrypt) then VaryHeights(m, g, r)
-  else if theme = THEME_CATHEDRAL then CathedralHeights(m, g);
+  if carveTs < 0 then
+    if theme = THEME_CRYPT then VaryHeights(m, g, r)
+    else if theme = THEME_CATHEDRAL then CathedralHeights(m, g);
 
   GenerateDungeonLevel := m;
 end;

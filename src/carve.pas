@@ -26,15 +26,27 @@ interface
 uses
   rng, mapfmt, tilekit, gridgen;
 
+const
+  { Carve styles: the shape the module grid is carved into before it is clad.
+    Rooms suit a crypt, an organic cave suits the cave kits, and the cruciform
+    bays suit the cathedral. }
+  CARVE_ROOMS     = 0;
+  CARVE_CAVE      = 1;
+  CARVE_CATHEDRAL = 2;
+
 { The module size N for a tileset: its kit's floor-piece footprint, or 1 when
   the tileset carries no kit. }
 function KitModule(tileset: longint): longint;
 
-{ Carve a fresh level for a kit tileset, born aligned to its module so it clads
-  from native pieces with no fillers. depth tunes the room count. The result
-  has walls, per-module sectors and a start/back marker; portals and content
-  are the caller's to add. }
-function CarveLevel(seed: longword; tileset, depth: longint): TMapData;
+{ A fitting carve style for a kit tileset: the cave kits carve organic caverns,
+  the grand kits carve cathedral bays, and the rest carve rooms. }
+function CarveStyleFor(tileset: longint): longint;
+
+{ Carve a fresh level for a kit tileset in the given style, born aligned to its
+  module so it clads from native pieces with no fillers. depth tunes the room
+  count. The result has walls, per-module sectors and a start/back marker;
+  portals and content are the caller's to add. }
+function CarveLevel(seed: longword; tileset, depth, style: longint): TMapData;
 
 { Conform an existing map's grid to module N: snap ragged rooms to the module,
   drop sub-module notches, keep the map connected, and relocate any entity a
@@ -84,7 +96,94 @@ begin
   InternSector := k;
 end;
 
-function CarveLevel(seed: longword; tileset, depth: longint): TMapData;
+function CarveStyleFor(tileset: longint): longint;
+begin
+  case tileset of
+    TILESET_GROTTO, TILESET_VOLCANIC, TILESET_LAVA:
+      CarveStyleFor := CARVE_CAVE;
+    TILESET_CATHEDRAL, TILESET_TEMPLE, TILESET_CLERESTORY:
+      CarveStyleFor := CARVE_CATHEDRAL;
+  else
+    CarveStyleFor := CARVE_ROOMS;
+  end;
+end;
+
+{ Breadth-first mark of every open module reachable from (sx,sy) on the module
+  grid, using the gridgen globals gw/gh. }
+procedure FloodMark(const g: TGrid; sx, sy: longint; var reached: array of boolean);
+const
+  dx: array[0 .. 3] of longint = (1, -1, 0, 0);
+  dy: array[0 .. 3] of longint = (0, 0, 1, -1);
+var
+  qx, qy: array of longint;
+  head, tail, x, y, k, nx, ny: longint;
+begin
+  for k := 0 to gw * gh - 1 do reached[k] := false;
+  SetLength(qx, gw * gh); SetLength(qy, gw * gh);
+  head := 0; tail := 0;
+  reached[sy * gw + sx] := true;
+  qx[tail] := sx; qy[tail] := sy; inc(tail);
+  while head < tail do begin
+    x := qx[head]; y := qy[head]; inc(head);
+    for k := 0 to 3 do begin
+      nx := x + dx[k]; ny := y + dy[k];
+      if (nx < 0) or (ny < 0) or (nx >= gw) or (ny >= gh) then continue;
+      if At(g, nx, ny) <> 0 then continue;
+      if reached[ny * gw + nx] then continue;
+      reached[ny * gw + nx] := true;
+      qx[tail] := nx; qy[tail] := ny; inc(tail);
+    end;
+  end;
+end;
+
+{ Carve an organic cavern on the module grid, then solidify any pocket not
+  reachable from the first open module, so the cave is one connected space that
+  clads cleanly at module scale. }
+procedure CarveCaveModules(var g: TGrid; var r: TRng);
+var
+  reached: array of boolean;
+  fx, fy, mx, my: longint;
+begin
+  GenCave(g, r);
+  if not FirstFloor(g, fx, fy) then exit;
+  SetLength(reached, gw * gh);
+  FloodMark(g, fx, fy, reached);
+  for my := 0 to gh - 1 do
+    for mx := 0 to gw - 1 do
+      if (At(g, mx, my) = 0) and (not reached[my * gw + mx]) then
+        SetAt(g, mx, my, 1);
+end;
+
+{ Carve the cathedral's cruciform on a 3x3 module grid: a nave down the centre
+  column and a transept across the centre row, with corner chapels opening at
+  random. Each module is one 8-unit bay, so the plan is born module-aligned. }
+procedure CarveCathedralModules(var g: TGrid; var r: TRng);
+var
+  i: longint;
+begin
+  for i := 0 to gw * gh - 1 do g[i] := 1;
+  SetAt(g, 1, 0, 0); SetAt(g, 1, 1, 0); SetAt(g, 1, 2, 0);   { nave }
+  SetAt(g, 0, 1, 0); SetAt(g, 2, 1, 0);                      { transept }
+  if RngRange(r, 0, 1) = 1 then SetAt(g, 0, 0, 0);           { corner chapels }
+  if RngRange(r, 0, 1) = 1 then SetAt(g, 2, 0, 0);
+  if RngRange(r, 0, 1) = 1 then SetAt(g, 0, 2, 0);
+  if RngRange(r, 0, 1) = 1 then SetAt(g, 2, 2, 0);
+end;
+
+{ The cathedral's per-bay ceiling: tallest at the crossing where nave and
+  transept meet, lower down the arms, lowest in the corner chapels. }
+function CathedralCeil(mx, my: longint): smallint;
+const
+  CROSS_Z  = 224;   { 14 units at the crossing }
+  ARM_Z    = 176;   { 11 units down the nave and transept }
+  CHAPEL_Z = 128;   {  8 units in the corner chapels }
+begin
+  if (mx = 1) and (my = 1) then CathedralCeil := CROSS_Z
+  else if (mx = 1) or (my = 1) then CathedralCeil := ARM_Z
+  else CathedralCeil := CHAPEL_Z;
+end;
+
+function CarveLevel(seed: longword; tileset, depth, style: longint): TMapData;
 var
   r: TRng;
   gm: TGrid;
@@ -95,27 +194,37 @@ var
 begin
   modN := KitModule(tileset);
   if modN < 1 then modN := 1;
-  { a module grid that keeps the fine map within MAXMAP (60 cells here, to
-    match the generators' own clamp) and stays big enough to carve rooms in }
-  modCols := 60 div modN;
-  if modCols > 16 then modCols := 16;
-  if modCols < 4 then modCols := 4;
-  modRows := modCols;
+  if style = CARVE_CATHEDRAL then begin
+    { the cathedral is a fixed 3x3 of bays, one module each }
+    modCols := 3; modRows := 3;
+  end else begin
+    { a module grid that keeps the fine map within MAXMAP (60 cells here, to
+      match the generators' own clamp) and stays big enough to carve in }
+    modCols := 60 div modN;
+    if modCols > 16 then modCols := 16;
+    if modCols < 4 then modCols := 4;
+    modRows := modCols;
+  end;
 
   RngSeed(r, seed);
 
-  { carve the module grid: rooms-and-corridors where it is large enough, else
-    (large-module kits, where the grid is small) a single bordered hall, which
-    is already module-clean }
+  { carve the module grid in the chosen style; rooms fall back to a single
+    bordered hall when the grid is too small to carve rooms in (large-module
+    kits), which is already module-clean }
   gw := modCols; gh := modRows;
   SetLength(gm, gw * gh);
-  if (modCols >= 10) and (modRows >= 10) then
-    GenRooms(gm, r, depth)
-  else begin
-    for i := 0 to gw * gh - 1 do gm[i] := 1;
-    for my := 1 to gh - 2 do
-      for mx := 1 to gw - 2 do
-        SetAt(gm, mx, my, 0);
+  case style of
+    CARVE_CAVE: CarveCaveModules(gm, r);
+    CARVE_CATHEDRAL: CarveCathedralModules(gm, r);
+  else
+    if (modCols >= 10) and (modRows >= 10) then
+      GenRooms(gm, r, depth)
+    else begin
+      for i := 0 to gw * gh - 1 do gm[i] := 1;
+      for my := 1 to gh - 2 do
+        for mx := 1 to gw - 2 do
+          SetAt(gm, mx, my, 0);
+    end;
   end;
 
   if not FirstFloor(gm, smx, smy) then begin
@@ -124,13 +233,22 @@ begin
   end;
   FloodFarthest(gm, smx, smy, emx, emy, reach);
 
-  { one floor/ceiling height per module, so every N-block stays single-sector }
+  { one floor/ceiling height per module, so every N-block stays single-sector.
+    Rooms and caves draw varied heights from the seed; the cathedral takes its
+    soaring per-bay vaults over a flat floor }
   SetLength(mFloor, modCols * modRows);
   SetLength(mCeil, modCols * modRows);
-  for i := 0 to modCols * modRows - 1 do begin
-    mFloor[i] := FLRS[RngRange(r, 0, 1)];
-    mCeil[i]  := CEILS[RngRange(r, 0, 3)];
-  end;
+  for my := 0 to modRows - 1 do
+    for mx := 0 to modCols - 1 do begin
+      i := my * modCols + mx;
+      if style = CARVE_CATHEDRAL then begin
+        mFloor[i] := 0;
+        mCeil[i] := CathedralCeil(mx, my);
+      end else begin
+        mFloor[i] := FLRS[RngRange(r, 0, 1)];
+        mCeil[i]  := CEILS[RngRange(r, 0, 3)];
+      end;
+    end;
 
   { realize: each module expands to its N by N block of cells, born on the
     cladding's (tx div N)*N anchor }
@@ -176,34 +294,6 @@ begin
   m.markers[1].name := 'back';
 
   CarveLevel := m;
-end;
-
-{ Breadth-first mark of every open module reachable from (sx,sy) on the module
-  grid, using the gridgen globals gw/gh. }
-procedure FloodMark(const g: TGrid; sx, sy: longint; var reached: array of boolean);
-const
-  dx: array[0 .. 3] of longint = (1, -1, 0, 0);
-  dy: array[0 .. 3] of longint = (0, 0, 1, -1);
-var
-  qx, qy: array of longint;
-  head, tail, x, y, k, nx, ny: longint;
-begin
-  for k := 0 to gw * gh - 1 do reached[k] := false;
-  SetLength(qx, gw * gh); SetLength(qy, gw * gh);
-  head := 0; tail := 0;
-  reached[sy * gw + sx] := true;
-  qx[tail] := sx; qy[tail] := sy; inc(tail);
-  while head < tail do begin
-    x := qx[head]; y := qy[head]; inc(head);
-    for k := 0 to 3 do begin
-      nx := x + dx[k]; ny := y + dy[k];
-      if (nx < 0) or (ny < 0) or (nx >= gw) or (ny >= gh) then continue;
-      if At(g, nx, ny) <> 0 then continue;
-      if reached[ny * gw + nx] then continue;
-      reached[ny * gw + nx] := true;
-      qx[tail] := nx; qy[tail] := ny; inc(tail);
-    end;
-  end;
 end;
 
 { Nearest open cell to (x,y) on the map's wall grid, by breadth-first search.

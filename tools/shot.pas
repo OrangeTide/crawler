@@ -405,7 +405,7 @@ begin
     QuickStart;
     ci := TILESET_MODULAR;
     if ParamCount >= 3 then ci := StrToInt(ParamStr(3));
-    secMap := CarveLevel($C0FFEE, ci, 4);
+    secMap := CarveLevel($C0FFEE, ci, 4, CarveStyleFor(ci));
     if not LoadMapData(secMap) then begin
       writeln(StdErr, 'shot: could not load the carve demo'); halt(1);
     end;

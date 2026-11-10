@@ -142,8 +142,14 @@ begin
   CheckEqI(KitModule(TILESET_GROTTO), 4, 'the grotto module is 4');
   CheckEqI(KitModule(0), 1, 'a tileset with no kit has module 1');
 
-  { CarveLevel on the mausoleum kit (N=3) }
-  m := CarveLevel($1234, TILESET_MODULAR, 3);
+  { CarveStyleFor picks a fitting style per kit }
+  CheckEqI(CarveStyleFor(TILESET_MODULAR), CARVE_ROOMS, 'the crypt carves rooms');
+  CheckEqI(CarveStyleFor(TILESET_GROTTO), CARVE_CAVE, 'the grotto carves a cave');
+  CheckEqI(CarveStyleFor(TILESET_CATHEDRAL), CARVE_CATHEDRAL,
+    'the cathedral carves bays');
+
+  { CarveLevel on the mausoleum kit (N=3), rooms }
+  m := CarveLevel($1234, TILESET_MODULAR, 3, CARVE_ROOMS);
   modN := 3;
   Check((m.w mod modN = 0) and (m.h mod modN = 0),
     'the carved mausoleum spans whole modules');
@@ -154,20 +160,32 @@ begin
   Check(Claddable(m, modN), 'every mausoleum cell clads from a native block');
 
   { deterministic from the seed }
-  m2 := CarveLevel($1234, TILESET_MODULAR, 3);
+  m2 := CarveLevel($1234, TILESET_MODULAR, 3, CARVE_ROOMS);
   Check(SameGrid(m, m2), 'the same seed carves the same mausoleum');
-  m2 := CarveLevel($9999, TILESET_MODULAR, 3);
+  m2 := CarveLevel($9999, TILESET_MODULAR, 3, CARVE_ROOMS);
   Check(not SameGrid(m, m2), 'a different seed carves a different mausoleum');
 
-  { CarveLevel on the grotto kit (N=4) }
-  m := CarveLevel($ABCD, TILESET_GROTTO, 4);
+  { CarveLevel on the grotto kit (N=4), an organic cave }
+  m := CarveLevel($ABCD, TILESET_GROTTO, 4, CARVE_CAVE);
   modN := 4;
   Check((m.w mod modN = 0) and (m.h mod modN = 0),
     'the carved grotto spans whole modules');
+  Check(OpenCount(m) > 0, 'the carved grotto has open floor');
   Check(FirstOpen(m, sx, sy), 'the grotto has a first open cell');
   CheckEqI(FloodReach(m, sx, sy), OpenCount(m),
-    'the carved grotto is one connected space');
+    'the carved grotto cave is one connected space');
   Check(Claddable(m, modN), 'every grotto cell clads from a native block');
+
+  { CarveLevel on the cathedral kit (N=8), cruciform bays }
+  m := CarveLevel($CA7, TILESET_CATHEDRAL, 3, CARVE_CATHEDRAL);
+  modN := 8;
+  Check((m.w mod modN = 0) and (m.h mod modN = 0),
+    'the carved cathedral spans whole modules');
+  Check(OpenCount(m) > 0, 'the carved cathedral has open floor');
+  Check(FirstOpen(m, sx, sy), 'the cathedral has a first open cell');
+  CheckEqI(FloodReach(m, sx, sy), OpenCount(m),
+    'the carved cathedral is one connected space');
+  Check(Claddable(m, modN), 'every cathedral cell clads from a native block');
 
   { RepairToModule conforms a ragged, partly disconnected grid }
   BuildRagged(rag);
