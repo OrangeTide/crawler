@@ -242,9 +242,9 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   (`MapStateResidentBytes`, a baseline plus the store) stays under the 2 MB
   budget, and the map loader warns once the estimate passes the warn line. A
   dropped map loses only its remembered fog and open doors, which regenerate from
-  the seed on return. The current-plus-four-neighbor cell cache from the design
-  is not built, since seamless edge crossings do not exist yet and nothing holds
-  more than one map resident.
+  the seed on return. There is no neighbor cell cache: every cell border is a
+  doorway that loads the neighbor map, so one map is resident at a time and the
+  snapshot store is the only growth lever.
 - [done] (0.31.0) Confirm every third-party asset license before a release. All
   three Batareya packs are confirmed against their itch.io pages: the portraits
   and the warrior skill icons are free for personal and commercial use, and the

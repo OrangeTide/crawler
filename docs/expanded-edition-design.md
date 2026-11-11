@@ -738,9 +738,11 @@ generated from a seed.
   placement is derived from the map, so it is the same every load and needs
   nothing stored. This keeps a zone two-way with the wild without pinning
   coordinates into the authored map files.
-- **Edges.** Walking off a local map edge moves to the neighbor cell and places
-  the party at the matching opposite edge. Terrain near a shared edge is matched
-  so the crossing stays passable.
+- **Edges.** A cell border is a doorway, not a seam. A border tile carries a
+  portal into the neighbor cell, and stepping onto it loads the neighbor map and
+  places the party at the matching opposite edge, the same transition any other
+  doorway makes. This is a retro game, so there is no seamless scrolling across
+  the join and nothing from the neighbor is resident until the party crosses.
 - **Persistence.** Generated cells are reproducible from the seed, so only
   visited fog and player-made diffs are saved, keyed by `(cx, cy, depth)`. The
   terrain itself is never stored. This is the same mechanism the dynamic maps
@@ -749,9 +751,15 @@ generated from a seed.
   so travel has two modes. A coarse overworld mode moves one cell per step for
   long journeys, and the detailed local mode is normal walking inside a cell.
   The time system (section 22) advances faster in overworld mode.
-- **Memory.** The resident set is the current cell plus up to its four edge
-  neighbors for seamless crossings. This cell cache is the main lever on the
-  2 MB budget (section 23), so it is capped.
+- **Memory.** One map is resident at a time. Because every transition is a
+  doorway that loads a map, there is no neighbor cell cache to keep warm. The
+  budget lever is instead the visited-map snapshot store, the fog and diffs of
+  places the party has been. The common pattern is a hub with many small maps off
+  it, a town of houses or a dungeon of rooms, entered and left in quick
+  succession, so that store grows by many small snapshots. A least-recently-used
+  bound caps it against the 2 MB budget (section 23): the maps the party keeps
+  returning to stay resident, and only long-untouched places are dropped, to
+  regenerate from the seed on a later return.
 
 ## 21. Vertical space: stairs, ladders, interiors, and depth
 
@@ -875,17 +883,19 @@ Pascal). The design is held to their limits as it grows.
   the three, so everything is budgeted to it. DOS in 32-bit protected mode has
   more headroom through DPMI, but holding to the PS1 limit keeps all three
   honest. Main RAM holds code and the runtime, game state (party, inventory,
-  flags, journal), the resident cell and map cache, the loaded tables (items,
+  flags, journal), the one resident map, the loaded tables (items,
   monsters, species, classes, dialogs), the fog and diff snapshots of visited
   maps, and the audio sequence data. In the current prototype the non-framebuffer
   data is well under 100 KB.
-- **What can blow the budget.** The risks are caching many cells or maps at
-  once, an unbounded visited-snapshot store spread across a huge world, and
-  large sprite or NPC banks. The rules are to cap the resident cell cache at the
-  current cell plus up to four neighbors, to page or bound the snapshot store,
-  for example with an LRU and fog stored as bitfields, and to load each table
-  once. I will re-estimate main RAM when the overworld cell cache and the
-  snapshot store go in, and warn when the projected resident set approaches 2 MB.
+- **What can blow the budget.** With one map resident and every transition a
+  doorway, there is no multi-cell cache to grow. The real risk is the
+  visited-snapshot store, an unbounded set of fog and diffs spread across a huge
+  world, since a hub of many small maps fills it with quick entries and exits.
+  Large sprite or NPC banks are a secondary risk. The rules are to bound the
+  snapshot store with a least-recently-used cap, with fog as bitfields a later
+  option, and to load each table once. The snapshot LRU and a budget warning are
+  in: the loader drops long-untouched maps to hold the store under its cap and
+  warns when the estimated resident set approaches 2 MB.
 
 ## 24. Multiplayer and LAN play (future work)
 
