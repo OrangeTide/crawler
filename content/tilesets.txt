@@ -67,17 +67,19 @@ kit 13 grotto
   wall   GROTTO_WALL        4 1 4 @1
   wall   GROTTO_BASE_WALL   1 1 4 @1
 
-# Tileset 14: a cathedral clerestory, to show the emission channel. It reuses
-# the cathedral floor and vault (atlas 0, the cathedral trim) but its walls are
-# panes of stained glass from the SigilsVault window mesh. The glass samples its
-# own diffuse atlas (@1) and an emission atlas (!2, the kit's window_emission
-# map), so the glass glows in its own colours even in a dim nave while the stone
-# stays scene-lit. A proper window wall (stone frame plus glass) needs per-piece
-# multi-material meshes; this proof uses the glass pane alone as a curtain wall.
+# Tileset 14: a cathedral clerestory, to show the emission channel and a
+# multi-material piece. The wall is the SigilsVault window mesh, a stone frame
+# around stained glass, clad as one piece from two atlases: the frame is
+# material 0 on the cathedral trim (@0, scene-lit), and the glass is material 1
+# on its own diffuse atlas (@1) with an emission atlas (!2, the kit's
+# window_emission map). The frame does not glow (!-), so the emission tokens
+# stay paired with the atlas tokens. The glass glows in its own colours even in
+# a dim nave while the stone stays scene-lit. The floor and vault reuse the
+# cathedral trim (atlas 0).
 kit 14 clerestory
   floor  CATH_FLOOR    8 8
   ceil   CATH_CEIL     8 8
-  wall   CATH_GLASS    8 1 16 @1 !2
+  wall   CATH_WINDOW   8 1 16 @0 @1 !- !2
 
 # Tileset 15: the infernal volcanic rock, from the loafbrr Canyon Terrain kit.
 # Warm rusty basalt on a 4-unit module: flat ground and wall tiles (the wall is

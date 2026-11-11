@@ -34,6 +34,15 @@ var
 { Clear the depth buffer; call once per frame before drawing. }
 procedure RasterBeginFrame;
 
+type
+  { One material's atlases for a shared-texture mesh: the diffuse trim sheet,
+    and an optional emission sheet added over it (emis nil for none). A mesh
+    binds, per triangle, the material its triangle names. }
+  TMeshMat = record
+    tex: PByte; tw, th: longint;
+    emis: PByte; ew, eh: longint;
+  end;
+
 { Draw a mesh placed at (mx,my,mz), uniformly scaled, rotated myaw about
   Z. light is a 0..256 shade (256 is full bright). An embedded-texture
   mesh draws from its own texture; a shared-texture mesh (texKind
@@ -51,6 +60,15 @@ procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
   mx, my, mz, sx, sy, sz, myaw, light: double;
   atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
   emis: PByte = nil; ew: longint = 0; eh: longint = 0);
+
+{ As RenderMeshAt / RenderMeshAt3, but each triangle binds the diffuse and
+  emission atlases of its own material from mats[]. A shared mesh with no
+  per-triangle material bytes draws every triangle from mats[0]. These clad a
+  multi-material kit piece, such as a window wall of stone frame and glass. }
+procedure RenderMeshAtM(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, scale, myaw, light: double; const mats: array of TMeshMat);
+procedure RenderMeshAt3M(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, sx, sy, sz, myaw, light: double; const mats: array of TMeshMat);
 
 { Draw one textured quad given four world-space corners (wound in order)
   and their texture coordinates. tex points at tw*th palette indices.
@@ -547,29 +565,46 @@ begin
   FillTriSpr(c[0], c[2], c[3], @img.pix[0], img.w, img.h, light);
 end;
 
-procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
-  mx, my, mz, scale, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
-  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
-var
-  base, k: longint;
-  cmy, smy, lx, ly, wx, wy, wz, area: double;
-  c: array[0 .. 2] of TCorner;
-  ok: boolean;
-  tex: PByte;
-  tw, th: longint;
+{ Resolve the diffuse and emission atlases for the triangle at base/3: its
+  material from m.mat, bound from mats[] (clamped), or the embedded texture.
+  Returns false to skip the triangle (a shared material with no atlas). }
+function TriTexSource(const m: TMesh; base: longint; const mats: array of TMeshMat;
+  out tex: PByte; out tw, th: longint; out emis: PByte; out ew, eh: longint): boolean;
+var mi: longint;
 begin
-  { choose the texture source: the mesh's own, or the shared atlas }
+  TriTexSource := false;
   if m.texKind = TEXKIND_SHARED then begin
-    if (atlas = nil) or (aw <= 0) or (ah <= 0) then exit;
-    tex := atlas; tw := aw; th := ah;
+    if Length(mats) = 0 then exit;
+    mi := 0;
+    if (base div 3) <= High(m.mat) then mi := m.mat[base div 3];
+    if mi > High(mats) then mi := High(mats);
+    if mi < 0 then mi := 0;
+    tex := mats[mi].tex; tw := mats[mi].tw; th := mats[mi].th;
+    emis := mats[mi].emis; ew := mats[mi].ew; eh := mats[mi].eh;
+    if (tex = nil) or (tw <= 0) or (th <= 0) then exit;
   end else begin
     if Length(m.tex) = 0 then exit;
     tex := @m.tex[0]; tw := m.texW; th := m.texH;
+    emis := nil; ew := 0; eh := 0;
   end;
+  TriTexSource := true;
+end;
+
+procedure RenderMeshAtM(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, scale, myaw, light: double; const mats: array of TMeshMat);
+var
+  base, k, tw, th, ew, eh: longint;
+  cmy, smy, lx, ly, wx, wy, wz, area: double;
+  c: array[0 .. 2] of TCorner;
+  ok: boolean;
+  tex, emis: PByte;
+begin
   cmy := cos(myaw); smy := sin(myaw);
   base := 0;
   while base + 2 < Length(m.verts) do begin
+    if not TriTexSource(m, base, mats, tex, tw, th, emis, ew, eh) then begin
+      inc(base, 3); continue;
+    end;
     ok := true;
     for k := 0 to 2 do begin
       lx := m.verts[base + k].x * cmy - m.verts[base + k].y * smy;
@@ -591,28 +626,21 @@ begin
   end;
 end;
 
-procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
-  mx, my, mz, sx, sy, sz, myaw, light: double;
-  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
-  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
+procedure RenderMeshAt3M(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, sx, sy, sz, myaw, light: double; const mats: array of TMeshMat);
 var
-  base, k: longint;
+  base, k, tw, th, ew, eh: longint;
   cmy, smy, px, py, lx, ly, wx, wy, wz, area: double;
   c: array[0 .. 2] of TCorner;
   ok: boolean;
-  tex: PByte;
-  tw, th: longint;
+  tex, emis: PByte;
 begin
-  if m.texKind = TEXKIND_SHARED then begin
-    if (atlas = nil) or (aw <= 0) or (ah <= 0) then exit;
-    tex := atlas; tw := aw; th := ah;
-  end else begin
-    if Length(m.tex) = 0 then exit;
-    tex := @m.tex[0]; tw := m.texW; th := m.texH;
-  end;
   cmy := cos(myaw); smy := sin(myaw);
   base := 0;
   while base + 2 < Length(m.verts) do begin
+    if not TriTexSource(m, base, mats, tex, tw, th, emis, ew, eh) then begin
+      inc(base, 3); continue;
+    end;
     ok := true;
     for k := 0 to 2 do begin
       { scale in the mesh's own frame, then rotate about Z and place }
@@ -635,6 +663,35 @@ begin
     end;
     inc(base, 3);
   end;
+end;
+
+{ Build a one-material table from a single atlas, so the single-atlas entry
+  points share the material-aware core. An embedded mesh ignores it. }
+function OneMat(atlas: PByte; aw, ah: longint;
+  emis: PByte; ew, eh: longint): TMeshMat;
+begin
+  OneMat.tex := atlas; OneMat.tw := aw; OneMat.th := ah;
+  OneMat.emis := emis; OneMat.ew := ew; OneMat.eh := eh;
+end;
+
+procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, scale, myaw, light: double;
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
+var mats: array[0 .. 0] of TMeshMat;
+begin
+  mats[0] := OneMat(atlas, aw, ah, emis, ew, eh);
+  RenderMeshAtM(m, cam, mx, my, mz, scale, myaw, light, mats);
+end;
+
+procedure RenderMeshAt3(const m: TMesh; const cam: TMeshCam;
+  mx, my, mz, sx, sy, sz, myaw, light: double;
+  atlas: PByte = nil; aw: longint = 0; ah: longint = 0;
+  emis: PByte = nil; ew: longint = 0; eh: longint = 0);
+var mats: array[0 .. 0] of TMeshMat;
+begin
+  mats[0] := OneMat(atlas, aw, ah, emis, ew, eh);
+  RenderMeshAt3M(m, cam, mx, my, mz, sx, sy, sz, myaw, light, mats);
 end;
 
 end.

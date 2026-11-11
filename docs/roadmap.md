@@ -358,9 +358,13 @@ multi-cell mesh instances rather than per-cell quads.
   kit piece can name an emission atlas (an `!N` token) whose colour is added
   over the scene-lit surface so it glows in the dark, demonstrated by a stained
   glass clerestory (tileset 14, the GLASSHALL proof map) built from the cathedral
-  kit's window glass. A full window wall with a stone frame around the glass
-  still wants per-piece multi-material meshes (the cladding draws one atlas per
-  piece), so the proof uses the glass pane alone as a curtain wall. The INFERNAL
+  kit's window glass. Per-piece multi-material meshes have landed too: a kit
+  piece's mesh now carries a material per triangle, the kit text names an atlas
+  (and emission) per material slot, and the cladding binds each triangle's atlas
+  as it draws, so one piece clads from several trim sheets. The GLASSHALL wall is
+  now the full SigilsVault window, a stone frame around the stained glass as one
+  piece: the frame samples the cathedral trim and the glass its own diffuse and
+  emission, in place of the earlier glass-pane curtain wall. The INFERNAL
   zone got its volcanic kit too: the loafbrr Canyon Terrain rock (warm basalt) on
   tileset 15, re-authored to a cavern with a sunken lava lake that glows through
   the emission channel. The lake is a sector on a lava tileset (16), which needed
@@ -370,9 +374,7 @@ multi-cell mesh instances rather than per-cell quads.
   placeholder, marked for replacement with authored lava art. Kit pillars now
   place too: a `pillar X Y` map directive marks a cell, the cladding pass draws
   the tileset kit's pillar piece there at native scale, and the cell blocks
-  movement. The DUNGEON's sunken gallery wears a colonnade of them. Still open:
-  a framed stained-glass window (stone around glass) still wants per-piece
-  multi-material meshes.
+  movement. The DUNGEON's sunken gallery wears a colonnade of them.
 - [done] (0.28.0) Outdoor terrain: a heightfield for the overworld surface and
   the open zones, rendered in the polygon path, with the indoor/outdoor seam
   handled by the shared logical grid (a cave mouth opens from a sector onto

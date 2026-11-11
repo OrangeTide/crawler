@@ -79,6 +79,31 @@ begin
     if cacheName[k] = nm then begin MeshIdx := k; exit; end;
 end;
 
+type
+  TMatArr = array of TMeshMat;
+
+{ The material table for a piece: one entry per material slot, each resolved to
+  its tileset's resident diffuse atlas and (when the slot glows) emission
+  atlas. A single-material piece yields one entry. }
+function PieceMats(kitIdx, pieceIdx: longint): TMatArr;
+var
+  mc, s, atlasI, emisI, aw, ah, ew, eh: longint;
+begin
+  mc := KitPieceMatCount(Kits[kitIdx].pieces[pieceIdx]);
+  SetLength(PieceMats, mc);
+  for s := 0 to mc - 1 do begin
+    KitPieceMaterial(Kits[kitIdx].pieces[pieceIdx], s, atlasI, emisI);
+    PieceMats[s].tex := TrimPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
+    PieceMats[s].tw := aw; PieceMats[s].th := ah;
+    ew := 0; eh := 0;
+    if emisI <> 255 then
+      PieceMats[s].emis := EmisPtr(Kits[kitIdx].tileset, emisI, ew, eh)
+    else
+      PieceMats[s].emis := nil;
+    PieceMats[s].ew := ew; PieceMats[s].eh := eh;
+  end;
+end;
+
 procedure CladInit(const p: TPak);
 var
   i, k, mi: longint;
@@ -106,9 +131,8 @@ end;
 procedure DrawPiece(const mc: TMeshCam; kitIdx, pieceIdx: longint;
   cxw, cyw, mz, s, light: double);
 var
-  mi, fw, aw, ah, ew, eh: longint;
+  mi, fw: longint;
   sc: double;
-  atlas, emis: PByte;
 begin
   if pieceIdx < 0 then exit;
   mi := MeshIdx(Kits[kitIdx].pieces[pieceIdx].lump);
@@ -116,10 +140,8 @@ begin
   fw := Kits[kitIdx].pieces[pieceIdx].fw;
   if fw < 1 then fw := 1;
   sc := s / fw;
-  atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[pieceIdx].atlas, aw, ah);
-  emis := EmisPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[pieceIdx].emis, ew, eh);
-  RenderMeshAt(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
-    atlas, aw, ah, emis, ew, eh);
+  RenderMeshAtM(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
+    PieceMats(kitIdx, pieceIdx));
 end;
 
 { Draw the floor (and ceiling) of an s-by-s block anchored at cell (ax,ay). }
@@ -236,9 +258,8 @@ procedure CladWalls(const mc: TMeshCam; x0, y0, x1, y1: longint;
   ex, ey: double; lightFn: TCladLightFn);
 var
   dir, tx, ty, ax, ay, i, run, rsx, rsy, kitIdx: longint;
-  wp, wpN, wfw, pfw, wh, s0, mi, aw, ah, ew, eh: longint;
+  wp, wpN, wfw, pfw, wh, s0, mi: longint;
   fz, cz, sxl, szl, yaw, mxw, myw, cxr, cyr, dist, light: double;
-  atlas, emis: PByte;
 begin
   for dir := 0 to 3 do begin
     for ty := 0 to MapH - 1 do
@@ -292,10 +313,8 @@ begin
         end;
         dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
         light := lightFn(tx, ty, dist);
-        atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].atlas, aw, ah);
-        emis := EmisPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].emis, ew, eh);
-        RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
-          light, atlas, aw, ah, emis, ew, eh);
+        RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
+          light, PieceMats(kitIdx, wp));
       end;
   end;
 end;
@@ -303,9 +322,8 @@ end;
 procedure CladStep(const mc: TMeshCam; dir, tx, ty: longint;
   z0, z1, light: double);
 var
-  kitIdx, wp, pfw, wh, mi, aw, ah: longint;
+  kitIdx, wp, pfw, wh, mi: longint;
   sxl, szl, yaw, mxw, myw: double;
-  atlas: PByte;
 begin
   if z1 <= z0 then exit;
   kitIdx := KitIndexForTileset(CellTileset(tx, ty));
@@ -321,9 +339,8 @@ begin
   if WRunX[dir] then yaw := 0 else yaw := pi / 2;
   mxw := tx + WMOX[dir];
   myw := ty + WMOY[dir];
-  atlas := TrimPtr(Kits[kitIdx].tileset, Kits[kitIdx].pieces[wp].atlas, aw, ah);
-  RenderMeshAt3(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
-    light, atlas, aw, ah);
+  RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
+    light, PieceMats(kitIdx, wp));
 end;
 
 procedure CladPillars(const mc: TMeshCam; x0, y0, x1, y1: longint;

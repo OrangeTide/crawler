@@ -137,7 +137,10 @@ trim sheet. cath_glass is the glass pane from the kit's window mesh,
 used as an emissive clerestory wall: its diffuse is the kit's
 window_diffuse, and its emission atlas (trim_cathglass_emis.ppm) is the
 kit's window_emission mask tinted with stained-glass colours, so the
-glass glows through the emission channel.
+glass glows through the emission channel. cath_window is the kit's full
+wall_window_01, a stone frame around that glass, baked as one two-material
+piece: the frame samples the cathedral trim and the glass its own diffuse
+and emission, so a single piece clads the framed clerestory window.
 
 Modular cave tiles
 ------------------

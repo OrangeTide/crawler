@@ -1,7 +1,9 @@
-# Clerestory proof for the emission channel: one 8x8 open module walled in
-# panes of stained glass on tileset 14. The nave is kept dim (a single low
-# brazier) so the glass reads by its own glow, not reflected torchlight. The
-# floor and vault are the cathedral stone; only the walls are emissive glass.
+# Clerestory proof for the emission channel and a multi-material piece: one 8x8
+# open module walled in stone-framed stained-glass windows on tileset 14. Each
+# wall is one piece clad from two atlases, the stone frame scene-lit and the
+# glass emissive. The nave is kept dim (a single low brazier) so the glass reads
+# by its own glow, not reflected torchlight. The floor and vault are cathedral
+# stone.
 map GLASSHALL
 size 24 24
 tileset 14

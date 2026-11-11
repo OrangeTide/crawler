@@ -10,6 +10,12 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Per-piece multi-material meshes for the modular kits. A kit piece's mesh now
+  carries a material per triangle, and the kit text names a trim atlas and an
+  optional emission atlas per material slot, so one piece clads from several
+  sheets. The cathedral clerestory wall is now the full window, a stone frame
+  around stained glass as a single piece, the frame scene-lit from the cathedral
+  trim and the glass glowing from its own diffuse and emission.
 - Roaming monsters now patrol, raise alarms, and converge. A spawned hunter
   roams its map until it spots the party, rather than knowing where they are;
   the sighting raises an alarm that pulls the other roamers in to converge, and

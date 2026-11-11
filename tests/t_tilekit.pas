@@ -44,12 +44,12 @@ var
   w: TPakWriter;
   p: TPak;
   src: array[0 .. 0] of TKit;
-  ki, aw, ah: longint;
+  ki, aw, ah, aI, eI: longint;
 begin
   { codec round-trip on synthetic data through a temp pak }
   src[0].tileset := 7;
   src[0].name := 'test';
-  SetLength(src[0].pieces, 2);
+  SetLength(src[0].pieces, 3);
   src[0].pieces[0].role := KITROLE_FLOOR;
   src[0].pieces[0].lump := 'T_FLOOR'; src[0].pieces[0].fw := 2;
   src[0].pieces[0].fh := 2; src[0].pieces[0].fz := 1;
@@ -60,6 +60,14 @@ begin
   src[0].pieces[1].fh := 1; src[0].pieces[1].fz := 4;
   src[0].pieces[1].atlas := 2;
   src[0].pieces[1].emis := 3;
+  { a multi-material piece: slot 0 is the frame, slot 1 the glowing glass }
+  src[0].pieces[2].role := KITROLE_WALL;
+  src[0].pieces[2].lump := 'T_WINDOW'; src[0].pieces[2].fw := 3;
+  src[0].pieces[2].fh := 1; src[0].pieces[2].fz := 4;
+  src[0].pieces[2].atlas := 0;
+  src[0].pieces[2].emis := 255;
+  SetLength(src[0].pieces[2].xatlas, 1); src[0].pieces[2].xatlas[0] := 1;
+  SetLength(src[0].pieces[2].xemis, 1); src[0].pieces[2].xemis[0] := 2;
 
   PakWInit(w);
   PakWAdd(w, 'KITS', EncodeKits(src));
@@ -69,7 +77,7 @@ begin
 
   ki := KitIndexForTileset(7);
   Check(ki >= 0, 'the synthetic kit is found by tileset');
-  CheckEqI(Length(Kits[ki].pieces), 2, 'both pieces round-trip');
+  CheckEqI(Length(Kits[ki].pieces), 3, 'all three pieces round-trip');
   CheckEqI(RoleFW(ki, KITROLE_FLOOR), 2, 'the floor footprint round-trips');
   CheckEqI(RoleFW(ki, KITROLE_WALL), 3, 'the wall span round-trips');
   Check(RoleLump(ki, KITROLE_WALL) = 'T_WALL', 'the wall lump round-trips');
@@ -79,6 +87,18 @@ begin
     'a non-emissive piece round-trips as none');
   CheckEqI(Kits[ki].pieces[KitPieceByRole(ki, KITROLE_WALL)].emis, 3,
     'the emission atlas round-trips');
+
+  { the multi-material window piece: its extra slot round-trips, and the
+    material accessors resolve each slot's atlas and emission }
+  CheckEqI(KitPieceMatCount(Kits[ki].pieces[1]), 1, 'a plain piece has one material');
+  CheckEqI(KitPieceMatCount(Kits[ki].pieces[2]), 2, 'the window piece has two materials');
+  KitPieceMaterial(Kits[ki].pieces[2], 0, aI, eI);
+  Check((aI = 0) and (eI = 255), 'slot 0 is the frame, non-emissive');
+  KitPieceMaterial(Kits[ki].pieces[2], 1, aI, eI);
+  Check((aI = 1) and (eI = 2), 'slot 1 is the glass, with its emission atlas');
+  KitPieceMaterial(Kits[ki].pieces[2], 5, aI, eI);
+  Check((aI = 0) and (eI = 255), 'an out-of-range slot falls back to slot 0');
+
   Check(not TilesetHasKit(3), 'a tileset with no kit reports none');
 
   { TrimPtr selects a tileset's resident atlas by index, falls back to atlas 0,
@@ -116,6 +136,13 @@ begin
   Check(RoleLump(ki, KITROLE_FLOOR) = 'MAUS_FLOOR', 'the floor names MAUS_FLOOR');
   CheckEqI(RoleFW(ki, KITROLE_FLOOR), 3, 'the mausoleum floor is 3 units wide');
   CheckEqI(RoleAtlas(ki, KITROLE_CEIL), 2, 'the ceiling samples its own atlas');
+
+  { the baked clerestory kit (tileset 14) carries the two-material window }
+  ki := KitIndexForTileset(14);
+  Check(ki >= 0, 'the clerestory tileset carries a kit');
+  Check(RoleLump(ki, KITROLE_WALL) = 'CATH_WINDOW', 'its wall is the window piece');
+  CheckEqI(KitPieceMatCount(Kits[ki].pieces[KitPieceByRole(ki, KITROLE_WALL)]), 2,
+    'the window wall is two-material: stone frame and glass');
 
   TestSummary('tilekit');
   halt(TestExit);

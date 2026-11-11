@@ -39,8 +39,14 @@ type
     lump: string[16];       { the baked tile mesh to instance }
     fw, fh: byte;           { ground footprint in grid units }
     fz: byte;               { height in grid units (1 for a slab) }
-    atlas: byte;            { which resident trim sheet this piece samples }
-    emis: byte;             { emission atlas index, or 255 for none }
+    atlas: byte;            { trim sheet for material 0 (the whole piece when
+                              single-material) }
+    emis: byte;             { emission atlas for material 0, or 255 for none }
+    { material slots 1.. for a multi-material piece, so one mesh clads from
+      several trim sheets (e.g. a window: stone frame on slot 0, glass on
+      slot 1). Empty for a single-material piece. Indexed by material - 1. }
+    xatlas: array of byte;  { trim sheet for each extra material slot }
+    xemis: array of byte;   { emission atlas for each, or 255 for none }
   end;
 
   TKit = record
@@ -67,6 +73,17 @@ function KitPieceByRole(kitIdx, role: longint): longint;
   pieces over ragged edges. Returns -1 if the role is absent. }
 function KitPieceForRun(kitIdx, role, run: longint): longint;
 
+{ How many material slots a piece carries: 1 for a single-material piece, more
+  for a multi-material one (slot 0 plus each extra). }
+function KitPieceMatCount(const pc: TKitPiece): longint;
+
+{ The trim atlas and emission atlas a piece's material slot samples. Slot 0 is
+  the piece's base atlas and emis; higher slots come from the extra lists. An
+  out-of-range slot falls back to slot 0. emis is 255 when the slot does not
+  glow. }
+procedure KitPieceMaterial(const pc: TKitPiece; slot: longint;
+  out atlas, emis: longint);
+
 implementation
 
 procedure PutB(var a: TByteArray; var n: longint; v: byte);
@@ -90,7 +107,7 @@ end;
 function EncodeKits(const kits: array of TKit): TByteArray;
 var
   a: TByteArray;
-  n, i, k: longint;
+  n, i, k, j: longint;
 begin
   SetLength(a, 0);
   n := 0;
@@ -111,6 +128,12 @@ begin
       PutB(a, n, kits[i].pieces[k].fz);
       PutB(a, n, kits[i].pieces[k].atlas);
       PutB(a, n, kits[i].pieces[k].emis);
+      { extra material slots: a count, then an (atlas, emis) pair each }
+      PutB(a, n, Length(kits[i].pieces[k].xatlas));
+      for j := 0 to High(kits[i].pieces[k].xatlas) do begin
+        PutB(a, n, kits[i].pieces[k].xatlas[j]);
+        PutB(a, n, kits[i].pieces[k].xemis[j]);
+      end;
     end;
   end;
   SetLength(a, n);
@@ -145,7 +168,7 @@ end;
 function LoadKits(const p: TPak): boolean;
 var
   blob: TByteArray;
-  pos, kcount, pcount, i, k: longint;
+  pos, kcount, pcount, i, k, j, xc: longint;
   magic: longword;
 begin
   LoadKits := false;
@@ -170,6 +193,13 @@ begin
       Kits[i].pieces[k].fz := RB(blob, pos);
       Kits[i].pieces[k].atlas := RB(blob, pos);
       Kits[i].pieces[k].emis := RB(blob, pos);
+      xc := RB(blob, pos);
+      SetLength(Kits[i].pieces[k].xatlas, xc);
+      SetLength(Kits[i].pieces[k].xemis, xc);
+      for j := 0 to xc - 1 do begin
+        Kits[i].pieces[k].xatlas[j] := RB(blob, pos);
+        Kits[i].pieces[k].xemis[j] := RB(blob, pos);
+      end;
     end;
   end;
   LoadKits := true;
@@ -214,6 +244,23 @@ begin
         best := k;
     end;
   if best >= 0 then KitPieceForRun := best else KitPieceForRun := small;
+end;
+
+function KitPieceMatCount(const pc: TKitPiece): longint;
+begin
+  KitPieceMatCount := 1 + Length(pc.xatlas);
+end;
+
+procedure KitPieceMaterial(const pc: TKitPiece; slot: longint;
+  out atlas, emis: longint);
+begin
+  if (slot >= 1) and (slot <= Length(pc.xatlas)) then begin
+    atlas := pc.xatlas[slot - 1];
+    emis := pc.xemis[slot - 1];
+  end else begin
+    atlas := pc.atlas;
+    emis := pc.emis;
+  end;
 end;
 
 end.

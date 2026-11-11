@@ -64,7 +64,7 @@ TILENAMES = maus_floor maus_wall maus_ceil maus_pillar \
             cath_floor cath_wall cath_ceil cath_pillar \
             grotto_floor grotto_wall grotto_ceil \
             grotto_base_floor grotto_base_wall grotto_base_ceil \
-            cath_glass \
+            cath_glass cath_window \
             volc_floor volc_wall volc_ceil \
             volc_base_floor volc_base_wall volc_base_ceil
 TILESRC   = $(foreach n,$(TILENAMES),content/rooms/pieces/$(n).obj)

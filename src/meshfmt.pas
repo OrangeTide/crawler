@@ -14,12 +14,21 @@ unit meshfmt;
   trim-sheet atlas that the renderer supplies, so a whole modular room
   draws from one resident texture, the PS1-friendly path.
 
+  A shared mesh may use more than one atlas within the one piece: each
+  triangle carries a material index (`mat`), and the renderer binds the
+  atlas for that material. This clads a single piece from several trim
+  sheets, for example a window wall whose stone frame samples the wall
+  atlas and whose glass samples a glass atlas. A single-material mesh
+  leaves every triangle on material 0 and needs no per-triangle bytes.
+
   The on-disk lump is 'CMSH': a header, the corners as 32-bit floats,
   then, for an embedded mesh, the texture as one byte per texel (a
-  palette index). The offline baker reads a Wavefront OBJ (positions and
-  UVs), plus a binary PPM for the embedded case, and produces this. Model
-  space is converted to the engine's Z-up world on the way in, so the
-  renderer needs no axis juggling. }
+  palette index), then a material block (v3): the material count, and,
+  only when it exceeds one, one material byte per triangle. The offline
+  baker reads a Wavefront OBJ (positions, UVs and usemtl groups), plus a
+  binary PPM for the embedded case, and produces this. Model space is
+  converted to the engine's Z-up world on the way in, so the renderer
+  needs no axis juggling. }
 
 {$mode objfpc}{$H+}
 
@@ -30,7 +39,7 @@ uses
 
 const
   MESH_MAGIC   = $48534D43;   { 'CMSH' little-endian }
-  MESH_VERSION = 2;           { v2 adds texKind; v1 lumps still decode }
+  MESH_VERSION = 3;           { v3 adds per-triangle materials; v1/v2 decode }
 
   { how a mesh carries its texture }
   TEXKIND_EMBED  = 0;   { the mesh ships its own paletted texture }
@@ -55,7 +64,13 @@ type
     texKind: byte;              { TEXKIND_EMBED or TEXKIND_SHARED }
     texW, texH: longint;        { 0 for a shared-texture mesh }
     tex: array of byte;         { texW * texH palette indices, empty if shared }
+    mat: array of byte;         { material per triangle, length = triCount;
+                                  empty means every triangle is material 0 }
   end;
+
+{ The material count of a mesh: one past the largest triangle material, or
+  1 when the mesh has no per-triangle material bytes. }
+function MeshMatCount(const m: TMesh): longint;
 
 function EncodeMesh(const m: TMesh): TByteArray;
 function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
@@ -118,14 +133,30 @@ begin
   GetF := f;
 end;
 
+function MeshMatCount(const m: TMesh): longint;
+var i, hi: longint;
+begin
+  hi := 0;
+  for i := 0 to High(m.mat) do
+    if m.mat[i] > hi then hi := m.mat[i];
+  MeshMatCount := hi + 1;
+end;
+
 function EncodeMesh(const m: TMesh): TByteArray;
 var
   b: TByteArray;
-  n, i, nv, nt: longint;
+  n, i, nv, nt, mc, ntri: longint;
 begin
   nv := Length(m.verts);
+  ntri := nv div 3;
   if m.texKind = TEXKIND_SHARED then nt := 0 else nt := m.texW * m.texH;
-  SetLength(b, 4 + 4 + 4 + 4 + nv * 5 * 4 + 4 + 4 + nt);
+  mc := MeshMatCount(m);
+  { the material block is a count, plus one byte per triangle only when the
+    piece is multi-material; a single-material mesh writes just the count }
+  if mc > 1 then
+    SetLength(b, 4 + 4 + 4 + 4 + nv * 5 * 4 + 4 + 4 + nt + 4 + ntri)
+  else
+    SetLength(b, 4 + 4 + 4 + 4 + nv * 5 * 4 + 4 + 4 + nt + 4);
   n := 0;
   PutU32(b, n, MESH_MAGIC);
   PutU32(b, n, MESH_VERSION);
@@ -139,24 +170,31 @@ begin
   PutU32(b, n, m.texH);
   for i := 0 to nt - 1 do b[n + i] := m.tex[i];
   inc(n, nt);
+  PutU32(b, n, mc);
+  if mc > 1 then
+    for i := 0 to ntri - 1 do begin
+      if i <= High(m.mat) then b[n] := m.mat[i] else b[n] := 0;
+      inc(n);
+    end;
   EncodeMesh := b;
 end;
 
 function DecodeMesh(const blob: TByteArray; out m: TMesh): boolean;
 var
-  n, i, nv, nt, ver: longint;
+  n, i, nv, nt, ver, mc, ntri: longint;
 begin
   DecodeMesh := false;
-  m.verts := nil; m.tex := nil; m.texKind := TEXKIND_EMBED;
+  m.verts := nil; m.tex := nil; m.mat := nil; m.texKind := TEXKIND_EMBED;
   m.texW := 0; m.texH := 0;
   if Length(blob) < 12 then exit;
   n := 0;
   if GetU32(blob, n) <> MESH_MAGIC then exit;
   ver := GetU32(blob, n);
-  { v1 has no texKind field; v2 stores it right after the version }
+  { v1 has no texKind field; v2 adds it after the version; v3 appends the
+    material block after the texture }
   if ver = 1 then
     m.texKind := TEXKIND_EMBED
-  else if ver = MESH_VERSION then
+  else if (ver = 2) or (ver = MESH_VERSION) then
     m.texKind := GetU32(blob, n)
   else
     exit;
@@ -175,6 +213,17 @@ begin
   if (nt < 0) or (Length(blob) < n + nt) then exit;
   SetLength(m.tex, nt);
   for i := 0 to nt - 1 do m.tex[i] := blob[n + i];
+  inc(n, nt);
+  { v3 material block: a count, then one byte per triangle when multi-material }
+  if (ver >= 3) and (Length(blob) >= n + 4) then begin
+    mc := GetU32(blob, n);
+    ntri := nv div 3;
+    if (mc > 1) and (Length(blob) >= n + ntri) then begin
+      SetLength(m.mat, ntri);
+      for i := 0 to ntri - 1 do m.mat[i] := blob[n + i];
+      inc(n, ntri);
+    end;
+  end;
   DecodeMesh := true;
 end;
 
@@ -413,6 +462,10 @@ begin
   DecimateMesh := Length(m.verts) div 3;
   if maxTris < 1 then exit;
   if (Length(m.verts) < 3) or (Length(m.verts) div 3 <= maxTris) then exit;
+  { clustering collapses vertices across triangles and reorders them, which
+    would scramble per-triangle materials; a multi-material piece is left
+    whole. These pieces are small, so the budget is not the constraint. }
+  if MeshMatCount(m) > 1 then exit;
 
   { the finest grid within budget preserves the most shape; the kept
     count rises with resolution, so search for the largest g that fits }
@@ -441,8 +494,28 @@ var
   tok: array[0 .. 63] of string;
   pos: array of TVec3;
   uvs: array of TVec2;
-  np, nu: longint;
-  line: string;
+  np, nu, curMat: longint;
+  line, mtlName: string;
+  mtlNames: array of string;
+
+  { The material index for a usemtl name, interning it in first-seen order.
+    Names carry through from the OBJ's usemtl declarations; their order sets
+    the material slot each triangle binds to. }
+  function MatIdx(const nm: string): longint;
+  var k: longint;
+  begin
+    for k := 0 to High(mtlNames) do
+      if mtlNames[k] = nm then begin MatIdx := k; exit; end;
+    k := Length(mtlNames); SetLength(mtlNames, k + 1); mtlNames[k] := nm;
+    MatIdx := k;
+  end;
+
+  { Append the current material for one more emitted triangle. }
+  procedure AddTriMat;
+  var k: longint;
+  begin
+    k := Length(m.mat); SetLength(m.mat, k + 1); m.mat[k] := curMat;
+  end;
 
   procedure AddCorner(vi, ti: longint);
   var k: longint; tv: TTriVert;
@@ -460,7 +533,7 @@ var
   end;
 
 begin
-  m.verts := nil;
+  m.verts := nil; m.mat := nil; mtlNames := nil; curMat := 0;
   np := 0; nu := 0;
   lines := TStringList.Create;
   try
@@ -471,7 +544,15 @@ begin
       if line = '' then continue;
       SplitWS(line, tok, ntok);
       if ntok = 0 then continue;
-      if tok[0] = 'v' then begin
+      if tok[0] = 'usemtl' then begin
+        { the name may hold spaces (SplitWS broke it up); rejoin the rest }
+        mtlName := '';
+        for i := 1 to ntok - 1 do begin
+          if i > 1 then mtlName := mtlName + ' ';
+          mtlName := mtlName + tok[i];
+        end;
+        curMat := MatIdx(mtlName);
+      end else if tok[0] = 'v' then begin
         if ntok >= 4 then begin
           SetLength(pos, np + 1);
           pos[np].x := StrToFloatDef(tok[1], 0);
@@ -494,6 +575,7 @@ begin
             ParseCorner(tok[i - 1], vi1, ti1);
             ParseCorner(tok[i], vi2, ti2);
             AddCorner(vi0, ti0); AddCorner(vi1, ti1); AddCorner(vi2, ti2);
+            AddTriMat;
           end;
         end;
       end;
@@ -521,6 +603,10 @@ begin
 
   if not ParseObjVerts(objFn, m) then exit;
 
+  { an embedded prop draws every triangle from its own texture, so material
+    groups do not apply; drop them to keep the single-material prop path }
+  m.mat := nil;
+
   { center the model on its footprint and rest its base on z=0, so it
     rotates about its own axis and sits on the floor when placed }
   CenterMesh(m);
@@ -531,7 +617,7 @@ end;
 function LoadMeshObj(const objFn: string; out m: TMesh): boolean;
 begin
   LoadMeshObj := false;
-  m.verts := nil; m.tex := nil; m.texKind := TEXKIND_SHARED;
+  m.verts := nil; m.tex := nil; m.mat := nil; m.texKind := TEXKIND_SHARED;
   m.texW := 0; m.texH := 0;
 
   if not ParseObjVerts(objFn, m) then exit;
