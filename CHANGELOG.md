@@ -160,6 +160,16 @@ whose development history is summarized in docs/roadmap.md.
   centred on the walkable tile, so it sits in the wall plane instead of floating
   a half-tile in front of it. The `exit_door` sprite and its bake entry are
   dropped.
+- Replaced the image-generated exit art with source art. The stair, cave and
+  shaft exits now draw public-domain Dungeon Crawl feature tiles (the same CC0
+  set the monster and NPC sprites come from): `stone_stairs_up` and
+  `stone_stairs_down` for the up and down exits, `dngn_entrance` for a cave
+  mouth, and `dngn_trap_shaft` for a shaft. The ladder exit becomes a 3D prop
+  mesh (the trillobit3s Ladder model, like the doorway) that the renderer stands
+  in every ladder portal, turned to face the camera the way the old billboard
+  did, so a ladder reads as real geometry with rungs and scene lighting. The
+  generated `exit_ladder` billboard is dropped. CREDITS records both sources;
+  the purchased ladder model's licence is a release gate still to confirm.
 
 ### Removed
 - Retired the raycaster. The PSX-style polygon renderer has been the default

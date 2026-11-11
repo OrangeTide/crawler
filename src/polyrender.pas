@@ -198,21 +198,35 @@ begin
   yaw := yb / 256.0 * 2 * Pi;
 end;
 
-{ Draw the doorway mesh standing in every door portal, so a door into an
-  interior reads as a real doorway rather than a flat billboard. Covers
-  authored and generated maps alike, since it walks the live portal list. }
-procedure DrawDoorPortals(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
+{ Draw the prop mesh that stands in a portal, so an exit reads as real
+  geometry rather than a flat billboard: the doorway mesh in a door portal,
+  the ladder mesh in a ladder portal. Covers authored and generated maps
+  alike, since it walks the live portal list. A door is set into the wall
+  backing its cell and faces the open side the wall gives it. A ladder stands
+  centred in its cell (the generator puts it in an open chamber, where there
+  is no wall to face away from) and turns its flat climbable face toward the
+  camera, the way the old billboard always did, so it never shows only its
+  thin edge. The model's face sits along +Y at yaw 0, so the camera-facing
+  yaw is atan2(px - ex, ey - py). }
+procedure DrawPortalMeshes(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
 var
-  i, mi, ptx, pty: longint;
+  i, mdDoor, mdLad, mi, ptx, pty: longint;
   px, py, dist, fwd, light, yaw, ox, oy: double;
+  isDoor: boolean;
 begin
-  mi := FindModel('DOORWAY');
-  if mi < 0 then exit;
+  mdDoor := FindModel('DOORWAY');
+  mdLad := FindModel('LADDER');
   for i := 0 to High(CurMap.portals) do begin
-    if CurMap.portals[i].kind <> PK_DOOR then continue;
+    isDoor := CurMap.portals[i].kind = PK_DOOR;
+    if isDoor then mi := mdDoor
+    else if CurMap.portals[i].kind = PK_LADDER then mi := mdLad
+    else continue;
+    if mi < 0 then continue;
     ptx := CurMap.portals[i].x; pty := CurMap.portals[i].y;
     DoorPlacement(ptx, pty, yaw, ox, oy);
-    px := ptx + 0.5 + ox; py := pty + 0.5 + oy;   { set into the backing wall }
+    if not isDoor then begin ox := 0; oy := 0; end;   { a ladder stands centred }
+    px := ptx + 0.5 + ox; py := pty + 0.5 + oy;   { a door is set into the wall }
+    if not isDoor then yaw := ArcTan2(px - ex, ey - py);   { ladder faces camera }
     fwd := (px - ex) * cyaw + (py - ey) * syaw;
     if fwd < -1.0 then continue;                 { behind the camera }
     dist := sqrt(sqr(px - ex) + sqr(py - ey));
@@ -413,7 +427,7 @@ begin
     DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
-  DrawDoorPortals(mc, ex, ey, cyaw, syaw);
+  DrawPortalMeshes(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);
 end;
 

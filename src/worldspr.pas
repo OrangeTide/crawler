@@ -49,12 +49,11 @@ begin
   name := '';
   h := 1.15;
   case kind of
-    { a door portal draws the doorway mesh in the polygon path, not a
+    { a door or ladder portal draws its prop mesh in the polygon path, not a
       billboard; a flat outdoor edge shows only its floor cue }
     PK_UP:            begin name := 'EXIT_UP';     h := 0.95; end;
     PK_DOWN:          begin name := 'EXIT_DOWN';   h := 0.6;  end;
     PK_CAVE:          name := 'EXIT_CAVE';
-    PK_LADDER:        name := 'EXIT_LADDER';
     PK_SHAFT:         begin name := 'EXIT_SHAFT';  h := 0.6;  end;
   end;
 end;

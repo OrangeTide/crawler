@@ -54,7 +54,7 @@ ENCOUNTERS = content/encounters.txt
 TILESETS  = content/tilesets.txt
 WORLD     = content/world.txt
 # Prop meshes only; monsters and NPCs are billboard sprites (see SPRITENAMES).
-MODELNAMES = barrel doorway
+MODELNAMES = barrel doorway ladder
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 # Modular kit tiles: trim-sheet meshes baked from kit GLBs (OBJ only). The
 # mausoleum kit (tileset 10) is multi-material, so its pieces draw from four
@@ -82,7 +82,7 @@ SPRITENAMES = crea1 crea2 crea3 crea4 crea5 crea6 crea7 crea8 crea9 \
               flesh1 flesh2 npc \
               npc_elder npc_ranger npc_hunter npc_ferry npc_barkeep \
               npc_apoth npc_altar npc_shrine1 npc_shrine2 \
-              exit_up exit_down exit_ladder exit_cave exit_shaft \
+              exit_up exit_down exit_cave exit_shaft \
               foliage_tree
 SPRITESRC = $(foreach n,$(SPRITENAMES),content/sprites/$(n).ppm)
 # NPC dialog portraits: a 64x64 PNG per dialog id in content/portraits,

@@ -51,6 +51,17 @@ the supplemental set.
   npc_shrine1  granite statue
   npc_shrine2  orcish idol
 
+The map-exit billboards come from the same public-domain Dungeon Crawl
+Stone Soup tile set (its dungeon-feature tiles), resized and color-keyed
+the same way. They mark a portal that leads off the map.
+
+  exit_up     stone_stairs_up
+  exit_down   stone_stairs_down
+  exit_cave   dngn_entrance
+  exit_shaft  dngn_trap_shaft
+
+The door and ladder exits are 3D meshes instead, credited below.
+
 NPC dialog portraits
 --------------------
 
@@ -178,6 +189,22 @@ variant, cropped to the door's region of the atlas and the mesh UVs
 remapped to it so the small prop texture carries full detail. It replaces
 the earlier image-generated doorway prop and the flat exit-door billboard,
 and the renderer stands it in every door portal.
+
+Ladder prop
+-----------
+
+Source: "Ladder" by trillobit3s (trillobit3s-indie-games.itch.io). A
+low-poly wooden ladder model with a single diffuse texture. A purchased
+asset with no license file bundled in its download.
+License: to confirm against the store page before a release that
+redistributes the model. This is a release gate, like the Batareya packs.
+
+content/models/ladder.obj is the model converted from the kit's FBX to an
+embedded-texture prop mesh, and content/models/ladder.ppm is its diffuse
+texture cropped to the mesh's UV region and the UVs remapped to it so the
+small prop texture carries full detail. It replaces the image-generated
+ladder exit billboard, and the renderer stands it in every ladder portal,
+turned to face the camera the way the old billboard did.
 
 Foliage billboard
 -----------------

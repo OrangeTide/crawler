@@ -58,10 +58,12 @@ var
 begin
   names := nil;
   for i := 0 to High(CurMap.props) do Add(CurMap.props[i].name);
-  { a door portal draws the doorway mesh even where no prop names it, so load
-    it whenever the map has one }
-  for i := 0 to High(CurMap.portals) do
-    if CurMap.portals[i].kind = PK_DOOR then begin Add('DOORWAY'); break; end;
+  { a door or ladder portal draws its prop mesh even where no prop names it, so
+    load the mesh whenever the map has such a portal }
+  for i := 0 to High(CurMap.portals) do begin
+    if CurMap.portals[i].kind = PK_DOOR then Add('DOORWAY');
+    if CurMap.portals[i].kind = PK_LADDER then Add('LADDER');
+  end;
   LoadModelSet(GamePak, names);
   if not ModelSetFitsVram(names) then begin
     saveMsg := 'MODEL CACHE OVER VRAM: ' + AreaName(CurAreaMask);
