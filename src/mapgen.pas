@@ -18,7 +18,7 @@ uses
   rng, mapfmt, worldfmt;
 
 const
-  GEN_VERSION = 10;  { bump when a generator changes to invalidate old seeds }
+  GEN_VERSION = 11;  { bump when a generator changes to invalidate old seeds }
 
 function GenerateMap(const d: TDynMap; version: longint; seed: longword): TMapData;
 function GenerateOverworldCell(cx, cy: longint; seed: longword): TMapData;
@@ -297,6 +297,87 @@ begin
     x := RngRange(r, 1, gw - 2);
     y := RngRange(r, 1, gh - 2);
     if At(g, x, y) = 0 then AddLight(m, x, y, kind);
+  end;
+end;
+
+{ Add a prop (a model lump by name) at a tile with a heading. }
+procedure AddProp(var m: TMapData; x, y: longint; const name: string;
+  yaw: byte);
+begin
+  SetLength(m.props, Length(m.props) + 1);
+  m.props[High(m.props)].x := x;
+  m.props[High(m.props)].y := y;
+  m.props[High(m.props)].name := name;
+  m.props[High(m.props)].yaw := yaw;
+end;
+
+{ No portal, prop or NPC sits on this tile yet, so a scattered prop would not
+  land on a stair, a doorway or a character. }
+function PropTileFree(const m: TMapData; x, y: longint): boolean;
+var
+  i: longint;
+begin
+  PropTileFree := false;
+  for i := 0 to High(m.portals) do
+    if (m.portals[i].x = x) and (m.portals[i].y = y) then exit;
+  for i := 0 to High(m.props) do
+    if (m.props[i].x = x) and (m.props[i].y = y) then exit;
+  for i := 0 to High(m.npcs) do
+    if (m.npcs[i].x = x) and (m.npcs[i].y = y) then exit;
+  PropTileFree := true;
+end;
+
+{ A heading that stands a boxy prop against the single wall backing its cell,
+  the way carve.FaceFromWalls orients an authored prop. backed reports whether
+  the cell touches any wall at all, so clutter can be kept against walls. }
+function WallBackedYaw(const g: TGrid; x, y: longint; out backed: boolean): byte;
+var
+  wN, wS, wE, wW: boolean;
+begin
+  wN := At(g, x, y - 1) <> 0; wS := At(g, x, y + 1) <> 0;
+  wE := At(g, x + 1, y) <> 0; wW := At(g, x - 1, y) <> 0;
+  backed := wN or wS or wE or wW;
+  if wN and (not wS) then WallBackedYaw := 0
+  else if wS and (not wN) then WallBackedYaw := 128
+  else if wE and (not wW) then WallBackedYaw := 64
+  else if wW and (not wE) then WallBackedYaw := 192
+  else WallBackedYaw := 0;
+end;
+
+{ Scatter n clutter props on random floor tiles, each an even draw between a
+  barrel and a crate, so a generated level is dressed with passable containers.
+  A tile that backs a wall is preferred, so clutter hugs the walls where it can;
+  but in a wide open hall, where few interior tiles touch a wall, the first free
+  open tile found is used instead, so open levels still get their share. }
+procedure ScatterProps(var m: TMapData; const g: TGrid; var r: TRng; n: longint);
+var
+  i, x, y, bx, by, tries: longint;
+  yb, byaw: byte;
+  backed, haveBacked, haveAny: boolean;
+begin
+  for i := 1 to n do begin
+    haveBacked := false; haveAny := false;
+    bx := 0; by := 0; byaw := 0;
+    tries := 0;
+    while (not haveBacked) and (tries < 12) do begin
+      x := RngRange(r, 1, gw - 2);
+      y := RngRange(r, 1, gh - 2);
+      yb := WallBackedYaw(g, x, y, backed);
+      if (At(g, x, y) = 0) and PropTileFree(m, x, y) then begin
+        if backed then begin
+          bx := x; by := y; byaw := yb; haveBacked := true;
+        end else if not haveAny then begin
+          bx := x; by := y; byaw := yb; haveAny := true;
+        end;
+      end;
+      inc(tries);
+    end;
+    if haveBacked or haveAny then begin
+      if RngRange(r, 0, 1) = 0 then
+        AddProp(m, bx, by, 'BARREL', byaw)
+      else
+        AddProp(m, bx, by, 'CRATE', byaw);
+    end;
   end;
 end;
 
@@ -621,6 +702,9 @@ begin
   if (theme = THEME_CRYPT) or (theme = THEME_DESERTTOMB) then
     if FloorNeighbor(g, dnx, dny, nx, ny) then AddLight(m, nx, ny, LIGHT_BRAZIER);
 
+  { dress the level with a few barrels and crates against its walls }
+  ScatterProps(m, g, r, 3 + RngRange(r, 0, 3));
+
   SetLength(m.walls, gw * gh);
   for i := 0 to gw * gh - 1 do
     if g[i] = 0 then m.walls[i] := 0 else m.walls[i] := wallTile;
@@ -676,6 +760,8 @@ begin
   if FloorNeighbor(g, mx, my, nx, ny) then AddLight(m, nx, ny, LIGHT_BONFIRE);
   ScatterLights(m, g, r, 6, LIGHT_BIOLUME);
   ScatterLights(m, g, r, 3, LIGHT_GASVENT);
+  { the Depths settlement is dressed with barrels and crates too }
+  ScatterProps(m, g, r, 3 + RngRange(r, 0, 3));
 
   { the capstone: the sealed gate to the lost cities, set ahead of the
     landing along the north corridor the carvers always open }

@@ -80,10 +80,11 @@ const
   { Prop meshes only. Monsters and NPCs are billboard sprites now. The barrel
     is a walk-over (loot sits under it) and the doorway is an arch to pass
     through, so both stay passable; furniture added later sets solid. }
-  ModelDefs: array[0 .. 2] of TModelDef = (
+  ModelDefs: array[0 .. 3] of TModelDef = (
     (name: 'BARREL';  targetHeight: 0.7; solid: false),
     (name: 'DOORWAY'; targetHeight: 2.1; solid: false),
-    (name: 'LADDER';  targetHeight: 2.4; solid: false)
+    (name: 'LADDER';  targetHeight: 2.4; solid: false),
+    (name: 'CRATE';   targetHeight: 0.65; solid: false)
   );
 
 { The model's height in its own units, to derive a scale. }

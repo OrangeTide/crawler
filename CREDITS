@@ -220,6 +220,19 @@ content/models/barrel.obj is the barrel mesh isolated from the kit's FBX
 mesh, and content/models/barrel.ppm is the kit's albedo map. It replaces
 the earlier image-generated barrel prop.
 
+Crate prop
+----------
+
+Source: "Crate" by BakaFoxArt (bakafoxart.itch.io). A low-poly wooden
+crate with a mossy wood texture.
+License: CC0 1.0 (public domain dedication). The full terms are in the
+kit's LICENSE.txt.
+
+content/models/crate.obj is the low-detail crate cube isolated from the
+kit's FBX, converted to an embedded-texture prop mesh, and
+content/models/crate.ppm is the kit's albedo map. Generation dresses a
+level with a mix of crates and barrels standing against its walls.
+
 Foliage billboard
 -----------------
 

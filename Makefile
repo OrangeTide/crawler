@@ -54,7 +54,7 @@ ENCOUNTERS = content/encounters.txt
 TILESETS  = content/tilesets.txt
 WORLD     = content/world.txt
 # Prop meshes only; monsters and NPCs are billboard sprites (see SPRITENAMES).
-MODELNAMES = barrel doorway ladder
+MODELNAMES = barrel doorway ladder crate
 MODELSRC  = $(foreach n,$(MODELNAMES),content/models/$(n).obj content/models/$(n).ppm)
 # Modular kit tiles: trim-sheet meshes baked from kit GLBs (OBJ only). The
 # mausoleum kit (tileset 10) is multi-material, so its pieces draw from four

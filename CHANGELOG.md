@@ -10,6 +10,12 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A crate prop and scattered clutter in generated levels. The CC0 BakaFoxArt
+  Crate joins the barrel as a 3D prop (content/models/crate.*), and the dungeon,
+  cave, cathedral and Depths generators now dress each level with a few passable
+  containers, an even draw between a barrel and a crate, standing against the
+  walls where they can (generator version bumped to 11). Authored maps are
+  unchanged; this is generation-only clutter.
 - Light-source glows on kit-clad floors. A brazier, torch, biolume or vent on a
   kit-clad floor now casts its coloured glow onto the floor in the polygon path,
   as it always did on non-kit floors. A kit floor is one merged native piece per
