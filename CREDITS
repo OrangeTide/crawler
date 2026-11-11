@@ -194,10 +194,11 @@ Ladder prop
 -----------
 
 Source: "Ladder" by trillobit3s (trillobit3s-indie-games.itch.io). A
-low-poly wooden ladder model with a single diffuse texture. A purchased
-asset with no license file bundled in its download.
-License: to confirm against the store page before a release that
-redistributes the model. This is a release gate, like the Batareya packs.
+low-poly wooden ladder model with a single diffuse texture.
+License: freeware, free to use in your projects, with an optional
+donation to support the author. Attribution is not required. The terms
+are on the asset's itch.io page.
+  https://trillobit3s-indie-games.itch.io/ladder
 
 content/models/ladder.obj is the model converted from the kit's FBX to an
 embedded-texture prop mesh, and content/models/ladder.ppm is its diffuse

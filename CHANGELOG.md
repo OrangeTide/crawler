@@ -169,7 +169,7 @@ whose development history is summarized in docs/roadmap.md.
   in every ladder portal, turned to face the camera the way the old billboard
   did, so a ladder reads as real geometry with rungs and scene lighting. The
   generated `exit_ladder` billboard is dropped. CREDITS records both sources;
-  the purchased ladder model's licence is a release gate still to confirm.
+  the ladder model is freeware (free to use, optional donation).
 
 ### Removed
 - Retired the raycaster. The PSX-style polygon renderer has been the default

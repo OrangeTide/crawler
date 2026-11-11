@@ -187,8 +187,8 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   (content/models/barrel.*), which carries no CREDITS entry, unlike the source
   art, which always does. Replace it with a CC0 source mesh (the loafbrr kits
   have barrels). Generate no replacement art; see the cross-cutting constraint
-  below. Note the trillobit3s ladder is a purchased asset whose licence is a
-  release gate still to confirm.
+  below. The trillobit3s ladder is freeware (free to use, optional donation),
+  recorded in CREDITS.
 - [future] Replace the retro 8-bit monospace font with a nicer proportional
   one. TTF is not required and a baked font atlas is likely preferable, so the
   glyphs suit PS1 rendering later (the same pre-baked, fixed-palette shape the
