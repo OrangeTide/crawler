@@ -134,8 +134,11 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   on, so auto-travel plans around NPCs and re-plans when one steps into the
   route, and a pursuer no longer paths through one. Both planners share the
   check, since both read the same static grid through `pathfind`.
-- [gap] (0.20.0) Persist pursuers in the save so a hunt survives a save and load
-  (they are transient today).
+- [done] (0.20.0) Persist pursuers in the save so a hunt survives a save and
+  load. The save stores each active hunter's monster, map and tile; a load
+  clears the live set and restores them, with the clock read back first so the
+  hunt resumes with no backlog of catch-up steps. A save round-trip test covers
+  it.
 - [partial] (0.20.0) Pursuit tuning: spawn cadence and caps, and letting a fled
   fight keep the hunter on the trail instead of consuming it on contact.
 - [gap] (0.20.0) Coarse overworld travel mode (design section 20): one cell per
