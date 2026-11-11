@@ -175,22 +175,27 @@ begin
   end;
 end;
 
-{ Face a door away from the single wall backing its cell, into the open, the
-  way carve.FaceFromWalls orients an `auto` prop at bake time. Freestanding
-  cells default to facing south. }
-function DoorFaceYaw(tx, ty: longint): double;
+{ Place a door in its cell: face it away from the single wall backing the
+  cell, into the open (as carve.FaceFromWalls orients an `auto` prop), and
+  push it almost half a tile toward that wall so it sits in the wall plane
+  instead of floating centered on the walkable tile. Freestanding cells face
+  south and are not shifted. }
+procedure DoorPlacement(tx, ty: longint; out yaw, ox, oy: double);
+const
+  SET_IN = 0.45;   { toward the wall, short of the face so it never z-fights it }
 var
   wN, wS, wE, wW: boolean;
   yb: longint;
 begin
   wN := IsWallTile(tx, ty - 1); wS := IsWallTile(tx, ty + 1);
   wE := IsWallTile(tx + 1, ty); wW := IsWallTile(tx - 1, ty);
-  if wN and (not wS) then yb := 0
-  else if wS and (not wN) then yb := 128
-  else if wE and (not wW) then yb := 64
-  else if wW and (not wE) then yb := 192
+  ox := 0; oy := 0;
+  if wN and (not wS) then begin yb := 0;   oy := -SET_IN; end
+  else if wS and (not wN) then begin yb := 128; oy := SET_IN; end
+  else if wE and (not wW) then begin yb := 64;  ox := SET_IN; end
+  else if wW and (not wE) then begin yb := 192; ox := -SET_IN; end
   else yb := 0;
-  DoorFaceYaw := yb / 256.0 * 2 * Pi;
+  yaw := yb / 256.0 * 2 * Pi;
 end;
 
 { Draw the doorway mesh standing in every door portal, so a door into an
@@ -199,21 +204,24 @@ end;
 procedure DrawDoorPortals(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
 var
   i, mi, ptx, pty: longint;
-  px, py, dist, fwd, light: double;
+  px, py, dist, fwd, light, yaw, ox, oy: double;
 begin
   mi := FindModel('DOORWAY');
   if mi < 0 then exit;
   for i := 0 to High(CurMap.portals) do begin
     if CurMap.portals[i].kind <> PK_DOOR then continue;
     ptx := CurMap.portals[i].x; pty := CurMap.portals[i].y;
-    px := ptx + 0.5; py := pty + 0.5;
+    DoorPlacement(ptx, pty, yaw, ox, oy);
+    px := ptx + 0.5 + ox; py := pty + 0.5 + oy;   { set into the backing wall }
     fwd := (px - ex) * cyaw + (py - ey) * syaw;
     if fwd < -1.0 then continue;                 { behind the camera }
     dist := sqrt(sqr(px - ex) + sqr(py - ey));
     if dist > VIEW_R + 1 then continue;
     light := TileLight(ptx, pty, dist);
-    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
-      ModelReg[mi].scale, DoorFaceYaw(ptx, pty), light);
+    { height from the walkable tile centre, not the shifted point, so the door
+      never samples ground inside the wall it backs against }
+    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(ptx + 0.5, pty + 0.5),
+      ModelReg[mi].scale, yaw, light);
   end;
 end;
 

@@ -152,6 +152,14 @@ whose development history is summarized in docs/roadmap.md.
   (`GRID_SUBDIV`) beside `raster.VSNAP` and `terrain.TERRAIN_SUBDIV`: dense on
   the desktop, coarse under `GRID_COARSE` for the FPU-less targets. Kit meshes
   and the outdoor terrain carry their own tessellation and are unchanged.
+- Door exits now stand the doorway mesh in the world instead of the flat
+  EXIT_DOOR billboard. The renderer draws the `DOORWAY` prop mesh in every door
+  portal, so a door reads as framed geometry rather than a flat card, and the
+  redundant hand-placed DOORWAY props at those portals (town, outskirts, temple)
+  were removed. The door is set into the wall backing its cell rather than
+  centred on the walkable tile, so it sits in the wall plane instead of floating
+  a half-tile in front of it. The `exit_door` sprite and its bake entry are
+  dropped.
 
 ### Removed
 - Retired the raycaster. The PSX-style polygon renderer has been the default
