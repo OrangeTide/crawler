@@ -224,9 +224,13 @@ function VideoInit(const caption: string; winW, winH: longint): boolean;
 begin
   gCaption := caption; gW := winW; gH := winH;
   if WantGL and InitGL then begin
+    writeln(StdErr, 'video: OpenGL ES 2.0 backend'); Flush(StdErr);
     VideoInit := true; exit;
   end;
   VideoInit := InitSDL;
+  if VideoInit then begin
+    writeln(StdErr, 'video: SDL 2D renderer backend'); Flush(StdErr);
+  end;
 end;
 
 procedure VideoPresent;
