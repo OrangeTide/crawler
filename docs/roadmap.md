@@ -217,10 +217,12 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   Lands with 0.20.0, since the coarse overworld travel is the first real
   pressure on the budget.
 - [gap] (0.31.0) Confirm every third-party asset license before a release. The
-  Batareya mage-icon, warrior-icon, and portrait packs are offered free for
-  commercial use but their exact terms still need confirming against each
-  itch.io page; the SigilsVault kits (theme G) and the Dungeon Crawl sprites are
-  CC0. This is a release gate, not code.
+  Batareya portrait pack is confirmed free for personal and commercial use with
+  attribution optional (checked against its itch.io page); the Batareya mage-icon
+  and warrior-icon packs are offered on the same terms but still need confirming
+  against each page. The SigilsVault and loafbrr kits, the BakaFoxArt props and
+  the Dungeon Crawl sprites are CC0, and the trillobit3s ladder is freeware with
+  an optional donation. This is a release gate, not code.
 - [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
   out of the PS1 build, recorded only so nothing now blocks it.
 
