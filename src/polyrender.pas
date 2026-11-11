@@ -34,7 +34,20 @@ uses
 const
   VIEW_R = 14;          { tiles drawn around the camera }
   FOCAL  = (FBW / 2) / 0.66;
-  NS_DARK = 0.72;       { north/south faces darker, as the raycaster does }
+  NS_DARK = 0.72;       { north/south faces darker }
+
+  { Sub-quads per cell edge for the grid's floor, ceiling and wall faces. The
+    polygon path maps textures affinely, so one big cell quad warps a straight
+    course into a kink at a grazing angle; subdividing shrinks each affine patch
+    and keeps the lines straight, the way the PlayStation tessellated surfaces
+    for the same reason. A per-target knob like raster.VSNAP and
+    terrain.TERRAIN_SUBDIV: dense on the desktop, coarse on the FPU-less
+    targets. 1 is off (a single quad). }
+{$ifdef GRID_COARSE}
+  GRID_SUBDIV = 2;
+{$else}
+  GRID_SUBDIV = 4;
+{$endif}
 
 var
   GridTex: array[0 .. TEX_COUNT - 1] of array of byte;   { palette indices }
@@ -77,14 +90,14 @@ procedure WallQuad(const mc: TMeshCam; side, tx, ty: longint;
   zLo, zHi: double; texId: longint; light: double);
 begin
   case side of
-    0: DrawTexQuad(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
-    1: DrawTexQuad(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
-    2: DrawTexQuad(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
-    3: DrawTexQuad(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    0: DrawTexQuadSub(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
+    1: DrawTexQuadSub(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
+    2: DrawTexQuadSub(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
+    3: DrawTexQuadSub(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
   end;
 end;
 
@@ -308,13 +321,13 @@ begin
             gw := 0; gcol := 0;
             gk := LightTileKind(tx, ty);
             if gk >= 0 then LightGlow(gk, gcol, gw);
-            DrawTexQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
-              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+            DrawTexQuadSub(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
+              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw, GRID_SUBDIV);
           end;
           { ceiling at this cell's sector height, unless an open-air surface map }
           if not CurMapSurface then
-            DrawTexQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
-              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+            DrawTexQuadSub(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
+              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
         end;
         { risers and lintels where open neighbors differ in height }
         StepFaces(mc, tx, ty, fz, cz, ex, ey);

@@ -63,6 +63,18 @@ procedure DrawTexQuad(const cam: TMeshCam;
   tex: PByte; tw, th: longint; light: double;
   glow: TColor = 0; glowW: longint = 0);
 
+{ As DrawTexQuad, but split into a sub x sub grid of smaller quads over the
+  planar face, with position and texture coordinates interpolated bilinearly.
+  The texture is still mapped affinely within each small sub-quad, so straight
+  lines on a face seen at a grazing angle stay straight instead of kinking at
+  the one big quad's diagonal. This is the PlayStation tessellation fix for
+  affine warp; sub = 1 falls through to a single quad. }
+procedure DrawTexQuadSub(const cam: TMeshCam;
+  x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
+  u0, v0, u1, v1, u2, v2, u3, v3: double;
+  tex: PByte; tw, th: longint; light: double;
+  glow: TColor = 0; glowW: longint = 0; sub: longint = 1);
+
 { Tint one cell's floor with an emissive glow: a flat decal over cell
   (tx,ty) at height z, mixing glow at glowW/256 over whatever is already
   drawn there and shaded by light. For a light tile (brazier, torch,
@@ -264,6 +276,47 @@ begin
   c2.u := u2; c2.v := v2; c3.u := u3; c3.v := v3;
   FillTriTex(c0, c1, c2, tex, tw, th, light, glow, glowW);
   FillTriTex(c0, c2, c3, tex, tw, th, light, glow, glowW);
+end;
+
+procedure DrawTexQuadSub(const cam: TMeshCam;
+  x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
+  u0, v0, u1, v1, u2, v2, u3, v3: double;
+  tex: PByte; tw, th: longint; light: double;
+  glow: TColor = 0; glowW: longint = 0; sub: longint = 1);
+var
+  i, j: longint;
+  qx, qy, qz, qu, qv: array[0 .. 3] of double;
+
+  { bilinear sample of the face at (s,t): s runs corner 0->1 and 3->2,
+    t runs corner 0->3 and 1->2, carrying position and texture coordinate }
+  procedure Samp(k: longint; s, t: double);
+  var ax, ay, az, bx, by, bz, au, av, bu, bv: double;
+  begin
+    ax := x0 + (x1 - x0) * s; ay := y0 + (y1 - y0) * s; az := z0 + (z1 - z0) * s;
+    bx := x3 + (x2 - x3) * s; by := y3 + (y2 - y3) * s; bz := z3 + (z2 - z3) * s;
+    qx[k] := ax + (bx - ax) * t; qy[k] := ay + (by - ay) * t; qz[k] := az + (bz - az) * t;
+    au := u0 + (u1 - u0) * s; av := v0 + (v1 - v0) * s;
+    bu := u3 + (u2 - u3) * s; bv := v3 + (v2 - v3) * s;
+    qu[k] := au + (bu - au) * t; qv[k] := av + (bv - av) * t;
+  end;
+
+begin
+  if sub <= 1 then begin
+    DrawTexQuad(cam, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
+      u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light, glow, glowW);
+    exit;
+  end;
+  for j := 0 to sub - 1 do
+    for i := 0 to sub - 1 do begin
+      Samp(0, i / sub,       j / sub);
+      Samp(1, (i + 1) / sub, j / sub);
+      Samp(2, (i + 1) / sub, (j + 1) / sub);
+      Samp(3, i / sub,       (j + 1) / sub);
+      DrawTexQuad(cam, qx[0], qy[0], qz[0], qx[1], qy[1], qz[1],
+        qx[2], qy[2], qz[2], qx[3], qy[3], qz[3],
+        qu[0], qv[0], qu[1], qv[1], qu[2], qv[2], qu[3], qv[3],
+        tex, tw, th, light, glow, glowW);
+    end;
 end;
 
 { Span fill of one screen triangle that tints the framebuffer toward glowS
