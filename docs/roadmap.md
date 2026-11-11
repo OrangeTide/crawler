@@ -248,12 +248,14 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   SDL_GL_GetProcAddress, so there is no link-time GL dependency), presenting the
   320x240 software framebuffer as a textured quad; it falls back to the SDL 2D
   renderer when no GL context or shader is available, so the game still runs
-  (CRAWLER_GL=0 forces the fallback). Built for the Raspberry Pi and Linux; it
-  ports to Windows and macOS on desktop GL 3.x or through ANGLE next. The later
-  stages move the 3D scene rendering onto the GPU per backend. The same game
-  runs on the PS1 and the desktop, but the backends need not look identical, so
-  each renders in its own idiom (affine, dithered, fixed point on the PS1;
-  higher precision on the desktop) rather than matching pixel for pixel.
+  (CRAWLER_GL=0 forces the fallback). Validated on x86-64 and aarch64 Linux: the
+  aarch64 build renders the title screen through GLES2 on a Raspberry Pi. The
+  near-term focus stays on x86-64 and aarch64 Linux; the Windows and macOS port
+  (desktop GL 3.x or ANGLE) is deferred. The later stages move the 3D scene
+  rendering onto the GPU per backend. The same game runs on the PS1 and the
+  desktop, but the backends need not look identical, so each renders in its own
+  idiom (affine, dithered, fixed point on the PS1; higher precision on the
+  desktop) rather than matching pixel for pixel.
 - [done] (0.20.0) Resident-memory instrumentation and caps (design section 23).
   The visited-snapshot store is the live growth risk: the seeded world is vast,
   so `mapstate` would hold a fog and door snapshot per visited map without limit.
@@ -583,10 +585,11 @@ sprite-format evaluation. Independent of the renderer and map threads.
 Theme E, the hardware push. Finish the fixed-point conversion, build the
 renderer backend seam for the PS1 GPU and desktop OpenGL with the software
 rasterizer as the interim backend, and confirm every third-party asset license
-before release. The backend seam starts with an OpenGL ES present path on the
-Raspberry Pi and Linux (the `video` and `gles2` units, stage 1) that blits the
-software framebuffer, ports to Windows and macOS on GL 3.x or ANGLE, and then
-moves the 3D rendering onto the GPU in stages. The same game runs on the PS1
+before release. The backend seam starts with an OpenGL ES present path on
+x86-64 and aarch64 Linux (the `video` and `gles2` units, stage 1) that blits
+the software framebuffer; the near-term focus stays on those two, and the
+Windows and macOS port (GL 3.x or ANGLE) is deferred. Later stages move the 3D
+rendering onto the GPU in stages. The same game runs on the PS1
 and the desktop; the two need not look identical, so each backend renders in
 its own idiom rather than reproducing the other pixel for pixel. Gated on the
 sector

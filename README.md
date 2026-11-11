@@ -6,10 +6,11 @@ and upscales with nearest-neighbour filtering for a crisp retro look. The
 camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
 as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
 
-The engine is renderer and content agnostic and targets three desktop hosts
-(Linux, Windows and macOS) via OpenGL, with the PlayStation 1 as the long-term
-goal the architecture is kept ready for. The software rasterizer's per-pixel
-hot path runs in fixed point, so the renderer is shaped for the FPU-less PS1.
+The engine is renderer and content agnostic. The near-term targets are x86-64
+and aarch64 Linux via OpenGL, with the PlayStation 1 as the long-term goal the
+architecture is kept ready for; Windows and macOS support is deferred. The
+software rasterizer's per-pixel hot path runs in fixed point, so the renderer is
+shaped for the FPU-less PS1.
 
 ## Screenshots
 
