@@ -216,13 +216,14 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   budget (design section 23). Add an LRU and a budget warning before they grow.
   Lands with 0.20.0, since the coarse overworld travel is the first real
   pressure on the budget.
-- [gap] (0.31.0) Confirm every third-party asset license before a release. The
-  Batareya portrait pack is confirmed free for personal and commercial use with
-  attribution optional (checked against its itch.io page); the Batareya mage-icon
-  and warrior-icon packs are offered on the same terms but still need confirming
-  against each page. The SigilsVault and loafbrr kits, the BakaFoxArt props and
-  the Dungeon Crawl sprites are CC0, and the trillobit3s ladder is freeware with
-  an optional donation. This is a release gate, not code.
+- [done] (0.31.0) Confirm every third-party asset license before a release. All
+  three Batareya packs are confirmed against their itch.io pages: the portraits
+  and the warrior skill icons are free for personal and commercial use, and the
+  magical spell icons are free for commercial and non-commercial use but require
+  crediting the author, which CREDITS does. The SigilsVault and loafbrr kits, the
+  BakaFoxArt props and the Dungeon Crawl sprites are CC0, and the trillobit3s
+  ladder is freeware with an optional donation. Every asset license is now
+  recorded and cleared in CREDITS.
 - [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
   out of the PS1 build, recorded only so nothing now blocks it.
 

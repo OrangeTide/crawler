@@ -79,23 +79,25 @@ cycles through at creation.
 Spell icons
 -----------
 
-Source: "MAGE ICONS BIG PACK" by Batareya (batareya.itch.io). The art is 64x64
+Source: "MAGE ICONS BIG PACK" by Batareya (batareya.itch.io,
+https://batareya.itch.io/250-magical-icons-pixel-art-icons). The art is 64x64
 pixel icons distributed at 8x upscale. The icons under content/icons are the
 subset that content/spells.txt names, scaled back to their native 64x64.
-License: Batareya's asset packs are offered for free personal and commercial
-use; confirm the exact terms for this pack against its itch.io page before a
-release. See content/icons/LICENSE.txt for the spell-to-icon mapping.
+License: free for commercial and non-commercial use, with attribution
+required: the author asks to be credited in the project. This entry provides
+that credit, so it is not optional. See content/icons/LICENSE.txt for the
+spell-to-icon mapping.
 
 Skill icons
 -----------
 
-Source: "250 WARRIOR ICONS" by Batareya (batareya.itch.io). The art is 64x64
-pixel icons distributed at an upscale. The icons under content/skillicons are
-the subset that content/skills.txt names, scaled back to their native 64x64.
-License: Batareya's asset packs are offered for free personal and commercial
-use; confirm the exact terms for this pack against its itch.io page before a
-release. The skill-to-icon mapping is the icon line on each entry in
-content/skills.txt.
+Source: "250 WARRIOR ICONS" by Batareya (batareya.itch.io,
+https://batareya.itch.io/pixel-skill-icons-pack-250-warrior-abilities). The
+art is 64x64 pixel icons distributed at an upscale. The icons under
+content/skillicons are the subset that content/skills.txt names, scaled back
+to their native 64x64.
+License: free for personal and commercial use without restrictions. The
+skill-to-icon mapping is the icon line on each entry in content/skills.txt.
 
 Modular dungeon tiles
 ---------------------
