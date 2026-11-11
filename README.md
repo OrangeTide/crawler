@@ -7,10 +7,9 @@ camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
 as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
 
 The engine is renderer and content agnostic and targets three desktop hosts
-today (Linux, Windows and macOS), with MS-DOS and PlayStation 1 as the
-long-term goals the architecture is kept ready for. The software rasterizer's
-per-pixel hot path runs in fixed point, so the renderer is shaped for those
-FPU-less targets.
+(Linux, Windows and macOS) via OpenGL, with the PlayStation 1 as the long-term
+goal the architecture is kept ready for. The software rasterizer's per-pixel
+hot path runs in fixed point, so the renderer is shaped for the FPU-less PS1.
 
 ## Screenshots
 

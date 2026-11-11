@@ -240,9 +240,9 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   already did, and the framebuffer is 8-bit paletted. What still uses `double`
   is the per-frame, per-vertex boundary: the camera vectors and projection, and
   the scanline edge walk. These are a handful of operations per vertex, not per
-  pixel, and convert last when a real DOS or PS1 build needs the FPU gone.
-- [gap] (0.31.0) The renderer backend seam for DOS mode 13h and the PS1 GPU,
-  with the Linux software rasterizer as one backend behind it.
+  pixel, and convert last when a real PS1 build needs the FPU gone.
+- [gap] (0.31.0) The renderer backend seam for the PS1 GPU and desktop OpenGL,
+  with the software rasterizer as the interim backend behind it.
 - [done] (0.20.0) Resident-memory instrumentation and caps (design section 23).
   The visited-snapshot store is the live growth risk: the seeded world is vast,
   so `mapstate` would hold a fog and door snapshot per visited map without limit.
@@ -292,23 +292,24 @@ trigger areas overlay the grid for encounters and region effects, decoupled
 from the geometry. This is the Neverwinter Nights approach, a grid of 3D tile
 modules plus polygon triggers, with the sector floor and ceiling heights giving
 the per-area elevation NWN handled poorly. The raycaster retires as the polygon
-path reaches full coverage; there is no flat-grid DOS fallback, so the geometry
-is not bound to the grid, and kit pieces that span several grid units ride as
-multi-cell mesh instances rather than per-cell quads.
+path reaches full coverage; there is no flat-grid fallback renderer, so the
+geometry is not bound to the grid, and kit pieces that span several grid units
+ride as multi-cell mesh instances rather than per-cell quads.
 
-- [gap] (0.32.0) Per-biome split palette: give each biome or theme its own
-  palette that spends most of the 256 entries, 128 or 192, on that biome's
-  textures so the quantized trim sheets smooth out and stop sharing one generic
-  cube, while reserving the remaining band, 64 or 128 entries, for the character
-  sprites and the UI so those stay stable across biomes and never reshade when
-  the scene palette swaps. This extends the full-screen `gfx.UsePalette` swap to
-  a partial one: the texture band is per biome, the reserved band is fixed. It
-  needs the inverse lookup split by band (textures quantize into the texture
-  band, sprites and UI index the reserved band) and a per-tileset palette baked
-  alongside the trim sheet. Its own milestone after the tileset and sector work,
-  since it is a quality pass over textures that already read correctly. Sprite
-  art may need pre-indexing into the reserved band rather than re-quantizing at
-  load.
+- [gap] (0.32.0) Per-tileset palette. On the direct-colour backends (desktop
+  OpenGL and the PS1 GPU) each texture names its own palette, so every tileset
+  gets a full palette tuned to its own textures instead of quantizing into one
+  shared cube, and the quantized trim sheets smooth out. Sprites and the UI keep
+  their own palettes the same way, with no global swap and no band reserved out
+  of a single 256, because a direct-colour framebuffer lets each primitive name
+  its own CLUT and two tilesets can share a frame freely. On the PS1 the palette
+  is a baked CLUT per tileset for its 4bpp or 8bpp textures; on desktop OpenGL
+  the textures can be direct RGBA. This largely folds into the backend seam
+  (0.31.0), which is what makes per-primitive palettes available; the remaining
+  task is baking a CLUT per tileset for the PS1 texture path. (An earlier plan
+  reserved a fixed band of a single global palette for sprites and the UI while
+  swapping a per-biome texture band. That was a concession to an 8-bit indexed
+  framebuffer, dropped along with MS-DOS.)
 - [partial] (0.27.0) The sector map format, foundation landed. Sectors are
   regions of open cells carrying a floor and ceiling height, added over the
   wall grid (MAP_VERSION 10, GEN_VERSION 4). The wall grid stays the movement
@@ -563,24 +564,26 @@ prepared-spell subset and more combat-statted spells, the fuller quest log now
 that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg
 sprite-format evaluation. Independent of the renderer and map threads.
 
-### 0.31.0 Target backends: DOS and PS1 (L)
+### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 
 Theme E, the hardware push. Finish the fixed-point conversion, build the
-renderer backend seam with the Linux software rasterizer as one backend, and
-confirm every third-party asset license before release. Gated on the sector
+renderer backend seam for the PS1 GPU and desktop OpenGL with the software
+rasterizer as the interim backend, and confirm every third-party asset license
+before release. Gated on the sector
 evaluation (0.26.0, which sets whether the modular geometry fits the PS1) and on
 the fixed-point and memory work from earlier milestones.
 
-### 0.32.0 Per-biome split palette (S/M)
+### 0.32.0 Per-tileset palette (S/M)
 
-Theme G, a texture-quality pass. Split the 256-colour palette per biome: most of
-it, 128 or 192 entries, holds that biome's texture colours so the trim sheets
-smooth out, and the rest stays reserved for the character sprites and the UI so
-they hold steady across biomes. This turns the full-screen `gfx.UsePalette` swap
-into a partial one, splits the inverse lookup by band, and bakes a palette with
-each tileset. It is a refinement, not a gate: it comes after the tilesets
-(0.26.0) and the sector biomes (0.27.0) are real and reading correctly, and it
-sharpens how the kit textures look on the PS1 target (0.31.0).
+Theme G, a texture-quality pass. On the direct-colour backends each texture
+names its own palette, so every tileset gets a full palette tuned to its
+textures instead of sharing one global cube, and sprites and the UI keep their
+own palettes with no global swap. On the PS1 this is a baked CLUT per tileset
+for its indexed textures; on desktop OpenGL the textures can be direct RGBA. It
+largely rides on the backend seam (0.31.0) that makes per-primitive palettes
+available, and it sharpens how the kit textures look on the PS1 target. The
+earlier reserved-band split of a single 256-colour palette is dropped with
+MS-DOS, since only an 8-bit indexed framebuffer needed it.
 
 ### Parallel track: the hardware push (theme E)
 
