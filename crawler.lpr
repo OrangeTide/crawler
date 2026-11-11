@@ -11,7 +11,7 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sdl2min, gfx, audio, gamestate, game;
+  math, sdl2min, video, gfx, audio, gamestate, game;
 
 const
   SCALE   = 4;
@@ -22,19 +22,15 @@ const
   CAPTION = TITLE + '  v' + BUILD_VERSION;
 
 var
-  win, ren, tex: Pointer;
   prevTicks, nowTicks, lastFpsTick: UInt32;
   dt: double;
   fps, frameCount: longint;
   argi: longint;
-  argb: array[0 .. FBW * FBH - 1] of TColor;   { index->ARGB scratch for SDL }
 
 procedure Shutdown;
 begin
   AudioShutdown;
-  if tex <> nil then SDL_DestroyTexture(tex);
-  if ren <> nil then SDL_DestroyRenderer(ren);
-  if win <> nil then SDL_DestroyWindow(win);
+  VideoShutdown;
   SDL_Quit;
   UnloadSDL2;
 end;
@@ -59,28 +55,10 @@ begin
     halt(1);
   end;
 
-  SDL_SetHint('SDL_RENDER_SCALE_QUALITY', '0');  { nearest neighbour }
-
-  win := SDL_CreateWindow(CAPTION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-    WINW, WINH, SDL_WINDOW_SHOWN);
-  if win = nil then begin
-    writeln(StdErr, 'CreateWindow failed: ', SDL_GetError());
-    Shutdown; halt(1);
-  end;
-
-  ren := SDL_CreateRenderer(win, -1,
-    SDL_RENDERER_ACCELERATED or SDL_RENDERER_PRESENTVSYNC);
-  if ren = nil then
-    ren := SDL_CreateRenderer(win, -1, 0);  { fall back to software }
-  if ren = nil then begin
-    writeln(StdErr, 'CreateRenderer failed: ', SDL_GetError());
-    Shutdown; halt(1);
-  end;
-
-  tex := SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888,
-    SDL_TEXTUREACCESS_STREAMING, FBW, FBH);
-  if tex = nil then begin
-    writeln(StdErr, 'CreateTexture failed: ', SDL_GetError());
+  { Open the window and the present backend. Prefers OpenGL ES, falls back to
+    SDL's 2D renderer; see the video unit. }
+  if not VideoInit(CAPTION, WINW, WINH) then begin
+    writeln(StdErr, 'Video init failed: ', SDL_GetError());
     Shutdown; halt(1);
   end;
 
@@ -114,11 +92,7 @@ begin
     GameUpdate(dt);
     GameRender(fps);
 
-    PalExpand(@argb[0]);
-    SDL_UpdateTexture(tex, nil, @argb[0], FBW * 4);
-    SDL_RenderClear(ren);
-    SDL_RenderCopy(ren, tex, nil, nil);
-    SDL_RenderPresent(ren);
+    VideoPresent;
 
     inc(frameCount);
     if nowTicks - lastFpsTick >= 1000 then begin

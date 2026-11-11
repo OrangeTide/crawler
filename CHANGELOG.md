@@ -10,6 +10,14 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- An OpenGL ES 2.0 present backend, the first stage of the renderer backend
+  seam. A new `video` unit owns the window and the present path and prefers a
+  GLES2 context, drawing the 320x240 software framebuffer as a textured quad; a
+  `gles2` unit binds the GL entry points at runtime through SDL_GL_GetProcAddress
+  so there is no link-time GL dependency. It falls back to the SDL 2D renderer
+  when no GL context or shader is available, so the game still runs, and
+  CRAWLER_GL=0 forces that fallback. Built for the Raspberry Pi and Linux; it
+  ports to Windows and macOS on desktop GL 3.x or ANGLE next.
 - A baked per-tileset palette (CLUT). The asset build median-cuts each kit
   tileset's own trim atlases to a 256-colour palette and stores it as a CLUT
   lump, so a tileset can carry a palette tuned to its own textures instead of

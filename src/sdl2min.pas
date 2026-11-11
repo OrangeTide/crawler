@@ -33,6 +33,23 @@ const
   SDL_PIXELFORMAT_ARGB8888 = $16362004;
   SDL_TEXTUREACCESS_STREAMING = 1;
 
+  { ---- OpenGL ---- }
+  SDL_WINDOW_OPENGL = $00000002;
+  { SDL_GLattr selectors for SDL_GL_SetAttribute (enum order from SDL_video.h) }
+  SDL_GL_RED_SIZE              = 0;
+  SDL_GL_GREEN_SIZE            = 1;
+  SDL_GL_BLUE_SIZE            = 2;
+  SDL_GL_ALPHA_SIZE           = 3;
+  SDL_GL_DOUBLEBUFFER         = 5;
+  SDL_GL_DEPTH_SIZE           = 6;
+  SDL_GL_CONTEXT_MAJOR_VERSION = 17;
+  SDL_GL_CONTEXT_MINOR_VERSION = 18;
+  SDL_GL_CONTEXT_PROFILE_MASK  = 21;
+  { profile mask values }
+  SDL_GL_CONTEXT_PROFILE_CORE          = $0001;
+  SDL_GL_CONTEXT_PROFILE_COMPATIBILITY = $0002;
+  SDL_GL_CONTEXT_PROFILE_ES            = $0004;
+
   { ---- Event types ---- }
   SDL_QUITEV          = $100;
   SDL_KEYDOWN         = $300;
@@ -161,6 +178,13 @@ type
   TSDL_DestroyTextureFn = procedure(tex: Pointer); cdecl;
   TSDL_DestroyRendererFn = procedure(ren: Pointer); cdecl;
   TSDL_DestroyWindowFn = procedure(win: Pointer); cdecl;
+  TSDL_GL_SetAttributeFn = function(attr, value: Int32): Int32; cdecl;
+  TSDL_GL_CreateContextFn = function(win: Pointer): Pointer; cdecl;
+  TSDL_GL_DeleteContextFn = procedure(ctx: Pointer); cdecl;
+  TSDL_GL_MakeCurrentFn = function(win, ctx: Pointer): Int32; cdecl;
+  TSDL_GL_GetProcAddressFn = function(proc: PChar): Pointer; cdecl;
+  TSDL_GL_SwapWindowFn = procedure(win: Pointer); cdecl;
+  TSDL_GL_SetSwapIntervalFn = function(interval: Int32): Int32; cdecl;
   TSDL_PollEventFn   = function(ev: Pointer): Int32; cdecl;
   TSDL_GetTicksFn    = function: UInt32; cdecl;
   TSDL_DelayFn       = procedure(ms: UInt32); cdecl;
@@ -190,6 +214,13 @@ var
   SDL_DestroyTexture: TSDL_DestroyTextureFn;
   SDL_DestroyRenderer: TSDL_DestroyRendererFn;
   SDL_DestroyWindow: TSDL_DestroyWindowFn;
+  SDL_GL_SetAttribute: TSDL_GL_SetAttributeFn;
+  SDL_GL_CreateContext: TSDL_GL_CreateContextFn;
+  SDL_GL_DeleteContext: TSDL_GL_DeleteContextFn;
+  SDL_GL_MakeCurrent: TSDL_GL_MakeCurrentFn;
+  SDL_GL_GetProcAddress: TSDL_GL_GetProcAddressFn;
+  SDL_GL_SwapWindow: TSDL_GL_SwapWindowFn;
+  SDL_GL_SetSwapInterval: TSDL_GL_SetSwapIntervalFn;
   SDL_PollEvent: TSDL_PollEventFn;
   SDL_GetTicks: TSDL_GetTicksFn;
   SDL_Delay: TSDL_DelayFn;
@@ -274,6 +305,13 @@ begin
   SDL_DestroyTexture := TSDL_DestroyTextureFn(Bind('SDL_DestroyTexture'));
   SDL_DestroyRenderer := TSDL_DestroyRendererFn(Bind('SDL_DestroyRenderer'));
   SDL_DestroyWindow := TSDL_DestroyWindowFn(Bind('SDL_DestroyWindow'));
+  SDL_GL_SetAttribute := TSDL_GL_SetAttributeFn(Bind('SDL_GL_SetAttribute'));
+  SDL_GL_CreateContext := TSDL_GL_CreateContextFn(Bind('SDL_GL_CreateContext'));
+  SDL_GL_DeleteContext := TSDL_GL_DeleteContextFn(Bind('SDL_GL_DeleteContext'));
+  SDL_GL_MakeCurrent := TSDL_GL_MakeCurrentFn(Bind('SDL_GL_MakeCurrent'));
+  SDL_GL_GetProcAddress := TSDL_GL_GetProcAddressFn(Bind('SDL_GL_GetProcAddress'));
+  SDL_GL_SwapWindow := TSDL_GL_SwapWindowFn(Bind('SDL_GL_SwapWindow'));
+  SDL_GL_SetSwapInterval := TSDL_GL_SetSwapIntervalFn(Bind('SDL_GL_SetSwapInterval'));
   SDL_PollEvent := TSDL_PollEventFn(Bind('SDL_PollEvent'));
   SDL_GetTicks := TSDL_GetTicksFn(Bind('SDL_GetTicks'));
   SDL_Delay := TSDL_DelayFn(Bind('SDL_Delay'));

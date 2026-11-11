@@ -241,8 +241,19 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   is the per-frame, per-vertex boundary: the camera vectors and projection, and
   the scanline edge walk. These are a handful of operations per vertex, not per
   pixel, and convert last when a real PS1 build needs the FPU gone.
-- [gap] (0.31.0) The renderer backend seam for the PS1 GPU and desktop OpenGL,
-  with the software rasterizer as the interim backend behind it.
+- [partial] (0.31.0) The renderer backend seam for the PS1 GPU and desktop
+  OpenGL, with the software rasterizer as the interim backend behind it. Stage 1
+  landed: a `video` unit owns the window and the present path and prefers an
+  OpenGL ES 2.0 context (a `gles2` unit binds the entry points through
+  SDL_GL_GetProcAddress, so there is no link-time GL dependency), presenting the
+  320x240 software framebuffer as a textured quad; it falls back to the SDL 2D
+  renderer when no GL context or shader is available, so the game still runs
+  (CRAWLER_GL=0 forces the fallback). Built for the Raspberry Pi and Linux; it
+  ports to Windows and macOS on desktop GL 3.x or through ANGLE next. The later
+  stages move the 3D scene rendering onto the GPU per backend. The same game
+  runs on the PS1 and the desktop, but the backends need not look identical, so
+  each renders in its own idiom (affine, dithered, fixed point on the PS1;
+  higher precision on the desktop) rather than matching pixel for pixel.
 - [done] (0.20.0) Resident-memory instrumentation and caps (design section 23).
   The visited-snapshot store is the live growth risk: the seeded world is vast,
   so `mapstate` would hold a fog and door snapshot per visited map without limit.
@@ -572,7 +583,13 @@ sprite-format evaluation. Independent of the renderer and map threads.
 Theme E, the hardware push. Finish the fixed-point conversion, build the
 renderer backend seam for the PS1 GPU and desktop OpenGL with the software
 rasterizer as the interim backend, and confirm every third-party asset license
-before release. Gated on the sector
+before release. The backend seam starts with an OpenGL ES present path on the
+Raspberry Pi and Linux (the `video` and `gles2` units, stage 1) that blits the
+software framebuffer, ports to Windows and macOS on GL 3.x or ANGLE, and then
+moves the 3D rendering onto the GPU in stages. The same game runs on the PS1
+and the desktop; the two need not look identical, so each backend renders in
+its own idiom rather than reproducing the other pixel for pixel. Gated on the
+sector
 evaluation (0.26.0, which sets whether the modular geometry fits the PS1) and on
 the fixed-point and memory work from earlier milestones.
 
