@@ -57,7 +57,11 @@ spells and bows strike over them.
   grid as walls, floors and ceilings under distance fog, with baked meshes,
   instanced props and monster meshes in the combat slots. Vertex snap and
   ordered (Bayer) dither give the PlayStation look, and the per-pixel hot path
-  runs in fixed point for the FPU-less targets.
+  runs in fixed point for the FPU-less targets. Textures are mapped affinely,
+  and each grid face is subdivided into smaller quads so a straight course
+  stays straight at a grazing angle, the way the PlayStation tessellated its
+  surfaces. The dither, vertex snap and face subdivision are per-target knobs,
+  dense on the desktop and coarse on the hardware targets.
 - Turn-based grid movement: step tile by tile and turn in 90 degree steps, each
   tweened so the motion stays smooth. Holding the right mouse button free-looks
   anywhere; stepping or turning realigns the view. A cursor allows clicking the
