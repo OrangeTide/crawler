@@ -141,6 +141,57 @@ begin
   CheckEqI(RunChase('C', 4, 0, 20), -1, 'a walled-off hunter never catches up');
   Check((Pursuers[0].x = 0) and (Pursuers[0].y = 0), 'the blocked hunter holds');
 
+  { ---- patrol, detection, and the alarm ---- }
+
+  { a patroller penned away from the party (a wall keeps it beyond the detect
+    radius) roams but never spots them, so it never catches. }
+  Maps := nil;
+  BuildMap(a, ['......#......']);   { a wall at x=6 splits the corridor }
+  Register('A', a);
+  PursuitReset;
+  AddPatroller(0, 'A', 0, 0);
+  CheckEqI(RunChase('A', 12, 0, 40), -1, 'a penned patroller never catches');
+  Check(Pursuers[0].x < 6, 'the patroller stays on its own side of the wall');
+  Check(not AlarmActive, 'no alarm while the party is unseen');
+
+  { a patroller that is close enough spots the party, turns to hunt, catches,
+    and the sighting raises the alarm. }
+  Maps := nil;
+  BuildMap(b, ['.............']);
+  Register('B', b);
+  PursuitReset;
+  AddPatroller(0, 'B', 11, 0);
+  CheckEqI(AdvanceOver('B', 12, 0, @TableProvider, ROUTE_MAX_STATES), 0,
+    'a patroller that spots the party catches it');
+  CheckEqI(ord(Pursuers[0].mode), PM_HUNT, 'spotting turns a patroller to hunt');
+  Check(AlarmActive, 'spotting the party raises the alarm');
+
+  { raising an alarm pulls every patroller on the map toward the alarm tile. }
+  Maps := nil;
+  BuildMap(b, ['.............']);
+  BuildMap(c, ['.']);
+  Register('B', b); Register('Z', c);
+  PursuitReset;
+  AddPatroller(0, 'B', 0, 0);
+  AddPatroller(1, 'B', 12, 0);
+  RaiseAlarm('B', 6, 0);
+  CheckEqI(ord(Pursuers[0].mode), PM_CONVERGE, 'the alarm turns patrollers to converge');
+  CheckEqI(ord(Pursuers[1].mode), PM_CONVERGE, 'both patrollers converge');
+  { advance with the party off on another map, so no one is spotted. }
+  AdvanceOver('Z', 0, 0, @TableProvider, ROUTE_MAX_STATES);
+  Check(Pursuers[0].x > 0, 'a converging patroller steps toward the alarm');
+  Check(Pursuers[1].x < 12, 'the far patroller steps toward the alarm too');
+
+  { one patroller spotting the party rallies the others to converge. }
+  Maps := nil;
+  BuildMap(b, ['.............']);
+  Register('B', b);
+  PursuitReset;
+  AddPatroller(0, 'B', 11, 0);   { close: will spot the party }
+  AddPatroller(1, 'B', 2, 0);    { far: will be rallied, not spot }
+  AdvanceOver('B', 12, 0, @TableProvider, ROUTE_MAX_STATES);
+  CheckEqI(ord(Pursuers[1].mode), PM_CONVERGE, 'a sighting rallies the far patroller');
+
   TestSummary('pursuit');
   halt(TestExit);
 end.

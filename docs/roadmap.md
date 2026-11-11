@@ -154,8 +154,17 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   local hunters. It is a biome-grid walk rather than the portal router, which
   plans over detailed local maps; the cross-map auto-travel stays the detailed
   mode. Ocean cells block until a boat exists.
-- [gap] (0.20.0) Broader omniscient AI uses now that the router exists: patrols,
-  fleeing to reinforcements, guards that converge on an alarm.
+- [done] (0.20.0) Broader omniscient AI uses on the router. A pursuer now carries
+  a mode: `PM_PATROL` roams waypoints on its own map until it spots the party
+  within `PURSUIT_DETECT`, `PM_HUNT` routes to the party across maps as before,
+  and `PM_CONVERGE` heads for a raised alarm. A sighting raises an alarm that
+  turns every patroller on the map to converge, and breaking off a fight rallies
+  them the same way, so a hunter the party flees brings reinforcements. Spawned
+  monsters now start as patrollers, so they find the party rather than knowing
+  where it stands, and `MAX_HUNTERS` rose so several can roam and gang up.
+  Authoring fixed guard posts and designed patrol routes in the map data is the
+  separate content layer, left for later; this is the engine behaviour on the
+  generated hunters. Covered by `t_pursuit`.
 
 ### C. RPG systems depth (design section 16)
 

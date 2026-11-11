@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Roaming monsters now patrol, raise alarms, and converge. A spawned hunter
+  roams its map until it spots the party, rather than knowing where they are;
+  the sighting raises an alarm that pulls the other roamers in to converge, and
+  breaking off a fight rallies them the same way, so a hunter the party flees
+  brings reinforcements. Several can roam at once and gang up.
 - A resident-memory bound on the visited-map snapshot store, so the vast seeded
   world cannot grow it without limit against the PlayStation 2 MB budget. An LRU
   drops the least-recently-visited maps to keep the fog and door store under a

@@ -35,7 +35,7 @@ uses
   pursuit, overworldui, keymap, mappins, skilldb, skillbook;
 
 const
-  MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
+  MAX_HUNTERS      = 3;    { at most this many roaming hunters at once }
   HUNTER_SPAWN_ODDS = 40;  { one-in-this chance per step in a dangerous area }
   HUNTER_MIN_DIST  = 6;    { a hunter spawns at least this far off, in tiles }
   HUNTER_COOLDOWN  = 30;   { game minutes a hunt leaves clear before another
@@ -224,6 +224,7 @@ end;
 var
   pendingHunterFight: longint;   { pursuer now in a fight, resolved on return }
   hunterReadyClock: longword;    { earliest clock a fresh hunter may spawn }
+  wasAlarm: boolean;             { alarm state last step, for the edge message }
 
 function FindHunterTile(out tx, ty: longint): boolean;
 {** A reachable open tile at least HUNTER_MIN_DIST from the party, for a hunter
@@ -264,6 +265,9 @@ begin
   if Fled then begin
     if FindHunterTile(tx, ty) then begin
       RepositionPursuer(idx, CurMapName, tx, ty);
+      { the hunter it broke off from calls the others in to the chase. }
+      RaiseAlarm(CurMapName, TileX, TileY);
+      wasAlarm := true;    { the flee message stands; no edge message over it }
       saveMsg := 'YOU BREAK AWAY, BUT IT STILL HUNTS';
       saveMsgT := 2.0;
     end else
@@ -674,9 +678,10 @@ begin
 end;
 
 procedure TrySpawnHunter;
-{** Now and then in a dangerous area a monster picks up the party's trail
-  and starts hunting from a reachable tile some way off. A cooldown paces the
-  spawns, so an ended hunt leaves a breather before the next one. }
+{** Now and then in a dangerous area a monster starts roaming from a reachable
+  tile some way off. It patrols rather than homing in, so it only picks up the
+  trail once it wanders within PURSUIT_DETECT and spots the party, which then
+  rallies any others. A cooldown paces the spawns. }
 var
   mon, tx, ty, who: longint;
 begin
@@ -688,10 +693,8 @@ begin
   mon := PickAreaMonster;
   if mon < 0 then exit;
   if not FindHunterTile(tx, ty) then exit;
-  AddPursuer(mon, CurMapName, tx, ty);
+  AddPatroller(mon, CurMapName, tx, ty);
   hunterReadyClock := ClockMin + HUNTER_COOLDOWN;
-  saveMsg := 'SOMETHING PICKS UP YOUR TRAIL';
-  saveMsgT := 2.0;
 end;
 
 procedure BurnLight;
@@ -804,6 +807,14 @@ begin
   { roaming hunters close in on the game clock; one that reaches the party
     starts the fight it has been chasing, led by the hunter itself. }
   if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
+
+  { a patroller that just spotted the party raises the alarm: announce it the
+    step it goes up, and remember so it is said once. }
+  if AlarmActive and not wasAlarm then begin
+    saveMsg := 'SOMETHING PICKS UP YOUR TRAIL';
+    saveMsgT := 2.0;
+  end;
+  wasAlarm := AlarmActive;
 
   { safe ground shakes off the hunt; dangerous ground may start a new one. }
   if EncTableEmpty(CurEncTable) then begin
@@ -938,5 +949,6 @@ end;
 
 initialization
   pendingHunterFight := -1;   { no hunter fight is pending at startup }
+  wasAlarm := false;
 
 end.
