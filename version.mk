@@ -3,4 +3,4 @@
 # derives the full version string from this plus git describe, so a tarball or
 # a tagless checkout still reports a sane version. See docs on the release
 # process, and the release-check target in the Makefile.
-PROJ_VERSION := 0.27.1
+PROJ_VERSION := 0.28.0

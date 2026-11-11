@@ -9,6 +9,11 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-11-10
+
+Theme G's outdoor terrain and carve-and-clad generation, the polygon
+renderer retiring the raycaster, and source-art exits and props.
+
 ### Added
 - A crate prop and scattered clutter in generated levels. The CC0 BakaFoxArt
   Crate joins the barrel as a 3D prop (content/models/crate.*), and the dungeon,
@@ -85,8 +90,6 @@ whose development history is summarized in docs/roadmap.md.
   they linger in it, element-typed and halved by warding gear, or seeps poison
   when its tag is `poison`. Authored with a `trigger hazard <damage> <element>`
   directive. The INFERNAL hall now carries a seam of lava.
-
-### Added
 - An infernal volcanic kit. The INFERNAL zone now wears the loafbrr Canyon
   Terrain kit (warm basalt) on tileset 15, re-authored to a wide volcanic cavern
   with rock-pillar islands and a sunken lava lake. The lake is a sector on a
