@@ -143,6 +143,15 @@ whose development history is summarized in docs/roadmap.md.
   now say the polygon path is the default view, which it has been since the
   terrain work, in place of the old "experimental" and "raycaster is the
   default" wording.
+- Subdivided the grid's floor, ceiling and wall faces to tame affine texture
+  warp. The rasterizer maps textures affinely, so a cell drawn as one large
+  quad kinked a straight brick course at the quad's diagonal when seen at a
+  grazing angle. Each face now draws as a small grid of sub-quads
+  (`DrawTexQuadSub`), so straight lines stay straight, the way the PlayStation
+  tessellated surfaces for the same reason. The subdivision is a per-target knob
+  (`GRID_SUBDIV`) beside `raster.VSNAP` and `terrain.TERRAIN_SUBDIV`: dense on
+  the desktop, coarse under `GRID_COARSE` for the FPU-less targets. Kit meshes
+  and the outdoor terrain carry their own tessellation and are unchanged.
 
 ### Removed
 - Retired the raycaster. The PSX-style polygon renderer has been the default
