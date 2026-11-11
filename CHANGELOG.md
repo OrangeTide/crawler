@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A baked per-tileset palette (CLUT). The asset build median-cuts each kit
+  tileset's own trim atlases to a 256-colour palette and stores it as a CLUT
+  lump, so a tileset can carry a palette tuned to its own textures instead of
+  sharing one global cube. This is the data for the direct-colour backends to
+  bind per tileset; the current indexed renderer does not read it yet.
 - Per-piece multi-material meshes for the modular kits. A kit piece's mesh now
   carries a material per triangle, and the kit text names a trim atlas and an
   optional emission atlas per material slot, so one piece clads from several

@@ -306,10 +306,13 @@ ride as multi-cell mesh instances rather than per-cell quads.
   is a baked CLUT per tileset for its 4bpp or 8bpp textures; on desktop OpenGL
   the textures can be direct RGBA. This largely folds into the backend seam
   (0.31.0), which is what makes per-primitive palettes available; the remaining
-  task is baking a CLUT per tileset for the PS1 texture path. (An earlier plan
-  reserved a fixed band of a single global palette for sprites and the UI while
-  swapping a per-biome texture band. That was a concession to an 8-bit indexed
-  framebuffer, dropped along with MS-DOS.)
+  task is baking a CLUT per tileset for the PS1 texture path. That bake has
+  landed ahead of the backend: the asset build median-cuts each kit tileset's
+  trim atlases to a 256-colour `CLUT<tileset>` lump, which `textures` can
+  decode; binding it to the textures awaits the direct-colour renderer. (An
+  earlier plan reserved a fixed band of a single global palette for sprites and
+  the UI while swapping a per-biome texture band. That was a concession to an
+  8-bit indexed framebuffer, dropped along with MS-DOS.)
 - [partial] (0.27.0) The sector map format, foundation landed. Sectors are
   regions of open cells carrying a floor and ceiling height, added over the
   wall grid (MAP_VERSION 10, GEN_VERSION 4). The wall grid stays the movement

@@ -327,6 +327,34 @@ begin
   writeln('  trim ', lump, ' (', sw, 'x', sh, ') from ', ppmFn);
 end;
 
+procedure AddClut(tileset: longint; const ppmFn: string);
+{ Bake a tileset's colour lookup table into a 256x1 CLUT<tileset> lump. The
+  source PPM is ImageMagick's -unique-colors output: up to 256 colours in one
+  row, median-cut from the tileset's own trim atlases. Slots past the source
+  count are black. The direct-colour backends (desktop OpenGL and the PS1 GPU)
+  bind one CLUT per tileset; the indexed software renderer does not read it
+  yet, so this is asset-side only. }
+var
+  sw, sh, i, n: longint;
+  pixbuf: TByteArray;
+  clut: TImage;
+begin
+  if not ReadPpm(ppmFn, sw, sh, pixbuf) then begin
+    writeln(StdErr, 'mkassets: clut ', tileset, ': cannot read ', ppmFn);
+    halt(1);
+  end;
+  n := sw * sh;
+  if n > 256 then n := 256;
+  ImgNew(clut, 256, 1);
+  for i := 0 to 255 do
+    if i < n then
+      clut.pix[i] := RGB(pixbuf[i * 3], pixbuf[i * 3 + 1], pixbuf[i * 3 + 2])
+    else
+      clut.pix[i] := RGB(0, 0, 0);
+  PakWAdd(w, 'CLUT' + IntToStr(tileset), PicEncodeDirect(clut));
+  writeln('  clut CLUT', tileset, ' (', n, ' colours) from ', ppmFn);
+end;
+
 procedure AddHeightmap(const name, ppmFn: string);
 { Bake a terrain heightmap from a grayscale PPM into a CHGT lump. The red
   channel is the sample, 0..255; the terrain layer upsamples it at load. The
@@ -476,6 +504,8 @@ begin
       end;
     end else if ParamStr(i) = 'sprite' then begin
       AddSprite(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
+    end else if ParamStr(i) = 'clut' then begin
+      AddClut(StrToIntDef(ParamStr(i + 1), 0), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'heightmap' then begin
       AddHeightmap(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else begin

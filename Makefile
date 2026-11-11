@@ -122,7 +122,7 @@ CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(DIALOGS) \
             $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
-            $(MUSICSRC) $(HEIGHTSRC)
+            $(MUSICSRC) $(HEIGHTSRC) $(CLUTPPM)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
@@ -144,6 +144,35 @@ TRIMARG   = trim 10 0 content/rooms/trim_maus_floor.ppm \
             trim 16 0 content/rooms/trim_volc_ground.ppm \
             trim 16 1 content/rooms/trim_volc_wall.ppm \
             trim 16 2 content/rooms/trim_lava_emis.ppm
+# Per-tileset CLUT: ImageMagick median-cuts each kit tileset's diffuse trim
+# atlas(es) to a 256-colour palette (-colors 256 -unique-colors). Each atlas is
+# nearest-neighbour sampled to a common size first, so appending several pools
+# their colours without inventing new ones and weighs each atlas equally. The
+# baker packs the 1-row palette into a CLUT<n> lump for the direct-colour
+# backends to bind. Emission atlases are left out (a separate additive
+# channel). Biome tilesets (0..9) use procedural textures and get no CLUT yet.
+CLUTTILES = 10 11 12 13 14 15 16
+CLUT_10 = content/rooms/trim_maus_floor.ppm content/rooms/trim_maus_wall.ppm \
+          content/rooms/trim_maus_ceil.ppm content/rooms/trim_maus_trim.ppm
+CLUT_11 = content/rooms/trim_cathedral.ppm
+CLUT_12 = content/rooms/trim_temple.ppm
+CLUT_13 = content/rooms/trim_grotto_ground.ppm content/rooms/trim_grotto_wall.ppm
+CLUT_14 = content/rooms/trim_cathedral.ppm content/rooms/trim_cathglass.ppm
+CLUT_15 = content/rooms/trim_volc_ground.ppm content/rooms/trim_volc_wall.ppm
+CLUT_16 = content/rooms/trim_volc_ground.ppm content/rooms/trim_volc_wall.ppm
+CLUTPPM = $(foreach t,$(CLUTTILES),build/clut/clut_$(t).ppm)
+CLUTARG = $(foreach t,$(CLUTTILES),clut $(t) build/clut/clut_$(t).ppm)
+
+build/clut:
+	mkdir -p build/clut
+
+# One rule per tileset, generated so each gets its own atlas list as prereqs.
+define CLUT_RULE
+build/clut/clut_$(1).ppm: $(CLUT_$(1)) | build/clut
+	$$(IM) $$^ -sample '64x64!' -append -colors 256 -unique-colors -depth 8 ppm:$$@
+endef
+$(foreach t,$(CLUTTILES),$(eval $(call CLUT_RULE,$(t))))
+
 SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
 HEIGHTARGS = $(foreach n,$(HEIGHTNAMES),heightmap $(n) content/heightmaps/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
@@ -216,7 +245,7 @@ build/tools/shot: tools/shot.pas src/*.pas src/ui/*.pas build/version.inc | buil
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(CLUTARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.

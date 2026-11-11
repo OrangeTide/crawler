@@ -48,6 +48,12 @@ type
     w, h: longint;
   end;
 
+  { A baked per-tileset colour lookup table: 256 direct colours, median-cut
+    from the tileset's own trim atlases at bake time. The direct-colour
+    backends (desktop OpenGL and the PS1 GPU) bind one CLUT per tileset; the
+    indexed software renderer does not read it yet. }
+  TClut = array[0 .. 255] of TColor;
+
 var
   Tex: array[0 .. TEX_COUNT - 1] of TTexture;
   CurTileset: longint = -1;
@@ -77,6 +83,15 @@ function TrimPtr(tileset, index: longint; out w, h: longint): PByte;
 { A tileset's emission atlas at `index`, or nil for index 255 (none) or a
   non-resident index. Never falls back to atlas 0. }
 function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
+
+{ The baked CLUT lump name for a tileset, CLUT<tileset>. }
+function ClutLumpName(tileset: longint): string;
+{ Decode a tileset's baked CLUT from the pak into cols (256 colours), or false
+  when the tileset carries no CLUT lump (the biome tilesets, and any kit with
+  no baked palette). Slots past the baked colour count come back black. Not
+  used by the indexed renderer yet; it is the palette the direct-colour
+  backends will bind per tileset. }
+function LoadTilesetClut(const p: TPak; tileset: longint; out cols: TClut): boolean;
 
 { Load the surfaces of tileset 0, the default. Call once at startup. }
 function LoadTextures(const p: TPak): boolean;
@@ -134,6 +149,29 @@ begin
     Str(a, s);
     TrimLumpName := TrimLumpName + '_' + s;
   end;
+end;
+
+function ClutLumpName(tileset: longint): string;
+var s: string;
+begin
+  Str(tileset, s);
+  ClutLumpName := 'CLUT' + s;
+end;
+
+function LoadTilesetClut(const p: TPak; tileset: longint; out cols: TClut): boolean;
+var
+  blob: TByteArray;
+  img: TImage;
+  i, n: longint;
+begin
+  LoadTilesetClut := false;
+  for i := 0 to 255 do cols[i] := 0;
+  if not PakGet(p, ClutLumpName(tileset), blob) then exit;
+  if not PicDecode(blob, img) then exit;
+  n := img.w * img.h;
+  if n > 256 then n := 256;
+  for i := 0 to n - 1 do cols[i] := img.pix[i];
+  LoadTilesetClut := true;
 end;
 
 { Load the trim atlases of a tileset: TRIM<t>, then TRIM<t>_1, _2, ... until
