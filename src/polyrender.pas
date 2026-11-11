@@ -175,6 +175,48 @@ begin
   end;
 end;
 
+{ Face a door away from the single wall backing its cell, into the open, the
+  way carve.FaceFromWalls orients an `auto` prop at bake time. Freestanding
+  cells default to facing south. }
+function DoorFaceYaw(tx, ty: longint): double;
+var
+  wN, wS, wE, wW: boolean;
+  yb: longint;
+begin
+  wN := IsWallTile(tx, ty - 1); wS := IsWallTile(tx, ty + 1);
+  wE := IsWallTile(tx + 1, ty); wW := IsWallTile(tx - 1, ty);
+  if wN and (not wS) then yb := 0
+  else if wS and (not wN) then yb := 128
+  else if wE and (not wW) then yb := 64
+  else if wW and (not wE) then yb := 192
+  else yb := 0;
+  DoorFaceYaw := yb / 256.0 * 2 * Pi;
+end;
+
+{ Draw the doorway mesh standing in every door portal, so a door into an
+  interior reads as a real doorway rather than a flat billboard. Covers
+  authored and generated maps alike, since it walks the live portal list. }
+procedure DrawDoorPortals(const mc: TMeshCam; ex, ey, cyaw, syaw: double);
+var
+  i, mi, ptx, pty: longint;
+  px, py, dist, fwd, light: double;
+begin
+  mi := FindModel('DOORWAY');
+  if mi < 0 then exit;
+  for i := 0 to High(CurMap.portals) do begin
+    if CurMap.portals[i].kind <> PK_DOOR then continue;
+    ptx := CurMap.portals[i].x; pty := CurMap.portals[i].y;
+    px := ptx + 0.5; py := pty + 0.5;
+    fwd := (px - ex) * cyaw + (py - ey) * syaw;
+    if fwd < -1.0 then continue;                 { behind the camera }
+    dist := sqrt(sqr(px - ex) + sqr(py - ey));
+    if dist > VIEW_R + 1 then continue;
+    light := TileLight(ptx, pty, dist);
+    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
+      ModelReg[mi].scale, DoorFaceYaw(ptx, pty), light);
+  end;
+end;
+
 { Draw the outdoor terrain heightfield: for each visible open, non-kit cell on a
   surface map that carries terrain, emit TERRAIN_SUBDIV^2 textured sub-quads whose
   corner heights come from the resident height grid. This replaces the flat floor
@@ -363,6 +405,7 @@ begin
     DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
 
   DrawProps(mc, ex, ey, cyaw, syaw);
+  DrawDoorPortals(mc, ex, ey, cyaw, syaw);
   DrawEntities(mc, ex, ey, cyaw, syaw);
 end;
 
