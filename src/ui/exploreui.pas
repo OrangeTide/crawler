@@ -82,7 +82,7 @@ begin
       end;
   { otherwise plan afresh from where the party stands. }
   if RoutePath(CurMapName, TileX, TileY, atMap, atX, atY,
-       pmPlayerKnown, atPath, atN) and (atN > 0) then begin
+       pmPlayerKnown, atPath, atN, PartyCanPickLocks) and (atN > 0) then begin
     atLeg := 0;
     RefreshRoute := true;
   end;
@@ -94,7 +94,7 @@ end;
 function ForcePlan: boolean;
 begin
   ForcePlan := RoutePath(CurMapName, TileX, TileY, atMap, atX, atY,
-    pmPlayerKnown, atPath, atN) and (atN > 0);
+    pmPlayerKnown, atPath, atN, PartyCanPickLocks) and (atN > 0);
   if ForcePlan then atLeg := 0;
 end;
 
@@ -127,7 +127,7 @@ begin
     not known-reachable. The walk then follows these legs without re-searching
     every tile. }
   if not RoutePath(CurMapName, TileX, TileY, destMap, dx, dy,
-       pmPlayerKnown, atPath, atN) or (atN = 0) then begin
+       pmPlayerKnown, atPath, atN, PartyCanPickLocks) or (atN = 0) then begin
     saveMsg := 'NO KNOWN ROUTE';
     saveMsgT := 2.0;
     exit;
@@ -178,7 +178,8 @@ begin
   end;
   wx := atPath[atLeg].exitX; wy := atPath[atLeg].exitY;
   atGoal := atPath[atLeg].atGoal;
-  if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps) then begin
+  if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps,
+    PartyCanPickLocks) then begin
     { the stored leg will not path on the live map: re-plan once from here. }
     if (not ForcePlan) then begin
       atActive := false;
@@ -188,7 +189,8 @@ begin
     end;
     wx := atPath[atLeg].exitX; wy := atPath[atLeg].exitY;
     atGoal := atPath[atLeg].atGoal;
-    if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps) then begin
+    if not FindPath(CurMap, TileX, TileY, wx, wy, true, path, nsteps,
+    PartyCanPickLocks) then begin
       atActive := false;
       saveMsg := 'ROUTE BLOCKED';
       saveMsgT := 2.0;

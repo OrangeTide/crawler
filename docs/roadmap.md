@@ -123,13 +123,17 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### B. Navigation and AI (continues the recent track, 0.20.0)
 
-- [gap] (0.20.0) Locked-door handling in routing: `pathfind` treats every door
-  as passable, so a route can plan through a door the party cannot open. Now
-  that the Pick Locks skill exists (theme C), a door-aware router should consult
-  the party's best lockpick before treating a locked door as passable.
-- [gap] (0.20.0) NPC-aware pathing: auto-travel can stall on an NPC-occupied
-  tile, and a pursuer can path through one, because the planners read only the
-  static grid.
+- [done] (0.20.0) Locked-door handling in routing. A locked door is a wall to a
+  planner unless it may count on opening it: `PathPassable` gained a `canPick`
+  flag, and the auto-travel router passes `skillbook.PartyCanPickLocks` (true
+  when an upright member carries the Pick Locks skill), so a party with a
+  lockpick routes through locked doors (the per-tile walk picks them) and a
+  party without one routes around. Monster pursuit and the pursuit-spawn
+  reachability check leave the flag false, since monsters do not pick locks.
+- [done] (0.20.0) NPC-aware pathing. `PathPassable` blocks a tile an NPC stands
+  on, so auto-travel plans around NPCs and re-plans when one steps into the
+  route, and a pursuer no longer paths through one. Both planners share the
+  check, since both read the same static grid through `pathfind`.
 - [gap] (0.20.0) Persist pursuers in the save so a hunt survives a save and load
   (they are transient today).
 - [partial] (0.20.0) Pursuit tuning: spawn cadence and caps, and letting a fled

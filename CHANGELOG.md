@@ -9,6 +9,16 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Changed
+- Lockpick-aware route planning. A route may now plan through a locked door when
+  the party can pick it. `pathfind` gained a `canPick` flag threaded through
+  `maproute`, and auto-travel passes `skillbook.PartyCanPickLocks` (true when an
+  upright member carries the Pick Locks skill), so a party with a lockpick routes
+  through locked doors and the walk picks each one on arrival, while a party
+  without one routes around. Monster pursuit leaves the flag off, since monsters
+  do not pick locks. NPC-occupied tiles already block a planner, so auto-travel
+  plans around NPCs and pursuers no longer path through them.
+
 ## [0.28.0] - 2026-11-10
 
 Theme G's outdoor terrain and carve-and-clad generation, the polygon

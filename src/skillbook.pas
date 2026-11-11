@@ -45,6 +45,12 @@ function BestSkillHolder(effect: byte; out who, skillIdx: longint): boolean;
   (in which case the result is false). }
 function PartySkillRoll(effect: byte; out memberIdx: longint): boolean;
 
+{ Whether any upright party member carries the Pick Locks skill, so a locked
+  door is one the party can work open. A non-rolling query (unlike
+  PartySkillRoll), for a route planner to decide whether a locked door counts
+  as passable. }
+function PartyCanPickLocks: boolean;
+
 implementation
 
 uses
@@ -172,6 +178,12 @@ begin
   memberIdx := who;
   PartySkillRoll := Check(GameRng, SkillCheckMods(Roster[who], sk),
     SkillDefs[sk].target);
+end;
+
+function PartyCanPickLocks: boolean;
+var who, sk: longint;
+begin
+  PartyCanPickLocks := BestSkillHolder(SKE_PICKLOCK, who, sk);
 end;
 
 end.

@@ -16,7 +16,8 @@ procedure FullMapMouseButton(button: longint);
 implementation
 
 uses
-  sdl2min, gfx, gamestate, world, hud, exploreui, pursuit, mappins, pathfind;
+  sdl2min, gfx, gamestate, world, hud, exploreui, pursuit, mappins, pathfind,
+  skillbook;
 
 function PinColor(kind: byte): TColor;
 begin
@@ -41,12 +42,14 @@ begin
   DrawFullMap;
   { preview the trail a left click would walk to the tile under the cursor }
   if FullMapTileAt(cursorX, cursorY, tx, ty) then
-    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n) then
+    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n,
+      PartyCanPickLocks) then
       for i := 1 to n - 2 do
         FullMapMark(path[i].x, path[i].y, RGB(70, 90, 150));
   { the active route's leg on this map, drawn brighter over the hover trail }
   if AutoTravelActive and AutoTravelTargetOnMap(tx, ty) then
-    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n) then
+    if FindPath(CurMap, TileX, TileY, tx, ty, true, path, n,
+      PartyCanPickLocks) then
       for i := 1 to n - 2 do
         FullMapMark(path[i].x, path[i].y, RGB(90, 200, 220));
   for i := 0 to High(Pins) do

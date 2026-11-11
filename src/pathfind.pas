@@ -27,26 +27,31 @@ type
 { Whether a tile can be walked for planning, read from the map's static
   data. Open floor is passable. A tile an NPC stands on is blocked, since
   NPCs do not step aside. A door is passable only when doorsPassable is set
-  and the door is not locked: a locked door has no key-use path in the game,
-  so to a planner it is a wall. Any other wall value, and any out-of-bounds
-  coordinate, is solid. This mirrors world.IsBlocking over the static grid,
-  without the live open-door state. }
+  and the door is either unlocked or one the planner may count on opening: a
+  locked door is a wall unless canPick is set, which the caller passes when
+  the party carries a lockpick (someone with the Pick Locks skill), since
+  such a party can work a locked door open and retry until it gives. A
+  party with no lockpick, and every non-player planner (monsters do not pick
+  locks), leaves canPick false so a locked door stays a wall. Any other wall
+  value, and any out-of-bounds coordinate, is solid. This mirrors
+  world.IsBlocking over the static grid, without the live open-door state. }
 function PathPassable(const m: TMapData; x, y: longint;
-  doorsPassable: boolean): boolean;
+  doorsPassable: boolean; canPick: boolean = false): boolean;
 
 { Shortest 4-connected route from (sx,sy) to (dx,dy) on map m. On success
   the route is written into path (path[0] is the start, path[steps-1] the
   goal) and the result is true. start = goal yields steps = 1. Returns
   false if the goal is unreachable, if either endpoint is not passable, or
-  if the route needs more than Length(path) steps. }
+  if the route needs more than Length(path) steps. canPick is the lockpick
+  allowance passed to PathPassable. }
 function FindPath(const m: TMapData; sx, sy, dx, dy: longint;
   doorsPassable: boolean; var path: array of TPathStep;
-  out steps: longint): boolean;
+  out steps: longint; canPick: boolean = false): boolean;
 
 { Whether a route exists, without reconstructing it. Same search as
   FindPath but it never touches a path buffer, so it cannot fail on size. }
 function PathExists(const m: TMapData; sx, sy, dx, dy: longint;
-  doorsPassable: boolean): boolean;
+  doorsPassable: boolean; canPick: boolean = false): boolean;
 
 implementation
 
@@ -78,7 +83,7 @@ begin
 end;
 
 function PathPassable(const m: TMapData; x, y: longint;
-  doorsPassable: boolean): boolean;
+  doorsPassable: boolean; canPick: boolean): boolean;
 var
   t: byte;
 begin
@@ -89,7 +94,8 @@ begin
   if t = TILE_EMPTY then
     PathPassable := true
   else if t = TILE_DOOR then
-    PathPassable := doorsPassable and not DoorLocked(m, x, y);
+    PathPassable := doorsPassable
+      and ((not DoorLocked(m, x, y)) or canPick);
 end;
 
 const
@@ -99,7 +105,8 @@ const
   (-1 at the start, left -1 if never reached) and returns whether the goal
   was reached. Indices are packed as y*w + x. The heap sorts on a composite
   key so ties on f prefer the smaller heuristic, giving straighter paths. }
-function RunAStar(const m: TMapData; si, gi: longint; doorsPassable: boolean;
+function RunAStar(const m: TMapData; si, gi: longint;
+  doorsPassable, canPick: boolean;
   var cameFrom: array of longint): boolean;
 var
   n, i: longint;
@@ -184,7 +191,7 @@ begin
       if (nx < 0) or (ny < 0) or (nx >= m.w) or (ny >= m.h) then continue;
       ni := ny * m.w + nx;
       if closed[ni] then continue;
-      if not PathPassable(m, nx, ny, doorsPassable) then continue;
+      if not PathPassable(m, nx, ny, doorsPassable, canPick) then continue;
       tentative := gScore[cur] + 1;
       if tentative < gScore[ni] then begin
         cameFrom[ni] := cur;
@@ -199,7 +206,7 @@ end;
 
 function FindPath(const m: TMapData; sx, sy, dx, dy: longint;
   doorsPassable: boolean; var path: array of TPathStep;
-  out steps: longint): boolean;
+  out steps: longint; canPick: boolean): boolean;
 var
   cameFrom: array of longint;
   si, gi, cur, count, i, w: longint;
@@ -208,8 +215,8 @@ begin
   FindPath := false;
   steps := 0;
   if (m.w <= 0) or (m.h <= 0) then exit;
-  if not PathPassable(m, sx, sy, doorsPassable) then exit;
-  if not PathPassable(m, dx, dy, doorsPassable) then exit;
+  if not PathPassable(m, sx, sy, doorsPassable, canPick) then exit;
+  if not PathPassable(m, dx, dy, doorsPassable, canPick) then exit;
   w := m.w;
   si := sy * w + sx;
   gi := dy * w + dx;
@@ -222,7 +229,7 @@ begin
   end;
 
   SetLength(cameFrom, m.w * m.h);
-  if not RunAStar(m, si, gi, doorsPassable, cameFrom) then exit;
+  if not RunAStar(m, si, gi, doorsPassable, canPick, cameFrom) then exit;
 
   { Walk parents back from the goal to count the chain. }
   count := 0;
@@ -250,21 +257,21 @@ begin
 end;
 
 function PathExists(const m: TMapData; sx, sy, dx, dy: longint;
-  doorsPassable: boolean): boolean;
+  doorsPassable: boolean; canPick: boolean): boolean;
 var
   cameFrom: array of longint;
   si, gi, w: longint;
 begin
   PathExists := false;
   if (m.w <= 0) or (m.h <= 0) then exit;
-  if not PathPassable(m, sx, sy, doorsPassable) then exit;
-  if not PathPassable(m, dx, dy, doorsPassable) then exit;
+  if not PathPassable(m, sx, sy, doorsPassable, canPick) then exit;
+  if not PathPassable(m, dx, dy, doorsPassable, canPick) then exit;
   w := m.w;
   si := sy * w + sx;
   gi := dy * w + dx;
   if si = gi then begin PathExists := true; exit; end;
   SetLength(cameFrom, m.w * m.h);
-  PathExists := RunAStar(m, si, gi, doorsPassable, cameFrom);
+  PathExists := RunAStar(m, si, gi, doorsPassable, canPick, cameFrom);
 end;
 
 end.

@@ -109,12 +109,15 @@ function RouteNextHop(const curMap: TMapData; const curName: string;
 function RoutePathOver(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
   provider: TRouteMapProvider; maxStates: longint;
-  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+  var legs: array of TRouteLeg; out nlegs: longint;
+  canPick: boolean = false): boolean;
 
-{ RoutePathOver wired to the live providers for the given mode. }
+{ RoutePathOver wired to the live providers for the given mode. canPick lets
+  the route plan through locked doors the party can pick (see pathfind). }
 function RoutePath(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint; mode: TRouteMode;
-  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+  var legs: array of TRouteLeg; out nlegs: longint;
+  canPick: boolean = false): boolean;
 
 implementation
 
@@ -163,7 +166,8 @@ function RouteSearch(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
   provider: TRouteMapProvider; maxStates: longint;
   var qName: TStrArr;
-  var qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr): longint;
+  var qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr;
+  canPick: boolean = false): longint;
 var
   visited: array of string;
   head, tail, nvis, explored, i, mx, my, cd, curIdx: longint;
@@ -213,12 +217,13 @@ begin
     curName := qName[head]; cx := qX[head]; cy := qY[head]; cd := qDepth[head];
     inc(head);
     if not provider(curName, m) then continue;   { unknown or unreachable map }
-    if (curName = toMap) and PathExists(m, cx, cy, toX, toY, true) then begin
+    if (curName = toMap) and PathExists(m, cx, cy, toX, toY, true, canPick) then
+    begin
       RouteSearch := curIdx;
       exit;
     end;
     for i := 0 to High(m.portals) do
-      if PathExists(m, cx, cy, m.portals[i].x, m.portals[i].y, true) then
+      if PathExists(m, cx, cy, m.portals[i].x, m.portals[i].y, true, canPick) then
         if provider(m.portals[i].target, tm) then
           if MarkerPos(tm, m.portals[i].marker, mx, my) then
             Push(m.portals[i].target, mx, my, cd + 1, curIdx,
@@ -354,7 +359,8 @@ end;
 function RoutePathOver(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint;
   provider: TRouteMapProvider; maxStates: longint;
-  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+  var legs: array of TRouteLeg; out nlegs: longint;
+  canPick: boolean): boolean;
 var
   qName: TStrArr;
   qX, qY, qDepth, qParent, qPortX, qPortY: TIntArr;
@@ -363,7 +369,8 @@ begin
   RoutePathOver := false;
   nlegs := 0;
   goal := RouteSearch(fromMap, fromX, fromY, toMap, toX, toY,
-    provider, maxStates, qName, qX, qY, qDepth, qParent, qPortX, qPortY);
+    provider, maxStates, qName, qX, qY, qDepth, qParent, qPortX, qPortY,
+    canPick);
   if goal < 0 then exit;
   { count the chain from goal up to the root, then refuse if it will not fit. }
   count := 0; idx := goal;
@@ -393,11 +400,12 @@ end;
 
 function RoutePath(const fromMap: string; fromX, fromY: longint;
   const toMap: string; toX, toY: longint; mode: TRouteMode;
-  var legs: array of TRouteLeg; out nlegs: longint): boolean;
+  var legs: array of TRouteLeg; out nlegs: longint;
+  canPick: boolean): boolean;
 begin
   gMode := mode;
   RoutePath := RoutePathOver(fromMap, fromX, fromY, toMap, toX, toY,
-    @RuntimeProvider, ROUTE_MAX_STATES, legs, nlegs);
+    @RuntimeProvider, ROUTE_MAX_STATES, legs, nlegs, canPick);
 end;
 
 end.

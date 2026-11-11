@@ -93,13 +93,16 @@ begin
   Check(not FindPath(m, 0, 0, 4, 0, true, tiny, steps),
     'returns false when the route exceeds the buffer');
 
-  { 11: a locked door is a wall to planning; unlocking it opens the route. }
+  { 11: a locked door is a wall to planning, unless the planner may pick it
+    (canPick), or the door is unlocked. }
   BuildMap(m, ['..+..']);
   SetLength(m.doors, 1);
   m.doors[0].x := 2; m.doors[0].y := 0; m.doors[0].locked := 1;
   m.doors[0].key := 'K';
   Check(not FindPath(m, 0, 0, 4, 0, true, path, steps),
-    'a locked door blocks the route');
+    'a locked door blocks a route that cannot pick it');
+  Check(FindPath(m, 0, 0, 4, 0, true, path, steps, true),
+    'a locked door opens to a route that can pick it');
   m.doors[0].locked := 0;
   Check(FindPath(m, 0, 0, 4, 0, true, path, steps),
     'the same door unlocked lets the route through');
