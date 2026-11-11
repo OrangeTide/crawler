@@ -262,7 +262,7 @@ Rendering:
 | `src/tilekit.pas` / `src/kittext.pas` | Per-tileset modular kit definitions, and the kit-text parser. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |
 | `src/sprites.pas` | Runtime store of billboard sprites (monsters, NPCs) from the pak. |
-| `src/worldspr.pas` | Gathers the world-view billboard sprites for both renderers. |
+| `src/worldspr.pas` | Gathers the world-view billboard sprites for the polygon renderer. |
 | `src/texgen.pas` | Procedural texture and per-zone tileset generation (tool side). |
 | `src/hud.pas` | Border, compass, crosshair, minimap and full map. |
 

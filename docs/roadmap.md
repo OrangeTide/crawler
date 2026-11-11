@@ -36,9 +36,10 @@ instanced props all exist, the polygon renderer is the view the game runs, and
 the raycaster has been retired, so the polygon path is the only renderer. It
 carries the PSX look (vertex snap and ordered dither), emissive-tile floor
 glows, and 3D props. Monsters and NPCs are front-facing billboard sprites in
-both the combat slots and the world view; map exits draw as floor-anchored
-billboards, replacing the old coloured floor pads; and surface maps open onto a
-gradient sky instead of a ceiling. The rasterizer's per-pixel hot path now runs
+both the combat slots and the world view; stair, cave and shaft exits draw as
+floor-anchored billboards (doors and ladders stand as 3D prop meshes), replacing
+the old coloured floor pads; and surface maps open onto a gradient sky instead
+of a ceiling. The rasterizer's per-pixel hot path now runs
 in fixed point too, so 0.19.0 is complete; only the per-vertex camera and edge
 math still floats, converting last on the theme E hardware track.
 
@@ -65,7 +66,12 @@ cathedral theme, the reused town temple, and the starter DUNGEON re-authored to
 the kit's scale. 0.28.0 then landed the outdoor half of theme G: a heightfield
 terrain for surface maps, from a baked heightmap asset and from the world seed,
 with the camera, billboards and props riding the relief and surface obstacles
-turned into walk-through foliage billboards. That leaves 0.20.0 as the open
+turned into walk-through foliage billboards. That same release bundled the
+carve-and-clad generation pipeline, the retirement of the raycaster, and a
+source-art pass that replaced the last image-generated exits and props: the
+doorway, ladder and barrel are now 3D meshes, the stair, cave and shaft exits
+draw Dungeon Crawl tiles, and a new crate joins the barrel as clutter the
+generators scatter through a level. That leaves 0.20.0 as the open
 low-numbered milestone, with themes E and F as the further forward work.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
@@ -347,7 +353,7 @@ multi-cell mesh instances rather than per-cell quads.
   props ride the relief, and surface obstacles became walk-through foliage
   billboards. The logical grid stays coarse, so collision and turn order are
   identical no matter how detailed the terrain renders.
-- [done] Formula-driven carve-and-clad generation. Today a modular map is
+- [done] (0.28.0) Formula-driven carve-and-clad generation. Today a modular map is
   authored by hand: the wall grid, the sectors, and discrete props each placed,
   sized and rotated by a person (the town door's yaw, for one). The cladding
   itself is already rule-driven (CladView merges aligned floor blocks, CladWalls
