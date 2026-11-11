@@ -139,8 +139,14 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   clears the live set and restores them, with the clock read back first so the
   hunt resumes with no backlog of catch-up steps. A save round-trip test covers
   it.
-- [partial] (0.20.0) Pursuit tuning: spawn cadence and caps, and letting a fled
-  fight keep the hunter on the trail instead of consuming it on contact.
+- [done] (0.20.0) Pursuit tuning: spawn cadence and the fled-fight carryover. A
+  hunter is no longer consumed on contact. The catch records a pending fight and
+  `ResolveHunterFightOutcome` settles it when combat hands back control: a win
+  finishes the hunter, while breaking off leaves it alive but set back past
+  `HUNTER_MIN_DIST`, so it takes up the trail again instead of vanishing. A
+  `HUNTER_COOLDOWN` paces the spawns, so an ended hunt (a kill, a shake on safe
+  ground, or a flight) leaves a breather before the next hunter appears. The
+  `MAX_HUNTERS` cap stays the tunable limit on how many hunt at once.
 - [gap] (0.20.0) Coarse overworld travel mode (design section 20): one cell per
   step for long journeys, built on the same router, with the time system
   advancing faster. The local cross-map auto-travel is the detailed mode only.

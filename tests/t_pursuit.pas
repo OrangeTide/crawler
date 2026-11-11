@@ -93,6 +93,12 @@ begin
   Check(not HunterOnMap('Z'), 'no hunter on an empty map');
   RemovePursuer(0);
   CheckEqI(ActivePursuerCount, 1, 'removing drops the count');
+  { reposition moves a hunter and keeps it active, for a flee setback. }
+  RepositionPursuer(1, 'B', 5, 6);
+  Check((Pursuers[1].map = 'B') and (Pursuers[1].x = 5) and (Pursuers[1].y = 6),
+    'reposition moves the hunter to the new map and tile');
+  Check(Pursuers[1].active, 'a repositioned hunter stays on the trail');
+  CheckEqI(ActivePursuerCount, 1, 'reposition does not change the count');
   PursuitClear;
   CheckEqI(ActivePursuerCount, 0, 'clear drops them all');
 

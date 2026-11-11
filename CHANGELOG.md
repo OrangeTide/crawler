@@ -10,6 +10,12 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Changed
+- Roaming hunters survive a fight the party breaks off. A hunter that catches
+  the party is no longer consumed on contact: a win finishes it, but fleeing
+  leaves it alive and set back a short way, so it picks up the trail again. A
+  cooldown now paces hunter spawns, so an ended hunt (a kill, safe ground, or a
+  flight) leaves a breather before the next one. New `pursuit.RepositionPursuer`
+  moves a hunter for the setback.
 - Lockpick-aware route planning. A route may now plan through a locked door when
   the party can pick it. `pathfind` gained a `canPick` flag threaded through
   `maproute`, and auto-travel passes `skillbook.PartyCanPickLocks` (true when an

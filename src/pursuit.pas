@@ -35,6 +35,9 @@ procedure PursuitReset;
 { Add a hunter and return its index. }
 function AddPursuer(monIdx: longint; const map: string; x, y: longint): longint;
 procedure RemovePursuer(idx: longint);
+{ Move a hunter to a new map and tile and keep it active, for a setback after
+  the party breaks off a fight rather than finishing the hunter. }
+procedure RepositionPursuer(idx: longint; const map: string; x, y: longint);
 { Drop every hunter, for example on reaching a safe hub. }
 procedure PursuitClear;
 function ActivePursuerCount: longint;
@@ -94,6 +97,15 @@ procedure RemovePursuer(idx: longint);
 begin
   if (idx >= 0) and (idx <= High(Pursuers)) then
     Pursuers[idx].active := false;
+end;
+
+procedure RepositionPursuer(idx: longint; const map: string; x, y: longint);
+begin
+  if (idx < 0) or (idx > High(Pursuers)) then exit;
+  Pursuers[idx].map := map;
+  Pursuers[idx].x := x;
+  Pursuers[idx].y := y;
+  Pursuers[idx].active := true;
 end;
 
 procedure PursuitClear;

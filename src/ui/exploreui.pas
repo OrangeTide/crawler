@@ -31,13 +31,16 @@ implementation
 uses
   sysutils, sdl2min, gfx, mapfmt, world, polyrender, hud, dialog,
   flags, gametime, party, rules, rng, items, encounters, monsters, audio,
-  gamestate, worldload, combatui, save, pathfind, maproute, pursuit,
-  overworldui, keymap, mappins, skilldb, skillbook;
+  gamestate, worldload, combatui, combatstate, save, pathfind, maproute,
+  pursuit, overworldui, keymap, mappins, skilldb, skillbook;
 
 const
   MAX_HUNTERS      = 1;    { at most this many roaming hunters at once }
   HUNTER_SPAWN_ODDS = 40;  { one-in-this chance per step in a dangerous area }
   HUNTER_MIN_DIST  = 6;    { a hunter spawns at least this far off, in tiles }
+  HUNTER_COOLDOWN  = 30;   { game minutes a hunt leaves clear before another
+                            hunter may pick up the trail, so an ended chase
+                            gives a breather }
 
 const
   MOUSE_YAW    = 0.0040;  { radians per mouse unit, free look }
@@ -216,16 +219,70 @@ begin
   StepToward(nx, ny);
 end;
 
+{ ---- roaming hunters ---- }
+
+var
+  pendingHunterFight: longint;   { pursuer now in a fight, resolved on return }
+  hunterReadyClock: longword;    { earliest clock a fresh hunter may spawn }
+
+function FindHunterTile(out tx, ty: longint): boolean;
+{** A reachable open tile at least HUNTER_MIN_DIST from the party, for a hunter
+  to spawn on or fall back to after the party breaks off. False if a few tries
+  turn up none. }
+var
+  tries: longint;
+begin
+  FindHunterTile := false;
+  for tries := 1 to 24 do begin
+    tx := Range(0, MapW - 1);
+    ty := Range(0, MapH - 1);
+    if TileAt(tx, ty) <> TILE_EMPTY then continue;
+    if Abs(tx - TileX) + Abs(ty - TileY) < HUNTER_MIN_DIST then continue;
+    if not PathExists(CurMap, TileX, TileY, tx, ty, true) then continue;
+    FindHunterTile := true;
+    exit;
+  end;
+end;
+
+procedure ResolveHunterFightOutcome;
+{** Settle a hunter fight once combat has handed control back to exploration.
+  A win finishes the hunter and ends the chase; breaking off leaves it alive
+  but set back a short way, so it takes up the trail again instead of vanishing
+  on contact. Either way a cooldown follows before the next hunter appears. }
+var
+  idx, tx, ty: longint;
+begin
+  if pendingHunterFight < 0 then exit;
+  idx := pendingHunterFight;
+  pendingHunterFight := -1;
+  if (idx < 0) or (idx > High(Pursuers)) then exit;
+  hunterReadyClock := ClockMin + HUNTER_COOLDOWN;
+  if Victory then begin
+    RemovePursuer(idx);
+    exit;
+  end;
+  if Fled then begin
+    if FindHunterTile(tx, ty) then begin
+      RepositionPursuer(idx, CurMapName, tx, ty);
+      saveMsg := 'YOU BREAK AWAY, BUT IT STILL HUNTS';
+      saveMsgT := 2.0;
+    end else
+      RemovePursuer(idx);   { nowhere to fall back to, so let it go }
+  end;
+end;
+
 function ResolvePursuitCatch(caughtBy: longint): boolean;
 {** Turn a pursuer that has caught the party into the fight it was chasing.
-  Returns true when a fight started, so the caller stops what it was doing. }
+  The hunter is not consumed here: ResolveHunterFightOutcome settles it once
+  the fight ends, so a party that flees stays hunted. Returns true when a fight
+  started, so the caller stops what it was doing. }
 var
   mon: longint;
 begin
   ResolvePursuitCatch := false;
   if caughtBy < 0 then exit;
   mon := Pursuers[caughtBy].mon;
-  RemovePursuer(caughtBy);
+  pendingHunterFight := caughtBy;
   CancelAutoTravel;
   saveMsg := 'A HUNTER CATCHES YOU!';
   saveMsgT := 2.0;
@@ -618,27 +675,23 @@ end;
 
 procedure TrySpawnHunter;
 {** Now and then in a dangerous area a monster picks up the party's trail
-  and starts hunting from a reachable tile some way off. }
+  and starts hunting from a reachable tile some way off. A cooldown paces the
+  spawns, so an ended hunt leaves a breather before the next one. }
 var
-  mon, tries, tx, ty, who: longint;
+  mon, tx, ty, who: longint;
 begin
   if EncTableEmpty(CurEncTable) then exit;        { safe ground, no hunters }
   if ActivePursuerCount >= MAX_HUNTERS then exit;
+  if ClockMin < hunterReadyClock then exit;       { still in the breather }
   if Range(1, HUNTER_SPAWN_ODDS) <> 1 then exit;
   if PartySkillRoll(SKE_MOVESILENT, who) then exit;  { a quiet party is not found }
   mon := PickAreaMonster;
   if mon < 0 then exit;
-  for tries := 1 to 24 do begin
-    tx := Range(0, MapW - 1);
-    ty := Range(0, MapH - 1);
-    if TileAt(tx, ty) <> TILE_EMPTY then continue;
-    if Abs(tx - TileX) + Abs(ty - TileY) < HUNTER_MIN_DIST then continue;
-    if not PathExists(CurMap, TileX, TileY, tx, ty, true) then continue;
-    AddPursuer(mon, CurMapName, tx, ty);
-    saveMsg := 'SOMETHING PICKS UP YOUR TRAIL';
-    saveMsgT := 2.0;
-    exit;
-  end;
+  if not FindHunterTile(tx, ty) then exit;
+  AddPursuer(mon, CurMapName, tx, ty);
+  hunterReadyClock := ClockMin + HUNTER_COOLDOWN;
+  saveMsg := 'SOMETHING PICKS UP YOUR TRAIL';
+  saveMsgT := 2.0;
 end;
 
 procedure BurnLight;
@@ -753,9 +806,10 @@ begin
   if ResolvePursuitCatch(PursuitTick(CurMapName, TileX, TileY)) then exit;
 
   { safe ground shakes off the hunt; dangerous ground may start a new one. }
-  if EncTableEmpty(CurEncTable) then
-    PursuitClear
-  else
+  if EncTableEmpty(CurEncTable) then begin
+    if ActivePursuerCount > 0 then hunterReadyClock := ClockMin + HUNTER_COOLDOWN;
+    PursuitClear;
+  end else
     TrySpawnHunter;
 
   { the older instant wandering-monster roll, elsewhere than safe areas. A
@@ -776,6 +830,7 @@ procedure ExploreUpdate(dt: double);
 var
   moveHeld: boolean;
 begin
+  ResolveHunterFightOutcome;   { settle a hunter fight the party just left }
   { the bound movement keys, with the arrows kept as fixed alternates for
     forward, back and turning so the old feel survives a rebind. }
   moveHeld := KeyDown(KeyBind[gaForward]) or KeyDown(SDL_SCANCODE_UP)
@@ -880,5 +935,8 @@ begin
     DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));
   DrawCursor;
 end;
+
+initialization
+  pendingHunterFight := -1;   { no hunter fight is pending at startup }
 
 end.
