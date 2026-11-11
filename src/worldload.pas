@@ -224,6 +224,13 @@ begin
   if isDyn then
     MapStateSetDynamic(name, ver, seed);
   MapStateRestore(name);     { bring back fog and doors if visited before }
+  { bound the snapshot store and warn before the resident set nears the
+    2 MB budget; the vast seeded world makes this the first real pressure. }
+  MapStateTrim(name);
+  if MapStateOverBudget then begin
+    saveMsg := 'MAIN RAM NEAR BUDGET';
+    saveMsgT := 2.0;
+  end;
   LoadMapLump := true;
 end;
 

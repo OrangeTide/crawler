@@ -290,6 +290,7 @@ begin
       for j := 0 to cells - 1 do Snapshots[i].seen[j] := fs.ReadByte;
       for j := 0 to cells - 1 do Snapshots[i].doors[j] := fs.ReadByte;
     end;
+    MapStateReindexTouch;   { restore an LRU order; touch is not serialised }
 
     { roaming hunters: clear any live ones, then restore the saved chase.
       read the fields in order into locals; argument evaluation order is

@@ -9,6 +9,14 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Added
+- A resident-memory bound on the visited-map snapshot store, so the vast seeded
+  world cannot grow it without limit against the PlayStation 2 MB budget. An LRU
+  drops the least-recently-visited maps to keep the fog and door store under a
+  cap, and the map loader warns when the estimated resident set nears the budget.
+  A dropped map loses only its remembered fog and open doors, which regenerate
+  from the seed on return.
+
 ### Changed
 - Roaming hunters survive a fight the party breaks off. A hunter that catches
   the party is no longer consumed on contact: a win finishes it, but fleeing

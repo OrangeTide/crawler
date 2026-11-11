@@ -147,9 +147,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   `HUNTER_COOLDOWN` paces the spawns, so an ended hunt (a kill, a shake on safe
   ground, or a flight) leaves a breather before the next hunter appears. The
   `MAX_HUNTERS` cap stays the tunable limit on how many hunt at once.
-- [gap] (0.20.0) Coarse overworld travel mode (design section 20): one cell per
-  step for long journeys, built on the same router, with the time system
-  advancing faster. The local cross-map auto-travel is the detailed mode only.
+- [done] (0.20.0) Coarse overworld travel mode (design section 20). `overworldui`
+  is a map-scale mode reached from the open surface: a top-down biome grid where
+  one key press moves one cell, the time system advances faster
+  (`OVERWORLD_STEP_MIN` per cell), and descending commits the journey and clears
+  local hunters. It is a biome-grid walk rather than the portal router, which
+  plans over detailed local maps; the cross-map auto-travel stays the detailed
+  mode. Ocean cells block until a boat exists.
 - [gap] (0.20.0) Broader omniscient AI uses now that the router exists: patrols,
   fleeing to reinforcements, guards that converge on an alarm.
 
@@ -230,11 +234,17 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   pixel, and convert last when a real DOS or PS1 build needs the FPU gone.
 - [gap] (0.31.0) The renderer backend seam for DOS mode 13h and the PS1 GPU,
   with the Linux software rasterizer as one backend behind it.
-- [gap] (0.20.0) Resident-memory instrumentation and caps: the overworld cell
-  cache and the visited-snapshot store are the main risks against the PS1 2 MB
-  budget (design section 23). Add an LRU and a budget warning before they grow.
-  Lands with 0.20.0, since the coarse overworld travel is the first real
-  pressure on the budget.
+- [done] (0.20.0) Resident-memory instrumentation and caps (design section 23).
+  The visited-snapshot store is the live growth risk: the seeded world is vast,
+  so `mapstate` would hold a fog and door snapshot per visited map without limit.
+  An LRU (`MapStateTrim`) now drops the least-recently-visited maps to keep the
+  store under `SNAPSHOT_CAP_BYTES`, sized so the estimated resident set
+  (`MapStateResidentBytes`, a baseline plus the store) stays under the 2 MB
+  budget, and the map loader warns once the estimate passes the warn line. A
+  dropped map loses only its remembered fog and open doors, which regenerate from
+  the seed on return. The current-plus-four-neighbor cell cache from the design
+  is not built, since seamless edge crossings do not exist yet and nothing holds
+  more than one map resident.
 - [done] (0.31.0) Confirm every third-party asset license before a release. All
   three Batareya packs are confirmed against their itch.io pages: the portraits
   and the warrior skill icons are free for personal and commercial use, and the
