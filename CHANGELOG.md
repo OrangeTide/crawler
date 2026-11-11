@@ -170,6 +170,10 @@ whose development history is summarized in docs/roadmap.md.
   did, so a ladder reads as real geometry with rungs and scene lighting. The
   generated `exit_ladder` billboard is dropped. CREDITS records both sources;
   the ladder model is freeware (free to use, optional donation).
+- Replaced the image-generated barrel prop with a source mesh. The barrel is now
+  the CC0 BakaFoxArt Wooden Barrel model (its visual mesh isolated from the kit's
+  FBX, the bundled collision box dropped), with a CREDITS entry. This clears the
+  last image-generated exit or prop from the game.
 
 ### Removed
 - Retired the raycaster. The PSX-style polygon renderer has been the default

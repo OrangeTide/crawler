@@ -178,17 +178,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   from another project. The DOS original's hard limit was a tiny palette; our
   content is mostly 32 colours or fewer, so that constraint is not a real
   blocker.
-- [partial] (0.19.0) Remove the AI-generated exit and prop art. The exits are
-  done: the doorway and the ladder are 3D prop meshes (content/models/doorway.*
-  from the CC0 loafbrr Low Poly Doors kit, content/models/ladder.* from the
-  purchased trillobit3s Ladder kit), and the stair, cave and shaft exits now draw
-  public-domain Dungeon Crawl feature tiles, all with CREDITS entries. The one
-  prop still generated and looking poor is the barrel model
-  (content/models/barrel.*), which carries no CREDITS entry, unlike the source
-  art, which always does. Replace it with a CC0 source mesh (the loafbrr kits
-  have barrels). Generate no replacement art; see the cross-cutting constraint
-  below. The trillobit3s ladder is freeware (free to use, optional donation),
-  recorded in CREDITS.
+- [done] (0.19.0) Remove the AI-generated exit and prop art. Every exit and prop
+  now uses source art with a CREDITS entry. The doorway and the ladder are 3D
+  prop meshes (content/models/doorway.* from the CC0 loafbrr Low Poly Doors kit,
+  content/models/ladder.* from the trillobit3s Ladder kit, freeware with an
+  optional donation), the stair, cave and shaft exits draw public-domain Dungeon
+  Crawl feature tiles, and the barrel is the CC0 BakaFoxArt Wooden Barrel mesh
+  (content/models/barrel.*). No image-generated exit or prop art remains.
 - [future] Replace the retro 8-bit monospace font with a nicer proportional
   one. TTF is not required and a baked font atlas is likely preferable, so the
   glyphs suit PS1 rendering later (the same pre-baked, fixed-palette shape the
