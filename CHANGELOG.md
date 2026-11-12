@@ -71,6 +71,14 @@ whose development history is summarized in docs/roadmap.md.
   from the seed on return.
 
 ### Changed
+- Combat holds its state in a single fight instance, groundwork for the
+  multiplayer design's map-located battles (design section 24). The per-fight
+  state that `combatstate` kept as unit globals, and the turn queue and pacing
+  that `combat` kept as its own private globals, now live in one `TCombat`
+  record reached everywhere through `Active^`. Single player runs exactly one
+  fight, so play is unchanged; the gain is that the fight is now addressable,
+  which the later multi-instance work needs. The cross-fight options (criticals
+  and combat speed) stay separate, since they persist across fights.
 - Roaming hunters survive a fight the party breaks off. A hunter that catches
   the party is no longer consumed on contact: a win finishes it, but fleeing
   leaves it alive and set back a short way, so it picks up the trail again. A
