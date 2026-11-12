@@ -1114,13 +1114,27 @@ client-side prediction. A high-latency WAN link is fine to play on, though it
 can make that player a poor party leader, so players self-select: a laggy member
 need not lead, and anyone can prefer a shard closer to them.
 
-### Open questions
+### Single player as a one-player shard
 
-Design gaps to settle before the wire format:
+Single player and multiplayer are one code path, not two. Single player is a
+one-player shard: the same authoritative simulation, the same combat instances,
+the same who-controls-whom and persistence rules, running in process with the
+UDP backend compiled out. The whole design above already leans this way. The AI
+is the one the single-player engine runs, the checkpoint is the single-player
+save extended, and the PS1 build is exactly this, a one-player shard with the
+transport absent. Only two things differ between single and multiplayer: how many
+players are connected, and whether the datagram backend is built in. The
+authority seam stays the same, with a player submitting actions to the host and
+the host arbitrating. In single player that host is in process and the channel is
+a direct loopback, so there is no socket, no beacon, and no serialization on the
+hot path.
 
-- **Single-player unification.** Whether single-player becomes a one-player
-  shard with the transport compiled out, giving one code path, or stays
-  separate.
+The unification is incremental and single-player first, not a rewrite behind a
+flag. The server-authority and combat-instance refactors land in the
+single-player engine first and keep it working the whole way, checked by the
+headless shot tool and the test programs. Multiplayer then adds the datagram
+backend and real connections on top. No separate multiplayer combat system is
+ever written, which is the point of folding the two together.
 
 ## 25. The PSX-style polygon renderer (in progress)
 

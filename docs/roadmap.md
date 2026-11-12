@@ -345,8 +345,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   single player, each player only their own characters in multiplayer); hirelings
   and other NPCs operate their own AI, and the server holds authority over all of
   it, running every NPC and disconnected character and arbitrating what players
-  submit. Section 24 holds the one remaining open design point: whether single
-  player folds into a one-player shard.
+  submit. Single player and multiplayer are one code path: single player is a
+  one-player shard running the same simulation in process with the UDP backend
+  compiled out, which is also the PS1 build. The unification is incremental and
+  single-player first, with the authority and combat-instance refactors landing
+  in the single-player engine before the transport goes on top, so no separate
+  multiplayer combat system is written. Section 24's design points are now all
+  settled.
 
 ### F. World content and the critical path (design section 17)
 
