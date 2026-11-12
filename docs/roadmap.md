@@ -340,11 +340,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   allowed; PvP-only items or skills are a reserved balance lever. In PvP, battles
   are auto-accepted outside a one-step post-battle cooldown that lets a winner
   hold ground. A disconnected character is decoupled from its connection and
-  persists as an attackable, AI-run combatant until it times out. The server
-  holds AI authority over every non-player actor (monsters, hirelings,
-  disconnected characters); an actor's owner may set combat orders the server
-  honors, but the server executes. Section 24 holds the one remaining open design
-  point: whether single player folds into a one-player shard.
+  persists as an attackable, AI-run combatant until it times out. Player
+  characters are controlled by players (one player drives the whole party in
+  single player, each player only their own characters in multiplayer); hirelings
+  and other NPCs operate their own AI, and the server holds authority over all of
+  it, running every NPC and disconnected character and arbitrating what players
+  submit. Section 24 holds the one remaining open design point: whether single
+  player folds into a one-player shard.
 
 ### F. World content and the critical path (design section 17)
 

@@ -1069,23 +1069,23 @@ returns or it times out. The tactics will be configurable later. For now the AI
 is defensive: it makes simple attacks, does not consume items, and tries to move
 to the back row or take a defensive stance.
 
-### AI authority
+### Who controls whom
 
-The server holds AI authority. Every actor that is not a connected player's own
-character is run by the host: monsters, hired NPCs and hirelings, and
-disconnected characters. Server authority forces this. A client cannot be trusted
-to run an actor that touches shared state, both to stop it acting on information
-its player should not have and to keep one combat code path, the same AI the
-single-player engine already runs, now on the host rather than on the leader's
-machine.
+The control line is the player character against everything else. A player
+character is controlled by a player, who submits its turn. Hirelings and other
+NPCs are not player-controlled: they operate their own AI. So does every monster.
+In single player one player controls every player character in the party. In
+multiplayer each player controls only their own player characters, while the
+party's hirelings and NPCs run their AI as always.
 
-Authority is not the same as direction. A hireling's owner, not the party leader,
-may set its combat orders: a tactics preset, or a simple directive such as focus
-a target, defend, or conserve items. The server honors the order when it chooses
-the actor's action, and always executes and arbitrates the turn itself. Absent an
-order the actor uses the default combat AI, the same defensive fallback a
-disconnected character takes. The order set and the defaults are tunable content
-for later.
+The server holds authority over all of it. It runs the AI for monsters,
+hirelings, NPCs, and any disconnected player character, and it validates and
+arbitrates the actions a player submits for their own characters. A client cannot
+be trusted to run an actor that touches shared state, both to stop it acting on
+information its player should not have and to keep one combat code path, the same
+AI the single-player engine already runs, now on the host. A disconnected player
+character falls to the default defensive AI until its player returns or it times
+out; the AI behavior is tunable content for later.
 
 ### Persistence
 
