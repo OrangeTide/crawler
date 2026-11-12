@@ -992,11 +992,51 @@ a party on it.
 
 As a principle, a player is never pulled into a PvP fight against their will.
 Consent is a per-session flag: for a session a player is either PvP or PvE-only.
-A PvE-only player is excluded from many of the optional mechanics and cannot take
-part in some events. The exact set of excluded mechanics and events is still to
-define. PvE and PvP players may render differently to each other. A candidate is
-to draw a PvE-only player as only a silhouette or a translucent sprite in another
-player's first-person view.
+PvE and PvP players may render differently to each other. A candidate is to draw a
+PvE-only player as only a silhouette or a translucent sprite in another player's
+first-person view.
+
+A PvE-only player is in a safe mode: their party cannot damage or be damaged by
+another player's party, and cannot gain or lose anything through player conflict.
+The exclusions all follow from that principle. PvE removes player conflict, not
+risk, so everything cooperative stays open.
+
+Excluded mechanics:
+
+- PvP combat itself. A PvE party cannot initiate or receive attacks from another
+  player's party.
+- Joining a contested battle. The join-a-side action is limited to monster-only
+  battles. Once a battle has a player-versus-player side, a PvE party can neither
+  join a side nor be targeted, so monster-plus-party against party battles are
+  closed to it.
+- The post-battle ground-hold cooldown. That one-step territory claim is a
+  PvP-combat artifact and does not apply to a PvE party, since nothing can
+  contest its tile.
+- PvP spoils. No looting a defeated player party, no bounties or contracts placed
+  on or collected from players, and no reward whose source is beating another
+  player.
+- Force-contested objectives. Where a scarce objective resolves by fighting for
+  it (a claimable node, a boss tag decided by combat), a PvE party cannot contest
+  and yields instead.
+
+Excluded events are those whose win condition is defeating other players: open
+sieges and territory control, arenas, tournaments and duels, faction-war
+objectives, and player bounty hunts. PvE players keep all cooperative content:
+world and raid bosses that are monster fights, exploration, the critical path to
+the cities, the town economy and stash loop, and trade.
+
+Three rules fix the edges of the safe mode. A PvE player killed by monsters takes
+the normal death penalty and loot drop, the same as single player, because PvE
+removes player conflict and not PvE stakes. PvP and PvE players cannot share a
+party, but they can still trade and use a shared market, since trade is not
+conflict and only party membership is flag-gated. Credit for a cooperative
+objective such as a world boss is shared among all who took part, so a PvE player
+is never excluded from PvE bosses; only force-contested objectives fall under the
+exclusion above.
+
+Some items, skills, or magic may be PvP-only, usable or meaningful only to a PvP
+player. None are chosen yet. This is a reserved balance lever, the classic way to
+keep PvP and PvE fair on one server, and the specific content comes later.
 
 The flag is a party property as well, and a party may not mix the two. A party
 carries one PvE or PvP flag, so a player whose flag differs cannot belong to it.

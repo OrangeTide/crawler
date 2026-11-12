@@ -334,9 +334,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   connected player can export a copy to re-import into a local game or hand to an
   admin, but there is no live transfer between shards. PvP is consent-based: a
   per-session PvP or PvE-only flag that a party also carries and may not mix, so
-  changing it ejects you from the party like a leave. In PvP, battles are
-  auto-accepted outside a one-step post-battle cooldown that lets a winner hold
-  ground. A disconnected character is decoupled from its connection and persists
+  changing it ejects you from the party like a leave. A PvE-only player runs in a
+  safe mode that bars player conflict and its spoils but keeps all cooperative
+  content, with normal monster-death penalties and cross-flag trade still
+  allowed; PvP-only items or skills are a reserved balance lever. In PvP, battles
+  are auto-accepted outside a one-step post-battle cooldown that lets a winner
+  hold ground. A disconnected character is decoupled from its connection and
+  persists
   as an attackable, AI-run combatant until it times out. Section 24 holds the
   remaining open design points: AI authority and whether single player folds into
   a one-player shard.
