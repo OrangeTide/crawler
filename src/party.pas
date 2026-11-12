@@ -394,48 +394,26 @@ begin
   GiveClassKit(c);
 end;
 
-procedure GiveClassKit(var c: TCharacter);
+procedure ApplyGear(var c: TCharacter; const g: TGearDef);
+var j: longint;
 begin
-  { Everyone carries a torch. The kit archetype on the class drives the
-    rest, so a new class needs only a table row, not code. }
-  SetEquip(c, eqLight, 'TORCH');
-  case ClassDefs[c.klass].kit of
-    KIT_SOLDIER: begin
-      SetEquip(c, eqMain, 'SWORD');
-      SetEquip(c, eqOff, 'SHIELD');
-      SetEquip(c, eqArmor, 'MARMOR');
-    end;
-    KIT_HEAVY: begin
-      SetEquip(c, eqMain, 'GREATAXE');
-      SetEquip(c, eqArmor, 'HIDE');
-      PackAdd(c, 'TROPHY', 1);
-    end;
-    KIT_ARCHER: begin
-      SetEquip(c, eqMain, 'BOW');
-      SetEquip(c, eqArmor, 'LARMOR');
-      PackAdd(c, 'SWORD', 1);
-      PackAdd(c, 'WOODCRFT', 1);
-    end;
-    KIT_PRIEST: begin
-      SetEquip(c, eqMain, 'SILVER');
-      SetEquip(c, eqOff, 'SHIELD');
-      SetEquip(c, eqArmor, 'MARMOR');
-      PackAdd(c, 'HOLYSYM', 1);
-      PackAdd(c, 'HOLLY', 1);
-    end;
-    KIT_THIEF: begin
-      SetEquip(c, eqMain, 'DAGGER');
-      SetEquip(c, eqArmor, 'LARMOR');
-      PackAdd(c, 'THVTOOLS', 1);
-    end;
-    KIT_MAGE: begin
-      SetEquip(c, eqMain, 'STAFF');
-      PackAdd(c, 'SPELLBK', 1);
-    end;
-  end;
-  PackAdd(c, 'POTION', 1);
-  PackAdd(c, 'RATION', 4);   { trail food, spent resting }
-  PackAdd(c, 'TORCH', 3);    { spare torches, lit as the light burns out }
+  if g.main <> '' then SetEquip(c, eqMain, g.main);
+  if g.off <> '' then SetEquip(c, eqOff, g.off);
+  if g.armor <> '' then SetEquip(c, eqArmor, g.armor);
+  if g.light <> '' then SetEquip(c, eqLight, g.light);
+  for j := 0 to g.packN - 1 do PackAdd(c, g.pack[j].id, g.pack[j].qty);
+end;
+
+procedure GiveClassKit(var c: TCharacter);
+var i: longint;
+begin
+  { The common loadout goes to everyone, then the class kit archetype adds its
+    own. Both come from content/gear.txt, so a new class or a loadout tweak
+    needs only a table edit, not code. }
+  for i := 0 to High(GearDefs) do
+    if GearDefs[i].kit = GEAR_COMMON then ApplyGear(c, GearDefs[i]);
+  for i := 0 to High(GearDefs) do
+    if GearDefs[i].kit = ClassDefs[c.klass].kit then ApplyGear(c, GearDefs[i]);
 end;
 
 procedure TryLevelUp(var c: TCharacter);

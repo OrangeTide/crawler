@@ -1,0 +1,17 @@
+# Starting gear table. The equipment a new character begins with, keyed by the
+# class kit archetype (the KIT column in classes.txt). The 'common' row is
+# given to every character; a 'kit' row adds that archetype's own loadout.
+#
+#   common          LIGHT            [item:count ...]
+#   kit  ARCHETYPE  MAIN OFF ARMOR   [item:count ...]
+#
+# ARCHETYPE is soldier heavy archer priest thief mage. Use '-' for an empty
+# equip slot. A pack entry is an item id and a count joined by a colon. Item
+# ids come from items.txt.
+common          TORCH             POTION:1 RATION:4 TORCH:3
+kit soldier     SWORD    SHIELD MARMOR
+kit heavy       GREATAXE -      HIDE     TROPHY:1
+kit archer      BOW      -      LARMOR   SWORD:1 WOODCRFT:1
+kit priest      SILVER   SHIELD MARMOR   HOLYSYM:1 HOLLY:1
+kit thief       DAGGER   -      LARMOR   THVTOOLS:1
+kit mage        STAFF    -      -        SPELLBK:1

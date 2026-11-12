@@ -9,6 +9,14 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Changed
+- Starting equipment is data-driven. A new character's gear, the equipped
+  weapon, offhand, armor and light plus the starting pack, now comes from a
+  `content/gear.txt` table keyed by the class kit archetype, with a common row
+  given to every character. It replaces the hardcoded `case` in `GiveClassKit`,
+  so a loadout tweak or a new kit is a table edit, not code. Baked into a new
+  `GEAR` lump; `t_gear` pins the archetype loadouts.
+
 ## [0.29.1] - 2026-11-12
 
 ### Fixed

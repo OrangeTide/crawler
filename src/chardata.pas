@@ -35,6 +35,10 @@ const
   SPEC_MAGIC = $43455053;  { 'SPEC' }
   CLAS_MAGIC = $53414C43;  { 'CLAS' }
   BKGD_MAGIC = $44474B42;  { 'BKGD' }
+  GEAR_MAGIC = $52414547;  { 'GEAR' }
+
+  GEAR_MAXPACK = 8;        { max pack entries in one gear row }
+  GEAR_COMMON  = 255;      { the row given to every character }
 
 type
   TSpeciesDef = record
@@ -63,14 +67,33 @@ type
     gold: string[16];    { starting-coin dice expression, e.g. 10*3d6 }
   end;
 
+  TGearItem = record
+    id: string[12];       { item id from items.txt }
+    qty: byte;
+  end;
+
+  { Starting equipment for one kit archetype, or the common set everyone gets.
+    An equip id is empty when that slot starts bare. }
+  TGearDef = record
+    kit: byte;            { KIT_* archetype, or GEAR_COMMON }
+    main: string[12];
+    off: string[12];
+    armor: string[12];
+    light: string[12];
+    pack: array[0 .. GEAR_MAXPACK - 1] of TGearItem;
+    packN: byte;
+  end;
+
 var
   SpeciesDefs: array of TSpeciesDef;
   ClassDefs: array of TClassDef;
   BackgroundDefs: array of TBackgroundDef;
+  GearDefs: array of TGearDef;
 
 function EncodeSpecies(const defs: array of TSpeciesDef): TByteArray;
 function EncodeClasses(const defs: array of TClassDef): TByteArray;
 function EncodeBackgrounds(const defs: array of TBackgroundDef): TByteArray;
+function EncodeGear(const defs: array of TGearDef): TByteArray;
 function LoadCharData(const p: TPak): boolean;
 function ClassIndex(const id: string): longint;
 function SpeciesIndex(const id: string): longint;
@@ -156,6 +179,27 @@ begin
   EncodeBackgrounds := a;
 end;
 
+function EncodeGear(const defs: array of TGearDef): TByteArray;
+var a: TByteArray; n, i, k: longint;
+begin
+  SetLength(a, 0); n := 0;
+  PutHdr(a, n, GEAR_MAGIC, Length(defs));
+  for i := 0 to High(defs) do begin
+    PutB(a, n, defs[i].kit);
+    PutName(a, n, defs[i].main, 12);
+    PutName(a, n, defs[i].off, 12);
+    PutName(a, n, defs[i].armor, 12);
+    PutName(a, n, defs[i].light, 12);
+    PutB(a, n, defs[i].packN);
+    for k := 0 to defs[i].packN - 1 do begin
+      PutName(a, n, defs[i].pack[k].id, 12);
+      PutB(a, n, defs[i].pack[k].qty);
+    end;
+  end;
+  SetLength(a, n);
+  EncodeGear := a;
+end;
+
 { ---- readers ---- }
 
 function RName(const a: TByteArray; var p: longint; len: longint): string;
@@ -234,9 +278,34 @@ begin
   LoadBackgrounds := true;
 end;
 
+function LoadGear(const p: TPak): boolean;
+var blob: TByteArray; count, pos, i, k: longint;
+begin
+  LoadGear := false;
+  if not PakGet(p, 'GEAR', blob) then exit;
+  if not ChkHdr(blob, GEAR_MAGIC, count, pos) then exit;
+  SetLength(GearDefs, count);
+  for i := 0 to count - 1 do begin
+    GearDefs[i].kit := blob[pos]; inc(pos);
+    GearDefs[i].main := RName(blob, pos, 12);
+    GearDefs[i].off := RName(blob, pos, 12);
+    GearDefs[i].armor := RName(blob, pos, 12);
+    GearDefs[i].light := RName(blob, pos, 12);
+    GearDefs[i].packN := blob[pos]; inc(pos);
+    for k := 0 to GearDefs[i].packN - 1 do begin
+      if k <= High(GearDefs[i].pack) then begin
+        GearDefs[i].pack[k].id := RName(blob, pos, 12);
+        GearDefs[i].pack[k].qty := blob[pos]; inc(pos);
+      end;
+    end;
+  end;
+  LoadGear := true;
+end;
+
 function LoadCharData(const p: TPak): boolean;
 begin
-  LoadCharData := LoadSpecies(p) and LoadClasses(p) and LoadBackgrounds(p);
+  LoadCharData := LoadSpecies(p) and LoadClasses(p) and LoadBackgrounds(p)
+    and LoadGear(p);
 end;
 
 function ClassIndex(const id: string): longint;

@@ -1,14 +1,17 @@
 unit chartext;
 
-{** Parsers for the species, class and background text tables.
+{** Parsers for the species, class, background and gear text tables.
 
   species ID "Name" STR DEX CON INT WIS CHA FLAGS XP
   class   ID "Name" TRACK HITDIE PRIME KIT
   bg      ID "Name" "skill or situation"
+  common       LIGHT [item:count ...]
+  kit ARCHETYPE MAIN OFF ARMOR [item:count ...]
 
   TRACK is warrior/priest/specialist/mage, PRIME is an ability name,
-  KIT is soldier/heavy/archer/priest/thief/mage. Blank lines and lines
-  starting with '#' are ignored. }
+  KIT and ARCHETYPE are soldier/heavy/archer/priest/thief/mage. In a gear
+  row, '-' leaves an equip slot bare. Blank lines and lines starting with
+  '#' are ignored. }
 
 {$mode objfpc}{$H+}
 
@@ -22,6 +25,8 @@ function ParseSpecies(const fn: string; out defs: array of TSpeciesDef;
 function ParseClasses(const fn: string; out defs: array of TClassDef;
   out count: longint; out err: string): boolean;
 function ParseBackgrounds(const fn: string; out defs: array of TBackgroundDef;
+  out count: longint; out err: string): boolean;
+function ParseGear(const fn: string; out defs: array of TGearDef;
   out count: longint; out err: string): boolean;
 
 implementation
@@ -230,6 +235,72 @@ begin
     lines.Free;
   end;
   ParseBackgrounds := true;
+end;
+
+{ A dash marks an empty equip slot; map it to the empty string. }
+function Deq(const s: string): string;
+begin
+  if s = '-' then Deq := '' else Deq := s;
+end;
+
+function ParseGear(const fn: string; out defs: array of TGearDef;
+  out count: longint; out err: string): boolean;
+var
+  lines: TStringList;
+  li, n, ti, kc, cp: longint;
+  tok: array[0 .. 15] of string;
+  line: string;
+  d: TGearDef;
+  firstPack: longint;
+begin
+  ParseGear := false; err := ''; count := 0;
+  lines := OpenLines(fn);
+  try
+    for li := 0 to lines.Count - 1 do begin
+      line := Trim(lines[li]);
+      if (line = '') or (line[1] = '#') then continue;
+      QTokenize(line, tok, n);
+      d.kit := GEAR_COMMON;
+      d.main := ''; d.off := ''; d.armor := ''; d.light := ''; d.packN := 0;
+      if tok[0] = 'common' then begin
+        if n < 2 then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad common row'; exit;
+        end;
+        d.light := Deq(tok[1]);
+        firstPack := 2;
+      end else if tok[0] = 'kit' then begin
+        if n < 5 then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad gear row'; exit;
+        end;
+        kc := KitCode(tok[1]);
+        if kc < 0 then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad kit ' + tok[1]; exit;
+        end;
+        d.kit := kc;
+        d.main := Deq(tok[2]); d.off := Deq(tok[3]); d.armor := Deq(tok[4]);
+        firstPack := 5;
+      end else begin
+        err := 'line ' + IntToStr(li + 1) + ': bad gear row'; exit;
+      end;
+      for ti := firstPack to n - 1 do begin
+        if d.packN > High(d.pack) then begin
+          err := 'line ' + IntToStr(li + 1) + ': too many pack items'; exit;
+        end;
+        cp := Pos(':', tok[ti]);
+        if cp <= 0 then begin
+          err := 'line ' + IntToStr(li + 1) + ': bad pack item ' + tok[ti]; exit;
+        end;
+        d.pack[d.packN].id := Copy(tok[ti], 1, cp - 1);
+        d.pack[d.packN].qty := StrToInt(Copy(tok[ti], cp + 1, Length(tok[ti]) - cp));
+        inc(d.packN);
+      end;
+      if count > High(defs) then begin err := 'too many gear rows'; exit; end;
+      defs[count] := d; inc(count);
+    end;
+  finally
+    lines.Free;
+  end;
+  ParseGear := true;
 end;
 
 end.

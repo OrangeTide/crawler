@@ -780,7 +780,9 @@ rank capacity by creature size, porting the last hardcoded party and class data
 to content files (which the data-driven constraint demands), the optional
 prepared-spell subset and more combat-statted spells, the fuller quest log now
 that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg
-sprite-format evaluation. Independent of the renderer and map threads.
+sprite-format evaluation. Independent of the renderer and map threads. Started:
+starting equipment is now a `content/gear.txt` table keyed by the class kit
+archetype, replacing the hardcoded loadouts in `GiveClassKit`.
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 

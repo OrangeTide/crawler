@@ -158,6 +158,22 @@ begin
   writeln('  backgrounds (', n, ') from ', fn);
 end;
 
+procedure AddGear(const fn: string);
+var
+  defs: array[0 .. 15] of TGearDef;
+  dyn: array of TGearDef;
+  n, k: longint;
+  err: string;
+begin
+  if not ParseGear(fn, defs, n, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  SetLength(dyn, n);
+  for k := 0 to n - 1 do dyn[k] := defs[k];
+  PakWAdd(w, 'GEAR', EncodeGear(dyn));
+  writeln('  gear (', n, ') from ', fn);
+end;
+
 procedure AddDialogs(const fn: string);
 var
   cs: array[0 .. 127] of TConversation;
@@ -471,6 +487,8 @@ begin
       AddClasses(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'backgrounds' then begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'gear' then begin
+      AddGear(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'spells' then begin
