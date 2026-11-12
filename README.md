@@ -1,10 +1,12 @@
 # Cities of the Sunless Depths
 
 A first person dungeon crawler written in Free Pascal (OBJFPC mode) with a
-PSX-style textured polygon renderer. The build is named `crawler`. It renders at 320x240 into a software framebuffer
-and upscales with nearest-neighbour filtering for a crisp retro look. The
-camera movement mirrors the step-and-turn feel of the old MS-DOS dungeons such
-as Realms of Arkania: Shadows over Riva, while keeping smooth free movement.
+PSX-style textured polygon renderer. The build is named `crawler`. It renders at
+320x240 and upscales with nearest-neighbour filtering for a crisp retro look. A
+software rasterizer is the default backend; an OpenGL ES 2.0 backend draws the
+same scene on the GPU through a 320x240 offscreen target. The camera movement
+mirrors the step-and-turn feel of the old MS-DOS dungeons such as Realms of
+Arkania: Shadows over Riva, while keeping smooth free movement.
 
 The engine is renderer and content agnostic. The near-term targets are x86-64
 and aarch64 Linux via OpenGL, with the PlayStation 1 as the long-term goal the
@@ -62,6 +64,14 @@ spells and bows strike over them.
   stays straight at a grazing angle, the way the PlayStation tessellated its
   surfaces. The dither, vertex snap and face subdivision are per-target knobs,
   dense on the desktop and coarse on the hardware targets.
+- An OpenGL ES 2.0 backend that draws the explore scene on the GPU: the same
+  grid, kit cladding, props, portal meshes, billboards, terrain, sky, floor
+  glow and multi-material pieces, rendered through a 320x240 offscreen target
+  upscaled nearest, with the vertex snap and ordered dither carried in the
+  shaders and the 2D HUD composited over it. It shares the software renderer's
+  projection and content, so the two agree in idiom without matching pixel for
+  pixel. The GL context is preferred when available and falls back to the
+  software present path otherwise (`CRAWLER_GL=0` forces the fallback).
 - Turn-based grid movement: step tile by tile and turn in 90 degree steps, each
   tweened so the motion stays smooth. Holding the right mouse button free-looks
   anywhere; stepping or turning realigns the view. A cursor allows clicking the
@@ -195,6 +205,12 @@ the tests in `tests/t_*.pas`, so new files are picked up without editing it.
 The same `make` works on Linux, Windows and macOS; each host compiles for
 itself.
 
+The present backend prefers an OpenGL ES 2.0 context and falls back to the SDL
+2D renderer when none is available. Set `CRAWLER_GL=0` to force the software
+present path. The GPU draws the explore scene directly when `CRAWLER_GL3D=1`;
+without it, the scene is rasterized in software and the GPU only presents the
+framebuffer.
+
 The program is relocatable. It finds `game.pak` next to its own executable
 (resolved through the real binary path, so a launch by name on the PATH or
 through a symlink still works), and it falls back to a macOS `.app` bundle's
@@ -232,8 +248,10 @@ The platform layer and core:
 
 | File | Role |
 |------|------|
-| `crawler.lpr` | Platform layer: SDL setup, window, frame loop, framebuffer upload. |
+| `crawler.lpr` | Platform layer: SDL setup, window, frame loop, present. |
 | `src/sdl2min.pas` | Minimal runtime binding to the SDL2 shared library. |
+| `src/video.pas` | Present backend: prefers an OpenGL ES context, falls back to the SDL 2D renderer. |
+| `src/gles2.pas` | Runtime OpenGL ES 2.0 binding, resolved through the SDL GL context. |
 | `src/xmpmin.pas` | Minimal libxmp binding, loaded at runtime for module music. |
 | `src/apppaths.pas` | Relocatable asset search and the per-user save directory. |
 | `src/gfx.pas` | Framebuffer, drawing primitives and the bitmap font. |
@@ -257,7 +275,8 @@ Rendering:
 | `src/terrain.pas` | Outdoor terrain heightfield layer, drawn as relief on surface maps. |
 | `src/models.pas` | Registry of baked meshes the polygon renderer instances. |
 | `src/roomdb.pas` | A hand-placed modular-tile room: the theme G pre-format proof. |
-| `src/polyrender.pas` | Draws the tile grid as textured polygons via the rasterizer. |
+| `src/polyrender.pas` | Draws the tile grid as textured polygons, via the rasterizer or the GPU backend. |
+| `src/glrender.pas` | OpenGL ES backend for the explore scene: FBO target, dither and vertex-snap shaders, mesh, quad, sprite, glow and sky draws. |
 | `src/clad.pas` | Cladding pass: draws a tileset's sectors from its modular kit meshes at native scale. |
 | `src/tilekit.pas` / `src/kittext.pas` | Per-tileset modular kit definitions, and the kit-text parser. |
 | `src/textures.pas` | Runtime texture cache, loaded from the pak. |

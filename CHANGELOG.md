@@ -18,6 +18,17 @@ whose development history is summarized in docs/roadmap.md.
   when no GL context or shader is available, so the game still runs, and
   CRAWLER_GL=0 forces that fallback. Built for the Raspberry Pi and Linux; it
   ports to Windows and macOS on desktop GL 3.x or ANGLE next.
+- The GPU now draws the explore scene, the second stage of the backend seam (a
+  new `glrender` unit, enabled with CRAWLER_GL3D=1). It renders through a 320x240
+  offscreen target upscaled nearest for the retro look, carries the PSX vertex
+  snap and a 4x4 ordered dither with a 5-bit quantize in the shaders, and covers
+  the non-kit grid walls, floors and ceilings, the kit cladding, placed props,
+  door and ladder portal meshes, sprite billboards, the surface-map terrain and
+  sky gradient, the emissive floor glow, and multi-material kit pieces, with the
+  2D HUD composited over it. It shares the software renderer's projection and
+  content, so the two agree in idiom without matching pixel for pixel. Verified
+  on aarch64 through GLES2 on a Raspberry Pi. The self-lit emission channel for
+  the stained glass is the remaining refinement.
 - A baked per-tileset palette (CLUT). The asset build median-cuts each kit
   tileset's own trim atlases to a 256-colour palette and stores it as a CLUT
   lump, so a tileset can carry a palette tuned to its own textures instead of
