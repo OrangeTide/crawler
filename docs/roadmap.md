@@ -319,16 +319,17 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   unreliable channels, over one UDP backend, with a LAN discovery beacon and
   server-configurable WAN join. The world is seed-light, so the seed is sent
   once and only dynamic party and entity state is streamed, scoped per resident
-  map, and terrain never crosses the wire. Parties start solo and grow by hiring
+  map, and terrain never crosses the wire. On join and on each map entry the
+  server also sends that map's current diff set (opened doors, taken items, fog,
+  defeated bosses) reliably, since the seed regenerates only the terrain. Parties
+  start solo and grow by hiring
   or by players joining; a party stays one grid tile driven by a leader, with
   reclaimable characters, timeout leader-promotion, and no world avatars (a
   party reads by its first character's icon). Combat reuses the two-sided model
   with one or more parties or monsters per side and a join-a-side action, run as
   map-located, per-encounter instances so the rest of the shard keeps exploring,
   which reworks the engine's single global combat state into many concurrent
-  battles. On join and on each map entry the server also sends that map's current
-  diff set (opened doors, taken items, fog, defeated bosses) reliably, since the
-  seed regenerates only the terrain. The shard persists by periodic checkpoint.
+  battles. The shard persists by periodic checkpoint.
   The clock is shared and runs in real time, with battles still turn based.
   Characters are saved on the shard, which keeps a client from forging one; a
   connected player can export a copy to re-import into a local game or hand to an
