@@ -59,6 +59,9 @@ const
 var
   GridTex: array[0 .. TEX_COUNT - 1] of array of byte;   { palette indices }
   gtTileset: longint = -1;   { which tileset GridTex holds, -1 none }
+  { When set, the procedural grid quads go to the GPU (GLDrawWorldQuad) instead
+    of the software rasterizer. RenderViewGL raises it around its cell loop. }
+  gEmitGL: boolean = false;
 
 procedure BuildGridTex;
 var t, i: longint;
@@ -90,6 +93,23 @@ begin
     and (KitIndexForTileset(CellTileset(nx, ny)) < 0);
 end;
 
+{ Emit one textured grid quad, to the GPU or the software rasterizer per
+  gEmitGL. The software path subdivides for affine correctness and can carry an
+  emissive glow; the GPU path is perspective-correct and skips both. }
+procedure EmitQuad(const mc: TMeshCam;
+  x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
+  u0, v0, u1, v1, u2, v2, u3, v3: double;
+  tex: PByte; tw, th: longint; light: double;
+  glow: TColor = 0; glowW: longint = 0);
+begin
+  if gEmitGL then
+    GLDrawWorldQuad(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
+      u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light)
+  else
+    DrawTexQuadSub(mc, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
+      u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light, glow, glowW, GRID_SUBDIV);
+end;
+
 { One vertical wall quad on cell (tx,ty)'s edge, facing the open neighbor on
   side 0..3 (west, east, south, north), spanning z in [zLo,zHi]. The winding
   matches the old full-height faces, so a flat zLo=0,zHi=1 draws identically. }
@@ -97,14 +117,14 @@ procedure WallQuad(const mc: TMeshCam; side, tx, ty: longint;
   zLo, zHi: double; texId: longint; light: double);
 begin
   case side of
-    0: DrawTexQuadSub(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
-    1: DrawTexQuadSub(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
-    2: DrawTexQuadSub(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
-    3: DrawTexQuadSub(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
+    0: EmitQuad(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    1: EmitQuad(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    2: EmitQuad(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+    3: EmitQuad(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
   end;
 end;
 
@@ -304,22 +324,100 @@ begin
   end;
 end;
 
+{ The procedural grid geometry of one cell: wall faces toward open non-kit
+  neighbours, or, for an open non-kit cell, its floor, ceiling and step risers.
+  Kit cells are left to the cladding passes. Emits through EmitQuad, so it draws
+  on the GPU or the software rasterizer per gEmitGL, and is shared by both the
+  software view and the GPU view. cyaw/syaw are the camera facing, for the
+  behind-camera cull. }
+procedure DrawGridCell(const mc: TMeshCam; tx, ty: longint;
+  ex, ey, cyaw, syaw: double);
+var
+  cx, cy, dist, fwd, light, fd, fz, cz: double;
+  ftex, gk, gw: longint;
+  gcol: TColor;
+begin
+  cx := tx + 0.5; cy := ty + 0.5;
+  fwd := (cx - ex) * cyaw + (cy - ey) * syaw;
+  if fwd < -1.3 then exit;                 { behind the camera }
+  dist := sqrt(sqr(cx - ex) + sqr(cy - ey));
+
+  if IsWallTile(tx, ty) then begin
+    ftex := WallTexId(TileAt(tx, ty));
+    { a face toward each open neighbor, spanning that neighbor's sector
+      floor to ceiling, lit from that neighbor tile }
+    if OpenNonKit(tx - 1, ty) then begin   { west face, x = tx }
+      fd := sqrt(sqr(tx - ex) + sqr(cy - ey));
+      light := TileLight(tx - 1, ty, fd);
+      WallQuad(mc, 0, tx, ty, FloorZAt(tx - 1, ty), CeilZAt(tx - 1, ty), ftex, light);
+    end;
+    if OpenNonKit(tx + 1, ty) then begin   { east face, x = tx+1 }
+      fd := sqrt(sqr(tx + 1 - ex) + sqr(cy - ey));
+      light := TileLight(tx + 1, ty, fd);
+      WallQuad(mc, 1, tx, ty, FloorZAt(tx + 1, ty), CeilZAt(tx + 1, ty), ftex, light);
+    end;
+    if OpenNonKit(tx, ty - 1) then begin   { south face, y = ty }
+      fd := sqrt(sqr(cx - ex) + sqr(ty - ey));
+      light := TileLight(tx, ty - 1, fd) * NS_DARK;
+      WallQuad(mc, 2, tx, ty, FloorZAt(tx, ty - 1), CeilZAt(tx, ty - 1), ftex, light);
+    end;
+    if OpenNonKit(tx, ty + 1) then begin   { north face, y = ty+1 }
+      fd := sqrt(sqr(cx - ex) + sqr(ty + 1 - ey));
+      light := TileLight(tx, ty + 1, fd) * NS_DARK;
+      WallQuad(mc, 3, tx, ty, FloorZAt(tx, ty + 1), CeilZAt(tx, ty + 1), ftex, light);
+    end;
+  end else begin
+    light := TileLight(tx, ty, dist);
+    fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
+    { a kit tileset's floors and ceilings are drawn by the CladView pass; only a
+      non-kit cell draws the procedural surface quads here }
+    if KitIndexForTileset(CellTileset(tx, ty)) < 0 then
+    begin
+      { floor at this cell's sector height, with an emissive tile's glow tint
+        mixed in (software path only). On a surface map with terrain relief,
+        DrawTerrain draws the ground instead. }
+      if not (CurMapSurface and TerrainActive) then
+      begin
+        gw := 0; gcol := 0;
+        gk := LightTileKind(tx, ty);
+        if gk >= 0 then LightGlow(gk, gcol, gw);
+        EmitQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
+          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+      end;
+      { ceiling at this cell's sector height, unless an open-air surface map }
+      if not CurMapSurface then
+        EmitQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
+          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+    end;
+    { risers and lintels where open neighbors differ in height }
+    StepFaces(mc, tx, ty, fz, cz, ex, ey);
+  end;
+end;
+
 procedure RenderViewGL;
 var
   mc: TMeshCam;
-  ex, ey: double;
-  x0, y0, x1, y1: longint;
+  ex, ey, cyaw, syaw: double;
+  tx, ty, x0, y0, x1, y1: longint;
 begin
   if not VideoIsGL then exit;
   ex := Cam.posX; ey := Cam.posY;
   mc.x := ex; mc.y := ey; mc.z := Cam.posZ;
   mc.yaw := arctan2(Cam.dirY, Cam.dirX);
   mc.pitch := Cam.pitch / FOCAL;
+  cyaw := cos(mc.yaw); syaw := sin(mc.yaw);
   x0 := max(0, trunc(ex) - VIEW_R); x1 := min(MapW - 1, trunc(ex) + VIEW_R);
   y0 := max(0, trunc(ey) - VIEW_R); y1 := min(MapH - 1, trunc(ey) + VIEW_R);
 
   GLSceneBegin(mc);
   CladMeshHook := @GLDrawMesh;
+  { the procedural non-kit grid, emitted to the GPU }
+  gEmitGL := true;
+  for ty := y0 to y1 do
+    for tx := x0 to x1 do
+      DrawGridCell(mc, tx, ty, ex, ey, cyaw, syaw);
+  gEmitGL := false;
+  { the kit-clad floors, ceilings, walls and pillars at native scale }
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
@@ -332,9 +430,8 @@ var
   mc: TMeshCam;
   ex, ey: double;
   tx, ty, x0, y0, x1, y1: longint;
-  cx, cy, dist, fwd, light, fcx, fcy, fd, fz, cz: double;
-  cyaw, syaw: double;
-  ftex, gk, gw: longint;
+  cyaw, syaw, cx, cy, fwd, dist: double;
+  gk, gw: longint;
   gcol: TColor;
   shor, syy, sxx: longint;
   sb: byte;
@@ -368,65 +465,8 @@ begin
   y0 := max(0, trunc(ey) - VIEW_R); y1 := min(MapH - 1, trunc(ey) + VIEW_R);
 
   for ty := y0 to y1 do
-    for tx := x0 to x1 do begin
-      cx := tx + 0.5; cy := ty + 0.5;
-      fwd := (cx - ex) * cyaw + (cy - ey) * syaw;
-      if fwd < -1.3 then continue;            { behind the camera }
-      dist := sqrt(sqr(cx - ex) + sqr(cy - ey));
-
-      if IsWallTile(tx, ty) then begin
-        ftex := WallTexId(TileAt(tx, ty));
-        { a face toward each open neighbor, spanning that neighbor's sector
-          floor to ceiling, lit from that neighbor tile }
-        if OpenNonKit(tx - 1, ty) then begin   { west face, x = tx }
-          fcx := tx; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
-          light := TileLight(tx - 1, ty, fd);
-          WallQuad(mc, 0, tx, ty, FloorZAt(tx - 1, ty), CeilZAt(tx - 1, ty), ftex, light);
-        end;
-        if OpenNonKit(tx + 1, ty) then begin   { east face, x = tx+1 }
-          fcx := tx + 1; fcy := cy; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
-          light := TileLight(tx + 1, ty, fd);
-          WallQuad(mc, 1, tx, ty, FloorZAt(tx + 1, ty), CeilZAt(tx + 1, ty), ftex, light);
-        end;
-        if OpenNonKit(tx, ty - 1) then begin   { south face, y = ty }
-          fcx := cx; fcy := ty; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
-          light := TileLight(tx, ty - 1, fd) * NS_DARK;
-          WallQuad(mc, 2, tx, ty, FloorZAt(tx, ty - 1), CeilZAt(tx, ty - 1), ftex, light);
-        end;
-        if OpenNonKit(tx, ty + 1) then begin   { north face, y = ty+1 }
-          fcx := cx; fcy := ty + 1; fd := sqrt(sqr(fcx - ex) + sqr(fcy - ey));
-          light := TileLight(tx, ty + 1, fd) * NS_DARK;
-          WallQuad(mc, 3, tx, ty, FloorZAt(tx, ty + 1), CeilZAt(tx, ty + 1), ftex, light);
-        end;
-      end else begin
-        light := TileLight(tx, ty, dist);
-        fz := FloorZAt(tx, ty); cz := CeilZAt(tx, ty);
-        { a kit tileset's floors and ceilings are drawn by the CladView pass
-          after this loop, at the kit's native scale; only a non-kit cell
-          draws the procedural surface quads here }
-        if KitIndexForTileset(CellTileset(tx, ty)) < 0 then
-        begin
-          { floor at this cell's sector height, with an emissive tile's glow tint
-            mixed in, as the raycaster does for a light well, brazier or vent. On
-            a surface map with terrain relief, DrawTerrain draws the ground
-            instead, after this loop. }
-          if not (CurMapSurface and TerrainActive) then
-          begin
-            gw := 0; gcol := 0;
-            gk := LightTileKind(tx, ty);
-            if gk >= 0 then LightGlow(gk, gcol, gw);
-            DrawTexQuadSub(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
-              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw, GRID_SUBDIV);
-          end;
-          { ceiling at this cell's sector height, unless an open-air surface map }
-          if not CurMapSurface then
-            DrawTexQuadSub(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
-              0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light, 0, 0, GRID_SUBDIV);
-        end;
-        { risers and lintels where open neighbors differ in height }
-        StepFaces(mc, tx, ty, fz, cz, ex, ey);
-      end;
-    end;
+    for tx := x0 to x1 do
+      DrawGridCell(mc, tx, ty, ex, ey, cyaw, syaw);
 
   { clad the kit tilesets' floors and ceilings at native scale, merging
     aligned cells into whole kit pieces, then the walls on their edges }

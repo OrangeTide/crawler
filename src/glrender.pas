@@ -31,6 +31,15 @@ procedure GLRenderTestFrame;
 procedure GLSceneBegin(const mc: TMeshCam);
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
   mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
+{ One world-space textured quad (two triangles), for the procedural grid walls,
+  floors and ceilings a non-kit cell draws. Corners and texture coordinates
+  match raster.DrawTexQuad; the texture is a tileset's palette-index bitmap,
+  expanded to RGBA. The GPU interpolates perspective-correct, so no subdivision
+  is needed here (unlike the affine software path). }
+procedure GLDrawWorldQuad(
+  x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
+  u0, v0, u1, v1, u2, v2, u3, v3: double;
+  tex: PByte; tw, th: longint; light: double);
 procedure GLSceneEnd;
 
 implementation
@@ -124,6 +133,7 @@ var
   uMVPLoc, uLightLoc, uTexLoc: GLint;
   uResLoc, uBayerLoc: GLint;
   bayerTex: GLuint = 0;
+  quadVBO: GLuint = 0;        { reused for the per-frame world quads }
   posLoc, uvLoc: GLint;
   angle: GLfloat = 0;
 
@@ -586,6 +596,46 @@ begin
   glBindBuffer(GL_ARRAY_BUFFER, buf);
   BindVertexAttribs;
   glDrawArrays(GL_TRIANGLES, 0, count);
+end;
+
+procedure GLDrawWorldQuad(
+  x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
+  u0, v0, u1, v1, u2, v2, u3, v3: double;
+  tex: PByte; tw, th: longint; light: double);
+var
+  v: array[0 .. 29] of GLfloat;   { 6 vertices (two tris), 5 floats each }
+  mvp: TMat4;
+  t: GLuint;
+  lf: GLfloat;
+begin
+  if not progReady then exit;
+  t := AtlasTexture(tex, tw, th);
+  if t = 0 then exit;
+
+  { triangles (0,1,2) and (0,2,3), matching the quad's corner order }
+  v[0] := x0; v[1] := y0; v[2] := z0; v[3] := u0; v[4] := v0;
+  v[5] := x1; v[6] := y1; v[7] := z1; v[8] := u1; v[9] := v1;
+  v[10] := x2; v[11] := y2; v[12] := z2; v[13] := u2; v[14] := v2;
+  v[15] := x0; v[16] := y0; v[17] := z0; v[18] := u0; v[19] := v0;
+  v[20] := x2; v[21] := y2; v[22] := z2; v[23] := u2; v[24] := v2;
+  v[25] := x3; v[26] := y3; v[27] := z3; v[28] := u3; v[29] := v3;
+
+  if quadVBO = 0 then glGenBuffers(1, @quadVBO);
+
+  { model is identity: the corners are already in world space }
+  mvp := MatMul(sceneProj, sceneView);
+  glUseProgram(prog);
+  glUniformMatrix4fv(uMVPLoc, 1, GL_FALSE, @mvp[0]);
+  lf := light / 256.0;
+  if lf > 2.0 then lf := 2.0;
+  glUniform1f(uLightLoc, lf);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, SizeOf(v), @v[0], GL_DYNAMIC_DRAW);
+  BindVertexAttribs;
+  glDrawArrays(GL_TRIANGLES, 0, 6);
 end;
 
 procedure GLSceneEnd;

@@ -48,6 +48,7 @@ const
   GL_CLAMP_TO_EDGE      = $812F;
   GL_ARRAY_BUFFER       = $8892;
   GL_STATIC_DRAW        = $88E4;
+  GL_DYNAMIC_DRAW       = $88E8;
   GL_FRAGMENT_SHADER    = $8B30;
   GL_VERTEX_SHADER      = $8B31;
   GL_COMPILE_STATUS     = $8B81;
