@@ -1264,6 +1264,29 @@ until the state locks. Taking an action, taking damage during movement (a hazard
 or an overwatch trap), or altering the world (a switch, an item, breaking a
 platform) locks the turn and forbids undo.
 
+### Terrain traversal
+
+Walking handles small rises on its own. A normal walk steps up terrain no taller
+than one unit, where one unit is a knee-high block, the largest rise a unit
+clears without a dedicated climb. A rise taller than one unit blocks forward
+movement, so the unit must route around it or climb it.
+
+Descending is free and needs no separate rule. A drop of any height is walked
+down or fallen into, since stepping down a small ledge and falling off a tall one
+are the same downward motion. A unit can walk off a ledge into a pit it then
+cannot climb back out of.
+
+Climbing taller terrain is a later character feat. A climb feat raises that
+unit's step height, or grants a distinct climb action that spends extra movement,
+so terrain that stops a normal walker is passable to a climber. The base rule
+ships first and the feats layer onto it without changing it.
+
+Traversal probes the terrain against the 1-bit collision mask, not a per-column
+height field. A step-up is a short vertical scan of the ground ahead for the
+first standable surface within step height. A height field (one surface per
+column) is simpler but cannot represent the overhangs, tunnels and caves the mask
+allows, so the mask probe, not a stored column height, is the traversal model.
+
 ### Ranged and melee
 
 Ranged fire is the Worms model: the player sets an aim angle relative to facing
