@@ -19,6 +19,9 @@ procedure ExploreRender(fps: longint);
 { The explore view on the GPU backend: the 3D scene through GL, with the 2D HUD
   composited over it. Used in place of ExploreRender when GL 3D is active. }
 procedure RenderExploreGL(fps: longint);
+{ Open the named conversation with the given speaker, moving to the dialog
+  state. Exposed so a dev hook (CRAWLER_GODLG) can frame a dialog. }
+procedure StartDialog(const dlgName, npcName: string);
 procedure UpdateLycanthropy;
 { Walk the party to (dx,dy) on destMap, following a cross-map route. Fails
   quietly (with a message) if no known route reaches it. }

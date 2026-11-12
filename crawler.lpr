@@ -27,7 +27,7 @@ var
   dt: double;
   fps, frameCount: longint;
   argi: longint;
-  goMap, gmStr: string;
+  goMap, goDlg, gmStr: string;
   np, gmP: longint;
   gmParts: array[0 .. 3] of string;
 
@@ -112,6 +112,11 @@ begin
           FaceCode(gmParts[3]));
     end;
   end;
+
+  { CRAWLER_GODLG=<dialog-id> opens that conversation after the placement, to
+    frame an overlay such as the dialog over the explore scene. }
+  goDlg := GetEnvironmentVariable('CRAWLER_GODLG');
+  if goDlg <> '' then StartDialog(goDlg, goDlg);
 
   prevTicks := SDL_GetTicks();
   lastFpsTick := prevTicks;
