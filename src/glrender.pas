@@ -19,7 +19,7 @@ unit glrender;
 interface
 
 uses
-  raster, meshfmt, pic;
+  raster, meshfmt, pic, gfx;
 
 { Render one frame of the pipeline-proof scene and swap. A no-op when the GL
   backend is not active. }
@@ -45,7 +45,11 @@ procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
 procedure GLDrawWorldQuad(
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
-  tex: PByte; tw, th: longint; light: double);
+  tex: PByte; tw, th: longint; light: double;
+  direct: PColorArray = nil);
+{ Drop the cached GL texture for a source pointer refilled in place, so its next
+  draw re-uploads. Called when a tileset swap rebuilds the biome surfaces. }
+procedure GLInvalidateAtlas(p: Pointer);
 { One camera-facing sprite billboard, matching raster.DrawSpriteBillboard. The
   ARGB image uploads as an alpha-keyed texture; the scene shader discards the
   transparent texels. A small depth-offset biases it toward the camera so its
@@ -74,7 +78,7 @@ var
 implementation
 
 uses
-  math, gfx, gles2, video;
+  math, gles2, video;
 
 type
   TMat4 = array[0 .. 15] of GLfloat;   { column-major, as GL expects }
@@ -595,6 +599,23 @@ begin
   AtlasTexture := t;
 end;
 
+{ Drop the cached GL texture for a source pointer, so the next upload for it is
+  rebuilt. Used when a resident texture is refilled in place (the biome surfaces
+  in Tex and GridTex, rebuilt on a tileset swap), whose fixed address would
+  otherwise keep serving the previous tileset's texture. }
+procedure GLInvalidateAtlas(p: Pointer);
+var i, n: longint;
+begin
+  n := Length(atlasKey);
+  for i := 0 to n - 1 do
+    if atlasKey[i] = PByte(p) then begin
+      if VideoIsGL and (atlasTex[i] <> 0) then glDeleteTextures(1, @atlasTex[i]);
+      atlasKey[i] := atlasKey[n - 1]; atlasTex[i] := atlasTex[n - 1];
+      SetLength(atlasKey, n - 1); SetLength(atlasTex, n - 1);
+      exit;
+    end;
+end;
+
 { A GL texture for a trim atlas already in direct colour (ARGB), uploaded
   without the shared-palette expansion so the tileset keeps its own colour.
   Cached in the same pointer-keyed table as the indexed atlases; a trim
@@ -960,7 +981,8 @@ end;
 procedure GLDrawWorldQuad(
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
-  tex: PByte; tw, th: longint; light: double);
+  tex: PByte; tw, th: longint; light: double;
+  direct: PColorArray = nil);
 var
   v: array[0 .. 29] of GLfloat;   { 6 vertices (two tris), 5 floats each }
   mvp: TMat4;
@@ -968,7 +990,12 @@ var
   lf: GLfloat;
 begin
   if not progReady then exit;
-  t := AtlasTexture(tex, tw, th);
+  { direct colour (the biome surface's own RGBA) when given, else the
+    shared-palette indexed form }
+  if direct <> nil then
+    t := AtlasTextureRGBA(direct, tw, th)
+  else
+    t := AtlasTexture(tex, tw, th);
   if t = 0 then exit;
 
   { triangles (0,1,2) and (0,2,3), matching the quad's corner order }

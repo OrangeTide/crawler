@@ -69,6 +69,10 @@ begin
   for t := 0 to TEX_COUNT - 1 do begin
     SetLength(GridTex[t], TEXSIZE);
     for i := 0 to TEXSIZE - 1 do GridTex[t][i] := Quantize(Tex[t][i]);
+    { the GPU caches these by pointer, and the pointers are stable across
+      tileset swaps, so drop the stale GL textures for the refilled surfaces }
+    GLInvalidateAtlas(@GridTex[t][0]);
+    GLInvalidateAtlas(@Tex[t][0]);
   end;
   gtTileset := CurTileset;   { Tex holds only one tileset; rebuild when it swaps }
 end;
@@ -96,15 +100,24 @@ end;
 { Emit one textured grid quad, to the GPU or the software rasterizer per
   gEmitGL. The software path subdivides for affine correctness and can carry an
   emissive glow; the GPU path is perspective-correct and skips both. }
+{ The direct-colour RGBA of a biome surface for the GPU, or nil to keep the
+  shared-palette indexed form (in CLUT/PS1 mode, or for a non-grid quad). Tex
+  holds the current tileset's surfaces in their own colour. }
+function DirectIf(texId: longint): PColorArray;
+begin
+  if GLTrueColour and (texId >= 0) then DirectIf := @Tex[texId][0]
+  else DirectIf := nil;
+end;
+
 procedure EmitQuad(const mc: TMeshCam;
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
   tex: PByte; tw, th: longint; light: double;
-  glow: TColor = 0; glowW: longint = 0);
+  texId: longint = -1; glow: TColor = 0; glowW: longint = 0);
 begin
   if gEmitGL then
     GLDrawWorldQuad(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
-      u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light)
+      u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light, DirectIf(texId))
   else
     DrawTexQuadSub(mc, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3,
       u0, v0, u1, v1, u2, v2, u3, v3, tex, tw, th, light, glow, glowW, GRID_SUBDIV);
@@ -118,13 +131,13 @@ procedure WallQuad(const mc: TMeshCam; side, tx, ty: longint;
 begin
   case side of
     0: EmitQuad(mc, tx, ty, zLo,  tx, ty + 1, zLo,  tx, ty + 1, zHi,  tx, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, texId);
     1: EmitQuad(mc, tx + 1, ty + 1, zLo,  tx + 1, ty, zLo,  tx + 1, ty, zHi,  tx + 1, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, texId);
     2: EmitQuad(mc, tx + 1, ty, zLo,  tx, ty, zLo,  tx, ty, zHi,  tx + 1, ty, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, texId);
     3: EmitQuad(mc, tx, ty + 1, zLo,  tx + 1, ty + 1, zLo,  tx + 1, ty + 1, zHi,  tx, ty + 1, zHi,
-         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light);
+         0, 0, 1, 0, 1, 1, 0, 1, @GridTex[texId][0], TEXW, TEXH, light, texId);
   end;
 end;
 
@@ -304,12 +317,14 @@ begin
           if gEmitGL then
             { within-tile texture coords (sxi/syi fractions), so the clamped GPU
               texture tiles once per cell like the software path's world-coord
-              uvs do under repeat wrap }
+              uvs do under repeat wrap. In true-colour mode the GPU samples the
+              floor's own RGBA instead of the shared-palette index. }
             GLDrawWorldQuad(
               wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
               sxi * step, syi * step,  (sxi + 1) * step, syi * step,
               (sxi + 1) * step, (syi + 1) * step,  sxi * step, (syi + 1) * step,
-              @GridTex[TEX_FLOOR][0], TEXW, TEXH, light)
+              @GridTex[TEX_FLOOR][0], TEXW, TEXH, light,
+              DirectIf(TEX_FLOOR))
           else
             DrawTexQuad(mc,
               wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
@@ -404,12 +419,14 @@ begin
         gk := LightTileKind(tx, ty);
         if gk >= 0 then LightGlow(gk, gcol, gw);
         EmitQuad(mc, tx, ty, fz,  tx + 1, ty, fz,  tx + 1, ty + 1, fz,  tx, ty + 1, fz,
-          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light, gcol, gw);
+          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_FLOOR][0], TEXW, TEXH, light,
+          TEX_FLOOR, gcol, gw);
       end;
       { ceiling at this cell's sector height, unless an open-air surface map }
       if not CurMapSurface then
         EmitQuad(mc, tx, ty + 1, cz,  tx + 1, ty + 1, cz,  tx + 1, ty, cz,  tx, ty, cz,
-          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light);
+          0, 0, 1, 0, 1, 1, 0, 1, @GridTex[TEX_CEILING][0], TEXW, TEXH, light,
+          TEX_CEILING);
     end;
     { risers and lintels where open neighbors differ in height }
     StepFaces(mc, tx, ty, fz, cz, ex, ey);
