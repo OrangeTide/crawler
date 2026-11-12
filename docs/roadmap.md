@@ -136,7 +136,10 @@ snapshot store took an LRU resident-memory bound against the 2 MB budget. On
 code structure, the fight now lives in a single `TCombat` instance reached
 through `Active^`, the first single-player-side step toward the multiplayer
 shared-shard design. That design is recorded in design section 24 but is not
-scheduled, and no network code exists yet.
+scheduled, and no network code exists yet. A follow-up 0.29.1 fixed two
+build issues: a bare `make` had stopped building the binary once the CLUT
+rule became the first target, and the macOS cross-build was missing the
+`src/ui` unit path.
 
 ## Open backlog by theme
 

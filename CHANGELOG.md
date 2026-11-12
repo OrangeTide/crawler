@@ -9,6 +9,18 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+## [0.29.1] - 2026-11-12
+
+### Fixed
+- A bare `make` builds the binary again, not just the CLUT. The `build/clut`
+  rule had become the first target in the Makefile, so make took it as the
+  default goal and `make` alone skipped `build/crawler`. CI and the release
+  workflow run `make`, so their package step could not find the binary.
+  `.DEFAULT_GOAL := all` restores building everything.
+- The macOS cross-build finds units under `src/ui`. `scripts/build-macos.sh`
+  passed only `-Fusrc`, so a forced recompile of a `src/ui` unit could not
+  locate its source; it now also passes `-Fusrc/ui`, matching the host build.
+
 ## [0.29.0] - 2026-11-12
 
 ### Added
@@ -588,6 +600,7 @@ World content and the critical path.
 - Refreshed the README and the screenshots to the current six-zone game, and
   regenerated the module layout from the current source tree.
 
+[0.29.1]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.29.1
 [0.29.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.29.0
 [0.28.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.28.0
 [0.27.1]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.1
