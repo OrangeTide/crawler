@@ -1069,6 +1069,24 @@ returns or it times out. The tactics will be configurable later. For now the AI
 is defensive: it makes simple attacks, does not consume items, and tries to move
 to the back row or take a defensive stance.
 
+### AI authority
+
+The server holds AI authority. Every actor that is not a connected player's own
+character is run by the host: monsters, hired NPCs and hirelings, and
+disconnected characters. Server authority forces this. A client cannot be trusted
+to run an actor that touches shared state, both to stop it acting on information
+its player should not have and to keep one combat code path, the same AI the
+single-player engine already runs, now on the host rather than on the leader's
+machine.
+
+Authority is not the same as direction. A hireling's owner, not the party leader,
+may set its combat orders: a tactics preset, or a simple directive such as focus
+a target, defend, or conserve items. The server honors the order when it chooses
+the actor's action, and always executes and arbitrates the turn itself. Absent an
+order the actor uses the default combat AI, the same defensive fallback a
+disconnected character takes. The order set and the defaults are tunable content
+for later.
+
 ### Persistence
 
 The shard is persistent and checkpoints periodically. A checkpoint is the
@@ -1100,8 +1118,6 @@ need not lead, and anyone can prefer a shard closer to them.
 
 Design gaps to settle before the wire format:
 
-- **AI authority.** Whether the server or the party leader runs the hired NPCs
-  and hirelings during combat.
 - **Single-player unification.** Whether single-player becomes a one-player
   shard with the transport compiled out, giving one code path, or stays
   separate.
