@@ -348,7 +348,9 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   it, running every NPC and disconnected character and arbitrating what players
   submit. Single player and multiplayer are one code path: single player is a
   one-player shard running the same simulation in process with the UDP backend
-  compiled out, which is also the PS1 build. The unification is incremental and
+  compiled out, which is also the PS1 build. The 32 to 1024 range is the size of
+  that transport's connection table, so with the transport compiled out it does
+  not apply to single player. The unification is incremental and
   single-player first, with the authority and combat-instance refactors landing
   in the single-player engine before the transport goes on top, so no separate
   multiplayer combat system is written. Section 24's design points are now all
