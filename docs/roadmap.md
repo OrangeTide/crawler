@@ -363,10 +363,14 @@ ride as multi-cell mesh instances rather than per-cell quads.
   renders in its own per-tileset colour instead of drifting to the nearest
   shared-cube level. Emission stays a direct additive channel, outside the CLUT.
   The software renderer still samples the shared-palette indexed atlas, so its
-  output is unchanged. The remaining work is the PS1 backend binding these same
-  CLUTs in VRAM, and carrying per-tileset colour to the procedural biome
-  surfaces and embedded prop textures, which still go through the shared palette.
-  (An earlier plan reserved a fixed band of a single
+  output is unchanged. The procedural biome walls, floors and ceilings follow
+  in true-colour mode: the GPU samples them from their own RGBA (held in Tex)
+  rather than the shared-cube index, so the texture-colour toggle reaches the
+  non-kit maps too, and the GPU atlas cache is now invalidated when a tileset
+  swap refills those surfaces in place. The remaining work is the PS1 backend
+  binding these CLUTs in VRAM, and carrying per-tileset colour to the embedded
+  prop textures, which bake as shared-palette indices with no direct form to
+  recover, so they wait on a mesh re-bake. (An earlier plan reserved a fixed band of a single
   global palette for sprites and the UI while swapping a per-biome texture band.
   That was a concession to an 8-bit indexed framebuffer, dropped along with
   MS-DOS.)

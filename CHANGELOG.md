@@ -44,7 +44,11 @@ whose development history is summarized in docs/roadmap.md.
   render in their own hues rather than drifting to the nearest cube level.
   Emission stays a direct additive channel, outside the CLUT, and a tileset with
   no CLUT falls back to the shared palette. The software renderer still samples
-  the shared-palette indexed atlas, so its output is unchanged.
+  the shared-palette indexed atlas, so its output is unchanged. In true-colour
+  mode the procedural biome walls, floors and ceilings also render from their
+  own RGBA rather than the shared cube, so the texture-colour toggle reaches
+  the non-kit maps; the GPU texture cache is invalidated on a tileset swap so a
+  later map does not show the previous tileset's surfaces.
 - A TEXTURE COLOR option in the settings menu, choosing how the GPU renders kit
   cladding: the per-tileset CLUT for the PlayStation look (the default) or full
   direct colour. The choice persists in the settings file.
