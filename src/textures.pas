@@ -42,9 +42,14 @@ const
 type
   TTexture = array[0 .. TEXSIZE - 1] of TColor;
 
-  { One resident trim-sheet atlas, as palette indices. }
+  { One resident trim-sheet atlas. data holds the indexed form the software
+    renderer samples (quantized to the shared game palette); rgba keeps the
+    atlas in its own direct colour, which the direct-colour backends (desktop
+    OpenGL, the PS1 GPU) upload instead so a tileset is not pinned to the
+    shared cube. }
   TTrimSheet = record
     data: array of byte;
+    rgba: array of TColor;
     w, h: longint;
   end;
 
@@ -83,6 +88,12 @@ function TrimPtr(tileset, index: longint; out w, h: longint): PByte;
 { A tileset's emission atlas at `index`, or nil for index 255 (none) or a
   non-resident index. Never falls back to atlas 0. }
 function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
+
+{ As TrimPtr and EmisPtr, but the atlas in its own direct colour (ARGB) for
+  the direct-colour backends, rather than shared-palette indices. Same
+  fallback rules as the indexed forms. }
+function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+function EmisRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
 
 { The baked CLUT lump name for a tileset, CLUT<tileset>. }
 function ClutLumpName(tileset: longint): string;
@@ -197,8 +208,11 @@ begin
     SetLength(TrimSets[tileset], a + 1);
     n := img.w * img.h;
     SetLength(TrimSets[tileset][a].data, n);
-    for i := 0 to n - 1 do
+    SetLength(TrimSets[tileset][a].rgba, n);
+    for i := 0 to n - 1 do begin
       TrimSets[tileset][a].data[i] := Quantize(img.pix[i]);
+      TrimSets[tileset][a].rgba[i] := img.pix[i];
+    end;
     TrimSets[tileset][a].w := img.w; TrimSets[tileset][a].h := img.h;
     inc(a);
   end;
@@ -231,6 +245,31 @@ begin
   if Length(TrimSets[tileset][index].data) = 0 then exit;
   w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
   EmisPtr := @TrimSets[tileset][index].data[0];
+end;
+
+function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+var sheets: longint;
+begin
+  TrimRGBAPtr := nil; w := 0; h := 0;
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  sheets := Length(TrimSets[tileset]);
+  if sheets = 0 then exit;
+  if (index < 0) or (index >= sheets)
+    or (Length(TrimSets[tileset][index].rgba) = 0) then
+    index := 0;
+  if Length(TrimSets[tileset][index].rgba) = 0 then exit;
+  w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
+  TrimRGBAPtr := @TrimSets[tileset][index].rgba[0];
+end;
+
+function EmisRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+begin
+  EmisRGBAPtr := nil; w := 0; h := 0;
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  if (index < 0) or (index >= Length(TrimSets[tileset])) then exit;
+  if Length(TrimSets[tileset][index].rgba) = 0 then exit;
+  w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
+  EmisRGBAPtr := @TrimSets[tileset][index].rgba[0];
 end;
 
 function SetTileset(const p: TPak; tileset: longint): boolean;

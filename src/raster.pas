@@ -41,6 +41,11 @@ type
   TMeshMat = record
     tex: PByte; tw, th: longint;
     emis: PByte; ew, eh: longint;
+    { Direct-colour (ARGB) forms of the same two atlases, for the GPU backend;
+      nil when only the indexed form is available. The software renderer
+      ignores them and samples tex/emis. }
+    texRGBA: PColorArray;
+    emisRGBA: PColorArray;
   end;
 
 { Draw a mesh placed at (mx,my,mz), uniformly scaled, rotated myaw about
@@ -672,6 +677,7 @@ function OneMat(atlas: PByte; aw, ah: longint;
 begin
   OneMat.tex := atlas; OneMat.tw := aw; OneMat.th := ah;
   OneMat.emis := emis; OneMat.ew := ew; OneMat.eh := eh;
+  OneMat.texRGBA := nil; OneMat.emisRGBA := nil;
 end;
 
 procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;

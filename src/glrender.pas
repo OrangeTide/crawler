@@ -558,6 +558,60 @@ begin
   AtlasTexture := t;
 end;
 
+{ A GL texture for a trim atlas already in direct colour (ARGB), uploaded
+  without the shared-palette expansion so the tileset keeps its own colour.
+  Cached in the same pointer-keyed table as the indexed atlases; a trim
+  sheet's indexed and direct arrays are distinct allocations, so their
+  pointers never collide. }
+function AtlasTextureRGBA(src: PColorArray; w, h: longint): GLuint;
+var
+  i, n, b: longint;
+  t: GLuint;
+  rgba: array of byte;
+  c: TColor;
+begin
+  AtlasTextureRGBA := 0;
+  if (src = nil) or (w <= 0) or (h <= 0) then exit;
+  for i := 0 to High(atlasKey) do
+    if atlasKey[i] = PByte(src) then begin
+      AtlasTextureRGBA := atlasTex[i];
+      exit;
+    end;
+  n := w * h;
+  SetLength(rgba, n * 4);
+  for i := 0 to n - 1 do begin
+    c := (src + i)^;
+    rgba[i * 4 + 0] := (c shr 16) and $FF;
+    rgba[i * 4 + 1] := (c shr 8) and $FF;
+    rgba[i * 4 + 2] := c and $FF;
+    rgba[i * 4 + 3] := 255;
+  end;
+  glGenTextures(1, @t);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
+    GL_RGBA, GL_UNSIGNED_BYTE, @rgba[0]);
+  b := Length(atlasKey);
+  SetLength(atlasKey, b + 1); SetLength(atlasTex, b + 1);
+  atlasKey[b] := PByte(src); atlasTex[b] := t;
+  AtlasTextureRGBA := t;
+end;
+
+{ The diffuse GL texture for a material: its own per-tileset direct colour
+  when the material carries it, else the shared-palette indexed form. }
+function MatDiffuse(const mat: TMeshMat): GLuint;
+begin
+  if mat.texRGBA <> nil then
+    MatDiffuse := AtlasTextureRGBA(mat.texRGBA, mat.tw, mat.th)
+  else
+    MatDiffuse := AtlasTexture(mat.tex, mat.tw, mat.th);
+end;
+
 { The 320x240 scene render target: a colour texture plus a depth buffer. }
 function EnsureFBO: boolean;
 begin
@@ -675,7 +729,9 @@ procedure BindEmis(const mat: TMeshMat);
 var e: GLuint;
 begin
   e := 0;
-  if (mat.emis <> nil) and (mat.ew > 0) and (mat.eh > 0) then
+  if (mat.emisRGBA <> nil) and (mat.ew > 0) and (mat.eh > 0) then
+    e := AtlasTextureRGBA(mat.emisRGBA, mat.ew, mat.eh)
+  else if (mat.emis <> nil) and (mat.ew > 0) and (mat.eh > 0) then
     e := AtlasTexture(mat.emis, mat.ew, mat.eh);
   if e <> 0 then begin
     glActiveTexture(GL_TEXTURE2);
@@ -729,7 +785,7 @@ begin
   { a single-material shared mesh samples mats[0] in one draw of its whole
     cached buffer, plus its emission atlas if it has one }
   if (matCount <= 1) or (Length(m.mat) = 0) or (Length(mats) = 1) then begin
-    t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th);
+    t := MatDiffuse(mats[0]);
     if t = 0 then exit;
     BindEmis(mats[0]);
     glBindTexture(GL_TEXTURE_2D, t);
@@ -748,7 +804,7 @@ begin
   for mi := 0 to matCount - 1 do begin
     j := mi;
     if j > High(mats) then j := High(mats);
-    t := AtlasTexture(mats[j].tex, mats[j].tw, mats[j].th);
+    t := MatDiffuse(mats[j]);
     if t = 0 then continue;
     outN := 0;
     for tri := 0 to nTris - 1 do begin

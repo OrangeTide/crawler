@@ -106,12 +106,16 @@ begin
   for s := 0 to mc - 1 do begin
     KitPieceMaterial(Kits[kitIdx].pieces[pieceIdx], s, atlasI, emisI);
     PieceMats[s].tex := TrimPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
+    PieceMats[s].texRGBA := TrimRGBAPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
     PieceMats[s].tw := aw; PieceMats[s].th := ah;
     ew := 0; eh := 0;
-    if emisI <> 255 then
-      PieceMats[s].emis := EmisPtr(Kits[kitIdx].tileset, emisI, ew, eh)
-    else
+    if emisI <> 255 then begin
+      PieceMats[s].emis := EmisPtr(Kits[kitIdx].tileset, emisI, ew, eh);
+      PieceMats[s].emisRGBA := EmisRGBAPtr(Kits[kitIdx].tileset, emisI, ew, eh);
+    end else begin
       PieceMats[s].emis := nil;
+      PieceMats[s].emisRGBA := nil;
+    end;
     PieceMats[s].ew := ew; PieceMats[s].eh := eh;
   end;
 end;
