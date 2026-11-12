@@ -575,8 +575,14 @@ var
 begin
   if not progReady then exit;
   if Length(m.verts) = 0 then exit;
-  if Length(mats) = 0 then exit;
-  t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th);
+  { an embedded mesh (a prop) carries its own texture; a shared mesh (a kit
+    piece) samples the atlas passed in mats[0] }
+  if (m.texKind = TEXKIND_EMBED) and (Length(m.tex) > 0) then
+    t := AtlasTexture(@m.tex[0], m.texW, m.texH)
+  else if Length(mats) > 0 then
+    t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th)
+  else
+    t := 0;
   if t = 0 then exit;
 
   { model = translate * rotateZ(yaw) * scale, matching the software path }

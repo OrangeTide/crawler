@@ -197,8 +197,12 @@ begin
     if mi < 0 then continue;
     yaw := CurMap.props[i].yaw / 256.0 * 2 * Pi;
     light := TileLight(ptx, pty, dist);
-    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
-      ModelReg[mi].scale, yaw, light);
+    if gEmitGL then
+      GLDrawMesh(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
+        ModelReg[mi].scale, ModelReg[mi].scale, ModelReg[mi].scale, yaw, light, [])
+    else
+      RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(px, py),
+        ModelReg[mi].scale, yaw, light);
   end;
 end;
 
@@ -261,8 +265,12 @@ begin
     light := TileLight(ptx, pty, dist);
     { height from the walkable tile centre, not the shifted point, so the door
       never samples ground inside the wall it backs against }
-    RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(ptx + 0.5, pty + 0.5),
-      ModelReg[mi].scale, yaw, light);
+    if gEmitGL then
+      GLDrawMesh(ModelReg[mi].mesh, mc, px, py, GroundZAt(ptx + 0.5, pty + 0.5),
+        ModelReg[mi].scale, ModelReg[mi].scale, ModelReg[mi].scale, yaw, light, [])
+    else
+      RenderMeshAt(ModelReg[mi].mesh, mc, px, py, GroundZAt(ptx + 0.5, pty + 0.5),
+        ModelReg[mi].scale, yaw, light);
   end;
 end;
 
@@ -412,16 +420,19 @@ begin
 
   GLSceneBegin(mc);
   CladMeshHook := @GLDrawMesh;
-  { the procedural non-kit grid, emitted to the GPU }
   gEmitGL := true;
+  { the procedural non-kit grid, emitted to the GPU }
   for ty := y0 to y1 do
     for tx := x0 to x1 do
       DrawGridCell(mc, tx, ty, ex, ey, cyaw, syaw);
-  gEmitGL := false;
   { the kit-clad floors, ceilings, walls and pillars at native scale }
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+  { placed prop models and the door/ladder portal meshes }
+  DrawProps(mc, ex, ey, cyaw, syaw);
+  DrawPortalMeshes(mc, ex, ey, cyaw, syaw);
+  gEmitGL := false;
   CladMeshHook := nil;
   GLSceneEnd;
 end;
