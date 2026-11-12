@@ -105,6 +105,10 @@ function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
 function TrimClutIdxPtr(tileset, index: longint; out w, h: longint): PByte;
 { A tileset's resident CLUT (256 colours), or nil when it has none. }
 function TilesetClut(tileset: longint): PClut;
+{ A tileset's diffuse atlas at `index` in its own direct colour (ARGB), the
+  full-colour form the GPU can bind when the player turns off the CLUT look.
+  Same fallback rules as TrimPtr. }
+function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
 { A tileset's emission atlas at `index` in its own direct colour (ARGB), the
   additive emission channel which is not part of the CLUT. nil for index 255 or
   a non-resident index. }
@@ -334,6 +338,21 @@ begin
   if (tileset < 0) or (tileset > MAX_TILESET) then exit;
   if not ClutHas[tileset] then exit;
   TilesetClut := @TrimClut[tileset];
+end;
+
+function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+var sheets: longint;
+begin
+  TrimRGBAPtr := nil; w := 0; h := 0;
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  sheets := Length(TrimSets[tileset]);
+  if sheets = 0 then exit;
+  if (index < 0) or (index >= sheets)
+    or (Length(TrimSets[tileset][index].rgba) = 0) then
+    index := 0;
+  if Length(TrimSets[tileset][index].rgba) = 0 then exit;
+  w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
+  TrimRGBAPtr := @TrimSets[tileset][index].rgba[0];
 end;
 
 function EmisRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;

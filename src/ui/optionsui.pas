@@ -24,8 +24,9 @@ const
   OPT_DEATH  = 3;
   OPT_CRIT   = 4;
   OPT_SPEED  = 5;
-  OPT_KEYS   = 6;
-  OPT_LAST   = 6;
+  OPT_COLOR  = 6;
+  OPT_KEYS   = 7;
+  OPT_LAST   = 7;
 
 function SpeedName(cs: longint): string;
 begin
@@ -40,7 +41,7 @@ procedure OptionsRender;
 const
   LABELS: array[OPT_MASTER .. OPT_LAST] of string =
     ('MASTER', 'MUSIC', 'SFX', 'PERMADEATH', 'CRITICALS', 'COMBAT SPEED',
-     'KEY BINDINGS');
+     'TEXTURE COLOR', 'KEY BINDINGS');
 var
   i, y, v: longint;
   c: TColor;
@@ -71,6 +72,8 @@ begin
       OPT_DEATH: OnOff(SetPermadeath);
       OPT_CRIT:  OnOff(SetCriticals);
       OPT_SPEED: DrawText(170, y, SpeedName(SetCombatSpeed), c);
+      OPT_COLOR: if SetGLTrueColour then DrawText(170, y, 'DIRECT', c)
+                 else DrawText(170, y, 'CLUT (PS1)', c);
       OPT_KEYS:  DrawText(170, y, 'EDIT >', c);
     end;
     inc(y, 18);
@@ -113,6 +116,7 @@ begin
     OPT_SFX:    volSfx    := ClampVol(volSfx + dir * 10);
     OPT_DEATH:  SetPermadeath := not SetPermadeath;
     OPT_CRIT:   SetCriticals := not SetCriticals;
+    OPT_COLOR:  SetGLTrueColour := not SetGLTrueColour;
     OPT_SPEED: begin
       SetCombatSpeed := SetCombatSpeed + dir;
       if SetCombatSpeed < CS_SLOW then SetCombatSpeed := CS_SLOW;

@@ -108,6 +108,7 @@ begin
     PieceMats[s].tex := TrimPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
     PieceMats[s].texClutIdx := TrimClutIdxPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
     PieceMats[s].clut := PColorArray(TilesetClut(Kits[kitIdx].tileset));
+    PieceMats[s].texRGBA := TrimRGBAPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
     PieceMats[s].tw := aw; PieceMats[s].th := ah;
     ew := 0; eh := 0;
     if emisI <> 255 then begin

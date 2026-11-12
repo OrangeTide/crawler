@@ -59,6 +59,12 @@ procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
 procedure GLDrawGlow(tx, ty: longint; z, r, g, b, a: double);
 procedure GLSceneEnd;
 
+var
+  { When true the GPU binds the kit trim in full direct colour; when false it
+    samples through the tileset CLUT for the PlayStation look. The explore
+    render path sets this from the player's setting each frame. }
+  GLTrueColour: boolean = false;
+
 implementation
 
 uses
@@ -829,12 +835,15 @@ var
 begin
   BindDiffuse := false;
   mode := 0.0; it := 0; ct := 0;
-  if (mat.clut <> nil) and (mat.texClutIdx <> nil) then begin
+  if GLTrueColour and (mat.texRGBA <> nil) then
+    { full direct colour, no CLUT quantize }
+    it := AtlasTextureRGBA(mat.texRGBA, mat.tw, mat.th)
+  else if (mat.clut <> nil) and (mat.texClutIdx <> nil) then begin
     it := AtlasIndexTexture(mat.texClutIdx, mat.tw, mat.th);
     ct := ClutTexture(mat.clut);
     if (it <> 0) and (ct <> 0) then mode := 1.0 else it := 0;
   end;
-  if mode < 0.5 then
+  if (mode < 0.5) and (it = 0) then
     it := AtlasTexture(mat.tex, mat.tw, mat.th);
   if it = 0 then exit;
   BindEmis(mat);

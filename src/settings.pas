@@ -25,6 +25,7 @@ var
   SetPermadeath: boolean;   { a slain member stays dead; no temple revival }
   SetCriticals: boolean;    { the AX&X natural 20/1 and max-damage crit rules }
   SetCombatSpeed: longint;  { CS_* }
+  SetGLTrueColour: boolean; { GPU kit trim in full direct colour, not the CLUT }
 
 procedure SettingsDefaults;
 procedure SettingsApply;             { push the live values into the engine }
@@ -48,6 +49,7 @@ begin
   SetPermadeath := false;   { the temple can raise the dead unless turned on }
   SetCriticals := true;
   SetCombatSpeed := CS_NORMAL;
+  SetGLTrueColour := false;   { default to the per-tileset CLUT (PS1) look }
   KeyBindDefaults;
 end;
 
@@ -95,6 +97,7 @@ begin
     lines.Add('permadeath ' + IntToStr(ord(SetPermadeath)));
     lines.Add('criticals ' + IntToStr(ord(SetCriticals)));
     lines.Add('combatspeed ' + IntToStr(SetCombatSpeed));
+    lines.Add('gltruecolour ' + IntToStr(ord(SetGLTrueColour)));
     for a := Low(TGameAction) to High(TGameAction) do
       lines.Add('key.' + ActionId(a) + ' ' + IntToStr(KeyBind[a]));
     try
@@ -156,6 +159,7 @@ begin
       else if key = 'combatspeed' then begin
         if (v >= CS_SLOW) and (v <= CS_FAST) then SetCombatSpeed := v;
       end
+      else if key = 'gltruecolour' then SetGLTrueColour := v <> 0
       else if Copy(key, 1, 4) = 'key.' then begin
         ai := ActionById(Copy(key, 5, Length(key)));
         if ai >= 0 then KeyBind[TGameAction(ai)] := v;
