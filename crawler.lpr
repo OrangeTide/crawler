@@ -11,7 +11,7 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sysutils, sdl2min, video, glrender, polyrender, gfx, audio,
+  math, sysutils, sdl2min, video, glrender, exploreui, gfx, audio,
   gamestate, game, titleui, worldload, world, mapfmt;
 
 const
@@ -130,7 +130,7 @@ begin
     GameUpdate(dt);
     if gl3dTest then begin
       if State = gsExplore then
-        RenderViewGL                { stage 2 increment 2: GPU explore scene }
+        RenderExploreGL(fps)        { stage 2: GPU explore scene + 2D HUD }
       else
         GLRenderTestFrame;          { stage 2 increment 1: GPU pipeline proof }
     end else begin

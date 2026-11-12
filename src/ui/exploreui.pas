@@ -16,6 +16,9 @@ procedure ExploreMouseMotion(xrel, yrel: longint);
 procedure ExploreMouseButton(down: boolean; button: longint);
 procedure ExploreUpdate(dt: double);
 procedure ExploreRender(fps: longint);
+{ The explore view on the GPU backend: the 3D scene through GL, with the 2D HUD
+  composited over it. Used in place of ExploreRender when GL 3D is active. }
+procedure RenderExploreGL(fps: longint);
 procedure UpdateLycanthropy;
 { Walk the party to (dx,dy) on destMap, following a cross-map route. Fails
   quietly (with a message) if no known route reaches it. }
@@ -29,7 +32,7 @@ function AutoTravelTargetOnMap(out tx, ty: longint): boolean;
 implementation
 
 uses
-  sysutils, sdl2min, gfx, mapfmt, world, polyrender, hud, dialog,
+  sysutils, sdl2min, gfx, mapfmt, world, polyrender, video, hud, dialog,
   flags, gametime, party, rules, rng, items, encounters, monsters, audio,
   gamestate, worldload, combatui, combatstate, save, pathfind, maproute,
   pursuit, overworldui, keymap, mappins, skilldb, skillbook;
@@ -945,6 +948,19 @@ begin
   if saveMsgT > 0 then
     DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));
   DrawCursor;
+end;
+
+procedure RenderExploreGL(fps: longint);
+begin
+  UpdateWorldLight;
+  RenderViewGL;                      { GPU 3D into the framebuffer, no swap }
+  ClearFB(RGB(255, 0, 255));         { the 2D layer; magenta reads transparent }
+  DrawHud(showMap, fps);
+  if saveMsgT > 0 then
+    DrawText(FBW div 2 - Length(saveMsg) * 3, 22, saveMsg, RGB(230, 220, 150));
+  DrawCursor;
+  VideoPresentHud;                   { composite the 2D layer over the GPU 3D }
+  VideoSwap;
 end;
 
 initialization

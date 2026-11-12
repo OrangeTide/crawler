@@ -447,7 +447,8 @@ end;
 
 procedure GLSceneEnd;
 begin
-  if VideoIsGL then VideoSwap;
+  { The scene is left in the framebuffer without swapping, so a 2D overlay (the
+    HUD) can be composited over it before the caller presents. }
 end;
 
 end.

@@ -65,6 +65,9 @@ const
   GL_CW                 = $0900;
   GL_LINEAR             = $2601;
   GL_RGB                = $1907;
+  GL_BLEND              = $0BE2;
+  GL_SRC_ALPHA          = $0302;
+  GL_ONE_MINUS_SRC_ALPHA = $0303;
 
 var
   glClearColor: procedure(r, g, b, a: GLfloat); cdecl;
@@ -114,6 +117,7 @@ var
   glDepthFunc: procedure(func: GLenum); cdecl;
   glCullFace: procedure(mode: GLenum); cdecl;
   glFrontFace: procedure(mode: GLenum); cdecl;
+  glBlendFunc: procedure(sfactor, dfactor: GLenum); cdecl;
   glReadPixels: procedure(x, y: GLint; w, h: GLsizei; format, kind: GLenum;
     pixels: Pointer); cdecl;
   glDeleteBuffers: procedure(n: GLsizei; buffers: PGLuint); cdecl;
@@ -178,6 +182,7 @@ begin
   Pointer(glDepthFunc) := GL('glDepthFunc');
   Pointer(glCullFace) := GL('glCullFace');
   Pointer(glFrontFace) := GL('glFrontFace');
+  Pointer(glBlendFunc) := GL('glBlendFunc');
   Pointer(glReadPixels) := GL('glReadPixels');
   Pointer(glDeleteBuffers) := GL('glDeleteBuffers');
   LoadGLES2 := not missing;

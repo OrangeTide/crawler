@@ -24,6 +24,11 @@ function VideoIsGL: boolean;      { true when the GLES backend is active }
 procedure VideoSwap;             { swap the GL buffers (GL backend only) }
 function VideoWidth: longint;
 function VideoHeight: longint;
+{ Composite the software framebuffer over whatever the GL backend has already
+  drawn (the GPU 3D scene), treating the magenta key (255,0,255) as transparent.
+  Used to lay the 2D HUD over the GPU explore scene. Does not clear or swap. On
+  the SDL fallback it presents normally. }
+procedure VideoPresentHud;
 
 implementation
 
@@ -43,6 +48,8 @@ var
   prog: GLuint = 0;
   vbo: GLuint = 0;
   fbTex: GLuint = 0;
+  pPos: GLint = 0;
+  pUV: GLint = 0;
 
   { SDL 2D fallback state }
   ren: Pointer = nil;
@@ -184,6 +191,7 @@ begin
   glUniform1i(texLoc, 0);
   posLoc := glGetAttribLocation(prog, 'aPos');
   uvLoc := glGetAttribLocation(prog, 'aUV');
+  pPos := posLoc; pUV := uvLoc;
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glEnableVertexAttribArray(GLuint(posLoc));
   glVertexAttribPointer(GLuint(posLoc), 2, GL_FLOAT, GL_FALSE,
@@ -277,6 +285,41 @@ end;
 procedure VideoSwap;
 begin
   if usingGL then SDL_GL_SwapWindow(win);
+end;
+
+{ Rebind the present program, its quad buffer, attributes and the framebuffer
+  texture. Done before an overlay draw because the GPU scene pass leaves its own
+  program and attribute pointers bound. }
+procedure BindPresentState;
+begin
+  glUseProgram(prog);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, fbTex);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glEnableVertexAttribArray(GLuint(pPos));
+  glVertexAttribPointer(GLuint(pPos), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(0));
+  glEnableVertexAttribArray(GLuint(pUV));
+  glVertexAttribPointer(GLuint(pUV), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(2 * SizeOf(GLfloat)));
+end;
+
+procedure VideoPresentHud;
+var i, keyIdx: longint;
+begin
+  if not usingGL then begin VideoPresent; exit; end;
+  keyIdx := Quantize(RGB(255, 0, 255));
+  PalExpand(@argb[0]);
+  for i := 0 to FBW * FBH - 1 do
+    if FB[i] = keyIdx then argb[i] := argb[i] and $00FFFFFF;   { alpha 0 }
+  BindPresentState;
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, FBW, FBH,
+    GL_RGBA, GL_UNSIGNED_BYTE, @argb[0]);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glDisable(GL_BLEND);
 end;
 
 function VideoWidth: longint;
