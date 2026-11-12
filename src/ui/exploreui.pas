@@ -265,11 +265,11 @@ begin
   pendingHunterFight := -1;
   if (idx < 0) or (idx > High(Pursuers)) then exit;
   hunterReadyClock := ClockMin + HUNTER_COOLDOWN;
-  if Victory then begin
+  if Active^.Victory then begin
     RemovePursuer(idx);
     exit;
   end;
-  if Fled then begin
+  if Active^.Fled then begin
     if FindHunterTile(tx, ty) then begin
       RepositionPursuer(idx, CurMapName, tx, ty);
       { the hunter it broke off from calls the others in to the chase. }

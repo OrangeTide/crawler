@@ -87,7 +87,7 @@ begin
   { the combat menu lists only known, castable, reachable spells }
   Roster[0].known := nil;
   Roster[0].level := 1;
-  CurActor := 0; ResetSpellList;
+  Active^.CurActor := 0; ResetSpellList;
   Check(SpellCount = 0, 'a caster who knows nothing lists nothing to cast');
   CharLearn(Roster[0], CatOf('M_MAGICMISSILE'));
   ResetSpellList;

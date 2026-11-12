@@ -126,10 +126,10 @@ begin
   LearnSkill(Roster[1], power);   { at-will }
   LearnSkill(Roster[1], dis);     { twice per fight }
 
-  CurActor := 1;
+  Active^.CurActor := 1;
   ResetSkillMenu;
-  SetLength(SkillUse, Length(Roster));
-  for i := 0 to High(SkillUse) do SetLength(SkillUse[i], SkillDefCount);
+  SetLength(Active^.SkillUse, Length(Roster));
+  for i := 0 to High(Active^.SkillUse) do SetLength(Active^.SkillUse[i], SkillDefCount);
 
   Check(CombatSkillCount = 2, 'the fighter has two combat maneuvers');
   mPow := MenuIdxOf(SKE_POWERATTACK);

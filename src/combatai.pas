@@ -83,8 +83,8 @@ var
   i: longint;
 begin
   FoeHasCover := false;
-  for i := 0 to High(Foes) do
-    if (i <> exclude) and Foes[i].alive and (Foes[i].rank = RANK_FRONT) then
+  for i := 0 to High(Active^.Foes) do
+    if (i <> exclude) and Active^.Foes[i].alive and (Active^.Foes[i].rank = RANK_FRONT) then
     begin
       FoeHasCover := true; exit;
     end;
@@ -98,17 +98,17 @@ function EnemyMaybeMove(fi: longint; ranged: boolean): boolean;
 begin
   EnemyMaybeMove := false;
   if ranged then begin
-    if (Foes[fi].rank = RANK_FRONT) and FoeHasCover(fi) and (D(100) <= 70) then
+    if (Active^.Foes[fi].rank = RANK_FRONT) and FoeHasCover(fi) and (D(100) <= 70) then
     begin
-      Foes[fi].rank := RANK_BACK;
-      CombatLog(MonDefs[Foes[fi].def].name + ' slips to the back.');
+      Active^.Foes[fi].rank := RANK_BACK;
+      CombatLog(MonDefs[Active^.Foes[fi].def].name + ' slips to the back.');
       EnemyMaybeMove := true;
     end;
   end else begin
-    if (Foes[fi].rank <> FrontFoeRank) and (D(100) <= 75) then
+    if (Active^.Foes[fi].rank <> FrontFoeRank) and (D(100) <= 75) then
     begin
-      Foes[fi].rank := RANK_FRONT;
-      CombatLog(MonDefs[Foes[fi].def].name + ' surges to the front.');
+      Active^.Foes[fi].rank := RANK_FRONT;
+      CombatLog(MonDefs[Active^.Foes[fi].def].name + ' surges to the front.');
       EnemyMaybeMove := true;
     end;
   end;
@@ -122,13 +122,13 @@ var
   tgt, dmg: longint;
 begin
   EnemyHarry := false;
-  case MonDefs[Foes[fi].def].harry of
+  case MonDefs[Active^.Foes[fi].def].harry of
     HARRY_TAUNT:
       begin
         tgt := EnemyPickTarget(fi, false);     { a front-line attacker }
         if tgt < 0 then tgt := FirstConscious;
         if tgt < 0 then exit;
-        CombatLog(MonDefs[Foes[fi].def].name + ' taunts ' + Roster[tgt].name + '.');
+        CombatLog(MonDefs[Active^.Foes[fi].def].name + ' taunts ' + Roster[tgt].name + '.');
         AfflictMember(tgt, ST_OFFBAL, 2);
         EnemyHarry := true;
       end;
@@ -136,14 +136,14 @@ begin
       begin
         tgt := EnemyPickTarget(fi, true);      { lob at the soft back line }
         if tgt < 0 then exit;
-        dmg := D(MonDefs[Foes[fi].def].dmgSides) div 2;
+        dmg := D(MonDefs[Active^.Foes[fi].def].dmgSides) div 2;
         if dmg < 1 then dmg := 1;
-        dmg := ResistedHit(tgt, dmg, MonDefs[Foes[fi].def].element);
-        CombatLog(MonDefs[Foes[fi].def].name + ' hurls a weapon at '
+        dmg := ResistedHit(tgt, dmg, MonDefs[Active^.Foes[fi].def].element);
+        CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hurls a weapon at '
           + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
         PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
         FlashAlly(tgt);
-        CombatSfxCue := CUE_HIT;
+        Active^.CombatSfxCue := CUE_HIT;
         HurtMember(tgt, dmg);
         if Roster[tgt].alive and (not Roster[tgt].downed) then
           AfflictMember(tgt, ST_OFFBAL, 2);    { a solid throw rattles them }
@@ -159,22 +159,22 @@ var
   tgt, dmg: longint;
 begin
   EnemyCastBolt := false;
-  if Foes[fi].sp < FOE_CAST_SP then exit;
+  if Active^.Foes[fi].sp < FOE_CAST_SP then exit;
   tgt := EnemyPickTarget(fi, true);       { ranged reach, prefers the back }
   if tgt < 0 then exit;
-  dec(Foes[fi].sp, FOE_CAST_SP);
-  dmg := RngRoll(GameRng, 1, 6) + MonDefs[Foes[fi].def].hd;
+  dec(Active^.Foes[fi].sp, FOE_CAST_SP);
+  dmg := RngRoll(GameRng, 1, 6) + MonDefs[Active^.Foes[fi].def].hd;
   if dmg < 1 then dmg := 1;
-  dmg := ResistedHit(tgt, dmg, MonDefs[Foes[fi].def].element);
-  CombatLog(MonDefs[Foes[fi].def].name + ' conjures a bolt at '
+  dmg := ResistedHit(tgt, dmg, MonDefs[Active^.Foes[fi].def].element);
+  CombatLog(MonDefs[Active^.Foes[fi].def].name + ' conjures a bolt at '
     + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
   PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
   FlashAlly(tgt);
-  CombatSfxCue := CUE_HIT;
+  Active^.CombatSfxCue := CUE_HIT;
   HurtMember(tgt, dmg);
   if Roster[tgt].alive and (not Roster[tgt].downed)
-     and (MonDefs[Foes[fi].def].inflict <> 0) then
-    AfflictMember(tgt, MonDefs[Foes[fi].def].inflict, 3);
+     and (MonDefs[Active^.Foes[fi].def].inflict <> 0) then
+    AfflictMember(tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
   EnemyCastBolt := true;
 end;
 
@@ -185,19 +185,19 @@ var
   i, best, amt: longint;
 begin
   EnemyCastHeal := false;
-  if Foes[fi].sp < FOE_CAST_SP then exit;
+  if Active^.Foes[fi].sp < FOE_CAST_SP then exit;
   best := -1;
-  for i := 0 to High(Foes) do
-    if Foes[i].alive and (Foes[i].hp < Foes[i].hpMax) then
-      if (best < 0) or (Foes[i].hp < Foes[best].hp) then best := i;
+  for i := 0 to High(Active^.Foes) do
+    if Active^.Foes[i].alive and (Active^.Foes[i].hp < Active^.Foes[i].hpMax) then
+      if (best < 0) or (Active^.Foes[i].hp < Active^.Foes[best].hp) then best := i;
   if best < 0 then exit;                  { nobody needs it }
-  dec(Foes[fi].sp, FOE_CAST_SP);
-  amt := RngRoll(GameRng, 1, 8) + MonDefs[Foes[fi].def].hd;
+  dec(Active^.Foes[fi].sp, FOE_CAST_SP);
+  amt := RngRoll(GameRng, 1, 8) + MonDefs[Active^.Foes[fi].def].hd;
   if amt < 1 then amt := 1;
-  Foes[best].hp := Foes[best].hp + amt;
-  if Foes[best].hp > Foes[best].hpMax then Foes[best].hp := Foes[best].hpMax;
-  CombatLog(MonDefs[Foes[fi].def].name + ' mends '
-    + MonDefs[Foes[best].def].name + ' (+' + IntToStr(amt) + ').');
+  Active^.Foes[best].hp := Active^.Foes[best].hp + amt;
+  if Active^.Foes[best].hp > Active^.Foes[best].hpMax then Active^.Foes[best].hp := Active^.Foes[best].hpMax;
+  CombatLog(MonDefs[Active^.Foes[fi].def].name + ' mends '
+    + MonDefs[Active^.Foes[best].def].name + ' (+' + IntToStr(amt) + ').');
   PushPop(0, best, POPC_HEAL, '+' + IntToStr(amt));
   FlashFoe(best);
   EnemyCastHeal := true;
@@ -211,21 +211,21 @@ var
   i, best, amt: longint;
 begin
   EnemyCastRevive := false;
-  if Foes[fi].sp < FOE_REVIVE_SP then exit;
+  if Active^.Foes[fi].sp < FOE_REVIVE_SP then exit;
   best := -1;
-  for i := 0 to High(Foes) do
-    if not Foes[i].alive then begin best := i; break; end;
+  for i := 0 to High(Active^.Foes) do
+    if not Active^.Foes[i].alive then begin best := i; break; end;
   if best < 0 then exit;                  { no one to raise }
-  dec(Foes[fi].sp, FOE_REVIVE_SP);
-  Foes[best].alive := true;
-  amt := Foes[best].hpMax div 2;
+  dec(Active^.Foes[fi].sp, FOE_REVIVE_SP);
+  Active^.Foes[best].alive := true;
+  amt := Active^.Foes[best].hpMax div 2;
   if amt < 1 then amt := 1;
-  Foes[best].hp := amt;
-  XPGained := XPGained - MonDefs[Foes[best].def].xp;
-  if XPGained < 0 then XPGained := 0;
-  FillChar(FoeStatus[best], SizeOf(TStatus), 0);
-  CombatLog(MonDefs[Foes[fi].def].name + ' raises '
-    + MonDefs[Foes[best].def].name + '.');
+  Active^.Foes[best].hp := amt;
+  Active^.XPGained := Active^.XPGained - MonDefs[Active^.Foes[best].def].xp;
+  if Active^.XPGained < 0 then Active^.XPGained := 0;
+  FillChar(Active^.FoeStatus[best], SizeOf(TStatus), 0);
+  CombatLog(MonDefs[Active^.Foes[fi].def].name + ' raises '
+    + MonDefs[Active^.Foes[best].def].name + '.');
   PushPop(0, best, POPC_HEAL, 'RAISE');
   FlashFoe(best);
   EnemyCastRevive := true;

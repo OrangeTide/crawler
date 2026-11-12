@@ -89,34 +89,44 @@ type
     life: double;      { seconds remaining, counts down from POP_LIFE }
   end;
 
+  { The whole state of one fight. Today a single instance is resident, reached
+    through Active^; the design (section 24) grows this into many concurrent,
+    map-located battles, so every site reads the fight through the pointer. }
+  TCombat = record
+    Foes: array of TFoe;
+    CombatOver: boolean;
+    Victory: boolean;
+    Fled: boolean;
+    CurActor: longint;         { party member awaiting input, or -1 }
+    CurTarget: longint;        { selected foe index }
+    Log: array[0 .. LOG_LINES - 1] of string;
+    XPGained: longint;
+    GoldGained: longint;
+
+    CombatPhase: longint;
+
+    TurnMoved: boolean;   { the current actor has spent its move this turn }
+    TurnActed: boolean;   { the current actor has spent its action this turn }
+
+    Pops: array of TPop;       { active floating numbers }
+    FoeFlash: array of double; { per-foe flash timer }
+    PartyFlash: array of double;
+    CombatSfxCue: longint;     { a sound the game should play this frame }
+    FoeStatus: array of TStatus;   { status timers, per foe }
+    PartyStatus: array of TStatus; { status timers, per party member }
+
+    PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
+    PartyDark: longint;       { a fight-long to-hit penalty for fighting in the
+                               dark, set from the torch when the fight begins }
+    SkillUse: array of array of longint;  { combat-maneuver uses spent this
+                               fight, indexed [party member][skill index] }
+  end;
+  PCombat = ^TCombat;
+
 var
-  Foes: array of TFoe;
-  CombatOver: boolean;
-  Victory: boolean;
-  Fled: boolean;
-  CurActor: longint;         { party member awaiting input, or -1 }
-  CurTarget: longint;        { selected foe index }
-  Log: array[0 .. LOG_LINES - 1] of string;
-  XPGained: longint;
-  GoldGained: longint;
+  gCombat: TCombat;             { the one resident fight }
+  Active: PCombat = @gCombat;   { every site reaches fight state through Active^ }
 
-  CombatPhase: longint;
-
-  TurnMoved: boolean;   { the current party actor has spent its move this turn }
-  TurnActed: boolean;   { the current party actor has spent its action this turn }
-
-  Pops: array of TPop;       { active floating numbers }
-  FoeFlash: array of double; { per-foe flash timer }
-  PartyFlash: array of double;
-  CombatSfxCue: longint;     { a sound the game should play this frame }
-  FoeStatus: array of TStatus;   { status timers, per foe }
-  PartyStatus: array of TStatus; { status timers, per party member }
-
-  PartyBless: longint;      { a fight-long +hit from a blessing, 0 normally }
-  PartyDark: longint;       { a fight-long to-hit penalty for fighting in the
-                             dark, set from the torch when the fight begins }
-  SkillUse: array of array of longint;  { combat-maneuver uses spent this fight,
-                             indexed [party member][skill catalog index] }
   OptCriticals: boolean;    { natural 20 auto-hits for max damage, 1 fumbles }
   CombatBeatScale: double;  { scales the pause between beats, from the options }
 

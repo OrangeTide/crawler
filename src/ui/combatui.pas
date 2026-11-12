@@ -75,7 +75,7 @@ begin
     FromQuickBattle := false;
     State := gsTitle;
     titleSel := 0;
-  end else if Victory or Fled then
+  end else if Active^.Victory or Active^.Fled then
     State := gsExplore
   else
     State := gsGameOver;
@@ -155,19 +155,19 @@ const
 function CombatItemUsable(slot: longint): boolean;
 begin
   CombatItemUsable := false;
-  if CurActor < 0 then exit;
-  if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
-  if Roster[CurActor].pack[slot].qty <= 0 then exit;
-  CombatItemUsable := ItemUsableInCombat(Roster[CurActor].pack[slot].def);
+  if Active^.CurActor < 0 then exit;
+  if (slot < 0) or (slot > High(Roster[Active^.CurActor].pack)) then exit;
+  if Roster[Active^.CurActor].pack[slot].qty <= 0 then exit;
+  CombatItemUsable := ItemUsableInCombat(Roster[Active^.CurActor].pack[slot].def);
 end;
 
 { Whether the item in that pack slot raises a fallen ally (vs heals). }
 function CombatSlotRevives(slot: longint): boolean;
 begin
   CombatSlotRevives := false;
-  if CurActor < 0 then exit;
-  if (slot < 0) or (slot > High(Roster[CurActor].pack)) then exit;
-  CombatSlotRevives := ItemRevives(Roster[CurActor].pack[slot].def);
+  if Active^.CurActor < 0 then exit;
+  if (slot < 0) or (slot > High(Roster[Active^.CurActor].pack)) then exit;
+  CombatSlotRevives := ItemRevives(Roster[Active^.CurActor].pack[slot].def);
 end;
 
 { A command whose slot the current actor has already spent this turn is
@@ -176,8 +176,8 @@ end;
 function CmdSpent(cmd: longint): boolean;
 begin
   case cmd of
-    CMD_MOVE: CmdSpent := TurnMoved;
-    CMD_ATTACK, CMD_CAST, CMD_SKILL, CMD_ITEM, CMD_GUARD: CmdSpent := TurnActed;
+    CMD_MOVE: CmdSpent := Active^.TurnMoved;
+    CMD_ATTACK, CMD_CAST, CMD_SKILL, CMD_ITEM, CMD_GUARD: CmdSpent := Active^.TurnActed;
   else
     CmdSpent := false;
   end;
@@ -197,16 +197,16 @@ begin
 
   { the window belongs to the acting character, named across its head;
     on a beat or the foe turn it stands by with no list }
-  if (CombatPhase = CP_INPUT) and (CurActor >= 0) then
-    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Roster[CurActor].name, 1, 12),
+  if (Active^.CombatPhase = CP_INPUT) and (Active^.CurActor >= 0) then
+    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Roster[Active^.CurActor].name, 1, 12),
       RGB(245, 230, 140))
-  else if CombatPhase = CP_ENEMY then
+  else if Active^.CombatPhase = CP_ENEMY then
     DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, 'FOE TURN', RGB(210, 150, 140))
   else
     DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, '...', RGB(150, 150, 130));
   FillRect(CMDBOX_X + 4, CMDBOX_Y + 16, CMDBOX_W - 8, 1, RGB(90, 84, 56));
   y0 := CMDBOX_Y + 21;
-  if CombatPhase <> CP_INPUT then exit;   { no interactive list while busy }
+  if Active^.CombatPhase <> CP_INPUT then exit;   { no interactive list while busy }
 
   case cbMenu of
     CB_COMMAND:
@@ -238,7 +238,7 @@ begin
         y := y0 + row * 11;
         sp := SpellInfo(i);
         if i = spellSel then c := RGB(185, 215, 245)
-        else if ActorCanCast(CurActor, i) then c := RGB(150, 160, 185)
+        else if ActorCanCast(Active^.CurActor, i) then c := RGB(150, 160, 185)
         else c := RGB(95, 95, 110);
         if i = spellSel then
           FillRectBlend(CMDBOX_X + 2, y - 1, CMDBOX_W - 4, 10,
@@ -268,7 +268,7 @@ begin
           y := y0 + row * 11;
           sk := CombatSkillInfo(i);
           if i = skillSel then c := RGB(185, 215, 245)
-          else if ActorCanManeuver(CurActor, i) then c := RGB(150, 160, 185)
+          else if ActorCanManeuver(Active^.CurActor, i) then c := RGB(150, 160, 185)
           else c := RGB(95, 95, 110);
           if i = skillSel then
             FillRectBlend(CMDBOX_X + 2, y - 1, CMDBOX_W - 4, 10,
@@ -280,7 +280,7 @@ begin
             DrawText(CMDBOX_X + CMDBOX_W - 12, y, '-', c)
           else
             DrawText(CMDBOX_X + CMDBOX_W - 12, y,
-              IntToStr(CombatSkillUsesLeft(CurActor, i)), c);
+              IntToStr(CombatSkillUsesLeft(Active^.CurActor, i)), c);
         end;
         if n > SPELL_VIS then
           DrawText(CMDBOX_X + 15, y0 + SPELL_VIS * 11,
@@ -289,9 +289,9 @@ begin
     end;
     CB_TARGET: begin
       DrawText(CMDBOX_X + 6, y0, 'TARGET', RGB(240, 220, 130));
-      if (CurTarget >= 0) and (CurTarget <= High(Foes)) then
+      if (Active^.CurTarget >= 0) and (Active^.CurTarget <= High(Active^.Foes)) then
         DrawText(CMDBOX_X + 6, y0 + 12,
-          Copy(MonDefs[Foes[CurTarget].def].name, 1, 15), RGB(240, 220, 130));
+          Copy(MonDefs[Active^.Foes[Active^.CurTarget].def].name, 1, 15), RGB(240, 220, 130));
       DrawText(CMDBOX_X + 6, y0 + 32, 'UP/DN AIM', RGB(150, 150, 130));
       DrawText(CMDBOX_X + 6, y0 + 42, 'ENT  OK', RGB(150, 150, 130));
       DrawText(CMDBOX_X + 6, y0 + 52, 'ESC  BACK', RGB(150, 150, 130));
@@ -299,20 +299,20 @@ begin
     CB_ITEM: begin
       any := false;
       row := 0;
-      for i := 0 to High(Roster[CurActor].pack) do
+      for i := 0 to High(Roster[Active^.CurActor].pack) do
         if CombatItemUsable(i) then begin
           y := y0 + row * 11;
           if i = itemSel then c := RGB(185, 215, 245)
           else c := RGB(150, 160, 185);
           if i = itemSel then DrawText(CMDBOX_X + 5, y, '>', c);
-          if Roster[CurActor].pack[i].qty > 1 then begin
+          if Roster[Active^.CurActor].pack[i].qty > 1 then begin
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemLabel(Roster[CurActor].pack[i].def), 1, 10), c);
+              Copy(ItemLabel(Roster[Active^.CurActor].pack[i].def), 1, 10), c);
             DrawText(CMDBOX_X + CMDBOX_W - 16, y,
-              'x' + IntToStr(Roster[CurActor].pack[i].qty), c);
+              'x' + IntToStr(Roster[Active^.CurActor].pack[i].qty), c);
           end else
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemLabel(Roster[CurActor].pack[i].def), 1, 14), c);
+              Copy(ItemLabel(Roster[Active^.CurActor].pack[i].def), 1, 14), c);
           inc(row);
           any := true;
         end;
@@ -345,10 +345,10 @@ var
   frac: double;
   base: TColor;
 begin
-  for i := 0 to High(Pops) do
-    if (Pops[i].side = side) and (Pops[i].idx = idx) then begin
-      frac := Pops[i].life / POP_LIFE;
-      case Pops[i].color of
+  for i := 0 to High(Active^.Pops) do
+    if (Active^.Pops[i].side = side) and (Active^.Pops[i].idx = idx) then begin
+      frac := Active^.Pops[i].life / POP_LIFE;
+      case Active^.Pops[i].color of
         POPC_FOEDMG:   base := RGB(250, 240, 180);
         POPC_PARTYDMG: base := RGB(245, 95, 85);
         POPC_HEAL:     base := RGB(120, 230, 130);
@@ -358,7 +358,7 @@ begin
       end;
       lit := 110 + round(146 * frac);
       yy := py - round((1.0 - frac) * 12);
-      DrawText(px - Length(Pops[i].text) * 3, yy, Pops[i].text, Shade(base, lit));
+      DrawText(px - Length(Active^.Pops[i].text) * 3, yy, Active^.Pops[i].text, Shade(base, lit));
     end;
 end;
 
@@ -405,35 +405,35 @@ begin
     the clash and larger. Same rank spreads across columns. --- }
   for rk := RANK_BACK downto RANK_FRONT do begin
     living := 0;
-    for i := 0 to High(Foes) do
-      if Foes[i].alive and (Foes[i].rank = rk) then inc(living);
+    for i := 0 to High(Active^.Foes) do
+      if Active^.Foes[i].alive and (Active^.Foes[i].rank = rk) then inc(living);
     if living < 1 then continue;
     slot := FBW div living;
     if rk = RANK_BACK then begin cy := FOE_BACK_Y; half := FOE_BACK_H; end
     else begin cy := FOE_FRONT_Y; half := FOE_FRONT_H; end;
     col := 0;
-    for i := 0 to High(Foes) do begin
-      if (not Foes[i].alive) or (Foes[i].rank <> rk) then continue;
+    for i := 0 to High(Active^.Foes) do begin
+      if (not Active^.Foes[i].alive) or (Active^.Foes[i].rank <> rk) then continue;
       cx := slot * col + slot div 2;
-      body := FOE_PAL[Foes[i].def mod 6];
-      mi := LoadSprite(GamePak, MonDefs[Foes[i].def].model);
+      body := FOE_PAL[Active^.Foes[i].def mod 6];
+      mi := LoadSprite(GamePak, MonDefs[Active^.Foes[i].def].model);
       if mi >= 0 then
         DrawFoeSprite(SpriteReg[mi].img, cx, cy, 2 * half)
       else
         DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
-      if (i <= High(FoeFlash)) then
-        DrawFlash(cx - half, cy - half, 2 * half, 2 * half, FoeFlash[i]);
-      s := MonDefs[Foes[i].def].name;
+      if (i <= High(Active^.FoeFlash)) then
+        DrawFlash(cx - half, cy - half, 2 * half, 2 * half, Active^.FoeFlash[i]);
+      s := MonDefs[Active^.Foes[i].def].name;
       DrawText(cx - Length(s) * 3, cy - half - 8, s, RGB(215, 185, 175));
-      DrawBar(cx - 16, cy + half + 1, 32, 3, Foes[i].hp, Foes[i].hpMax,
+      DrawBar(cx - 16, cy + half + 1, 32, 3, Active^.Foes[i].hp, Active^.Foes[i].hpMax,
         RGB(200, 80, 70), RGB(50, 24, 24));
-      if i <= High(FoeStatus) then begin
-        s := StatusTag(FoeStatus[i]);
+      if i <= High(Active^.FoeStatus) then begin
+        s := StatusTag(Active^.FoeStatus[i]);
         if s <> '' then DrawText(cx + 20, cy + half - 2, s, RGB(190, 120, 215));
       end;
       DrawPops(0, i, cx, cy - half - 18);
       { the aim chevron sits to the left of the chosen foe }
-      if (i = CurTarget) and (CombatPhase = CP_INPUT) and (cbMenu <> CB_ALLY) then
+      if (i = Active^.CurTarget) and (Active^.CombatPhase = CP_INPUT) and (cbMenu <> CB_ALLY) then
         DrawText(cx - half - 10, cy - 3, '>', RGB(245, 225, 120));
       inc(col);
     end;
@@ -457,19 +457,19 @@ begin
       if Roster[i].rank <> rk then continue;
       x := 16 + col * slot;
       tx := x + 18;   { text clears the portrait thumbnail on the left }
-      if (i = CurActor) and (CombatPhase = CP_INPUT) then
+      if (i = Active^.CurActor) and (Active^.CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(245, 230, 140));
-      if (cbMenu = CB_ALLY) and (i = allySel) and (CombatPhase = CP_INPUT) then
+      if (cbMenu = CB_ALLY) and (i = allySel) and (Active^.CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(120, 220, 200));
       if not Roster[i].alive then c := RGB(160, 80, 80)
       else if Roster[i].downed then c := RGB(175, 135, 85)
-      else if (i = CurActor) and (CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
+      else if (i = Active^.CurActor) and (Active^.CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
       FrameRect(x, ny, 16, 16, RGB(50, 46, 38));
       DrawPCPortraitScaled(x, ny, 16, 16, Roster[i].portrait);
       DrawText(tx, ny, Copy(Roster[i].name, 1, 8), c);
-      if (i <= High(PartyStatus)) and Roster[i].alive and (not Roster[i].downed) then begin
-        s := StatusTag(PartyStatus[i]);
+      if (i <= High(Active^.PartyStatus)) and Roster[i].alive and (not Roster[i].downed) then begin
+        s := StatusTag(Active^.PartyStatus[i]);
         if s <> '' then DrawText(tx + 50, ny, s, RGB(190, 120, 215));
       end;
       if not Roster[i].alive then
@@ -486,8 +486,8 @@ begin
         DrawBar(x, ny + 18, slot - 16, 3, Roster[i].hp, Roster[i].hpMax,
           RGB(70, 170, 70), RGB(40, 20, 20));
       end;
-      if (i <= High(PartyFlash)) then
-        DrawFlash(x - 2, ny - 2, slot - 6, 26, PartyFlash[i]);
+      if (i <= High(Active^.PartyFlash)) then
+        DrawFlash(x - 2, ny - 2, slot - 6, 26, Active^.PartyFlash[i]);
       DrawPops(1, i, x + 14, ny - 11);
       inc(col);
     end;
@@ -503,16 +503,16 @@ begin
   FillRectBlend(116, PANEL_Y, FBW - 122, FBH - PANEL_Y - 2, RGB(6, 8, 14), 235);
   FrameRect(116, PANEL_Y, FBW - 122, FBH - PANEL_Y - 2, RGB(110, 110, 140));
   for i := 0 to LOG_LINES - 1 do
-    DrawText(122, PANEL_Y + 6 + i * 10, Log[i], RGB(175, 185, 170));
+    DrawText(122, PANEL_Y + 6 + i * 10, Active^.Log[i], RGB(175, 185, 170));
 
   { context help: what the acting member may still do this turn. One move
     and one action in either order, then the turn ends; SKIP ends it early. }
-  if (not CombatOver) and (CombatPhase = CP_INPUT) and (CurActor >= 0) then begin
+  if (not Active^.CombatOver) and (Active^.CombatPhase = CP_INPUT) and (Active^.CurActor >= 0) then begin
     FillRect(122, FBH - 27, FBW - 134, 1, RGB(70, 74, 92));
-    if TurnMoved and (not TurnActed) then begin
+    if Active^.TurnMoved and (not Active^.TurnActed) then begin
       DrawText(122, FBH - 22, 'Move spent.', RGB(150, 205, 175));
       DrawText(122, FBH - 12, 'Take an ACTION, or SKIP.', RGB(175, 185, 205));
-    end else if TurnActed and (not TurnMoved) then begin
+    end else if Active^.TurnActed and (not Active^.TurnMoved) then begin
       DrawText(122, FBH - 22, 'Action spent.', RGB(150, 205, 175));
       DrawText(122, FBH - 12, 'MOVE, or SKIP to end turn.', RGB(175, 185, 205));
     end else begin
@@ -521,11 +521,11 @@ begin
     end;
   end;
 
-  if CombatOver then begin
+  if Active^.CombatOver then begin
     FillRectBlend(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(6, 8, 14), 235);
     FrameRect(6, PANEL_Y, 104, FBH - PANEL_Y - 2, RGB(150, 140, 90));
-    if Victory then s := 'VICTORY'
-    else if Fled then s := 'ESCAPED'
+    if Active^.Victory then s := 'VICTORY'
+    else if Active^.Fled then s := 'ESCAPED'
     else s := 'DEFEAT';
     DrawText(16, PANEL_Y + 14, s, RGB(235, 220, 150));
     DrawText(16, PANEL_Y + 34, 'PRESS', RGB(170, 170, 150));
@@ -538,12 +538,12 @@ end;
   spell reaches any living foe, a melee or ranged attack follows reach. }
 function CombatCanTarget(foe: longint): boolean;
 begin
-  if (foe < 0) or (foe > High(Foes)) or (not Foes[foe].alive) then
+  if (foe < 0) or (foe > High(Active^.Foes)) or (not Active^.Foes[foe].alive) then
     CombatCanTarget := false
   else if pendingSpell >= 0 then
     CombatCanTarget := true
   else
-    CombatCanTarget := FoeReachable(CurActor, foe);
+    CombatCanTarget := FoeReachable(Active^.CurActor, foe);
 end;
 
 { Step the enemy cursor to the next targetable foe in a direction. }
@@ -551,14 +551,14 @@ procedure CombatCycleTarget(dir: longint);
 var
   start, i, n: longint;
 begin
-  n := Length(Foes);
+  n := Length(Active^.Foes);
   if n = 0 then exit;
-  i := CurTarget;
+  i := Active^.CurTarget;
   if (i < 0) or (i >= n) then i := 0;
   start := i;
   repeat
     i := ((i + dir) mod n + n) mod n;
-    if CombatCanTarget(i) then begin CurTarget := i; exit; end;
+    if CombatCanTarget(i) then begin Active^.CurTarget := i; exit; end;
   until i = start;
 end;
 
@@ -600,8 +600,8 @@ procedure CombatStepItem(dir: longint);
 var
   start, i, n: longint;
 begin
-  if CurActor < 0 then exit;
-  n := Length(Roster[CurActor].pack);
+  if Active^.CurActor < 0 then exit;
+  n := Length(Roster[Active^.CurActor].pack);
   if n = 0 then exit;
   i := itemSel;
   if (i < 0) or (i >= n) then i := 0;
@@ -624,7 +624,7 @@ begin
   start := i;
   repeat
     i := ((i + dir) mod n + n) mod n;
-    if ActorCanCast(CurActor, i) then begin spellSel := i; exit; end;
+    if ActorCanCast(Active^.CurActor, i) then begin spellSel := i; exit; end;
   until i = start;
 end;
 
@@ -639,7 +639,7 @@ begin
   start := i;
   repeat
     i := ((i + dir) mod n + n) mod n;
-    if ActorCanManeuver(CurActor, i) then begin skillSel := i; exit; end;
+    if ActorCanManeuver(Active^.CurActor, i) then begin skillSel := i; exit; end;
   until i = start;
 end;
 
@@ -656,8 +656,8 @@ begin
   pendingSpell := -1;
   pendingSkill := -1;
   pendingItem := -1;
-  if (CurTarget < 0) or (CurTarget > High(Foes)) or (not Foes[CurTarget].alive) then
-    CurTarget := FirstLivingFoe;
+  if (Active^.CurTarget < 0) or (Active^.CurTarget > High(Active^.Foes)) or (not Active^.Foes[Active^.CurTarget].alive) then
+    Active^.CurTarget := FirstLivingFoe;
 end;
 
 procedure CombatConfirmCommand;
@@ -668,9 +668,9 @@ begin
   case cmdSel of
     CMD_ATTACK: begin
       pendingSpell := -1;
-      CurTarget := FirstReachable(CurActor);
-      if CurTarget < 0 then begin
-        CombatLog(Roster[CurActor].name + ' has no target in reach.');
+      Active^.CurTarget := FirstReachable(Active^.CurActor);
+      if Active^.CurTarget < 0 then begin
+        CombatLog(Roster[Active^.CurActor].name + ' has no target in reach.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
@@ -679,9 +679,9 @@ begin
     CMD_CAST: begin
       spellSel := -1;
       for i := 0 to SpellCount - 1 do
-        if ActorCanCast(CurActor, i) then begin spellSel := i; break; end;
+        if ActorCanCast(Active^.CurActor, i) then begin spellSel := i; break; end;
       if spellSel < 0 then begin
-        CombatLog(Roster[CurActor].name + ' has no spell to cast.');
+        CombatLog(Roster[Active^.CurActor].name + ' has no spell to cast.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_SPELL; PlaySfx(SFX_SELECT);
@@ -690,9 +690,9 @@ begin
     CMD_SKILL: begin
       skillSel := -1;
       for i := 0 to CombatSkillCount - 1 do
-        if ActorCanManeuver(CurActor, i) then begin skillSel := i; break; end;
+        if ActorCanManeuver(Active^.CurActor, i) then begin skillSel := i; break; end;
       if skillSel < 0 then begin
-        CombatLog(Roster[CurActor].name + ' has no maneuver ready.');
+        CombatLog(Roster[Active^.CurActor].name + ' has no maneuver ready.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_SKILL; PlaySfx(SFX_SELECT);
@@ -700,10 +700,10 @@ begin
     end;
     CMD_ITEM: begin
       itemSel := -1;
-      for i := 0 to High(Roster[CurActor].pack) do
+      for i := 0 to High(Roster[Active^.CurActor].pack) do
         if CombatItemUsable(i) then begin itemSel := i; break; end;
       if itemSel < 0 then begin
-        CombatLog(Roster[CurActor].name + ' has no item to use.');
+        CombatLog(Roster[Active^.CurActor].name + ' has no item to use.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_ITEM; PlaySfx(SFX_SELECT);
@@ -720,16 +720,16 @@ procedure CombatConfirmSpell;
 var
   sp: TSpell;
 begin
-  if not ActorCanCast(CurActor, spellSel) then begin PlaySfx(SFX_DOWN); exit; end;
+  if not ActorCanCast(Active^.CurActor, spellSel) then begin PlaySfx(SFX_DOWN); exit; end;
   sp := SpellInfo(spellSel);
   pendingSpell := spellSel;
   case sp.mode of
     TGT_ENEMY, TGT_ENEMY_RANK: begin
-      CurTarget := FirstLivingFoe;
+      Active^.CurTarget := FirstLivingFoe;
       cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
     end;
     TGT_ALLY: begin
-      allySel := CurActor;
+      allySel := Active^.CurActor;
       if not Roster[allySel].alive then CombatCycleAlly(1);
       cbMenu := CB_ALLY; PlaySfx(SFX_SELECT);
     end;
@@ -743,7 +743,7 @@ procedure CombatConfirmSkill;
 var
   sk: TSkillDef;
 begin
-  if not ActorCanManeuver(CurActor, skillSel) then begin PlaySfx(SFX_DOWN); exit; end;
+  if not ActorCanManeuver(Active^.CurActor, skillSel) then begin PlaySfx(SFX_DOWN); exit; end;
   sk := CombatSkillInfo(skillSel);
   if sk.effect = SKE_RALLY then begin
     { the rally hits the whole party, so it needs no target }
@@ -751,7 +751,7 @@ begin
     exit;
   end;
   pendingSkill := skillSel;
-  CurTarget := FirstLivingFoe;
+  Active^.CurTarget := FirstLivingFoe;
   cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
 end;
 
@@ -760,7 +760,7 @@ begin
   if not CombatItemUsable(itemSel) then begin PlaySfx(SFX_DOWN); exit; end;
   pendingItem := itemSel;
   { start the ally cursor on a valid target under this item's filter }
-  allySel := CurActor;
+  allySel := Active^.CurActor;
   if not CombatAllyTargetable(allySel) then CombatCycleAlly(1);
   if not CombatAllyTargetable(allySel) then begin
     { nothing this item can act on, e.g. a revive with no one down }
@@ -794,11 +794,11 @@ end;
 
 procedure CombatKeyDown(scancode: longint);
 begin
-  if CombatOver then begin
+  if Active^.CombatOver then begin
     EndCombat;
     exit;
   end;
-  if CombatBusy or (CurActor < 0) then exit;   { a beat or the foe turn is running }
+  if CombatBusy or (Active^.CurActor < 0) then exit;   { a beat or the foe turn is running }
 
   case cbMenu of
     CB_COMMAND:
@@ -823,9 +823,9 @@ begin
           CombatCycleTarget(1);
         SDL_SCANCODE_RETURN, SDL_SCANCODE_SPACE: begin
           if pendingSkill >= 0 then begin
-            ActSkill(pendingSkill, CurTarget); PlaySfx(SFX_HIT);
+            ActSkill(pendingSkill, Active^.CurTarget); PlaySfx(SFX_HIT);
           end else if pendingSpell >= 0 then begin
-            ActCast(pendingSpell, CurTarget); PlaySfx(SFX_HIT);
+            ActCast(pendingSpell, Active^.CurTarget); PlaySfx(SFX_HIT);
           end else begin
             ActAttack; PlaySfx(SFX_HIT);
           end;
@@ -870,7 +870,7 @@ begin
       end;
   end;
 
-  if CombatOver and (not Victory) and (not Fled) then PlaySfx(SFX_DOWN);
+  if Active^.CombatOver and (not Active^.Victory) and (not Active^.Fled) then PlaySfx(SFX_DOWN);
 end;
 
 procedure EnterCombat;
@@ -886,7 +886,7 @@ begin
   itemSel := 0;
   pendingItem := -1;
   { fighting in the dark: a fight-long to-hit penalty when the torch is low }
-  if TorchGlow < DARK_GLOW then PartyDark := DARK_ATK else PartyDark := 0;
+  if TorchGlow < DARK_GLOW then Active^.PartyDark := DARK_ATK else Active^.PartyDark := 0;
   PlaySfx(SFX_FOE);
   State := gsCombat;
 end;
@@ -921,16 +921,16 @@ procedure CombatAutoTurn(dt: double);
   to the were-beast, take its turn for it. Pacing handles the rest. }
 begin
   CombatUpdate(dt);
-  if CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
-  CombatSfxCue := CUE_NONE;
-  if (CombatPhase = CP_INPUT) and (not CombatOver)
-    and (CurActor >= 0) and (CurActor <= High(Roster))
-    and Roster[CurActor].wereform and Roster[CurActor].alive
-    and (not Roster[CurActor].downed) then begin
+  if Active^.CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
+  Active^.CombatSfxCue := CUE_NONE;
+  if (Active^.CombatPhase = CP_INPUT) and (not Active^.CombatOver)
+    and (Active^.CurActor >= 0) and (Active^.CurActor <= High(Roster))
+    and Roster[Active^.CurActor].wereform and Roster[Active^.CurActor].alive
+    and (not Roster[Active^.CurActor].downed) then begin
     ActAttack;
     PlaySfx(SFX_HIT);
     { back-rank with nothing in reach: guard so the turn still passes }
-    if (CombatPhase = CP_INPUT) and (not CombatOver) then ActGuard;
+    if (Active^.CombatPhase = CP_INPUT) and (not Active^.CombatOver) then ActGuard;
   end;
 end;
 

@@ -56,7 +56,7 @@ begin
   LearnWholeDomain(Roster[1]);
 
   { a level-1 Wizard: the three L1 Magic-User combat spells, no L2 yet }
-  CurActor := 0;
+  Active^.CurActor := 0;
   Roster[0].level := 1; ResetSpellList;
   Roster[0].sp := 5;
   Check(SpellCount = 5, 'a level-1 Wizard lists its five L1 Magic-User spells');
@@ -97,7 +97,7 @@ begin
   Check(not ActorCanCast(0, mm), 'with no points, the Wizard cannot cast');
 
   { the Friar draws the Cleric domain and casts off Wisdom }
-  CurActor := 1;
+  Active^.CurActor := 1;
   Roster[1].level := 1; ResetSpellList;
   Roster[1].sp := 5;
   Check(MenuIndexOf('C_CURELIGHTWOUND') >= 0, 'the Friar can mend wounds');
@@ -111,7 +111,7 @@ begin
   { a non-caster has an empty list }
   SetLength(Roster, 3);
   MakeCharacter(Roster[2], 'Bron', SpeciesIndex('HUMAN'), ClassIndex('FIGHTER'), -1, ab);
-  CurActor := 2; ResetSpellList;
+  Active^.CurActor := 2; ResetSpellList;
   Check(SpellCount = 0, 'a Fighter has no spells to cast');
 
   TestSummary('cast');

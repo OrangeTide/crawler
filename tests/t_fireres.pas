@@ -41,9 +41,9 @@ begin
   StartMonsterEncounter(MonIndex('DEMON'), 6, 0);
   CombatSettle;
   rounds := 0;
-  while (not CombatOver) and (rounds < 400) do begin
+  while (not Active^.CombatOver) and (rounds < 400) do begin
     if CombatBusy then begin CombatSettle; continue; end;
-    if CurActor >= 0 then ActSkip;   { pass the turn, never killing a foe }
+    if Active^.CurActor >= 0 then ActSkip;   { pass the turn, never killing a foe }
     CombatSettle;
     inc(rounds);
   end;

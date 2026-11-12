@@ -83,7 +83,7 @@ begin
   SetLength(Roster[1].known, 2);
   Roster[1].known[0] := 'M_COLORSPRAY';   { illusion, favored, castable }
   Roster[1].known[1] := 'M_SCARE';        { necromancy, opposition, castable }
-  CurActor := 1; ResetSpellList;
+  Active^.CurActor := 1; ResetSpellList;
   i := -1;
   Check(SpellCount >= 1, 'the Illusionist has a combat spell');
   for i := 0 to SpellCount - 1 do

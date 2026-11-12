@@ -285,7 +285,7 @@ begin
       LearnSkill(Roster[ci], SkillByID('SK_POWERATTACK'));
       LearnSkill(Roster[ci], SkillByID('SK_DISARM'));
       LearnSkill(Roster[ci], SkillByID('SK_RALLY'));
-      CurActor := ci;
+      Active^.CurActor := ci;
     end;
     CombatKeyDown(SDL_SCANCODE_DOWN);     { ATTACK -> CAST }
     CombatKeyDown(SDL_SCANCODE_DOWN);     { CAST -> SKILL }
@@ -301,7 +301,7 @@ begin
       level argument raises the Wizard so more spell levels open up }
     QuickBattle;
     if High(Roster) >= 3 then begin
-      CurActor := 3;          { the pregen Wizard }
+      Active^.CurActor := 3;          { the pregen Wizard }
       if ParamCount >= 3 then Roster[3].level := StrToInt(ParamStr(3));
       Roster[3].sp := 20;
     end;
