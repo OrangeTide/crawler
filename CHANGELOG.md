@@ -589,6 +589,7 @@ World content and the critical path.
   regenerated the module layout from the current source tree.
 
 [0.29.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.29.0
+[0.28.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.28.0
 [0.27.1]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.1
 [0.27.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.0
 [0.24.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.24.0
