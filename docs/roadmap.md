@@ -329,9 +329,12 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   battles. On join and on each map entry the server also sends that map's current
   diff set (opened doors, taken items, fog, defeated bosses) reliably, since the
   seed regenerates only the terrain. The shard persists by periodic checkpoint.
-  Section 24 holds the open design points: the shared clock and rest, character
-  portability, PvP consent, AI authority, and whether single player folds into a
-  one-player shard.
+  The clock is shared and runs in real time, with battles still turn based.
+  Characters are saved on the shard, which keeps a client from forging one; a
+  connected player can export a copy to re-import into a local game or hand to an
+  admin, but there is no live transfer between shards. Section 24 holds the open
+  design points: PvP consent, AI authority, and whether single player folds into
+  a one-player shard.
 
 ### F. World content and the critical path (design section 17)
 

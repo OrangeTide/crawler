@@ -909,11 +909,14 @@ cleanly for the PlayStation 1.
   build flag and is absent from the PS1 build, which has no standard networking
   path. There is no IPX or DOS transport. A single build guard drops the
   backend, leaving the protocol core and the game untouched.
-- **A shard holds 32 to 1024 players, configurable.** The typical deployment is
-  one shard that a player self-hosts as a local game server, which others join.
-  The engine gains a headless server mode that runs the simulation and the shard
-  with no window or renderer. The `shot` tool already runs the real init and
-  simulation paths with no display, so that seam exists.
+- **A shard holds 32 to 1024 players, configurable.** The range is the size of
+  the transport's static connection table, which the server sets; netchan's
+  static memory model is why the count is a fixed configured bound, and a
+  default of 32 suits most LAN servers. The typical deployment is one shard that
+  a player self-hosts as a local game server, which others join. The engine
+  gains a headless server mode that runs the simulation and the shard with no
+  window or renderer. The `shot` tool already runs the real init and simulation
+  paths with no display, so that seam exists.
 
 ### Transport: borrow netchan's reliable datagram
 
@@ -992,22 +995,30 @@ server-side extension of the single-player save, the seed plus the accumulated
 world diffs, now shard-global (a door one party opens is open for all) and
 covering every active party.
 
+Characters are saved on the shard, which is authoritative and keeps a client
+from forging one. A connected player may export a copy of their own character to
+their machine; that export re-imports into a local single-player game, or an
+admin copies it into a server by hand. There is no live character transfer
+between shards: joining another host does not carry your shard character to it.
+
 ### Server authority and time
 
-The host runs the simulation authoritatively at a low tick. Grid movement is
-discrete, so step latency is acceptable and there is no client-side prediction
-at first.
+The host runs the simulation authoritatively at a low tick. The game clock is
+shared and runs in real time for the whole shard, so no party can fast-forward
+it; rest and the other time-gated systems (wages, lycanthropy, the moon phase)
+advance with the real clock rather than skipping ahead. Battles stay turn based:
+a battle is a turn-based instance that resolves on its own while the shared
+real-time clock keeps advancing for everyone else.
+
+Grid movement is discrete, so step latency is acceptable and there is no
+client-side prediction. A high-latency WAN link is fine to play on, though it
+can make that player a poor party leader, so players self-select: a laggy member
+need not lead, and anyone can prefer a shard closer to them.
 
 ### Open questions
 
 Design gaps to settle before the wire format:
 
-- **Shared clock and rest.** Whether shard time is a real-time server clock, and
-  how rest and the time-gated systems (wages, lycanthropy, the moon phase) work
-  when no single party can skip the shared clock.
-- **Character portability.** Whether a character lives on one shard's checkpoint
-  or travels with the player across shards when joining another host over WAN,
-  and who holds the canonical copy.
 - **PvP consent.** Whether open-world PvP is always on or opt-in and
   server-configurable per shard, like WAN join.
 - **AI authority.** Whether the server or the party leader runs the hired NPCs
