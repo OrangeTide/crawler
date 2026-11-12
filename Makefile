@@ -37,6 +37,11 @@ FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild -FUbuild
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
+# Build everything on a bare `make`. The CLUT rule below is the first target in
+# the file, so without this make would take it as the default goal and skip the
+# binary.
+.DEFAULT_GOAL := all
+
 TARGET    = build/crawler$(EXE)
 PAK       = build/game.pak
 MKASSETS  = build/tools/mkassets$(EXE)
