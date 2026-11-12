@@ -52,6 +52,11 @@ procedure GLDrawWorldQuad(
   base wins the z-fight with the floor it stands on. }
 procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
   wx, wy, wscale, hscale, light, baseZ: double);
+{ A translucent emissive glow decal over floor cell (tx,ty) at height z, the
+  colour alpha-blended over the scene at a (0..1). Depth-tested so walls occlude
+  it, but it writes no depth. Stands in for raster.DrawFloorGlow on light-well,
+  brazier and vent floors, for both kit and non-kit cells. }
+procedure GLDrawGlow(tx, ty: longint; z, r, g, b, a: double);
 procedure GLSceneEnd;
 
 implementation
@@ -138,6 +143,18 @@ const
     '  gl_FragColor = vec4(mix(uZenith, uHorizon, f), 1.0);'#10 +
     '}'#10;
 
+  { A flat translucent colour, for the emissive floor glow decal. Reuses the
+    scene vertex layout (aPos, aUV) so BindVertexAttribs applies; uv is unused. }
+  GLOW_VERT =
+    'uniform mat4 uMVP;'#10 +
+    'attribute vec3 aPos;'#10 +
+    'attribute vec2 aUV;'#10 +
+    'void main() { gl_Position = uMVP * vec4(aPos, 1.0); }'#10;
+  GLOW_FRAG =
+    'precision mediump float;'#10 +
+    'uniform vec4 uColor;'#10 +
+    'void main() { gl_FragColor = uColor; }'#10;
+
   { fullscreen quad (x, y, u, v); uv maps straight to clip, no flip, since the
     scene target and the window share GL's bottom-left origin. }
   PQUAD: array[0 .. 15] of GLfloat = (
@@ -184,6 +201,9 @@ var
   skyProg: GLuint = 0;
   skyVBO: GLuint = 0;
   skyPos, skyZenithLoc, skyHorizonLoc, skyHorizonYLoc, skyFBHLoc: GLint;
+  glowReady: boolean = false;
+  glowProg: GLuint = 0;
+  glowPos, glowUVLoc, glowColorLoc, glowMVPLoc: GLint;
 
   { per-mesh vertex buffers and per-atlas textures, cached by source pointer.
     Meshes are resident for the session (clad's cache), so their keys are
@@ -807,6 +827,63 @@ begin
   BindVertexAttribs;
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDisable(GL_POLYGON_OFFSET_FILL);
+end;
+
+function EnsureGlow: boolean;
+begin
+  if glowReady then begin EnsureGlow := true; exit; end;
+  EnsureGlow := false;
+  glowProg := BuildProgram(GLOW_VERT, GLOW_FRAG);
+  if glowProg = 0 then exit;
+  glowPos := glGetAttribLocation(glowProg, 'aPos');
+  glowUVLoc := glGetAttribLocation(glowProg, 'aUV');
+  glowColorLoc := glGetUniformLocation(glowProg, 'uColor');
+  glowMVPLoc := glGetUniformLocation(glowProg, 'uMVP');
+  glowReady := true;
+  EnsureGlow := true;
+end;
+
+procedure GLDrawGlow(tx, ty: longint; z, r, g, b, a: double);
+const
+  GLOW_LIFT = 0.05;   { lift the decal above the floor, as raster.DrawFloorGlow }
+var
+  v: array[0 .. 29] of GLfloat;
+  mvp: TMat4;
+  zz: GLfloat;
+begin
+  if not progReady then exit;
+  if not EnsureGlow then exit;
+  zz := z + GLOW_LIFT;
+  { two triangles over the cell: (tx,ty)(tx+1,ty)(tx+1,ty+1) and back to (tx,ty+1) }
+  v[0] := tx;     v[1] := ty;     v[2] := zz; v[3] := 0; v[4] := 0;
+  v[5] := tx + 1; v[6] := ty;     v[7] := zz; v[8] := 0; v[9] := 0;
+  v[10] := tx + 1; v[11] := ty + 1; v[12] := zz; v[13] := 0; v[14] := 0;
+  v[15] := tx;     v[16] := ty;     v[17] := zz; v[18] := 0; v[19] := 0;
+  v[20] := tx + 1; v[21] := ty + 1; v[22] := zz; v[23] := 0; v[24] := 0;
+  v[25] := tx;     v[26] := ty + 1; v[27] := zz; v[28] := 0; v[29] := 0;
+
+  if quadVBO = 0 then glGenBuffers(1, @quadVBO);
+  mvp := MatMul(sceneProj, sceneView);
+  glUseProgram(glowProg);
+  glUniformMatrix4fv(glowMVPLoc, 1, GL_FALSE, @mvp[0]);
+  glUniform4f(glowColorLoc, r, g, b, a);
+
+  { blend over the scene, depth-tested but not depth-writing, so walls occlude
+    the glow yet it never occludes anything itself }
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glDepthMask(0);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, SizeOf(v), @v[0], GL_DYNAMIC_DRAW);
+  glEnableVertexAttribArray(GLuint(glowPos));
+  glVertexAttribPointer(GLuint(glowPos), 3, GL_FLOAT, GL_FALSE,
+    5 * SizeOf(GLfloat), Pointer(0));
+  glEnableVertexAttribArray(GLuint(glowUVLoc));
+  glVertexAttribPointer(GLuint(glowUVLoc), 2, GL_FLOAT, GL_FALSE,
+    5 * SizeOf(GLfloat), Pointer(3 * SizeOf(GLfloat)));
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDepthMask(1);
+  glDisable(GL_BLEND);
 end;
 
 procedure GLSceneEnd;

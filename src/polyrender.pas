@@ -420,8 +420,9 @@ procedure RenderViewGL;
 var
   mc: TMeshCam;
   ex, ey, cyaw, syaw: double;
-  tx, ty, x0, y0, x1, y1, shorizon: longint;
-  skyZen, skyHor: TColor;
+  tx, ty, x0, y0, x1, y1, shorizon, gk, gw: longint;
+  skyZen, skyHor, gcol, glowS: TColor;
+  gdist: double;
 begin
   if not VideoIsGL then exit;
   if gtTileset <> CurTileset then BuildGridTex;   { the grid wall/floor textures }
@@ -456,6 +457,21 @@ begin
   { the outdoor ground, as relief where a surface map carries terrain }
   if CurMapSurface and TerrainActive then
     DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
+  { emissive glow on light-well, brazier and vent floors, as a blended decal
+    over every glowing cell (both kit and non-kit, unlike the software split) }
+  for ty := y0 to y1 do
+    for tx := x0 to x1 do
+      if not IsWallTile(tx, ty) then begin
+        gk := LightTileKind(tx, ty);
+        if gk < 0 then continue;
+        gw := 0; gcol := 0;
+        if not LightGlow(gk, gcol, gw) then continue;
+        gdist := sqrt(sqr(tx + 0.5 - ex) + sqr(ty + 0.5 - ey));
+        glowS := Shade(gcol, round(TileLight(tx, ty, gdist)));
+        GLDrawGlow(tx, ty, FloorZAt(tx, ty),
+          ((glowS shr 16) and $FF) / 255, ((glowS shr 8) and $FF) / 255,
+          (glowS and $FF) / 255, gw / 256);
+      end;
   { placed prop models, the door/ladder portal meshes, and the sprite entities }
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawPortalMeshes(mc, ex, ey, cyaw, syaw);

@@ -121,12 +121,14 @@ var
   glUniform1f: procedure(location: GLint; v0: GLfloat); cdecl;
   glUniform2f: procedure(location: GLint; v0, v1: GLfloat); cdecl;
   glUniform3f: procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
+  glUniform4f: procedure(location: GLint; v0, v1, v2, v3: GLfloat); cdecl;
   glUniformMatrix4fv: procedure(location: GLint; count: GLsizei;
     transpose: GLboolean; value: PGLfloat); cdecl;
   glDrawArrays: procedure(mode: GLenum; first: GLint; count: GLsizei); cdecl;
   glEnable: procedure(cap: GLenum); cdecl;
   glDisable: procedure(cap: GLenum); cdecl;
   glDepthFunc: procedure(func: GLenum); cdecl;
+  glDepthMask: procedure(flag: GLboolean); cdecl;
   glCullFace: procedure(mode: GLenum); cdecl;
   glFrontFace: procedure(mode: GLenum); cdecl;
   glBlendFunc: procedure(sfactor, dfactor: GLenum); cdecl;
@@ -200,11 +202,13 @@ begin
   Pointer(glUniform1f) := GL('glUniform1f');
   Pointer(glUniform2f) := GL('glUniform2f');
   Pointer(glUniform3f) := GL('glUniform3f');
+  Pointer(glUniform4f) := GL('glUniform4f');
   Pointer(glUniformMatrix4fv) := GL('glUniformMatrix4fv');
   Pointer(glDrawArrays) := GL('glDrawArrays');
   Pointer(glEnable) := GL('glEnable');
   Pointer(glDisable) := GL('glDisable');
   Pointer(glDepthFunc) := GL('glDepthFunc');
+  Pointer(glDepthMask) := GL('glDepthMask');
   Pointer(glCullFace) := GL('glCullFace');
   Pointer(glFrontFace) := GL('glFrontFace');
   Pointer(glBlendFunc) := GL('glBlendFunc');
