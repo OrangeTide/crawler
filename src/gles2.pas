@@ -64,6 +64,9 @@ const
   GL_CCW                = $0901;
   GL_CW                 = $0900;
   GL_LINEAR             = $2601;
+  GL_REPEAT             = $2901;
+  GL_TEXTURE1           = $84C1;
+  GL_LUMINANCE          = $1909;
   GL_RGB                = $1907;
   GL_BLEND              = $0BE2;
   GL_SRC_ALPHA          = $0302;
@@ -114,6 +117,7 @@ var
     normalized: GLboolean; stride: GLsizei; ptr: Pointer); cdecl;
   glUniform1i: procedure(location, v0: GLint); cdecl;
   glUniform1f: procedure(location: GLint; v0: GLfloat); cdecl;
+  glUniform2f: procedure(location: GLint; v0, v1: GLfloat); cdecl;
   glUniform3f: procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
   glUniformMatrix4fv: procedure(location: GLint; count: GLsizei;
     transpose: GLboolean; value: PGLfloat); cdecl;
@@ -191,6 +195,7 @@ begin
   Pointer(glVertexAttribPointer) := GL('glVertexAttribPointer');
   Pointer(glUniform1i) := GL('glUniform1i');
   Pointer(glUniform1f) := GL('glUniform1f');
+  Pointer(glUniform2f) := GL('glUniform2f');
   Pointer(glUniform3f) := GL('glUniform3f');
   Pointer(glUniformMatrix4fv) := GL('glUniformMatrix4fv');
   Pointer(glDrawArrays) := GL('glDrawArrays');

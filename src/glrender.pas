@@ -49,19 +49,42 @@ const
   NEARP  = 0.05;
   FARP   = 100.0;
 
+  { The scene vertex shader snaps each projected vertex to the 320x240 pixel
+    grid (uRes), so vertices wobble the way the PlayStation's integer GTE output
+    did. This matches raster.VSNAP = 1 (whole pixels). The snap is in clip space
+    before the perspective divide, so shared world corners still snap alike. }
   VERT_SRC =
     'uniform mat4 uMVP;'#10 +
+    'uniform vec2 uRes;'#10 +
     'attribute vec3 aPos;'#10 +
     'attribute vec2 aUV;'#10 +
     'varying vec2 vUV;'#10 +
-    'void main() { vUV = aUV; gl_Position = uMVP * vec4(aPos, 1.0); }'#10;
+    'void main() {'#10 +
+    '  vUV = aUV;'#10 +
+    '  vec4 p = uMVP * vec4(aPos, 1.0);'#10 +
+    '  vec2 g = uRes * 0.5;'#10 +
+    '  p.xy = floor((p.xy / p.w) * g + 0.5) / g * p.w;'#10 +
+    '  gl_Position = p;'#10 +
+    '}'#10;
 
+  { The scene fragment shader applies a 4x4 ordered (Bayer) dither keyed on the
+    pixel, then quantizes each channel to 5 bits, standing in for the PS1's
+    15-bit framebuffer. The Bayer thresholds come from a 4x4 texture (uBayer,
+    repeat-wrapped), which avoids the dynamic array indexing GLES 2 drivers need
+    not support. This is the direct-colour echo of gfx.DitherQuant. }
   FRAG_SRC =
     'precision mediump float;'#10 +
     'varying vec2 vUV;'#10 +
     'uniform sampler2D uTex;'#10 +
+    'uniform sampler2D uBayer;'#10 +
     'uniform float uLight;'#10 +
-    'void main() { gl_FragColor = vec4(texture2D(uTex, vUV).rgb * uLight, 1.0); }'#10;
+    'void main() {'#10 +
+    '  vec3 c = texture2D(uTex, vUV).rgb * uLight;'#10 +
+    '  float b = texture2D(uBayer, gl_FragCoord.xy / 4.0).r;'#10 +
+    '  c = clamp(c + (b - 0.5) / 31.0, 0.0, 1.0);'#10 +
+    '  c = floor(c * 31.0 + 0.5) / 31.0;'#10 +
+    '  gl_FragColor = vec4(c, 1.0);'#10 +
+    '}'#10;
 
   { The upscale-blit of the 320x240 scene target to the window. }
   PVERT_SRC =
@@ -99,6 +122,8 @@ var
   vbo: GLuint = 0;
   tex: GLuint = 0;
   uMVPLoc, uLightLoc, uTexLoc: GLint;
+  uResLoc, uBayerLoc: GLint;
+  bayerTex: GLuint = 0;
   posLoc, uvLoc: GLint;
   angle: GLfloat = 0;
 
@@ -287,18 +312,51 @@ begin
     GL_RGBA, GL_UNSIGNED_BYTE, @checker[0, 0, 0]);
 end;
 
+{ Build the 4x4 ordered-dither threshold texture the scene shader samples. Each
+  texel is (BAYER4 + 0.5) / 16 scaled to a byte, so the shader reads a threshold
+  in (0, 1). The matrix matches gfx.BAYER4. }
+procedure BuildBayerTex;
+const
+  BAYER4: array[0 .. 15] of longint =
+    (0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+var
+  px: array[0 .. 15] of byte;
+  i: longint;
+begin
+  for i := 0 to 15 do
+    px[i] := round((BAYER4[i] + 0.5) / 16.0 * 255.0);
+  glGenTextures(1, @bayerTex);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, bayerTex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, 4, 4, 0,
+    GL_LUMINANCE, GL_UNSIGNED_BYTE, @px[0]);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glActiveTexture(GL_TEXTURE0);
+end;
+
 function EnsureProgram: boolean;
 begin
   if progReady then begin EnsureProgram := true; exit; end;
   EnsureProgram := false;
   prog := BuildProgram(VERT_SRC, FRAG_SRC);
   if prog = 0 then exit;
+  BuildBayerTex;
   glUseProgram(prog);
   uMVPLoc := glGetUniformLocation(prog, 'uMVP');
   uLightLoc := glGetUniformLocation(prog, 'uLight');
   uTexLoc := glGetUniformLocation(prog, 'uTex');
+  uResLoc := glGetUniformLocation(prog, 'uRes');
+  uBayerLoc := glGetUniformLocation(prog, 'uBayer');
   posLoc := glGetAttribLocation(prog, 'aPos');
   uvLoc := glGetAttribLocation(prog, 'aUV');
+  glUniform1i(uTexLoc, 0);
+  glUniform1i(uBayerLoc, 1);
+  glUniform2f(uResLoc, FBW, FBH);
   progReady := true;
   EnsureProgram := true;
 end;
@@ -492,6 +550,9 @@ begin
   sceneView := MatView(mc.x, mc.y, mc.z, mc.yaw, mc.pitch);
   glUseProgram(prog);
   glUniform1i(uTexLoc, 0);
+  glActiveTexture(GL_TEXTURE1);         { the dither matrix stays on unit 1 }
+  glBindTexture(GL_TEXTURE_2D, bayerTex);
+  glActiveTexture(GL_TEXTURE0);
 end;
 
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
