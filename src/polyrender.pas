@@ -401,6 +401,7 @@ var
   tx, ty, x0, y0, x1, y1: longint;
 begin
   if not VideoIsGL then exit;
+  if gtTileset <> CurTileset then BuildGridTex;   { the grid wall/floor textures }
   ex := Cam.posX; ey := Cam.posY;
   mc.x := ex; mc.y := ey; mc.z := Cam.posZ;
   mc.yaw := arctan2(Cam.dirY, Cam.dirX);
