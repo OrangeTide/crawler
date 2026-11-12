@@ -15,8 +15,11 @@ whose development history is summarized in docs/roadmap.md.
 - A bare `make` builds the binary again, not just the CLUT. The `build/clut`
   rule had become the first target in the Makefile, so make took it as the
   default goal and `make` alone skipped `build/crawler`. CI and the release
-  workflow run `make`, so their package step could not find the binary.
-  `.DEFAULT_GOAL := all` restores building everything.
+  workflow run `make`, so their package step could not find the binary. The
+  `all` target is now the file's first target, which restores building
+  everything on any make version. The Windows FPC toolchain bundles a make too
+  old to honor `.DEFAULT_GOAL`, so the first-target order is what fixes it
+  there.
 - The macOS cross-build finds units under `src/ui`. `scripts/build-macos.sh`
   passed only `-Fusrc`, so a forced recompile of a `src/ui` unit could not
   locate its source; it now also passes `-Fusrc/ui`, matching the host build.
