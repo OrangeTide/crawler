@@ -19,17 +19,19 @@ whose development history is summarized in docs/roadmap.md.
   CRAWLER_GL=0 forces that fallback. Built for the Raspberry Pi and Linux; it
   ports to Windows and macOS on desktop GL 3.x or ANGLE next.
 - The GPU now draws the explore scene, the second stage of the backend seam (a
-  new `glrender` unit, enabled with CRAWLER_GL3D=1). It renders through a 320x240
-  offscreen target upscaled nearest for the retro look, carries the PSX vertex
-  snap and a 4x4 ordered dither with a 5-bit quantize in the shaders, and covers
-  the non-kit grid walls, floors and ceilings, the kit cladding, placed props,
-  door and ladder portal meshes, sprite billboards, the surface-map terrain and
-  sky gradient, the emissive floor glow, multi-material kit pieces, and the
-  emission channel that makes a window's stained glass glow by its own light in
-  a dim nave, with the 2D HUD composited over it. It shares the software
-  renderer's projection and content, so the two agree in idiom without matching
-  pixel for pixel, and it reaches parity with the software explore view.
-  Verified on aarch64 through GLES2 on a Raspberry Pi.
+  new `glrender` unit), and it is the default whenever a GL context is up. It
+  renders through a 320x240 offscreen target upscaled nearest for the retro
+  look, carries the PSX vertex snap and a 4x4 ordered dither with a 5-bit
+  quantize in the shaders, and covers the non-kit grid walls, floors and
+  ceilings, the kit cladding, placed props, door and ladder portal meshes,
+  sprite billboards, the surface-map terrain and sky gradient, the emissive
+  floor glow, multi-material kit pieces, and the emission channel that makes a
+  window's stained glass glow by its own light in a dim nave, with the 2D HUD
+  composited over it. It shares the software renderer's projection and content,
+  so the two agree in idiom without matching pixel for pixel, and it reaches
+  parity with the software explore view. The software explore path stays the
+  fallback with no GL (CRAWLER_GL=0), and CRAWLER_GL3D=0 forces it for
+  comparison. Verified on aarch64 through GLES2 on a Raspberry Pi.
 - Per-tileset colour on the GPU, through a baked CLUT. The asset build
   median-cuts each kit tileset's own trim atlases to a 256-colour `CLUT`
   lump, and the GPU explore backend now renders kit cladding through it: it

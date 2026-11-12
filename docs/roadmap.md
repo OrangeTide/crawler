@@ -111,12 +111,14 @@ renderer backend seam landed. Stage 1 added an OpenGL ES 2.0 present backend: a
 the entry points at runtime so there is no link-time GL dependency; it presents
 the 320x240 software framebuffer as a textured quad and falls back to the SDL 2D
 renderer when no GL context is available. Stage 2 moved the explore scene itself
-onto the GPU (`glrender`, enabled with CRAWLER_GL3D=1): it renders through a
-320x240 offscreen target upscaled nearest, carries the vertex snap and ordered
-dither in its shaders, and draws the grid, kit cladding, props, portals,
-billboards, terrain, sky, floor glow, multi-material pieces and the emission
-channel, with the 2D HUD composited over it, reaching parity with the software
-explore view. Both are validated on x86-64 and aarch64 Linux, the aarch64 build
+onto the GPU (`glrender`), now the default whenever a GL context is up: it
+renders through a 320x240 offscreen target upscaled nearest, carries the vertex
+snap and ordered dither in its shaders, and draws the grid, kit cladding, props,
+portals, billboards, terrain, sky, floor glow, multi-material pieces and the
+emission channel, with the 2D HUD composited over it, reaching parity with the
+software explore view. The software explore path remains the fallback with no GL
+(CRAWLER_GL=0), and CRAWLER_GL3D=0 forces it even on GL for comparison. Both are
+validated on x86-64 and aarch64 Linux, the aarch64 build
 through GLES2 on a Raspberry Pi. A baked per-tileset palette (CLUT) landed
 alongside, and the GPU now samples kit cladding through its tileset CLUT, bound
 per primitive the way the PlayStation will, so each tileset keeps its own colour
@@ -272,8 +274,9 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   aarch64 build renders the title screen through GLES2 on a Raspberry Pi. The
   near-term focus stays on x86-64 and aarch64 Linux; the Windows and macOS port
   (desktop GL 3.x or ANGLE) is deferred. Stage 2 has landed: the explore scene
-  renders on the GPU, driven from the explore camera with the clad mesh hook
-  pointed at the GL backend (CRAWLER_GL3D=1). It draws through an offscreen
+  renders on the GPU by default whenever a GL context is up, driven from the
+  explore camera with the clad mesh hook pointed at the GL backend
+  (CRAWLER_GL3D=0 forces the software path). It draws through an offscreen
   320x240 colour target upscaled nearest for the retro look, carries the PSX
   vertex snap and a 4x4 ordered dither with a 5-bit quantize in the shaders, and
   covers the non-kit grid walls, floors and ceilings, the kit cladding, placed
