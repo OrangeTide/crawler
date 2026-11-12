@@ -30,19 +30,17 @@ whose development history is summarized in docs/roadmap.md.
   renderer's projection and content, so the two agree in idiom without matching
   pixel for pixel, and it reaches parity with the software explore view.
   Verified on aarch64 through GLES2 on a Raspberry Pi.
-- A baked per-tileset palette (CLUT). The asset build median-cuts each kit
-  tileset's own trim atlases to a 256-colour palette and stores it as a CLUT
-  lump, so a tileset can carry a palette tuned to its own textures instead of
-  sharing one global cube. This is the data for the direct-colour backends to
-  bind per tileset; the current indexed renderer does not read it yet.
-- The GPU explore backend now renders kit cladding in its own per-tileset
-  direct colour instead of the shared cube. The trim atlases bake as direct RGB
-  but were quantized to the global palette on load, so every tileset was pinned
-  to the 6x6x6 cube; `textures` now keeps each resident trim sheet in its own
-  direct colour alongside the indexed form, and the GPU uploads that directly.
-  Kit colours that fell between cube levels, the gold trim band, the red-brown
-  brick and the stained glass, now render in their true hues. The software
-  renderer still samples the indexed atlas, so its output is unchanged.
+- Per-tileset colour on the GPU, through a baked CLUT. The asset build
+  median-cuts each kit tileset's own trim atlases to a 256-colour `CLUT`
+  lump, and the GPU explore backend now renders kit cladding through it: it
+  samples the trim as CLUT indices and looks them up in the tileset CLUT bound
+  per primitive, the way the PlayStation samples an indexed texture against a
+  CLUT. Each tileset keeps its own colour instead of quantizing into the shared
+  6x6x6 cube, so the gold trim band, the red-brown brick and the stained glass
+  render in their own hues rather than drifting to the nearest cube level.
+  Emission stays a direct additive channel, outside the CLUT, and a tileset with
+  no CLUT falls back to the shared palette. The software renderer still samples
+  the shared-palette indexed atlas, so its output is unchanged.
 - Per-piece multi-material meshes for the modular kits. A kit piece's mesh now
   carries a material per triangle, and the kit text names a trim atlas and an
   optional emission atlas per material slot, so one piece clads from several

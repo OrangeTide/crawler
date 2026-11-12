@@ -118,10 +118,10 @@ billboards, terrain, sky, floor glow, multi-material pieces and the emission
 channel, with the 2D HUD composited over it, reaching parity with the software
 explore view. Both are validated on x86-64 and aarch64 Linux, the aarch64 build
 through GLES2 on a Raspberry Pi. A baked per-tileset palette (CLUT) landed
-alongside as data for the direct-colour backends, and the GPU path now renders
-kit cladding in its own per-tileset direct colour rather than the shared cube.
-The near-term focus stays on x86-64 and aarch64 Linux; the Windows and macOS
-port (desktop GL 3.x or ANGLE) is deferred.
+alongside, and the GPU now samples kit cladding through its tileset CLUT, bound
+per primitive the way the PlayStation will, so each tileset keeps its own colour
+rather than the shared cube. The near-term focus stays on x86-64 and aarch64
+Linux; the Windows and macOS port (desktop GL 3.x or ANGLE) is deferred.
 
 ## Open backlog by theme
 
@@ -350,19 +350,20 @@ ride as multi-cell mesh instances rather than per-cell quads.
   its own CLUT and two tilesets can share a frame freely. On the PS1 the palette
   is a baked CLUT per tileset for its 4bpp or 8bpp textures; on desktop OpenGL
   the textures can be direct RGBA. This largely folds into the backend seam
-  (0.31.0), which is what makes per-primitive palettes available. The CLUT bake
-  has landed: the asset build median-cuts each kit tileset's trim atlases to a
-  256-colour `CLUT<tileset>` lump, which `textures` can decode. The GPU path
-  now realizes per-tileset colour: `textures` keeps each resident trim sheet in
-  its own direct colour next to the indexed form, and the GPU backend uploads
-  that directly rather than expanding the globally-quantized indices through the
-  shared cube. Kit cladding (the gold trim band, the red-brown brick, the
-  stained glass) renders in its true hues instead of drifting to the nearest
-  cube level. The software renderer still samples the indexed atlas, so its
-  output is unchanged. The remaining work is binding the baked CLUT per
-  primitive on the PS1 path, and carrying the same per-tileset colour to the
-  procedural biome surfaces and embedded prop textures, which still go through
-  the shared palette. (An earlier plan reserved a fixed band of a single
+  (0.31.0), which is what makes per-primitive palettes available. The CLUT path
+  has landed end to end on the GPU: the asset build median-cuts each kit
+  tileset's trim atlases to a 256-colour `CLUT<tileset>` lump, `textures`
+  decodes it and remaps the resident diffuse trim to those indices, and the GPU
+  samples the trim as CLUT indices and looks them up in the CLUT bound per
+  primitive, the way the PlayStation samples an indexed texture against a CLUT.
+  Kit cladding (the gold trim band, the red-brown brick, the stained glass)
+  renders in its own per-tileset colour instead of drifting to the nearest
+  shared-cube level. Emission stays a direct additive channel, outside the CLUT.
+  The software renderer still samples the shared-palette indexed atlas, so its
+  output is unchanged. The remaining work is the PS1 backend binding these same
+  CLUTs in VRAM, and carrying per-tileset colour to the procedural biome
+  surfaces and embedded prop textures, which still go through the shared palette.
+  (An earlier plan reserved a fixed band of a single
   global palette for sprites and the UI while swapping a per-biome texture band.
   That was a concession to an 8-bit indexed framebuffer, dropped along with
   MS-DOS.)
