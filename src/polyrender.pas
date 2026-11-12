@@ -327,8 +327,12 @@ begin
     light := TileLight(ptx, pty, dist);
     with SpriteReg[ents[i].img].img do
       if h > 0 then wscale := ents[i].wh * w / h else wscale := ents[i].wh;
-    DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
-      ents[i].wh, light, GroundZAt(px, py));
+    if gEmitGL then
+      GLDrawSprite(mc, SpriteReg[ents[i].img].img, px, py, wscale,
+        ents[i].wh, light, GroundZAt(px, py))
+    else
+      DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
+        ents[i].wh, light, GroundZAt(px, py));
   end;
 end;
 
@@ -429,9 +433,10 @@ begin
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
-  { placed prop models and the door/ladder portal meshes }
+  { placed prop models, the door/ladder portal meshes, and the sprite entities }
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawPortalMeshes(mc, ex, ey, cyaw, syaw);
+  DrawEntities(mc, ex, ey, cyaw, syaw);
   gEmitGL := false;
   CladMeshHook := nil;
   GLSceneEnd;

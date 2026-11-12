@@ -19,7 +19,7 @@ unit glrender;
 interface
 
 uses
-  raster, meshfmt;
+  raster, meshfmt, pic;
 
 { Render one frame of the pipeline-proof scene and swap. A no-op when the GL
   backend is not active. }
@@ -40,6 +40,12 @@ procedure GLDrawWorldQuad(
   x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3: double;
   u0, v0, u1, v1, u2, v2, u3, v3: double;
   tex: PByte; tw, th: longint; light: double);
+{ One camera-facing sprite billboard, matching raster.DrawSpriteBillboard. The
+  ARGB image uploads as an alpha-keyed texture; the scene shader discards the
+  transparent texels. A small depth-offset biases it toward the camera so its
+  base wins the z-fight with the floor it stands on. }
+procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
+  wx, wy, wscale, hscale, light, baseZ: double);
 procedure GLSceneEnd;
 
 implementation
@@ -88,7 +94,9 @@ const
     'uniform sampler2D uBayer;'#10 +
     'uniform float uLight;'#10 +
     'void main() {'#10 +
-    '  vec3 c = texture2D(uTex, vUV).rgb * uLight;'#10 +
+    '  vec4 s = texture2D(uTex, vUV);'#10 +
+    '  if (s.a < 0.5) discard;'#10 +   { masks a sprite's keyed texels; opaque geometry is alpha 1 }
+    '  vec3 c = s.rgb * uLight;'#10 +
     '  float b = texture2D(uBayer, gl_FragCoord.xy / 4.0).r;'#10 +
     '  c = clamp(c + (b - 0.5) / 31.0, 0.0, 1.0);'#10 +
     '  c = floor(c * 31.0 + 0.5) / 31.0;'#10 +
@@ -159,6 +167,8 @@ var
   meshCnt: array of longint;
   atlasKey: array of PByte;
   atlasTex: array of GLuint;
+  spriteKey: array of pointer;    { ARGB sprite textures, cached by pix pointer }
+  spriteTexs: array of GLuint;
 
 function MakeShader(kind: GLenum; const src: string): GLuint;
 var sh: GLuint; s: PGLchar; status, ln: GLint; log: array[0 .. 511] of char;
@@ -642,6 +652,96 @@ begin
   glBufferData(GL_ARRAY_BUFFER, SizeOf(v), @v[0], GL_DYNAMIC_DRAW);
   BindVertexAttribs;
   glDrawArrays(GL_TRIANGLES, 0, 6);
+end;
+
+{ A GL texture for an ARGB sprite image, cached by its pixel pointer. The bytes
+  are reordered to RGBA; the alpha channel carries the sprite's transparency. }
+function SpriteTexture(const img: TImage): GLuint;
+var
+  i, n, b: longint;
+  t: GLuint;
+  rgba: array of byte;
+  c: TColor;
+begin
+  SpriteTexture := 0;
+  if (Length(img.pix) = 0) or (img.w <= 0) or (img.h <= 0) then exit;
+  for i := 0 to High(spriteKey) do
+    if spriteKey[i] = @img.pix[0] then begin
+      SpriteTexture := spriteTexs[i];
+      exit;
+    end;
+  n := img.w * img.h;
+  SetLength(rgba, n * 4);
+  for i := 0 to n - 1 do begin
+    c := img.pix[i];
+    rgba[i * 4 + 0] := (c shr 16) and $FF;
+    rgba[i * 4 + 1] := (c shr 8) and $FF;
+    rgba[i * 4 + 2] := c and $FF;
+    rgba[i * 4 + 3] := (c shr 24) and $FF;
+  end;
+  glGenTextures(1, @t);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.w, img.h, 0,
+    GL_RGBA, GL_UNSIGNED_BYTE, @rgba[0]);
+  b := Length(spriteKey);
+  SetLength(spriteKey, b + 1); SetLength(spriteTexs, b + 1);
+  spriteKey[b] := @img.pix[0]; spriteTexs[b] := t;
+  SpriteTexture := t;
+end;
+
+procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
+  wx, wy, wscale, hscale, light, baseZ: double);
+var
+  rx, ry, hw: double;
+  v: array[0 .. 29] of GLfloat;
+  mvp: TMat4;
+  t: GLuint;
+  lf: GLfloat;
+begin
+  if not progReady then exit;
+  if Length(img.pix) = 0 then exit;
+  t := SpriteTexture(img);
+  if t = 0 then exit;
+
+  { camera right vector in the world XY plane, so the quad faces the eye;
+    v mirrors raster.DrawSpriteBillboard's corners, with the image's top row at
+    the top (u left..right, v 0 at the top as GL uploads it) }
+  rx := sin(cam.yaw); ry := -cos(cam.yaw);
+  hw := wscale * 0.5;
+  { triangle BL, BR, TR }
+  v[0] := wx - rx * hw; v[1] := wy - ry * hw; v[2] := baseZ;           v[3] := 0; v[4] := 1;
+  v[5] := wx + rx * hw; v[6] := wy + ry * hw; v[7] := baseZ;           v[8] := 1; v[9] := 1;
+  v[10] := wx + rx * hw; v[11] := wy + ry * hw; v[12] := baseZ + hscale; v[13] := 1; v[14] := 0;
+  { triangle BL, TR, TL }
+  v[15] := wx - rx * hw; v[16] := wy - ry * hw; v[17] := baseZ;           v[18] := 0; v[19] := 1;
+  v[20] := wx + rx * hw; v[21] := wy + ry * hw; v[22] := baseZ + hscale; v[23] := 1; v[24] := 0;
+  v[25] := wx - rx * hw; v[26] := wy - ry * hw; v[27] := baseZ + hscale; v[28] := 0; v[29] := 0;
+
+  if quadVBO = 0 then glGenBuffers(1, @quadVBO);
+  mvp := MatMul(sceneProj, sceneView);
+  glUseProgram(prog);
+  glUniformMatrix4fv(uMVPLoc, 1, GL_FALSE, @mvp[0]);
+  lf := light / 256.0;
+  if lf > 2.0 then lf := 2.0;
+  glUniform1f(uLightLoc, lf);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+
+  { bias depth toward the camera so the base beats the floor's z, matching the
+    software billboard's depth nudge, without moving the sprite on screen }
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  glPolygonOffset(-1.0, -4.0);
+  glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+  glBufferData(GL_ARRAY_BUFFER, SizeOf(v), @v[0], GL_DYNAMIC_DRAW);
+  BindVertexAttribs;
+  glDrawArrays(GL_TRIANGLES, 0, 6);
+  glDisable(GL_POLYGON_OFFSET_FILL);
 end;
 
 procedure GLSceneEnd;

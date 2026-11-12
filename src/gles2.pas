@@ -78,6 +78,7 @@ const
   GL_DEPTH_ATTACHMENT   = $8D00;
   GL_DEPTH_COMPONENT16  = $81A5;
   GL_FRAMEBUFFER_COMPLETE = $8CD5;
+  GL_POLYGON_OFFSET_FILL = $8037;
 
 var
   glClearColor: procedure(r, g, b, a: GLfloat); cdecl;
@@ -129,6 +130,7 @@ var
   glCullFace: procedure(mode: GLenum); cdecl;
   glFrontFace: procedure(mode: GLenum); cdecl;
   glBlendFunc: procedure(sfactor, dfactor: GLenum); cdecl;
+  glPolygonOffset: procedure(factor, units: GLfloat); cdecl;
   glGenFramebuffers: procedure(n: GLsizei; ids: PGLuint); cdecl;
   glBindFramebuffer: procedure(target: GLenum; fb: GLuint); cdecl;
   glFramebufferTexture2D: procedure(target, attachment, textarget: GLenum;
@@ -206,6 +208,7 @@ begin
   Pointer(glCullFace) := GL('glCullFace');
   Pointer(glFrontFace) := GL('glFrontFace');
   Pointer(glBlendFunc) := GL('glBlendFunc');
+  Pointer(glPolygonOffset) := GL('glPolygonOffset');
   Pointer(glGenFramebuffers) := GL('glGenFramebuffers');
   Pointer(glBindFramebuffer) := GL('glBindFramebuffer');
   Pointer(glFramebufferTexture2D) := GL('glFramebufferTexture2D');
