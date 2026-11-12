@@ -976,8 +976,8 @@ a party on it.
 
 - **The existing two sides, generalized.** Combat already has two sides, the
   party against monsters. Multiplayer keeps that model and lets each side hold
-  one or more parties and monsters. Each player submits their own character's
-  action over a reliable channel; the AI runs the hired NPCs and the monsters.
+  one or more parties and monsters. Each player submits the actions for their own
+  characters over a reliable channel; the AI runs the hired NPCs and the monsters.
 - **A battle is a located, joinable instance.** A battle is anchored to the
   place on the map where it begins, not the abstract full-screen state single
   player uses. Other parties on that map see it and may approach to choose a
@@ -992,9 +992,13 @@ a party on it.
 
 As a principle, a player is never pulled into a PvP fight against their will.
 Consent is a per-session flag: for a session a player is either PvP or PvE-only.
-PvE and PvP players may render differently to each other. A candidate is to draw a
-PvE-only player as only a silhouette or a translucent sprite in another player's
-first-person view.
+
+The flag is a party property as well, and a party may not mix the two. A party
+carries one PvE or PvP flag, so a player whose flag differs cannot belong to it.
+Changing your own flag forces you out of your party, with the same mechanics and
+restrictions as the leave-party command. This holds for the leader too: a leader
+who changes the flag is ejected exactly as if they had left, and leadership
+transfers by the normal rule.
 
 A PvE-only player is in a safe mode: their party cannot damage or be damaged by
 another player's party, and cannot gain or lose anything through player conflict.
@@ -1034,17 +1038,6 @@ objective such as a world boss is shared among all who took part, so a PvE playe
 is never excluded from PvE bosses; only force-contested objectives fall under the
 exclusion above.
 
-Some items, skills, or magic may be PvP-only, usable or meaningful only to a PvP
-player. None are chosen yet. This is a reserved balance lever, the classic way to
-keep PvP and PvE fair on one server, and the specific content comes later.
-
-The flag is a party property as well, and a party may not mix the two. A party
-carries one PvE or PvP flag, so a player whose flag differs cannot belong to it.
-Changing your own flag forces you out of your party, with the same mechanics and
-restrictions as the leave-party command. This holds for the leader too: a leader
-who changes the flag is ejected exactly as if they had left, and leadership
-transfers by the normal rule.
-
 In PvP, battle acceptance is automatic outside a short cooldown. After a party
 wins or flees a battle it gains a one-step cooldown during which it cannot be
 pulled into a new battle. The cooldown clears the moment the party takes a step,
@@ -1053,6 +1046,13 @@ forfeits that protection. This makes repeated grief battles harder without
 blocking real fighting. There is no cooldown during a battle: while one is in
 progress any number of parties may join the brawl, under the join-a-side rule
 above.
+
+PvE and PvP players may render differently to each other. A candidate is to draw
+a PvE-only player as only a silhouette or a translucent sprite in another
+player's first-person view. Some items, skills, or magic may also be PvP-only,
+usable or meaningful only to a PvP player. None are chosen yet. This is a reserved
+balance lever, the classic way to keep PvP and PvE fair on one server, and the
+specific content comes later.
 
 ### Disconnect and character persistence
 
@@ -1064,7 +1064,7 @@ instance to time out on its own, and disconnecting early does not shorten that
 timeout. This character-instance timeout is distinct from the leader
 auto-promotion timeout, which only governs who may move the party.
 
-A disconnected character still in a battle is run by a default AI until its owner
+A disconnected character still in a battle is run by a default AI until its player
 returns or it times out. The tactics will be configurable later. For now the AI
 is defensive: it makes simple attacks, does not consume items, and tries to move
 to the back row or take a defensive stance.
