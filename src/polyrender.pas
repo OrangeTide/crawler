@@ -301,10 +301,20 @@ begin
           z10 := TerrainHeightAt(wx1, wy0);
           z11 := TerrainHeightAt(wx1, wy1);
           z01 := TerrainHeightAt(wx0, wy1);
-          DrawTexQuad(mc,
-            wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
-            wx0, wy0, wx1, wy0, wx1, wy1, wx0, wy1,
-            @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
+          if gEmitGL then
+            { within-tile texture coords (sxi/syi fractions), so the clamped GPU
+              texture tiles once per cell like the software path's world-coord
+              uvs do under repeat wrap }
+            GLDrawWorldQuad(
+              wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
+              sxi * step, syi * step,  (sxi + 1) * step, syi * step,
+              (sxi + 1) * step, (syi + 1) * step,  sxi * step, (syi + 1) * step,
+              @GridTex[TEX_FLOOR][0], TEXW, TEXH, light)
+          else
+            DrawTexQuad(mc,
+              wx0, wy0, z00,  wx1, wy0, z10,  wx1, wy1, z11,  wx0, wy1, z01,
+              wx0, wy0, wx1, wy0, wx1, wy1, wx0, wy1,
+              @GridTex[TEX_FLOOR][0], TEXW, TEXH, light);
         end;
     end;
 end;
@@ -433,6 +443,9 @@ begin
   CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
   CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
   CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+  { the outdoor ground, as relief where a surface map carries terrain }
+  if CurMapSurface and TerrainActive then
+    DrawTerrain(mc, x0, y0, x1, y1, ex, ey);
   { placed prop models, the door/ladder portal meshes, and the sprite entities }
   DrawProps(mc, ex, ey, cyaw, syaw);
   DrawPortalMeshes(mc, ex, ey, cyaw, syaw);
