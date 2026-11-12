@@ -267,6 +267,23 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 - [gap] Capture screenshots of the new modular areas (the clad crypt DUNGEON,
   the cathedral theme, the warm-tinted town temple) through the headless shot
   tool, and fold the best into the README screenshot set.
+- [future] Replace the uncompressed .ppm the headless shot tool and screenshot
+  scripts emit with a compact lossless format based on the QOI spec (see
+  https://github.com/phoboslab/qoi, specification at qoiformat.org). QOI is a
+  tiny single-pass codec: a 14-byte header (magic "qoif", big-endian u32 width
+  and height, a channels byte and a colorspace byte), then tagged chunks (a run,
+  a 64-entry rolling index keyed by (r*3 + g*5 + b*7 + a*11) mod 64, small and
+  luma diffs against the previous pixel, and full RGB or RGBA escapes), closed by
+  a seven-zero-then-one end marker. A clean-room Pascal encoder and decoder from
+  the spec is small and uses no floating point, so it suits the PS1 target and
+  takes no licence header (machine-written code). Decision rule: if the stock
+  spec covers every need, adopt it unchanged and keep the .qoi name and magic. If
+  anything must change, for instance storing palette-indexed pixels with a CLUT
+  rather than QOI's truecolour RGB or RGBA (this project is palette-first, the
+  6x6x6 cube now and per-tileset CLUTs later), then it is no longer QOI. Give the
+  variant its own extension and magic rather than ship an incompatible file that
+  claims to be .qoi. Candidate uses beyond screenshots are an intermediate or a
+  baked texture lump in the pak.
 - [gap] Online help for the keyboard commands: a HELP overlay bound to F1 and
   reachable from a main-menu HELP item, listing the controls. Source the key
   list from the same binding table the game already uses so it stays in step.
