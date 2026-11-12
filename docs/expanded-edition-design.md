@@ -897,39 +897,124 @@ Pascal). The design is held to their limits as it grows.
   in: the loader drops long-untouched maps to hold the store under its cap and
   warns when the estimated resident set approaches 2 MB.
 
-## 24. Multiplayer and LAN play (future work)
+## 24. Multiplayer: shared shards (future work)
 
-Not scheduled. Single player stays the primary design. This records the shape a
-co-op mode would take so nothing built now blocks it, and so it can be compiled
-out cleanly for the PlayStation 1.
+Not scheduled. Single player stays the primary design and the same game. This
+records the decided shape so nothing built now blocks it, and so it compiles out
+cleanly for the PlayStation 1.
 
-- **Compile-time optional.** Networking is behind a build flag and is absent
-  from the PS1 build, which has no standard networking path. This mirrors how
-  netchan drops its socket code on a platform that lacks sockets through a
-  single guard in the build, leaving the protocol core untouched.
-- **Borrow the netchan-v2 transport seam.** netchan-v2 is a reliable, multiplexed
-  channel protocol with a static memory model and a transport-agnostic address,
-  `nc_addr`, that the core copies and compares but never interprets. Each
-  transport is one backend file. A subset ported to Pascal, reliable and
-  unreliable channels plus that opaque address, gives the game one network core
-  that is the same on every target, with the platform differences isolated to a
-  backend.
-- **Transports per target.** A UDP backend on the Linux prototype and desktop
-  builds. An IPX backend on MS-DOS for classic LAN play, following the earlier
-  netchan-ipx experiment. The PS1 build links no backend at all.
-- **Server-authoritative, seed-light.** Follow the netchan demo model. A host
-  runs the simulation at a low tick rate. Each client opens a reliable channel
-  that carries a one-time welcome with its slot and the world seed, and an
-  unreliable channel that streams packed snapshots of moving state. Because this
-  game already rebuilds its maps and the whole overworld from the seed, the
-  terrain is never sent. A snapshot is only party and entity state, which keeps
-  the wire small and fits the tight targets.
-- **Beacon mode for LAN discovery.** A host broadcasts a small discovery beacon
-  on the local network, a UDP broadcast on desktop and an IPX broadcast on DOS,
-  carrying the game name, player count and the join address. Clients listen and
-  present the found games, or auto-join one, so LAN play needs no typed
-  addresses. An optional pre-shared key can secure a closed LAN game, which is
-  the netchan crypto backend's recommended posture and is desktop-only.
+### Scope and deployment
+
+- **Desktop only, UDP only, compile-time optional.** Networking lives behind a
+  build flag and is absent from the PS1 build, which has no standard networking
+  path. There is no IPX or DOS transport. A single build guard drops the
+  backend, leaving the protocol core and the game untouched.
+- **A shard holds 32 to 1024 players, configurable.** The typical deployment is
+  one shard that a player self-hosts as a local game server, which others join.
+  The engine gains a headless server mode that runs the simulation and the shard
+  with no window or renderer. The `shot` tool already runs the real init and
+  simulation paths with no display, so that seam exists.
+
+### Transport: borrow netchan's reliable datagram
+
+- **Feed and pull seam.** We do not adopt netchan directly; we take its shape.
+  The protocol core is a pure state machine. The application does the socket
+  recv and send and hands bytes across two calls, one that feeds a received
+  datagram in and one that pulls the next datagram to send out, with a service
+  call that drives retransmit timers. The core includes no socket header. The
+  peer address is an opaque value the core copies and compares but never
+  interprets, so one small UDP backend is the only code that knows what a socket
+  is. That is what lets the whole system compile out for the PS1 with nothing to
+  stub.
+- **Reliable and unreliable channels.** Named channels carry either reliable or
+  unreliable traffic. Turn-based combat and membership changes use reliable
+  channels; real-time explore movement and state snapshots use unreliable ones.
+- **Discovery.** A host broadcasts a small LAN beacon, a UDP broadcast carrying
+  the shard name, player count and join port, so clients find local shards with
+  no typed address. WAN join by typed address is also supported but
+  server-configurable: a host may enable or disable it. LAN beacon discovery is
+  always available.
+
+### Seed-light world
+
+Because the maps and the whole overworld rebuild from a seed, and one map is
+resident per party with borders as portal loads, the network never sends
+terrain. On join a client gets the shard seed once over a reliable welcome, then
+an unreliable stream of only the dynamic party and entity state. The seed
+regenerates the terrain, but a map also carries state that does not follow from
+it, opened doors, taken items, revealed fog and defeated bosses, so on join and
+on each map entry the server sends that map's current diff set over a reliable
+channel. The unreliable snapshots then carry only the moving party and entity
+state. Interest management falls out of the resident-map design: the server
+scopes a client's
+snapshot to its party's current map or sector, and the players spread across
+many maps, so no client ever receives the whole shard. The server, unlike the
+2 MB single-player client, holds many maps resident at once, every map that has
+a party on it.
+
+### Parties
+
+- **Solo start, grow by hire or join.** Multiplayer does not build a party of
+  four at creation. A player creates one character and grows the party by hiring
+  NPCs and hirelings or by other players joining it. Party size is a shard
+  parameter, not a fixed four; four is only single-player's starting size.
+- **One grid tile, one leader.** A party is one grid tile, exactly as in single
+  player, so collision, path-blocking, fog and combat are unchanged. A party
+  leader drives the tile's movement. The other players' characters are not drawn
+  as world avatars; a party is identified on the map and in listings by its
+  first character's icon, and its members show in the normal party roster.
+- **Membership.** A member may leave the party while out of combat, becoming
+  their own party. The leader may nominate another member as leader. When a
+  player disconnects, their character stays in the party as reclaimable and they
+  reclaim it on rejoin. When the leader disconnects the party is stuck, unable to
+  move, until leadership auto-promotes to another member after a timeout.
+
+### Combat
+
+- **The existing two sides, generalized.** Combat already has two sides, the
+  party against monsters. Multiplayer keeps that model and lets each side hold
+  one or more parties and monsters. Each player submits their own character's
+  action over a reliable channel; the AI runs the hired NPCs and the monsters.
+- **A battle is a located, joinable instance.** A battle is anchored to the
+  place on the map where it begins, not the abstract full-screen state single
+  player uses. Other parties on that map see it and may approach to choose a
+  side, so a side can grow to monsters and parties against other parties. A
+  battle involves only its combatants, so the rest of the shard keeps exploring
+  while it resolves. This moves the engine from one global combat state
+  (`gsCombat` and a single `combatstate`) to many concurrent, map-located
+  battles on the server, which is the main combat-layer rework multiplayer
+  needs.
+
+### Persistence
+
+The shard is persistent and checkpoints periodically. A checkpoint is the
+server-side extension of the single-player save, the seed plus the accumulated
+world diffs, now shard-global (a door one party opens is open for all) and
+covering every active party.
+
+### Server authority and time
+
+The host runs the simulation authoritatively at a low tick. Grid movement is
+discrete, so step latency is acceptable and there is no client-side prediction
+at first.
+
+### Open questions
+
+Design gaps to settle before the wire format:
+
+- **Shared clock and rest.** Whether shard time is a real-time server clock, and
+  how rest and the time-gated systems (wages, lycanthropy, the moon phase) work
+  when no single party can skip the shared clock.
+- **Character portability.** Whether a character lives on one shard's checkpoint
+  or travels with the player across shards when joining another host over WAN,
+  and who holds the canonical copy.
+- **PvP consent.** Whether open-world PvP is always on or opt-in and
+  server-configurable per shard, like WAN join.
+- **AI authority.** Whether the server or the party leader runs the hired NPCs
+  and hirelings during combat.
+- **Single-player unification.** Whether single-player becomes a one-player
+  shard with the transport compiled out, giving one code path, or stays
+  separate.
 
 ## 25. The PSX-style polygon renderer (in progress)
 

@@ -310,8 +310,28 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   BakaFoxArt props and the Dungeon Crawl sprites are CC0, and the trillobit3s
   ladder is freeware with an optional donation. Every asset license is now
   recorded and cleared in CREDITS.
-- [future] Multiplayer and LAN play (design section 24). Unscheduled, compiled
-  out of the PS1 build, recorded only so nothing now blocks it.
+- [future] Multiplayer: shared shards (design section 24). Unscheduled and
+  desktop only, compiled out of the PS1 build, recorded so nothing now blocks
+  it. A shard of 32 to 1024 players, configurable and typically a self-hosted
+  local server, runs the simulation authoritatively through a headless server
+  mode. The transport borrows netchan's reliable-datagram shape: a pure
+  feed/pull protocol core with an opaque peer address and reliable plus
+  unreliable channels, over one UDP backend, with a LAN discovery beacon and
+  server-configurable WAN join. The world is seed-light, so the seed is sent
+  once and only dynamic party and entity state is streamed, scoped per resident
+  map, and terrain never crosses the wire. Parties start solo and grow by hiring
+  or by players joining; a party stays one grid tile driven by a leader, with
+  reclaimable characters, timeout leader-promotion, and no world avatars (a
+  party reads by its first character's icon). Combat reuses the two-sided model
+  with one or more parties or monsters per side and a join-a-side action, run as
+  map-located, per-encounter instances so the rest of the shard keeps exploring,
+  which reworks the engine's single global combat state into many concurrent
+  battles. On join and on each map entry the server also sends that map's current
+  diff set (opened doors, taken items, fog, defeated bosses) reliably, since the
+  seed regenerates only the terrain. The shard persists by periodic checkpoint.
+  Section 24 holds the open design points: the shared clock and rest, character
+  portability, PvP consent, AI authority, and whether single player folds into a
+  one-player shard.
 
 ### F. World content and the critical path (design section 17)
 
