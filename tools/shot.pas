@@ -449,6 +449,10 @@ begin
     Cam.pitch := 0;
     RenderRoom(GamePak, room);
     doGameRender := false;
+  end else if scene = 'options' then begin
+    { the options screen, with the texture-colour row highlighted }
+    State := gsOptions;
+    optSel := 6;
   end else begin
     writeln(StdErr, 'shot: unknown scene ', scene); halt(2);
   end;
