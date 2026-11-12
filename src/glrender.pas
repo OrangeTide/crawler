@@ -63,6 +63,26 @@ const
     'uniform float uLight;'#10 +
     'void main() { gl_FragColor = vec4(texture2D(uTex, vUV).rgb * uLight, 1.0); }'#10;
 
+  { The upscale-blit of the 320x240 scene target to the window. }
+  PVERT_SRC =
+    'attribute vec2 aPos;'#10 +
+    'attribute vec2 aUV;'#10 +
+    'varying vec2 vUV;'#10 +
+    'void main() { vUV = aUV; gl_Position = vec4(aPos, 0.0, 1.0); }'#10;
+  PFRAG_SRC =
+    'precision mediump float;'#10 +
+    'varying vec2 vUV;'#10 +
+    'uniform sampler2D uTex;'#10 +
+    'void main() { gl_FragColor = texture2D(uTex, vUV); }'#10;
+
+  { fullscreen quad (x, y, u, v); uv maps straight to clip, no flip, since the
+    scene target and the window share GL's bottom-left origin. }
+  PQUAD: array[0 .. 15] of GLfloat = (
+    -1.0, -1.0, 0.0, 0.0,
+     1.0, -1.0, 1.0, 0.0,
+    -1.0,  1.0, 0.0, 1.0,
+     1.0,  1.0, 1.0, 1.0);
+
   { Six cube faces, four corners each (x, y, z, u, v), wound CCW from outside. }
   FACES: array[0 .. 119] of GLfloat = (
     { +X } 0.5,-0.5,-0.5, 0,0,  0.5, 0.5,-0.5, 1,0,  0.5, 0.5, 0.5, 1,1,  0.5,-0.5, 0.5, 0,1,
@@ -84,6 +104,16 @@ var
 
   { the view and projection for the frame in progress, set by GLSceneBegin }
   sceneProj, sceneView: TMat4;
+
+  { the 320x240 scene render target and its upscale-blit program }
+  fboReady: boolean = false;
+  fbo: GLuint = 0;
+  fboTex: GLuint = 0;
+  fboDepth: GLuint = 0;
+  presentReady: boolean = false;
+  presentProg: GLuint = 0;
+  presentVBO: GLuint = 0;
+  presentPos, presentUV, presentTexLoc: GLint;
 
   { per-mesh vertex buffers and per-atlas textures, cached by source pointer.
     Meshes are resident for the session (clad's cache), so their keys are
@@ -113,12 +143,12 @@ begin
   MakeShader := sh;
 end;
 
-function MakeProgram: GLuint;
+function BuildProgram(const vsrc, fsrc: string): GLuint;
 var vs, fs, pr: GLuint; status, ln: GLint; log: array[0 .. 511] of char;
 begin
-  MakeProgram := 0;
-  vs := MakeShader(GL_VERTEX_SHADER, VERT_SRC);
-  fs := MakeShader(GL_FRAGMENT_SHADER, FRAG_SRC);
+  BuildProgram := 0;
+  vs := MakeShader(GL_VERTEX_SHADER, vsrc);
+  fs := MakeShader(GL_FRAGMENT_SHADER, fsrc);
   if (vs = 0) or (fs = 0) then exit;
   pr := glCreateProgram();
   if pr = 0 then exit;
@@ -130,7 +160,7 @@ begin
     writeln(StdErr, 'glrender: program link failed: ', PChar(@log[0]));
     exit;
   end;
-  MakeProgram := pr;
+  BuildProgram := pr;
 end;
 
 { C = A * B, both column-major. }
@@ -150,7 +180,7 @@ function MatProj: TMat4;
 var m: TMat4; i: longint; tanHy, a, bb: GLfloat;
 begin
   for i := 0 to 15 do m[i] := 0;
-  tanHy := TAN_HX * (VideoHeight / VideoWidth);
+  tanHy := TAN_HX * (FBH / FBW);   { the 320x240 render target's aspect }
   m[0] := 1.0 / TAN_HX;
   m[5] := 1.0 / tanHy;
   a := -(FARP + NEARP) / (FARP - NEARP);
@@ -261,7 +291,7 @@ function EnsureProgram: boolean;
 begin
   if progReady then begin EnsureProgram := true; exit; end;
   EnsureProgram := false;
-  prog := MakeProgram;
+  prog := BuildProgram(VERT_SRC, FRAG_SRC);
   if prog = 0 then exit;
   glUseProgram(prog);
   uMVPLoc := glGetUniformLocation(prog, 'uMVP');
@@ -396,11 +426,63 @@ begin
   AtlasTexture := t;
 end;
 
+{ The 320x240 scene render target: a colour texture plus a depth buffer. }
+function EnsureFBO: boolean;
+begin
+  if fboReady then begin EnsureFBO := true; exit; end;
+  EnsureFBO := false;
+  glGenTextures(1, @fboTex);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, fboTex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, FBW, FBH, 0,
+    GL_RGBA, GL_UNSIGNED_BYTE, nil);
+  glGenRenderbuffers(1, @fboDepth);
+  glBindRenderbuffer(GL_RENDERBUFFER, fboDepth);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, FBW, FBH);
+  glGenFramebuffers(1, @fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+    GL_TEXTURE_2D, fboTex, 0);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+    GL_RENDERBUFFER, fboDepth);
+  if glCheckFramebufferStatus(GL_FRAMEBUFFER) <> GL_FRAMEBUFFER_COMPLETE then begin
+    writeln(StdErr, 'glrender: scene framebuffer incomplete');
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    exit;
+  end;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  fboReady := true;
+  EnsureFBO := true;
+end;
+
+function EnsurePresent: boolean;
+begin
+  if presentReady then begin EnsurePresent := true; exit; end;
+  EnsurePresent := false;
+  presentProg := BuildProgram(PVERT_SRC, PFRAG_SRC);
+  if presentProg = 0 then exit;
+  presentPos := glGetAttribLocation(presentProg, 'aPos');
+  presentUV := glGetAttribLocation(presentProg, 'aUV');
+  presentTexLoc := glGetUniformLocation(presentProg, 'uTex');
+  glGenBuffers(1, @presentVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, presentVBO);
+  glBufferData(GL_ARRAY_BUFFER, SizeOf(PQUAD), @PQUAD[0], GL_STATIC_DRAW);
+  presentReady := true;
+  EnsurePresent := true;
+end;
+
 procedure GLSceneBegin(const mc: TMeshCam);
 begin
   if not VideoIsGL then exit;
   if not EnsureProgram then exit;
-  glViewport(0, 0, VideoWidth, VideoHeight);
+  if not EnsureFBO then exit;
+  if not EnsurePresent then exit;
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  glViewport(0, 0, FBW, FBH);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
   glDisable(GL_CULL_FACE);
@@ -447,8 +529,28 @@ end;
 
 procedure GLSceneEnd;
 begin
-  { The scene is left in the framebuffer without swapping, so a 2D overlay (the
-    HUD) can be composited over it before the caller presents. }
+  if not fboReady then exit;
+  if not presentReady then exit;
+
+  { Blit the 320x240 scene target to the window, upscaled nearest for the retro
+    look. The HUD is composited over this by the caller, which then swaps. }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, VideoWidth, VideoHeight);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_BLEND);
+  glUseProgram(presentProg);
+  glUniform1i(presentTexLoc, 0);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, fboTex);
+
+  glBindBuffer(GL_ARRAY_BUFFER, presentVBO);
+  glEnableVertexAttribArray(GLuint(presentPos));
+  glVertexAttribPointer(GLuint(presentPos), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(0));
+  glEnableVertexAttribArray(GLuint(presentUV));
+  glVertexAttribPointer(GLuint(presentUV), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(2 * SizeOf(GLfloat)));
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 end;
 
 end.

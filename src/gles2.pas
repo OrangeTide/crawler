@@ -68,6 +68,12 @@ const
   GL_BLEND              = $0BE2;
   GL_SRC_ALPHA          = $0302;
   GL_ONE_MINUS_SRC_ALPHA = $0303;
+  GL_FRAMEBUFFER        = $8D40;
+  GL_RENDERBUFFER       = $8D41;
+  GL_COLOR_ATTACHMENT0  = $8CE0;
+  GL_DEPTH_ATTACHMENT   = $8D00;
+  GL_DEPTH_COMPONENT16  = $81A5;
+  GL_FRAMEBUFFER_COMPLETE = $8CD5;
 
 var
   glClearColor: procedure(r, g, b, a: GLfloat); cdecl;
@@ -118,6 +124,17 @@ var
   glCullFace: procedure(mode: GLenum); cdecl;
   glFrontFace: procedure(mode: GLenum); cdecl;
   glBlendFunc: procedure(sfactor, dfactor: GLenum); cdecl;
+  glGenFramebuffers: procedure(n: GLsizei; ids: PGLuint); cdecl;
+  glBindFramebuffer: procedure(target: GLenum; fb: GLuint); cdecl;
+  glFramebufferTexture2D: procedure(target, attachment, textarget: GLenum;
+    texture: GLuint; level: GLint); cdecl;
+  glGenRenderbuffers: procedure(n: GLsizei; ids: PGLuint); cdecl;
+  glBindRenderbuffer: procedure(target: GLenum; rb: GLuint); cdecl;
+  glRenderbufferStorage: procedure(target, internalformat: GLenum;
+    w, h: GLsizei); cdecl;
+  glFramebufferRenderbuffer: procedure(target, attachment,
+    renderbuffertarget: GLenum; renderbuffer: GLuint); cdecl;
+  glCheckFramebufferStatus: function(target: GLenum): GLenum; cdecl;
   glReadPixels: procedure(x, y: GLint; w, h: GLsizei; format, kind: GLenum;
     pixels: Pointer); cdecl;
   glDeleteBuffers: procedure(n: GLsizei; buffers: PGLuint); cdecl;
@@ -183,6 +200,14 @@ begin
   Pointer(glCullFace) := GL('glCullFace');
   Pointer(glFrontFace) := GL('glFrontFace');
   Pointer(glBlendFunc) := GL('glBlendFunc');
+  Pointer(glGenFramebuffers) := GL('glGenFramebuffers');
+  Pointer(glBindFramebuffer) := GL('glBindFramebuffer');
+  Pointer(glFramebufferTexture2D) := GL('glFramebufferTexture2D');
+  Pointer(glGenRenderbuffers) := GL('glGenRenderbuffers');
+  Pointer(glBindRenderbuffer) := GL('glBindRenderbuffer');
+  Pointer(glRenderbufferStorage) := GL('glRenderbufferStorage');
+  Pointer(glFramebufferRenderbuffer) := GL('glFramebufferRenderbuffer');
+  Pointer(glCheckFramebufferStatus) := GL('glCheckFramebufferStatus');
   Pointer(glReadPixels) := GL('glReadPixels');
   Pointer(glDeleteBuffers) := GL('glDeleteBuffers');
   LoadGLES2 := not missing;
