@@ -30,7 +30,7 @@ mkdir -p build/macos-units
 # -Tdarwin is required. -n skips the host (linux) fpc.cfg; all darwin paths are
 # given explicitly. -FD/-XP select the OSXCross binutils, -XR the SDK sysroot.
 "$PPC" -n -Tdarwin -Paarch64 -Mobjfpc -Scghi -O2 \
-  -Fusrc -Fibuild -FEbuild -FUbuild/macos-units \
+  -Fusrc -Fusrc/ui -Fibuild -FEbuild -FUbuild/macos-units \
   "${UFLAGS[@]}" \
   -FD/opt/osxcross/target/bin -XP"$PREFIX" \
   -XR"$SDK" \
