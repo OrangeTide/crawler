@@ -24,11 +24,12 @@ whose development history is summarized in docs/roadmap.md.
   snap and a 4x4 ordered dither with a 5-bit quantize in the shaders, and covers
   the non-kit grid walls, floors and ceilings, the kit cladding, placed props,
   door and ladder portal meshes, sprite billboards, the surface-map terrain and
-  sky gradient, the emissive floor glow, and multi-material kit pieces, with the
-  2D HUD composited over it. It shares the software renderer's projection and
-  content, so the two agree in idiom without matching pixel for pixel. Verified
-  on aarch64 through GLES2 on a Raspberry Pi. The self-lit emission channel for
-  the stained glass is the remaining refinement.
+  sky gradient, the emissive floor glow, multi-material kit pieces, and the
+  emission channel that makes a window's stained glass glow by its own light in
+  a dim nave, with the 2D HUD composited over it. It shares the software
+  renderer's projection and content, so the two agree in idiom without matching
+  pixel for pixel, and it reaches parity with the software explore view.
+  Verified on aarch64 through GLES2 on a Raspberry Pi.
 - A baked per-tileset palette (CLUT). The asset build median-cuts each kit
   tileset's own trim atlases to a 256-colour palette and stores it as a CLUT
   lump, so a tileset can carry a palette tuned to its own textures instead of

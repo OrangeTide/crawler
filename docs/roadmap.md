@@ -251,19 +251,19 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   (CRAWLER_GL=0 forces the fallback). Validated on x86-64 and aarch64 Linux: the
   aarch64 build renders the title screen through GLES2 on a Raspberry Pi. The
   near-term focus stays on x86-64 and aarch64 Linux; the Windows and macOS port
-  (desktop GL 3.x or ANGLE) is deferred. Stage 2 has largely landed: the explore
-  scene renders on the GPU, driven from the explore camera with the clad mesh
-  hook pointed at the GL backend (CRAWLER_GL3D=1). It draws through an offscreen
+  (desktop GL 3.x or ANGLE) is deferred. Stage 2 has landed: the explore scene
+  renders on the GPU, driven from the explore camera with the clad mesh hook
+  pointed at the GL backend (CRAWLER_GL3D=1). It draws through an offscreen
   320x240 colour target upscaled nearest for the retro look, carries the PSX
   vertex snap and a 4x4 ordered dither with a 5-bit quantize in the shaders, and
   covers the non-kit grid walls, floors and ceilings, the kit cladding, placed
   props and door and ladder portal meshes, sprite billboards, the surface-map
   terrain and the sky gradient, the emissive glow on light-well and brazier
-  floors, and multi-material kit pieces (a window's stone frame and its stained
-  glass), with the 2D HUD composited over it. All of this is verified on the
-  aarch64 Pi through GLES2; the emission channel (self-lit glass that stays
-  bright in a dim nave) is the remaining refinement. The same game runs on the
-  PS1 and the desktop, but
+  floors, multi-material kit pieces (a window's stone frame and its stained
+  glass), and the emission channel that makes that glass glow by its own light
+  in a dim nave, with the 2D HUD composited over it. All of this is verified on
+  the aarch64 Pi through GLES2, reaching parity with the software explore view.
+  The same game runs on the PS1 and the desktop, but
   the backends need not look identical, so each renders in its own idiom
   (affine, dithered, fixed point on the PS1; higher precision on the desktop)
   rather than matching pixel for pixel.
@@ -601,10 +601,10 @@ x86-64 and aarch64 Linux (the `video` and `gles2` units, stage 1) that blits
 the software framebuffer; the near-term focus stays on those two, and the
 Windows and macOS port (GL 3.x or ANGLE) is deferred. Stage 2 then moves the 3D
 explore scene onto the GPU (the `glrender` unit) through a 320x240 target with
-vertex snap and ordered dither, and it has largely landed: the grid, cladding,
-props, portals, billboards, terrain, sky, the emissive floor glow and
-multi-material pieces all render there, verified on the aarch64 Pi. The same
-game runs on the PS1
+vertex snap and ordered dither, and it has landed: the grid, cladding, props,
+portals, billboards, terrain, sky, the emissive floor glow, multi-material
+pieces and the emission channel all render there, at parity with the software
+explore view and verified on the aarch64 Pi. The same game runs on the PS1
 and the desktop; the two need not look identical, so each backend renders in
 its own idiom rather than reproducing the other pixel for pixel. Gated on the
 sector
