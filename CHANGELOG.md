@@ -35,6 +35,14 @@ whose development history is summarized in docs/roadmap.md.
   lump, so a tileset can carry a palette tuned to its own textures instead of
   sharing one global cube. This is the data for the direct-colour backends to
   bind per tileset; the current indexed renderer does not read it yet.
+- The GPU explore backend now renders kit cladding in its own per-tileset
+  direct colour instead of the shared cube. The trim atlases bake as direct RGB
+  but were quantized to the global palette on load, so every tileset was pinned
+  to the 6x6x6 cube; `textures` now keeps each resident trim sheet in its own
+  direct colour alongside the indexed form, and the GPU uploads that directly.
+  Kit colours that fell between cube levels, the gold trim band, the red-brown
+  brick and the stained glass, now render in their true hues. The software
+  renderer still samples the indexed atlas, so its output is unchanged.
 - Per-piece multi-material meshes for the modular kits. A kit piece's mesh now
   carries a material per triangle, and the kit text names a trim atlas and an
   optional emission atlas per material slot, so one piece clads from several
