@@ -27,6 +27,7 @@ type
   GLboolean  = UInt8;
   PGLuint    = ^GLuint;
   PGLint     = ^GLint;
+  PGLfloat   = ^GLfloat;
   PGLchar    = ^GLchar;
   PPGLchar   = ^PGLchar;
 
@@ -52,7 +53,18 @@ const
   GL_COMPILE_STATUS     = $8B81;
   GL_LINK_STATUS        = $8B82;
   GL_COLOR_BUFFER_BIT   = $4000;
+  GL_DEPTH_BUFFER_BIT   = $0100;
   GL_UNPACK_ALIGNMENT   = $0CF5;
+  GL_TRIANGLES          = $0004;
+  GL_DEPTH_TEST         = $0B71;
+  GL_LEQUAL             = $0203;
+  GL_CULL_FACE          = $0B44;
+  GL_BACK               = $0405;
+  GL_FRONT              = $0404;
+  GL_CCW                = $0901;
+  GL_CW                 = $0900;
+  GL_LINEAR             = $2601;
+  GL_RGB                = $1907;
 
 var
   glClearColor: procedure(r, g, b, a: GLfloat); cdecl;
@@ -92,7 +104,19 @@ var
   glVertexAttribPointer: procedure(index: GLuint; size: GLint; kind: GLenum;
     normalized: GLboolean; stride: GLsizei; ptr: Pointer); cdecl;
   glUniform1i: procedure(location, v0: GLint); cdecl;
+  glUniform1f: procedure(location: GLint; v0: GLfloat); cdecl;
+  glUniform3f: procedure(location: GLint; v0, v1, v2: GLfloat); cdecl;
+  glUniformMatrix4fv: procedure(location: GLint; count: GLsizei;
+    transpose: GLboolean; value: PGLfloat); cdecl;
   glDrawArrays: procedure(mode: GLenum; first: GLint; count: GLsizei); cdecl;
+  glEnable: procedure(cap: GLenum); cdecl;
+  glDisable: procedure(cap: GLenum); cdecl;
+  glDepthFunc: procedure(func: GLenum); cdecl;
+  glCullFace: procedure(mode: GLenum); cdecl;
+  glFrontFace: procedure(mode: GLenum); cdecl;
+  glReadPixels: procedure(x, y: GLint; w, h: GLsizei; format, kind: GLenum;
+    pixels: Pointer); cdecl;
+  glDeleteBuffers: procedure(n: GLsizei; buffers: PGLuint); cdecl;
 
 { Bind every entry point above through SDL_GL_GetProcAddress. Returns false if
   any is missing, so the caller can fall back to the software present path. }
@@ -145,7 +169,17 @@ begin
   Pointer(glEnableVertexAttribArray) := GL('glEnableVertexAttribArray');
   Pointer(glVertexAttribPointer) := GL('glVertexAttribPointer');
   Pointer(glUniform1i) := GL('glUniform1i');
+  Pointer(glUniform1f) := GL('glUniform1f');
+  Pointer(glUniform3f) := GL('glUniform3f');
+  Pointer(glUniformMatrix4fv) := GL('glUniformMatrix4fv');
   Pointer(glDrawArrays) := GL('glDrawArrays');
+  Pointer(glEnable) := GL('glEnable');
+  Pointer(glDisable) := GL('glDisable');
+  Pointer(glDepthFunc) := GL('glDepthFunc');
+  Pointer(glCullFace) := GL('glCullFace');
+  Pointer(glFrontFace) := GL('glFrontFace');
+  Pointer(glReadPixels) := GL('glReadPixels');
+  Pointer(glDeleteBuffers) := GL('glDeleteBuffers');
   LoadGLES2 := not missing;
 end;
 

@@ -21,6 +21,9 @@ function VideoInit(const caption: string; winW, winH: longint): boolean;
 procedure VideoPresent;
 procedure VideoShutdown;
 function VideoIsGL: boolean;      { true when the GLES backend is active }
+procedure VideoSwap;             { swap the GL buffers (GL backend only) }
+function VideoWidth: longint;
+function VideoHeight: longint;
 
 implementation
 
@@ -269,6 +272,21 @@ end;
 function VideoIsGL: boolean;
 begin
   VideoIsGL := usingGL;
+end;
+
+procedure VideoSwap;
+begin
+  if usingGL then SDL_GL_SwapWindow(win);
+end;
+
+function VideoWidth: longint;
+begin
+  VideoWidth := gW;
+end;
+
+function VideoHeight: longint;
+begin
+  VideoHeight := gH;
 end;
 
 end.

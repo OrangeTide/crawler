@@ -11,7 +11,7 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sdl2min, video, gfx, audio, gamestate, game;
+  math, sysutils, sdl2min, video, glrender, gfx, audio, gamestate, game;
 
 const
   SCALE   = 4;
@@ -26,6 +26,7 @@ var
   dt: double;
   fps, frameCount: longint;
   argi: longint;
+  gl3dTest: boolean;
 
 procedure Shutdown;
 begin
@@ -78,6 +79,8 @@ begin
       break;
     end;
 
+  gl3dTest := VideoIsGL and (GetEnvironmentVariable('CRAWLER_GL3D') = '1');
+
   prevTicks := SDL_GetTicks();
   lastFpsTick := prevTicks;
   fps := 0; frameCount := 0;
@@ -90,9 +93,12 @@ begin
 
     GameHandleEvents;
     GameUpdate(dt);
-    GameRender(fps);
-
-    VideoPresent;
+    if gl3dTest then
+      GLRenderTestFrame             { stage 2 increment 1: GPU pipeline proof }
+    else begin
+      GameRender(fps);
+      VideoPresent;
+    end;
 
     inc(frameCount);
     if nowTicks - lastFpsTick >= 1000 then begin
