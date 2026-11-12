@@ -583,6 +583,54 @@ ride as multi-cell mesh instances rather than per-cell quads.
   explore-to-battle transition, the spell and skill mapping into the 2D action
   economy, the terrain source, enemy AI, and per-pack art coverage.
 
+This mode is a new engine inside the game: a 2D side-view renderer, mask-terrain
+traversal, and, for multiplayer, a shared real-time presence layer, none of which
+the first-person fight needs. The build is phased to de-risk it, starting with the
+lowest-stakes slice that exercises the new engine and the shard transport with no
+combat rules at all, then layering combat on. The single-player combat phases and
+the multiplayer phases can advance in parallel once the MVP lands.
+
+- [future] (MVP) Side-view party area, no combat. A side-scrolling social space,
+  a tavern, inn, or chat room, where a character walks and climbs in real time
+  over 1-bit mask terrain, using the traversal proven in the design spikes: step
+  up one unit, blocked by taller faces, free drops into pits. Single player first,
+  one avatar in an authored room, headless-verifiable with a shot scene, then the
+  multiplayer presence layer: players enter and leave freely, see each other's
+  avatars move in real time, and chat. This proves the 2D engine and the section
+  24 shard transport (netchan feed and pull, the shared real-time clock, the
+  static connection table, decoupled join and leave) with no turn system and
+  nothing at stake. Avatar customization from the modular GandalfHardcore parts
+  and colour variants can begin here, matching the multiplayer
+  build-one-character start. (M/L)
+- [future] Side-view combat harness, single player, flat ground. The first combat
+  code: a fixed-point turn harness that reuses the combatcore hit and damage math
+  and the existing party and monster tables, with the initiative queue (DEX plus
+  d20), a movement budget plus one action, and undo until an action, damage, or
+  world change locks the turn. Simple ground, no destructible terrain yet, no
+  network. Verified headless like the current combat tests. (M)
+- [future] Destructible battlefield and the action set. Bring the 1-bit mask
+  terrain into combat: traversal spends the movement budget, ranged fire arcs
+  under gravity from an aim angle and a charged power bar, melee moves adjacent
+  and strikes with knockback, and carves mutate the mask and the VRAM surface
+  over the bedrock floor. The battle becomes a deterministic instance, a terrain
+  seed plus ordered committed inputs. (L)
+- [future] Spells, skills, and enemy AI in the 2D economy. Map the domain-gated
+  spell catalog and the proficiency skills into 2D actions (area effects, arcing
+  over allies, target selection, friendly fire), and add enemy AI: pathfinding
+  across destructible terrain and an arc-aiming solver for angle and power. (L)
+- [future] Multiplayer combat. Lift the battle into the shard: a per-turn
+  Worms-style timeout paces turns inside the real-time clock, the server
+  simulates authoritatively, a client submits turn intent over the reliable
+  channel, undo works before commit bounded by the timer, join-a-side in progress
+  replays to the current state, and a disconnected unit auto-skips or runs the
+  defensive AI. Builds on the MVP's presence transport and the single-player
+  combat phases. (L)
+- [future] The switch: parity and the explore-to-battle transition. Wire the
+  handoff that loads the battlefield and returns deaths, loot, and experience to
+  the party, decide replacement scope (keep the alternate flag until parity, then
+  make the side view the default and retire or archive the first-person fight),
+  and move the headless shot tool and the combat tests onto the new mode. (M)
+
 ## Sequenced roadmap
 
 Each milestone is a minor version, leaves the game runnable, and is ordered by
