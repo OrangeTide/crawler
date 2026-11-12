@@ -26,10 +26,6 @@ type
   PKeyArray = ^TKeyArray;
 
 const
-  NAME_POOL: array[0 .. 11] of string[12] = (
-    'THORNE', 'BRYN', 'MAEVE', 'KORRIG', 'ELSPETH', 'DRAVEN',
-    'LYRA', 'GARRET', 'ODILE', 'VANCE', 'SERA', 'RHESK');
-
   { light-as-a-resource tuning }
   TORCH_MINUTES = 240;   { how long one torch burns, in game minutes }
   TORCH_GUTTER  = 20;    { below this many minutes the flame gutters low }

@@ -174,6 +174,19 @@ begin
   writeln('  gear (', n, ') from ', fn);
 end;
 
+procedure AddNewGame(const fn: string);
+var
+  d: TNewGameData;
+  err: string;
+begin
+  if not ParseNewGame(fn, d, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  PakWAdd(w, 'NEWG', EncodeNewGame(d));
+  writeln('  newgame (', Length(d.names), ' names, ', Length(d.pregen),
+    ' pregen) from ', fn);
+end;
+
 procedure AddDialogs(const fn: string);
 var
   cs: array[0 .. 127] of TConversation;
@@ -489,6 +502,8 @@ begin
       AddBackgrounds(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'gear' then begin
       AddGear(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'newgame' then begin
+      AddNewGame(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'spells' then begin

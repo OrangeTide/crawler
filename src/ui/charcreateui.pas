@@ -44,14 +44,14 @@ end;
 
 procedure CCRebuild;
 begin
-  MakeCharacter(ccPreview, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
+  MakeCharacter(ccPreview, NamePool[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
   ccPreview.portrait := ccPortrait;
 end;
 
 procedure CCBeginSlot;
 begin
-  ccSpecies := SpeciesOr0('HUMAN');
-  ccClass := ClassOr0('FIGHTER');
+  ccSpecies := SpeciesOr0(DefaultSpecies);
+  ccClass := ClassOr0(DefaultClass);
   ccBg := 0;
   ccNameIdx := ccSlot;
   ccPortrait := PCPortraitClamp(ccSlot);
@@ -79,7 +79,7 @@ begin
   DrawCenter(10, 'CREATE PARTY   MEMBER ' + IntToStr(ccSlot + 1) + ' OF '
     + IntToStr(MAX_PARTY), RGB(220, 200, 120));
 
-  DrawText(30, 30, 'NAME:    ' + NAME_POOL[ccNameIdx], RGB(200, 200, 180));
+  DrawText(30, 30, 'NAME:    ' + NamePool[ccNameIdx], RGB(200, 200, 180));
   DrawText(30, 42, 'SPECIES: ' + SpeciesDefs[ccSpecies].name, RGB(200, 200, 180));
   DrawText(30, 54, 'CLASS:   ' + ClassDefs[ccClass].name, RGB(200, 200, 180));
   DrawText(30, 66, 'PAST:    ' + BackgroundDefs[ccBg].name, RGB(190, 190, 160));
@@ -114,7 +114,7 @@ procedure CCAccept;
 var
   c: TCharacter;
 begin
-  MakeCharacter(c, NAME_POOL[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
+  MakeCharacter(c, NamePool[ccNameIdx], ccSpecies, ccClass, ccBg, ccAbil);
   c.portrait := ccPortrait;
   AddPartyMember(c);
   inc(ccSlot);
@@ -128,7 +128,7 @@ procedure CCKeyDown(scancode: longint);
 begin
   case scancode of
     SDL_SCANCODE_N:
-      ccNameIdx := (ccNameIdx + 1) mod Length(NAME_POOL);
+      ccNameIdx := (ccNameIdx + 1) mod Length(NamePool);
     SDL_SCANCODE_K: begin
       ccSpecies := (ccSpecies + 1) mod Length(SpeciesDefs);
       CCRebuild;

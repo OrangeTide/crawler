@@ -28,6 +28,8 @@ function ParseBackgrounds(const fn: string; out defs: array of TBackgroundDef;
   out count: longint; out err: string): boolean;
 function ParseGear(const fn: string; out defs: array of TGearDef;
   out count: longint; out err: string): boolean;
+function ParseNewGame(const fn: string; out d: TNewGameData;
+  out err: string): boolean;
 
 implementation
 
@@ -301,6 +303,44 @@ begin
     lines.Free;
   end;
   ParseGear := true;
+end;
+
+function ParseNewGame(const fn: string; out d: TNewGameData;
+  out err: string): boolean;
+var
+  lines: TStringList;
+  li, n, nameN, pregN: longint;
+  tok: array[0 .. 15] of string;
+  line: string;
+begin
+  ParseNewGame := false; err := '';
+  SetLength(d.names, 0); SetLength(d.pregen, 0);
+  d.defSpecies := ''; d.defClass := '';
+  nameN := 0; pregN := 0;
+  lines := OpenLines(fn);
+  try
+    for li := 0 to lines.Count - 1 do begin
+      line := Trim(lines[li]);
+      if (line = '') or (line[1] = '#') then continue;
+      QTokenize(line, tok, n);
+      if (tok[0] = 'name') and (n >= 2) then begin
+        SetLength(d.names, nameN + 1);
+        d.names[nameN] := tok[1]; inc(nameN);
+      end else if (tok[0] = 'pregen') and (n >= 3) then begin
+        SetLength(d.pregen, pregN + 1);
+        d.pregen[pregN].species := tok[1];
+        d.pregen[pregN].klass := tok[2]; inc(pregN);
+      end else if (tok[0] = 'default') and (n >= 3) then begin
+        d.defSpecies := tok[1];
+        d.defClass := tok[2];
+      end else begin
+        err := 'line ' + IntToStr(li + 1) + ': bad newgame row'; exit;
+      end;
+    end;
+  finally
+    lines.Free;
+  end;
+  ParseNewGame := true;
 end;
 
 end.

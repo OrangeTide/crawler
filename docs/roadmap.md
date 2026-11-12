@@ -217,13 +217,15 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   encounter builder caps the front line at three bodies without weighing size,
   so the back-rank cover rule the user specified is unimplemented. Needs a size
   field on the monster and character records to drive the summed-bulk check.
-- [gap] (0.30.0) Port the remaining hardcoded party and class data to content
-  files. Against the data-driven rule, a few designer-tunable tables still live
-  in Pascal literals: the quick-start / pregen party (its classes, names, and
-  species in titleui.BuildPregenParty), the random name pool (NAME_POOL in
-  gamestate), and the char-creation default class. Move each into a content lump
-  with a parser, the way classes, monsters, and spells already load. (The
-  built-in combat spell table is already retired in favour of spells.txt.)
+- [done] (0.30.0) Port the remaining hardcoded party and class data to content
+  files. The designer-tunable tables that lived in Pascal literals now load from
+  content lumps with parsers, the way classes, monsters, and spells do: starting
+  equipment moved to `content/gear.txt` (the `GEAR` lump, keyed by kit
+  archetype), and the quick-start / pregen party, the random name pool, and the
+  char-creation default species and class moved to `content/newgame.txt` (the
+  `NEWG` lump). The old `GiveClassKit` case, `NAME_POOL`, and the hardcoded
+  pregen and default ids are gone; `t_gear` and `t_newgame` pin the tables. (The
+  built-in combat spell table was already retired in favour of spells.txt.)
 - [gap] (0.30.0) Prepared-spell subset on top of the known list (optional
   caster depth): a caster readies a subset of its known spells per rest, the way
   memorized-spell rules work, instead of casting any known spell at will within
@@ -781,8 +783,10 @@ to content files (which the data-driven constraint demands), the optional
 prepared-spell subset and more combat-statted spells, the fuller quest log now
 that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg
 sprite-format evaluation. Independent of the renderer and map threads. Started:
-starting equipment is now a `content/gear.txt` table keyed by the class kit
-archetype, replacing the hardcoded loadouts in `GiveClassKit`.
+the data-port cleanup is done. Starting equipment moved to a `content/gear.txt`
+table keyed by the class kit archetype, and the pregen party, name pool and
+char-creation defaults moved to `content/newgame.txt`, so no party or class
+tables remain hardcoded in Pascal.
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 

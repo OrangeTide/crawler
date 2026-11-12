@@ -146,18 +146,17 @@ begin
 end;
 
 procedure BuildPregenParty;
-{** Roll a ready-to-play party of four: a fighter, thief, friar and wizard. }
+{** Roll the ready-to-play quick-start party from the newgame table. }
 var
-  i, sp: longint;
+  i: longint;
   a: TAbilityScores;
   c: TCharacter;
-  clsId: array[0 .. 3] of string = ('FIGHTER', 'THIEF', 'FRIAR', 'WIZARD');
 begin
   NewParty;
-  sp := SpeciesOr0('HUMAN');
-  for i := 0 to 3 do begin
+  for i := 0 to High(PregenParty) do begin
     RollAbilities(a);
-    MakeCharacter(c, NAME_POOL[i], sp, ClassOr0(clsId[i]), 0, a);
+    MakeCharacter(c, NamePool[i], SpeciesOr0(PregenParty[i].species),
+      ClassOr0(PregenParty[i].klass), 0, a);
     c.portrait := PCPortraitClamp(i);   { a varied face per slot }
     AutoLearn(c);   { a ready-made caster comes knowing its spells }
     AddPartyMember(c);

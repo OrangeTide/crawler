@@ -17,7 +17,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, polyrender, glrender, video, dialog, flags, uihelp,
   gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic,
-  spellbook, pcportrait;
+  spellbook, pcportrait, chardata;
 
 { Blit a portrait image at its native size, skipping the keyed background. }
 procedure DrawPortrait(px, py: longint; const img: TImage);
@@ -170,7 +170,7 @@ begin
     DlgRecruitReq := false;
     cost := HireCost;
     wasFirst := HirelingCount = 0;
-    if RecruitHireling(NAME_POOL[Range(0, High(NAME_POOL))]) then begin
+    if RecruitHireling(NamePool[Range(0, High(NamePool))]) then begin
       { a hired caster comes already knowing its spells, and a random face }
       Roster[High(Roster)].portrait := PCPortraitClamp(Range(0, PCPortraitCount - 1));
       AutoLearn(Roster[High(Roster)]);

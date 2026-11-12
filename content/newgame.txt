@@ -1,0 +1,27 @@
+# New-game data: the random name pool, the quick-start pregen party, and the
+# character-creation default selections. Species ids come from species.txt and
+# class ids from classes.txt.
+#
+#   name   NAME                 one entry in the random name pool
+#   pregen SPECIES CLASS        one quick-start party slot, in order
+#   default SPECIES CLASS       the char-creation starting selections
+
+name THORNE
+name BRYN
+name MAEVE
+name KORRIG
+name ELSPETH
+name DRAVEN
+name LYRA
+name GARRET
+name ODILE
+name VANCE
+name SERA
+name RHESK
+
+pregen HUMAN FIGHTER
+pregen HUMAN THIEF
+pregen HUMAN FRIAR
+pregen HUMAN WIZARD
+
+default HUMAN FIGHTER

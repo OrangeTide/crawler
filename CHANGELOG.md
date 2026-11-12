@@ -16,6 +16,11 @@ whose development history is summarized in docs/roadmap.md.
   given to every character. It replaces the hardcoded `case` in `GiveClassKit`,
   so a loadout tweak or a new kit is a table edit, not code. Baked into a new
   `GEAR` lump; `t_gear` pins the archetype loadouts.
+- New-game data is data-driven. The random name pool, the quick-start pregen
+  party, and the character-creation default species and class now load from a
+  `content/newgame.txt` table instead of Pascal literals in `gamestate`,
+  `titleui`, and `charcreateui`. Baked into a new `NEWG` lump; `t_newgame`
+  pins the table.
 
 ## [0.29.1] - 2026-11-12
 

@@ -36,6 +36,7 @@ const
   CLAS_MAGIC = $53414C43;  { 'CLAS' }
   BKGD_MAGIC = $44474B42;  { 'BKGD' }
   GEAR_MAGIC = $52414547;  { 'GEAR' }
+  NEWG_MAGIC = $4757454E;  { 'NEWG' }
 
   GEAR_MAXPACK = 8;        { max pack entries in one gear row }
   GEAR_COMMON  = 255;      { the row given to every character }
@@ -84,16 +85,36 @@ type
     packN: byte;
   end;
 
+  { One slot of the quick-start pregen party: a species and a class id. }
+  TPregenSlot = record
+    species: string[12];
+    klass: string[12];
+  end;
+
+  { New-game data: the random name pool, the pregen party, and the
+    character-creation default selections. }
+  TNewGameData = record
+    names: array of string[12];
+    pregen: array of TPregenSlot;
+    defSpecies: string[12];
+    defClass: string[12];
+  end;
+
 var
   SpeciesDefs: array of TSpeciesDef;
   ClassDefs: array of TClassDef;
   BackgroundDefs: array of TBackgroundDef;
   GearDefs: array of TGearDef;
+  NamePool: array of string[12];
+  PregenParty: array of TPregenSlot;
+  DefaultSpecies: string[12];
+  DefaultClass: string[12];
 
 function EncodeSpecies(const defs: array of TSpeciesDef): TByteArray;
 function EncodeClasses(const defs: array of TClassDef): TByteArray;
 function EncodeBackgrounds(const defs: array of TBackgroundDef): TByteArray;
 function EncodeGear(const defs: array of TGearDef): TByteArray;
+function EncodeNewGame(const d: TNewGameData): TByteArray;
 function LoadCharData(const p: TPak): boolean;
 function ClassIndex(const id: string): longint;
 function SpeciesIndex(const id: string): longint;
@@ -200,6 +221,28 @@ begin
   EncodeGear := a;
 end;
 
+function EncodeNewGame(const d: TNewGameData): TByteArray;
+var a: TByteArray; n, i: longint;
+begin
+  SetLength(a, 0); n := 0;
+  PutB(a, n, NEWG_MAGIC and $FF);
+  PutB(a, n, (NEWG_MAGIC shr 8) and $FF);
+  PutB(a, n, (NEWG_MAGIC shr 16) and $FF);
+  PutB(a, n, (NEWG_MAGIC shr 24) and $FF);
+  PutB(a, n, Length(d.names) and $FF);
+  PutB(a, n, (Length(d.names) shr 8) and $FF);
+  for i := 0 to High(d.names) do PutName(a, n, d.names[i], 12);
+  PutB(a, n, Length(d.pregen));
+  for i := 0 to High(d.pregen) do begin
+    PutName(a, n, d.pregen[i].species, 12);
+    PutName(a, n, d.pregen[i].klass, 12);
+  end;
+  PutName(a, n, d.defSpecies, 12);
+  PutName(a, n, d.defClass, 12);
+  SetLength(a, n);
+  EncodeNewGame := a;
+end;
+
 { ---- readers ---- }
 
 function RName(const a: TByteArray; var p: longint; len: longint): string;
@@ -302,10 +345,33 @@ begin
   LoadGear := true;
 end;
 
+function LoadNewGame(const p: TPak): boolean;
+var blob: TByteArray; pos, i, nc, pc: longint; m: longword;
+begin
+  LoadNewGame := false;
+  if not PakGet(p, 'NEWG', blob) then exit;
+  if Length(blob) < 4 then exit;
+  m := blob[0] or (blob[1] shl 8) or (blob[2] shl 16) or (longword(blob[3]) shl 24);
+  if m <> NEWG_MAGIC then exit;
+  pos := 4;
+  nc := blob[pos] or (blob[pos + 1] shl 8); inc(pos, 2);
+  SetLength(NamePool, nc);
+  for i := 0 to nc - 1 do NamePool[i] := RName(blob, pos, 12);
+  pc := blob[pos]; inc(pos);
+  SetLength(PregenParty, pc);
+  for i := 0 to pc - 1 do begin
+    PregenParty[i].species := RName(blob, pos, 12);
+    PregenParty[i].klass := RName(blob, pos, 12);
+  end;
+  DefaultSpecies := RName(blob, pos, 12);
+  DefaultClass := RName(blob, pos, 12);
+  LoadNewGame := true;
+end;
+
 function LoadCharData(const p: TPak): boolean;
 begin
   LoadCharData := LoadSpecies(p) and LoadClasses(p) and LoadBackgrounds(p)
-    and LoadGear(p);
+    and LoadGear(p) and LoadNewGame(p);
 end;
 
 function ClassIndex(const id: string): longint;
