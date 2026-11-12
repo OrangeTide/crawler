@@ -1199,3 +1199,138 @@ Still to do: props do not block movement yet, and they draw only in the polygon
 renderer; put monster models in combat, draw the portal and light glows the
 raycaster shows, then dial in vertex snap and dither and port the hot path to
 fixed point.
+
+## 26. Side-view tactical combat (future combat mode)
+
+Not scheduled. This records a new combat mode that would replace the
+first-person, rank-based fight with a 2D side-scrolling, turn-based tactical
+battle, in the spirit of Worms crossed with AD&D initiative. Exploration stays
+first person; combat drops into a side view on a large, modifiable terrain. The
+mode is desktop-first but PS1-native in its model, since Worms itself ran on the
+PS1, DOS and Amiga with no FPU.
+
+### Scope and relationship to the current fight
+
+The whole party, four to six units, deploys at once on a multi-screen
+destructible field against a mob of enemies, typically under ten but with no
+hard cap beyond the platform. The battle is its own instance, which reuses the
+`TCombat` seam the single-player engine already grew, but its presentation,
+positioning and physics are new. The first-person combat stays the shipping path
+until this reaches parity, so it is built as an alternate mode behind a flag and
+only then considered for replacement. The design is expressed in the project's
+idioms, records plus fixed-point plus data-driven content, not the class and
+float hierarchy a generated draft of this document used.
+
+### The battlefield (PS1 budget settled)
+
+The field is a large horizontal terrain spanning several screens, scrolled by a
+pan and zoom camera with a free-look mode. Terrain is destructible as in Worms: a
+projectile carves a circle out of the ground.
+
+- **Collision** is a 1-bit mask. A 320 by 200 playfield is exactly 8 KB, and an
+  eight-screen field is 64 KB, a rounding error against the 2 MB budget, so the
+  mask is per-pixel with no need to coarsen it for memory.
+- **The playfield is about 200 rows**, not the full 240. A HUD band holds the
+  turn order, movement gauge and aim and power meters, and an indestructible
+  bedrock strip sits below. The bedrock is also a design element: carved debris
+  and falling units always terminate on it, it blocks the dig-straight-down
+  degenerate, and it keeps the field from being severed from its base.
+- **The visual surface** is an 8-bit CLUT layer, about 75 KB per screen, held in
+  VRAM the way a PlayStation stores backgrounds. A carve mutates the 8 KB mask
+  and the VRAM surface inside the dirty circle.
+
+### Simulation model
+
+The simulation is cheap and PS1-native. Only a few point masses are live at a
+time, the in-flight projectile plus any units knocked loose, integrated under
+constant gravity in 16.16 fixed point at a fixed 20 to 30 Hz tick. Most
+collisions are point against a terrain bit or point against an axis-aligned box.
+Animation decouples from the sim: sprite frames interpolate at display rate over
+the fixed tick. There is no floating point and no per-platform physics drift.
+
+### Turn and action economy
+
+Each unit takes one turn per round in initiative order, rolled as DEX plus a d20
+into a global queue. A turn holds two pools:
+
+- **Movement budget**, derived from the AD&D move stat times a pixel multiplier,
+  spent walking, jumping and climbing across the terrain.
+- **One action**: a melee strike, a ranged shot, a spell, or an item.
+
+Movement and the action interleave freely, move part way, act, move the rest, as
+long as no irreversible event has fired. Movement is undoable: pressing undo
+restores the unit to its turn-start position and refunds the budget, but only
+until the state locks. Taking an action, taking damage during movement (a hazard
+or an overwatch trap), or altering the world (a switch, an item, breaking a
+platform) locks the turn and forbids undo.
+
+### Ranged and melee
+
+Ranged fire is the Worms model: the player sets an aim angle relative to facing
+and charges a power bar, then releases to launch a projectile that arcs under
+gravity, so a high arc clears obstacles, allies and cover. Melee moves a unit
+adjacent to a target and strikes, stopping further movement for the turn and
+applying damage and knockback. Both lock the turn.
+
+### Determinism and the battle instance
+
+The simulation is fixed-point and fixed-timestep, so a battle is deterministic
+and reconstructable from its terrain seed plus the ordered list of committed turn
+inputs (each move path, aim angle, power and action). That one property gives the
+save an exact in-progress battle, lets a late party join a battle in progress by
+replaying to the current state, and makes a server checkpoint exact with no
+float drift between machines.
+
+### Multiplayer fit
+
+This mode fits the shard design in section 24, and it supplies the battle pacing
+that section left open. Battles are turn based while the shard clock runs in real
+time, so each turn carries a countdown, the Worms turn timer: when it expires the
+turn auto-ends, locking the state and forfeiting the unused action. The server
+runs the deterministic battle and the AI authoritatively; a client submits its
+turn intent over the reliable channel and the server simulates and broadcasts the
+result, with no client prediction. Undo works before commit within a player's own
+turn against the server's authoritative pre-commit state, bounded by the timer. A
+disconnected player's unit auto-skips on timeout or is played by the default
+defensive AI, as section 24 already states. Because a battle replays from its
+committed inputs, the join-a-side feature and server checkpoints both fall out of
+the same mechanism.
+
+### Art
+
+The art direction uses the GandalfHardcore itch.io bundle, licensed for personal
+and commercial use, so it is usable and open to experiment with now. The bundle
+covers the mode broadly: knight, heavy knight, wizard, archer, samurai, angel and
+succubus characters; skeleton, zombie, goblin, spider and other enemies; a
+projectile-and-effects pack for shots and impacts; a hundred-plus ability and
+buff icons; a UI pack; and side-scroller environment tiles. Each sheet ships
+seven or eight colour variants, and the character packs layer body and legs
+separately, which is the modularity that lets a player customise an avatar's
+appearance by swapping parts and recolouring, a good fit for the multiplayer
+build-one-character start.
+
+Two caveats. First, attack, hit and death frame coverage varies per pack (the
+knight ships run and portrait frames explicitly), so some sheets may carry only
+idle and walk. For a turn-based battle that uses the sprite mainly for position,
+a simple lunge or recoil plus a projectile or effect overlay can stand in, but the
+per-pack coverage must be verified before a pack is relied on. Second, these are
+clean, full-colour pixel sprites, a different look from the project's PS1 dither
+and CLUT discipline, so the palette story is unsettled. When any of this art is
+baked into content, CREDITS gains a GandalfHardcore entry with the bundle's
+licence terms.
+
+### Open questions
+
+- **Replacement scope.** Whether this replaces the first-person fight outright or
+  stays an alternate mode, and how the explore-to-battle transition loads the
+  field and returns results, deaths, loot and experience to the party.
+- **Spell and skill mapping.** How the domain-gated spell catalog and the
+  proficiency skill system translate into the 2D action economy: area effects,
+  arcing over allies, target selection, friendly fire.
+- **Terrain source.** Whether a battlefield is generated from the encounter's
+  biome or authored, how it relates to the first-person map, and its size bounds.
+- **Enemy AI.** Pathfinding across destructible terrain and an aiming solver that
+  picks an angle and power for an arc.
+- **Art coverage and palette.** Per-pack attack, hit and death frames, and
+  whether the sprites keep their full colour or are brought into the project's
+  palette discipline.

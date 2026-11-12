@@ -536,6 +536,36 @@ ride as multi-cell mesh instances rather than per-cell quads.
   crypt-level generator into a full carve-then-clad pipeline, and pairs with the
   authored-ruin content in theme F.
 
+### H. Side-view tactical combat (design section 26)
+
+- [future] Side-view tactical combat mode (design section 26). Unscheduled, a new
+  combat mode that would replace the first-person rank-based fight with a 2D
+  side-scrolling, turn-based battle, Worms crossed with AD&D initiative.
+  Exploration stays first person; combat drops into a side view where the whole
+  four to six unit party deploys on a large, multi-screen destructible terrain
+  against a mob of foes. It reuses the TCombat instance seam but its
+  presentation, positioning and physics are new, so it is built as an alternate
+  mode behind a flag and kept beside the first-person fight until parity. The
+  model is PS1-native: a few point masses under constant gravity in 16.16 fixed
+  point at a fixed 20 to 30 Hz tick, animation interpolated at display rate, and
+  per-pixel destructible terrain as a 1-bit mask (8 KB per screen, 64 KB for an
+  eight-screen field) over an indestructible bedrock floor, with the visual
+  surface in VRAM. Turns run on individual initiative with a movement budget and
+  one action, movement undoable until an action, damage, or world change locks
+  the turn. Ranged fire arcs under gravity from an aim angle and a charged power
+  bar; melee moves adjacent and strikes with knockback. A battle is deterministic
+  and replayable from its terrain seed plus ordered committed inputs, which feeds
+  save, join-in-progress, and server checkpoints. For multiplayer (section 24) a
+  per-turn Worms-style timeout paces the turn-based battle inside the shard's
+  real-time clock, the server simulates authoritatively, and a disconnected unit
+  auto-skips or runs the default defensive AI. Art uses the GandalfHardcore
+  bundle, licensed for personal and commercial use, modular parts and colour
+  variants for avatar customization, with a projectile-effects pack, ability
+  icons and a UI pack; attack frame coverage varies per pack and the palette
+  story is unsettled. Open points in section 26: replacement scope and the
+  explore-to-battle transition, the spell and skill mapping into the 2D action
+  economy, the terrain source, enemy AI, and per-pack art coverage.
+
 ## Sequenced roadmap
 
 Each milestone is a minor version, leaves the game runnable, and is ordered by
