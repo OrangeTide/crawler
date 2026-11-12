@@ -196,6 +196,10 @@ begin
     RenderExploreGL(fps);
     exit;
   end;
+  if useGL3D and (State = gsDialog) then begin
+    RenderDialogGL;   { the dialog composites its panel over the GPU scene }
+    exit;
+  end;
   case State of
     gsTitle:    TitleRender;
     gsNewParty: CCRender;

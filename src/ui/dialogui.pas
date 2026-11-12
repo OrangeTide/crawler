@@ -9,12 +9,13 @@ unit dialogui;
 interface
 
 procedure DialogRender;
+procedure RenderDialogGL;
 procedure DialogKeyDown(scancode: longint);
 
 implementation
 
 uses
-  sysutils, sdl2min, gfx, polyrender, dialog, flags, uihelp,
+  sysutils, sdl2min, gfx, polyrender, glrender, video, dialog, flags, uihelp,
   gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic,
   spellbook, pcportrait;
 
@@ -32,14 +33,23 @@ begin
     end;
 end;
 
-procedure DialogRender;
+{ Draw the dialog panel (box, portrait and text) into the framebuffer. solidBg
+  fills the box backgrounds opaque, for the GPU path that composites the panel
+  over the GL scene by colour key; the software path blends them over the
+  software-rendered scene. }
+procedure DrawDialogPanel(solidBg: boolean);
 var
   i, py, n, pi, tx, tw: longint;
+
+  procedure BoxFill(x, y, w, h: longint; c: TColor; alpha: byte);
+  begin
+    if solidBg then FillRect(x, y, w, h, c)
+    else FillRectBlend(x, y, w, h, c, alpha);
+  end;
+
 begin
-  RenderViewPoly;
-  FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
   py := 118;
-  FillRectBlend(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);
+  BoxFill(8, py, FBW - 16, FBH - py - 8, RGB(14, 12, 20), 230);
   FrameRect(8, py, FBW - 16, FBH - py - 8, RGB(120, 110, 90));
 
   { an NPC with a PORT_<dialog-id> portrait lump shows a framed face on the
@@ -47,7 +57,7 @@ begin
     width (a shrine, an altar, and such name no portrait) }
   pi := LoadSprite(GamePak, 'PORT_' + UpperCase(dlgId));
   if pi >= 0 then begin
-    FillRectBlend(14, py + 6, 64, 64, RGB(0, 0, 0), 190);
+    BoxFill(14, py + 6, 64, 64, RGB(0, 0, 0), 190);
     FrameRect(14, py + 6, 64, 64, RGB(120, 110, 90));
     DrawPortrait(14, py + 6, SpriteReg[pi].img);
     tx := 86; tw := 36;
@@ -67,6 +77,27 @@ begin
   { a service result lingers a moment at the foot of the box }
   if saveMsgT > 0 then
     DrawText(16, FBH - 16, saveMsg, RGB(230, 210, 140));
+end;
+
+{ Software path: render the scene, veil it, and blend the panel over it. }
+procedure DialogRender;
+begin
+  RenderViewPoly;
+  FillRectBlend(0, 0, FBW, FBH, RGB(0, 0, 0), 120);
+  DrawDialogPanel(false);
+end;
+
+{ GPU path: render the scene on the GPU, dim it with a GL veil, then composite
+  the opaque panel over it through the colour-keyed 2D layer. }
+procedure RenderDialogGL;
+begin
+  GLTrueColour := SetGLTrueColour;
+  RenderViewGL;                      { GPU scene into the default framebuffer }
+  GLDimScene(120.0 / 255.0);         { the veil, matching the software blend }
+  ClearFB(RGB(255, 0, 255));         { the 2D layer; magenta reads transparent }
+  DrawDialogPanel(true);
+  VideoPresentHud;                   { composite the panel over the dimmed scene }
+  VideoSwap;
 end;
 
 procedure SyncJournal;

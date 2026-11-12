@@ -57,6 +57,12 @@ procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
   it, but it writes no depth. Stands in for raster.DrawFloorGlow on light-well,
   brazier and vent floors, for both kit and non-kit cells. }
 procedure GLDrawGlow(tx, ty: longint; z, r, g, b, a: double);
+{ Darken the whole window by a translucent black veil (alpha a, 0..1), drawn
+  over the already-presented scene in the default framebuffer. Used to dim the
+  GPU explore scene behind an overlay such as a dialog, in place of the software
+  path's full-screen FillRectBlend. Call after the scene is on screen and before
+  the 2D overlay is composited. }
+procedure GLDimScene(a: double);
 procedure GLSceneEnd;
 
 var
@@ -143,6 +149,15 @@ const
     'uniform sampler2D uTex;'#10 +
     'void main() { gl_FragColor = texture2D(uTex, vUV); }'#10;
 
+  { A flat translucent fill over a fullscreen quad, for the scene-dim veil. }
+  DIM_VERT =
+    'attribute vec2 aPos;'#10 +
+    'void main() { gl_Position = vec4(aPos, 0.0, 1.0); }'#10;
+  DIM_FRAG =
+    'precision mediump float;'#10 +
+    'uniform vec4 uColor;'#10 +
+    'void main() { gl_FragColor = uColor; }'#10;
+
   { The surface-map sky gradient, drawn as a fullscreen quad in the scene
     target. }
   SKY_VERT =
@@ -223,6 +238,9 @@ var
   glowReady: boolean = false;
   glowProg: GLuint = 0;
   glowPos, glowUVLoc, glowColorLoc, glowMVPLoc: GLint;
+  dimReady: boolean = false;
+  dimProg: GLuint = 0;
+  dimPos, dimColorLoc: GLint;
 
   { per-mesh vertex buffers and per-atlas textures, cached by source pointer.
     Meshes are resident for the session (clad's cache), so their keys are
@@ -1127,6 +1145,38 @@ begin
     5 * SizeOf(GLfloat), Pointer(3 * SizeOf(GLfloat)));
   glDrawArrays(GL_TRIANGLES, 0, 6);
   glDepthMask(1);
+  glDisable(GL_BLEND);
+end;
+
+function EnsureDim: boolean;
+begin
+  if dimReady then begin EnsureDim := true; exit; end;
+  EnsureDim := false;
+  if not EnsurePresent then exit;   { reuses the present fullscreen quad buffer }
+  dimProg := BuildProgram(DIM_VERT, DIM_FRAG);
+  if dimProg = 0 then exit;
+  dimPos := glGetAttribLocation(dimProg, 'aPos');
+  dimColorLoc := glGetUniformLocation(dimProg, 'uColor');
+  dimReady := true;
+  EnsureDim := true;
+end;
+
+procedure GLDimScene(a: double);
+begin
+  if not VideoIsGL then exit;
+  if not EnsureDim then exit;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glViewport(0, 0, VideoWidth, VideoHeight);
+  glDisable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glUseProgram(dimProg);
+  glUniform4f(dimColorLoc, 0.0, 0.0, 0.0, a);
+  glBindBuffer(GL_ARRAY_BUFFER, presentVBO);
+  glEnableVertexAttribArray(GLuint(dimPos));
+  glVertexAttribPointer(GLuint(dimPos), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(0));
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
   glDisable(GL_BLEND);
 end;
 
