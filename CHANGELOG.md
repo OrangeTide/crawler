@@ -31,7 +31,9 @@ whose development history is summarized in docs/roadmap.md.
   so the two agree in idiom without matching pixel for pixel, and it reaches
   parity with the software explore view. The software explore path stays the
   fallback with no GL (CRAWLER_GL=0), and CRAWLER_GL3D=0 forces it for
-  comparison. Verified on aarch64 through GLES2 on a Raspberry Pi.
+  comparison. The dialog overlay composites its panel over the GPU scene,
+  dimmed by a GL veil, rather than re-rendering the backdrop in software.
+  Verified on aarch64 through GLES2 on a Raspberry Pi.
 - Per-tileset colour on the GPU, through a baked CLUT. The asset build
   median-cuts each kit tileset's own trim atlases to a 256-colour `CLUT`
   lump, and the GPU explore backend now renders kit cladding through it: it
