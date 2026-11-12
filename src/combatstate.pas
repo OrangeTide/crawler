@@ -89,6 +89,11 @@ type
     life: double;      { seconds remaining, counts down from POP_LIFE }
   end;
 
+  TTurnEnt = record
+    side: byte;        { 0 a foe, 1 a party member }
+    idx: longint;      { index into Foes or Roster }
+  end;
+
   { The whole state of one fight. Today a single instance is resident, reached
     through Active^; the design (section 24) grows this into many concurrent,
     map-located battles, so every site reads the fight through the pointer. }
@@ -104,6 +109,12 @@ type
     GoldGained: longint;
 
     CombatPhase: longint;
+
+    TurnQueue: array of TTurnEnt;  { this round's actors, fastest first }
+    TurnPos: longint;              { cursor into TurnQueue }
+    TurnContinue: boolean;         { the actor keeps its turn for the other slot }
+    CombatTimer: double;           { seconds left in the current beat }
+    FoesAtStart: longint;          { for the morale threshold }
 
     TurnMoved: boolean;   { the current actor has spent its move this turn }
     TurnActed: boolean;   { the current actor has spent its action this turn }

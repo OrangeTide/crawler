@@ -83,19 +83,6 @@ function GrantVictoryLoot: boolean;
 
 implementation
 
-type
-  TTurnEnt = record
-    side: byte;        { 0 a foe, 1 a party member }
-    idx: longint;      { index into Active^.Foes or Roster }
-  end;
-
-var
-  TurnQueue: array of TTurnEnt;  { this round's actors, fastest first }
-  TurnPos: longint;              { cursor into TurnQueue }
-  TurnContinue: boolean;         { the actor keeps its turn for the other slot }
-  CombatTimer: double;           { seconds left in the current beat }
-  FoesAtStart: longint;          { for the morale threshold }
-
 const
   BEAT_TIME  = 0.45;   { pause after an action before the next step }
   ENEMY_STEP = 0.55;   { how long a foe's own turn is held on screen }
@@ -146,12 +133,12 @@ procedure AdvanceTurn; forward;
 { Finish whoever just acted: end the fight, or hold a beat and move on. }
 procedure EndTurn;
 begin
-  TurnContinue := false;
+  Active^.TurnContinue := false;
   CheckEnd;
   if Active^.CombatOver then begin Active^.CombatPhase := CP_DONE; exit; end;
-  inc(TurnPos);
+  inc(Active^.TurnPos);
   Active^.CombatPhase := CP_BEAT;
-  CombatTimer := BEAT_TIME * CombatBeatScale;
+  Active^.CombatTimer := BEAT_TIME * CombatBeatScale;
 end;
 
 { A party member gets one move and one other action per turn, in either
@@ -166,10 +153,10 @@ begin
     exit;
   end;
   CheckEnd;
-  if Active^.CombatOver then begin TurnContinue := false; Active^.CombatPhase := CP_DONE; exit; end;
-  TurnContinue := true;
+  if Active^.CombatOver then begin Active^.TurnContinue := false; Active^.CombatPhase := CP_DONE; exit; end;
+  Active^.TurnContinue := true;
   Active^.CombatPhase := CP_BEAT;
-  CombatTimer := BEAT_TIME * CombatBeatScale;
+  Active^.CombatTimer := BEAT_TIME * CombatBeatScale;
 end;
 
 { A combatant's turn-order speed, higher acting sooner. Party members run
@@ -195,40 +182,40 @@ var
   tmpEnt: TTurnEnt;
   tmpInit: longint;
 begin
-  if (LivingFoes > 0) and (LivingFoes <= FoesAtStart div 2) then MoraleCheck;
+  if (LivingFoes > 0) and (LivingFoes <= Active^.FoesAtStart div 2) then MoraleCheck;
   CheckEnd;
   if Active^.CombatOver then begin Active^.CombatPhase := CP_DONE; exit; end;
 
-  SetLength(TurnQueue, 0);
+  SetLength(Active^.TurnQueue, 0);
   SetLength(init, 0);
   n := 0;
   for i := 0 to High(Roster) do
     if Roster[i].alive and (not Roster[i].downed) then begin
-      SetLength(TurnQueue, n + 1); SetLength(init, n + 1);
-      TurnQueue[n].side := 1; TurnQueue[n].idx := i;
+      SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
+      Active^.TurnQueue[n].side := 1; Active^.TurnQueue[n].idx := i;
       init[n] := PartySpeed(i) + Range(1, 4);
       inc(n);
     end;
   for i := 0 to High(Active^.Foes) do
     if Active^.Foes[i].alive then begin
-      SetLength(TurnQueue, n + 1); SetLength(init, n + 1);
-      TurnQueue[n].side := 0; TurnQueue[n].idx := i;
+      SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
+      Active^.TurnQueue[n].side := 0; Active^.TurnQueue[n].idx := i;
       init[n] := FoeSpeed(i) + Range(1, 4);
       inc(n);
     end;
 
   { insertion sort, descending initiative }
   for a := 1 to n - 1 do begin
-    tmpEnt := TurnQueue[a]; tmpInit := init[a];
+    tmpEnt := Active^.TurnQueue[a]; tmpInit := init[a];
     b := a - 1;
     while (b >= 0) and (init[b] < tmpInit) do begin
-      TurnQueue[b + 1] := TurnQueue[b]; init[b + 1] := init[b];
+      Active^.TurnQueue[b + 1] := Active^.TurnQueue[b]; init[b + 1] := init[b];
       dec(b);
     end;
-    TurnQueue[b + 1] := tmpEnt; init[b + 1] := tmpInit;
+    Active^.TurnQueue[b + 1] := tmpEnt; init[b + 1] := tmpInit;
   end;
 
-  TurnPos := 0;
+  Active^.TurnPos := 0;
   Active^.CurTarget := FirstLivingFoe;
   AdvanceTurn;
 end;
@@ -311,13 +298,13 @@ procedure AdvanceTurn;
 var e: TTurnEnt;
 begin
   if Active^.CombatOver then begin Active^.CombatPhase := CP_DONE; exit; end;
-  while TurnPos <= High(TurnQueue) do begin
-    if TurnEntAlive(TurnQueue[TurnPos]) then break;
-    inc(TurnPos);
+  while Active^.TurnPos <= High(Active^.TurnQueue) do begin
+    if TurnEntAlive(Active^.TurnQueue[Active^.TurnPos]) then break;
+    inc(Active^.TurnPos);
   end;
-  if TurnPos > High(TurnQueue) then begin NewRound; exit; end;
+  if Active^.TurnPos > High(Active^.TurnQueue) then begin NewRound; exit; end;
 
-  e := TurnQueue[TurnPos];
+  e := Active^.TurnQueue[Active^.TurnPos];
   if StartOfTurnSpent(e) then begin EndTurn; exit; end;
 
   if e.side = 1 then begin
@@ -328,7 +315,7 @@ begin
     Active^.CombatPhase := CP_INPUT;
   end else begin
     Active^.CombatPhase := CP_ENEMY;
-    CombatTimer := ENEMY_STEP * CombatBeatScale;
+    Active^.CombatTimer := ENEMY_STEP * CombatBeatScale;
   end;
 end;
 
@@ -341,15 +328,15 @@ procedure CombatUpdate(dt: double);
 begin
   DecayFeedback(dt);   { flashes and numbers fade in every phase }
   if Active^.CombatOver then begin Active^.CombatPhase := CP_DONE; exit; end;
-  if CombatTimer > 0 then begin
-    CombatTimer := CombatTimer - dt;
-    if CombatTimer > 0 then exit;
-    CombatTimer := 0;
+  if Active^.CombatTimer > 0 then begin
+    Active^.CombatTimer := Active^.CombatTimer - dt;
+    if Active^.CombatTimer > 0 then exit;
+    Active^.CombatTimer := 0;
   end;
   case Active^.CombatPhase of
     CP_BEAT:
-      if TurnContinue then begin
-        TurnContinue := false;
+      if Active^.TurnContinue then begin
+        Active^.TurnContinue := false;
         Active^.CombatPhase := CP_INPUT;   { same actor takes its remaining slot }
       end else
         AdvanceTurn;
@@ -440,7 +427,7 @@ begin
       Active^.Foes[i].sp := 0;
   end;
   if front = 0 then Active^.Foes[0].rank := RANK_FRONT;   { someone must be reachable }
-  FoesAtStart := count;
+  Active^.FoesAtStart := count;
 
   { rebuild the per-caster spell lists in case the party changed or levelled.
     Spell points are a persistent pool now, carried in from exploration and
@@ -492,7 +479,7 @@ var
   fi, tgt, roll, dmg, effAC, atkB: longint;
   ranged, hasHarry, isMage, isHealer, hit: boolean;
 begin
-  fi := TurnQueue[TurnPos].idx;
+  fi := Active^.TurnQueue[Active^.TurnPos].idx;
   if (fi > High(Active^.Foes)) or (not Active^.Foes[fi].alive) then exit;
   if FirstConscious < 0 then exit;
   ranged := (MonDefs[Active^.Foes[fi].def].flags and MF_RANGED) <> 0;
