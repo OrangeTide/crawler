@@ -18,14 +18,25 @@ unit glrender;
 
 interface
 
+uses
+  raster, meshfmt;
+
 { Render one frame of the pipeline-proof scene and swap. A no-op when the GL
   backend is not active. }
 procedure GLRenderTestFrame;
 
+{ A GPU scene frame. Begin sets the camera and clears; each kit piece is drawn
+  through GLDrawMesh (whose signature matches clad.CladMeshHook); End swaps.
+  Call Begin/End around the cladding passes with the hook pointed here. }
+procedure GLSceneBegin(const mc: TMeshCam);
+procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
+  mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
+procedure GLSceneEnd;
+
 implementation
 
 uses
-  math, gles2, video;
+  math, gfx, gles2, video;
 
 type
   TMat4 = array[0 .. 15] of GLfloat;   { column-major, as GL expects }
@@ -62,13 +73,27 @@ const
     { -Z }-0.5, 0.5,-0.5, 0,0,  0.5, 0.5,-0.5, 1,0,  0.5,-0.5,-0.5, 1,1, -0.5,-0.5,-0.5, 0,1);
 
 var
-  ready: boolean = false;
+  progReady: boolean = false;
+  cubeReady: boolean = false;
   prog: GLuint = 0;
   vbo: GLuint = 0;
   tex: GLuint = 0;
   uMVPLoc, uLightLoc, uTexLoc: GLint;
   posLoc, uvLoc: GLint;
   angle: GLfloat = 0;
+
+  { the view and projection for the frame in progress, set by GLSceneBegin }
+  sceneProj, sceneView: TMat4;
+
+  { per-mesh vertex buffers and per-atlas textures, cached by source pointer.
+    Meshes are resident for the session (clad's cache), so their keys are
+    stable; atlas keys change when a tileset reloads (a later increment adds
+    invalidation). }
+  meshKey: array of pointer;
+  meshBuf: array of GLuint;
+  meshCnt: array of longint;
+  atlasKey: array of PByte;
+  atlasTex: array of GLuint;
 
 function MakeShader(kind: GLenum; const src: string): GLuint;
 var sh: GLuint; s: PGLchar; status, ln: GLint; log: array[0 .. 511] of char;
@@ -167,6 +192,23 @@ begin
   MatRotZ := m;
 end;
 
+function MatTrans(tx, ty, tz: GLfloat): TMat4;
+var m: TMat4; i: longint;
+begin
+  for i := 0 to 15 do m[i] := 0;
+  m[0] := 1; m[5] := 1; m[10] := 1; m[15] := 1;
+  m[12] := tx; m[13] := ty; m[14] := tz;
+  MatTrans := m;
+end;
+
+function MatScale(sx, sy, sz: GLfloat): TMat4;
+var m: TMat4; i: longint;
+begin
+  for i := 0 to 15 do m[i] := 0;
+  m[0] := sx; m[5] := sy; m[10] := sz; m[15] := 1;
+  MatScale := m;
+end;
+
 { Build the 36-vertex cube buffer and a procedural checker texture. }
 procedure InitResources;
 var
@@ -215,9 +257,10 @@ begin
     GL_RGBA, GL_UNSIGNED_BYTE, @checker[0, 0, 0]);
 end;
 
-function InitGL: boolean;
+function EnsureProgram: boolean;
 begin
-  InitGL := false;
+  if progReady then begin EnsureProgram := true; exit; end;
+  EnsureProgram := false;
   prog := MakeProgram;
   if prog = 0 then exit;
   glUseProgram(prog);
@@ -226,18 +269,31 @@ begin
   uTexLoc := glGetUniformLocation(prog, 'uTex');
   posLoc := glGetAttribLocation(prog, 'aPos');
   uvLoc := glGetAttribLocation(prog, 'aUV');
-  InitResources;
-  glUniform1i(uTexLoc, 0);
-  InitGL := true;
+  progReady := true;
+  EnsureProgram := true;
+end;
+
+{ Point the pos/uv attributes at the currently bound vertex buffer, whose
+  vertices are five floats: x, y, z, u, v. }
+procedure BindVertexAttribs;
+begin
+  glEnableVertexAttribArray(GLuint(posLoc));
+  glVertexAttribPointer(GLuint(posLoc), 3, GL_FLOAT, GL_FALSE,
+    5 * SizeOf(GLfloat), Pointer(0));
+  glEnableVertexAttribArray(GLuint(uvLoc));
+  glVertexAttribPointer(GLuint(uvLoc), 2, GL_FLOAT, GL_FALSE,
+    5 * SizeOf(GLfloat), Pointer(3 * SizeOf(GLfloat)));
 end;
 
 procedure GLRenderTestFrame;
 var mvp, proj, view, model: TMat4;
 begin
   if not VideoIsGL then exit;
-  if not ready then begin
-    if not InitGL then exit;
-    ready := true;
+  if not EnsureProgram then exit;
+  if not cubeReady then begin
+    InitResources;
+    glUseProgram(prog); glUniform1i(uTexLoc, 0);
+    cubeReady := true;
   end;
 
   glViewport(0, 0, VideoWidth, VideoHeight);
@@ -260,15 +316,138 @@ begin
   glBindTexture(GL_TEXTURE_2D, tex);
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glEnableVertexAttribArray(GLuint(posLoc));
-  glVertexAttribPointer(GLuint(posLoc), 3, GL_FLOAT, GL_FALSE,
-    5 * SizeOf(GLfloat), Pointer(0));
-  glEnableVertexAttribArray(GLuint(uvLoc));
-  glVertexAttribPointer(GLuint(uvLoc), 2, GL_FLOAT, GL_FALSE,
-    5 * SizeOf(GLfloat), Pointer(3 * SizeOf(GLfloat)));
-
+  BindVertexAttribs;
   glDrawArrays(GL_TRIANGLES, 0, 36);
   VideoSwap;
+end;
+
+{ ---- GPU scene (stage 2 increment 2) ---- }
+
+{ The vertex buffer for a mesh, uploaded and cached on first use. }
+function MeshBuffer(const m: TMesh; out count: longint): GLuint;
+var
+  i, n, b: longint;
+  buf: GLuint;
+  data: array of GLfloat;
+begin
+  n := Length(m.verts);
+  count := n;
+  for i := 0 to High(meshKey) do
+    if meshKey[i] = @m.verts[0] then begin
+      count := meshCnt[i];
+      MeshBuffer := meshBuf[i];
+      exit;
+    end;
+  SetLength(data, n * 5);
+  for i := 0 to n - 1 do begin
+    data[i * 5 + 0] := m.verts[i].x;
+    data[i * 5 + 1] := m.verts[i].y;
+    data[i * 5 + 2] := m.verts[i].z;
+    data[i * 5 + 3] := m.verts[i].u;
+    data[i * 5 + 4] := m.verts[i].v;
+  end;
+  glGenBuffers(1, @buf);
+  glBindBuffer(GL_ARRAY_BUFFER, buf);
+  glBufferData(GL_ARRAY_BUFFER, n * 5 * SizeOf(GLfloat), @data[0], GL_STATIC_DRAW);
+  b := Length(meshKey);
+  SetLength(meshKey, b + 1); SetLength(meshBuf, b + 1); SetLength(meshCnt, b + 1);
+  meshKey[b] := @m.verts[0]; meshBuf[b] := buf; meshCnt[b] := n;
+  MeshBuffer := buf;
+end;
+
+{ A GL texture for a trim atlas of palette indices, expanded to RGBA through
+  the active game palette and cached by the atlas pointer. }
+function AtlasTexture(idx: PByte; w, h: longint): GLuint;
+var
+  i, n, b: longint;
+  t: GLuint;
+  rgba: array of byte;
+  c: TColor;
+begin
+  AtlasTexture := 0;
+  if (idx = nil) or (w <= 0) or (h <= 0) then exit;
+  for i := 0 to High(atlasKey) do
+    if atlasKey[i] = idx then begin
+      AtlasTexture := atlasTex[i];
+      exit;
+    end;
+  n := w * h;
+  SetLength(rgba, n * 4);
+  for i := 0 to n - 1 do begin
+    c := Palette[(idx + i)^];
+    rgba[i * 4 + 0] := (c shr 16) and $FF;
+    rgba[i * 4 + 1] := (c shr 8) and $FF;
+    rgba[i * 4 + 2] := c and $FF;
+    rgba[i * 4 + 3] := 255;
+  end;
+  glGenTextures(1, @t);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
+    GL_RGBA, GL_UNSIGNED_BYTE, @rgba[0]);
+  b := Length(atlasKey);
+  SetLength(atlasKey, b + 1); SetLength(atlasTex, b + 1);
+  atlasKey[b] := idx; atlasTex[b] := t;
+  AtlasTexture := t;
+end;
+
+procedure GLSceneBegin(const mc: TMeshCam);
+begin
+  if not VideoIsGL then exit;
+  if not EnsureProgram then exit;
+  glViewport(0, 0, VideoWidth, VideoHeight);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
+  glDisable(GL_CULL_FACE);
+  glClearColor(0.02, 0.02, 0.04, 1.0);
+  glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);
+  sceneProj := MatProj;
+  sceneView := MatView(mc.x, mc.y, mc.z, mc.yaw, mc.pitch);
+  glUseProgram(prog);
+  glUniform1i(uTexLoc, 0);
+end;
+
+procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
+  mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
+var
+  model, mv, mvp: TMat4;
+  buf, t: GLuint;
+  count: longint;
+  lf: GLfloat;
+begin
+  if not progReady then exit;
+  if Length(m.verts) = 0 then exit;
+  if Length(mats) = 0 then exit;
+  t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th);
+  if t = 0 then exit;
+
+  { model = translate * rotateZ(yaw) * scale, matching the software path }
+  model := MatMul(MatTrans(mx, my, mz), MatMul(MatRotZ(yaw), MatScale(sx, sy, sz)));
+  mv := MatMul(sceneView, model);
+  mvp := MatMul(sceneProj, mv);
+
+  glUseProgram(prog);
+  glUniformMatrix4fv(uMVPLoc, 1, GL_FALSE, @mvp[0]);
+  lf := light / 256.0;
+  if lf > 2.0 then lf := 2.0;
+  glUniform1f(uLightLoc, lf);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+
+  buf := MeshBuffer(m, count);
+  glBindBuffer(GL_ARRAY_BUFFER, buf);
+  BindVertexAttribs;
+  glDrawArrays(GL_TRIANGLES, 0, count);
+end;
+
+procedure GLSceneEnd;
+begin
+  if VideoIsGL then VideoSwap;
 end;
 
 end.

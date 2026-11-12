@@ -30,6 +30,18 @@ type
     (tx,ty) seen from dist tiles away. }
   TCladLightFn = function(tx, ty: longint; dist: double): double;
 
+  { A kit-piece draw: the same arguments the software rasterizer's
+    RenderMeshAt3M takes (uniform-scale callers pass sx=sy=sz). }
+  TCladMeshProc = procedure(const m: TMesh; const mc: TMeshCam;
+    mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
+
+var
+  { When assigned, kit piece meshes draw through this instead of the software
+    rasterizer, routing the cladding to the GPU backend. nil (the default)
+    keeps the software path, so the shot tool and the SDL present are
+    untouched. }
+  CladMeshHook: TCladMeshProc = nil;
+
 { Decode every kit piece mesh into the resident cache. Call after LoadKits. }
 procedure CladInit(const p: TPak);
 
@@ -140,8 +152,12 @@ begin
   fw := Kits[kitIdx].pieces[pieceIdx].fw;
   if fw < 1 then fw := 1;
   sc := s / fw;
-  RenderMeshAtM(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
-    PieceMats(kitIdx, pieceIdx));
+  if Assigned(CladMeshHook) then
+    CladMeshHook(cacheMesh[mi], mc, cxw, cyw, mz, sc, sc, sc, 0, light,
+      PieceMats(kitIdx, pieceIdx))
+  else
+    RenderMeshAtM(cacheMesh[mi], mc, cxw, cyw, mz, sc, 0, light,
+      PieceMats(kitIdx, pieceIdx));
 end;
 
 { Draw the floor (and ceiling) of an s-by-s block anchored at cell (ax,ay). }
@@ -313,8 +329,12 @@ begin
         end;
         dist := sqrt(sqr(cxr - ex) + sqr(cyr - ey));
         light := lightFn(tx, ty, dist);
-        RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
-          light, PieceMats(kitIdx, wp));
+        if Assigned(CladMeshHook) then
+          CladMeshHook(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
+            light, PieceMats(kitIdx, wp))
+        else
+          RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, fz, sxl, 1, szl, yaw,
+            light, PieceMats(kitIdx, wp));
       end;
   end;
 end;
@@ -339,8 +359,12 @@ begin
   if WRunX[dir] then yaw := 0 else yaw := pi / 2;
   mxw := tx + WMOX[dir];
   myw := ty + WMOY[dir];
-  RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
-    light, PieceMats(kitIdx, wp));
+  if Assigned(CladMeshHook) then
+    CladMeshHook(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
+      light, PieceMats(kitIdx, wp))
+  else
+    RenderMeshAt3M(cacheMesh[mi], mc, mxw, myw, z0, sxl, 1, szl, yaw,
+      light, PieceMats(kitIdx, wp));
 end;
 
 procedure CladPillars(const mc: TMeshCam; x0, y0, x1, y1: longint;

@@ -18,6 +18,13 @@ uses
 
 procedure RenderViewPoly;
 
+{ Stage 2 increment 2: render the kit-clad explore scene on the GPU. Builds the
+  camera from the world Cam and runs the cladding passes with clad's mesh hook
+  pointed at the GL backend. Only the kit floors, ceilings, walls and pillars so
+  far: the non-kit grid, props, terrain, sky, steps and HUD stay on the stage-2
+  roadmap. Requires the GL backend (video.VideoIsGL). }
+procedure RenderViewGL;
+
 { Draw a hand-placed modular room (the theme G pre-format proof): clear
   to a dark interior, then instance every piece from the resident trim
   atlas through the shared-texture mesh path. Meshes are pulled from the
@@ -29,7 +36,7 @@ implementation
 
 uses
   math, gfx, textures, world, mapfmt, raster, models, meshfmt,
-  sprites, worldspr, tilekit, clad, terrain;
+  sprites, worldspr, tilekit, clad, terrain, glrender, video;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
@@ -295,6 +302,29 @@ begin
     DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
       ents[i].wh, light, GroundZAt(px, py));
   end;
+end;
+
+procedure RenderViewGL;
+var
+  mc: TMeshCam;
+  ex, ey: double;
+  x0, y0, x1, y1: longint;
+begin
+  if not VideoIsGL then exit;
+  ex := Cam.posX; ey := Cam.posY;
+  mc.x := ex; mc.y := ey; mc.z := Cam.posZ;
+  mc.yaw := arctan2(Cam.dirY, Cam.dirX);
+  mc.pitch := Cam.pitch / FOCAL;
+  x0 := max(0, trunc(ex) - VIEW_R); x1 := min(MapW - 1, trunc(ex) + VIEW_R);
+  y0 := max(0, trunc(ey) - VIEW_R); y1 := min(MapH - 1, trunc(ey) + VIEW_R);
+
+  GLSceneBegin(mc);
+  CladMeshHook := @GLDrawMesh;
+  CladView(mc, x0, y0, x1, y1, ex, ey, not CurMapSurface, @TileLight);
+  CladWalls(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+  CladPillars(mc, x0, y0, x1, y1, ex, ey, @TileLight);
+  CladMeshHook := nil;
+  GLSceneEnd;
 end;
 
 procedure RenderViewPoly;

@@ -11,7 +11,8 @@ program crawler;
 {$mode objfpc}{$H+}
 
 uses
-  math, sysutils, sdl2min, video, glrender, gfx, audio, gamestate, game;
+  math, sysutils, sdl2min, video, glrender, polyrender, gfx, audio,
+  gamestate, game, titleui, worldload, world, mapfmt;
 
 const
   SCALE   = 4;
@@ -27,6 +28,21 @@ var
   fps, frameCount: longint;
   argi: longint;
   gl3dTest: boolean;
+  goMap, gmStr: string;
+  np, gmP: longint;
+  gmParts: array[0 .. 3] of string;
+
+function FaceCode(const s: string): longint;
+begin
+  if s = '' then begin FaceCode := DIR_E; exit; end;
+  case UpCase(s[1]) of
+    'N': FaceCode := DIR_N;
+    'E': FaceCode := DIR_E;
+    'S': FaceCode := DIR_S;
+    'W': FaceCode := DIR_W;
+  else FaceCode := DIR_E;
+  end;
+end;
 
 procedure Shutdown;
 begin
@@ -81,6 +97,25 @@ begin
 
   gl3dTest := VideoIsGL and (GetEnvironmentVariable('CRAWLER_GL3D') = '1');
 
+  { CRAWLER_GOMAP=MAP:X:Y:DIR drops a pregen party onto a kit-clad map, to test
+    the GPU explore path where the game normally opens on the title. }
+  goMap := GetEnvironmentVariable('CRAWLER_GOMAP');
+  if goMap <> '' then begin
+    np := 0; gmStr := goMap;
+    while np < 4 do begin
+      gmP := Pos(':', gmStr);
+      if gmP = 0 then begin gmParts[np] := gmStr; inc(np); break; end;
+      gmParts[np] := Copy(gmStr, 1, gmP - 1); inc(np);
+      Delete(gmStr, 1, gmP);
+    end;
+    if np >= 1 then begin
+      QuickStart;
+      if (np >= 4) and LoadMapLump(UpperCase(gmParts[0])) then
+        PlaceAt(StrToIntDef(gmParts[1], 1), StrToIntDef(gmParts[2], 1),
+          FaceCode(gmParts[3]));
+    end;
+  end;
+
   prevTicks := SDL_GetTicks();
   lastFpsTick := prevTicks;
   fps := 0; frameCount := 0;
@@ -93,9 +128,12 @@ begin
 
     GameHandleEvents;
     GameUpdate(dt);
-    if gl3dTest then
-      GLRenderTestFrame             { stage 2 increment 1: GPU pipeline proof }
-    else begin
+    if gl3dTest then begin
+      if State = gsExplore then
+        RenderViewGL                { stage 2 increment 2: GPU explore scene }
+      else
+        GLRenderTestFrame;          { stage 2 increment 1: GPU pipeline proof }
+    end else begin
       GameRender(fps);
       VideoPresent;
     end;
