@@ -321,38 +321,38 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   once and only dynamic party and entity state is streamed, scoped per resident
   map, and terrain never crosses the wire. On join and on each map entry the
   server also sends that map's current diff set (opened doors, taken items, fog,
-  defeated bosses) reliably, since the seed regenerates only the terrain. Parties
-  start solo and grow by hiring
-  or by players joining; a party stays one grid tile driven by a leader, with
-  reclaimable characters, timeout leader-promotion, and no world avatars (a
-  party reads by its first character's icon). Combat reuses the two-sided model
-  with one or more parties or monsters per side and a join-a-side action, run as
-  map-located, per-encounter instances so the rest of the shard keeps exploring,
-  which reworks the engine's single global combat state into many concurrent
-  battles. The shard persists by periodic checkpoint.
-  The clock is shared and runs in real time, with battles still turn based.
-  Characters are saved on the shard, which keeps a client from forging one; a
-  connected player can export a copy to re-import into a local game or hand to an
-  admin, but there is no live transfer between shards. PvP is consent-based: a
-  per-session PvP or PvE-only flag that a party also carries and may not mix, so
-  changing it ejects you from the party like a leave. A PvE-only player runs in a
-  safe mode that bars player conflict and its spoils but keeps all cooperative
-  content, with normal monster-death penalties and cross-flag trade still
-  allowed; PvP-only items or skills are a reserved balance lever. In PvP, battles
-  are auto-accepted outside a one-step post-battle cooldown that lets a winner
-  hold ground. A disconnected character is decoupled from its connection and
-  persists as an attackable, AI-run combatant until it times out. Player
-  characters are controlled by players (one player drives the whole party in
-  single player, each player only their own characters in multiplayer); hirelings
-  and other NPCs operate their own AI, and the server holds authority over all of
-  it, running every NPC and disconnected character and arbitrating what players
-  submit. Single player and multiplayer are one code path: single player is a
-  one-player shard running the same simulation in process with the UDP backend
-  compiled out, which is also the PS1 build. The 32 to 1024 range is the size of
-  that transport's connection table, so with the transport compiled out it does
-  not apply to single player. The unification is incremental and
-  single-player first, with the authority and combat-instance refactors landing
-  in the single-player engine before the transport goes on top, so no separate
+  defeated bosses) reliably, since the seed regenerates only the terrain.
+  Parties start solo and grow by hiring or by players joining; a party stays one
+  grid tile driven by a leader, with reclaimable characters, timeout
+  leader-promotion, and no world avatars (a party reads by its first character's
+  icon). Combat reuses the two-sided model with one or more parties or monsters
+  per side and a join-a-side action, run as map-located, per-encounter instances
+  so the rest of the shard keeps exploring, which reworks the engine's single
+  global combat state into many concurrent battles. The shard persists by
+  periodic checkpoint. The clock is shared and runs in real time, with battles
+  still turn based. Characters are saved on the shard, which keeps a client from
+  forging one; a connected player can export a copy to re-import into a local
+  game or hand to an admin, but there is no live transfer between shards. PvP is
+  consent-based: a per-session PvP or PvE-only flag that a party also carries
+  and may not mix, so changing it ejects you from the party like a leave. A
+  PvE-only player runs in a safe mode that bars player conflict and its spoils
+  but keeps all cooperative content, with normal monster-death penalties and
+  cross-flag trade still allowed; PvP-only items or skills are a reserved
+  balance lever. In PvP, battles are auto-accepted outside a one-step
+  post-battle cooldown that lets a winner hold ground. A disconnected
+  character is decoupled from its connection and persists as an attackable,
+  AI-run combatant until it times out. Player characters are controlled by
+  players (one player drives the whole party in single player, each player
+  only their own characters in multiplayer); hirelings and other NPCs operate
+  their own AI, and the server holds authority over all of it, running every
+  NPC and disconnected character and arbitrating what players submit. Single
+  player and multiplayer are one code path: single player is a one-player
+  shard running the same simulation in process with the UDP backend compiled
+  out, which is also the PS1 build. The 32 to 1024 range is the size of that
+  transport's connection table, so with the transport compiled out it does not
+  apply to single player. The unification is incremental and single-player
+  first, with the authority and combat-instance refactors landing in the
+  single-player engine before the transport goes on top, so no separate
   multiplayer combat system is written. Section 24's design points are now all
   settled.
 
