@@ -71,8 +71,10 @@ carve-and-clad generation pipeline, the retirement of the raycaster, and a
 source-art pass that replaced the last image-generated exits and props: the
 doorway, ladder and barrel are now 3D meshes, the stair, cave and shaft exits
 draw Dungeon Crawl tiles, and a new crate joins the barrel as clutter the
-generators scatter through a level. That leaves 0.20.0 as the open
-low-numbered milestone, with themes E and F as the further forward work.
+generators scatter through a level. With the navigation milestone 0.20.0 since
+complete (below), the open forward work is theme E's hardware track, theme G's
+remaining sector and content passes, the 0.30.0 systems depth, and the
+follow-on world content.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
@@ -102,6 +104,23 @@ an open chamber.
 On code structure, the largest units are split along their concerns. Combat is
 now a thin driver over `combatstate`, `combatcore`, and `combatai`, matching
 the earlier `game`, `overworld`, and `mapgen` splits.
+
+The hardware track then opened (theme E, 0.31.0) and its first two stages of the
+renderer backend seam landed. Stage 1 added an OpenGL ES 2.0 present backend: a
+`video` unit owns the window and prefers a GLES2 context, with `gles2` binding
+the entry points at runtime so there is no link-time GL dependency; it presents
+the 320x240 software framebuffer as a textured quad and falls back to the SDL 2D
+renderer when no GL context is available. Stage 2 moved the explore scene itself
+onto the GPU (`glrender`, enabled with CRAWLER_GL3D=1): it renders through a
+320x240 offscreen target upscaled nearest, carries the vertex snap and ordered
+dither in its shaders, and draws the grid, kit cladding, props, portals,
+billboards, terrain, sky, floor glow, multi-material pieces and the emission
+channel, with the 2D HUD composited over it, reaching parity with the software
+explore view. Both are validated on x86-64 and aarch64 Linux, the aarch64 build
+through GLES2 on a Raspberry Pi. A baked per-tileset palette (CLUT) landed
+alongside as data for the direct-colour backends. The near-term focus stays on
+x86-64 and aarch64 Linux; the Windows and macOS port (desktop GL 3.x or ANGLE)
+is deferred.
 
 ## Open backlog by theme
 
@@ -263,10 +282,11 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   glass), and the emission channel that makes that glass glow by its own light
   in a dim nave, with the 2D HUD composited over it. All of this is verified on
   the aarch64 Pi through GLES2, reaching parity with the software explore view.
-  The same game runs on the PS1 and the desktop, but
-  the backends need not look identical, so each renders in its own idiom
-  (affine, dithered, fixed point on the PS1; higher precision on the desktop)
-  rather than matching pixel for pixel.
+  The PS1 GPU backend and the Windows and macOS ports are the work that keeps
+  this item open. The same game runs on the PS1 and the desktop, but the
+  backends need not look identical, so each renders in its own idiom (affine,
+  dithered, fixed point on the PS1; higher precision on the desktop) rather than
+  matching pixel for pixel.
 - [done] (0.20.0) Resident-memory instrumentation and caps (design section 23).
   The visited-snapshot store is the live growth risk: the seeded world is vast,
   so `mapstate` would hold a fog and door snapshot per visited map without limit.
@@ -329,14 +349,18 @@ ride as multi-cell mesh instances rather than per-cell quads.
   its own CLUT and two tilesets can share a frame freely. On the PS1 the palette
   is a baked CLUT per tileset for its 4bpp or 8bpp textures; on desktop OpenGL
   the textures can be direct RGBA. This largely folds into the backend seam
-  (0.31.0), which is what makes per-primitive palettes available; the remaining
-  task is baking a CLUT per tileset for the PS1 texture path. That bake has
-  landed ahead of the backend: the asset build median-cuts each kit tileset's
-  trim atlases to a 256-colour `CLUT<tileset>` lump, which `textures` can
-  decode; binding it to the textures awaits the direct-colour renderer. (An
-  earlier plan reserved a fixed band of a single global palette for sprites and
-  the UI while swapping a per-biome texture band. That was a concession to an
-  8-bit indexed framebuffer, dropped along with MS-DOS.)
+  (0.31.0), which is what makes per-primitive palettes available. The CLUT bake
+  has landed: the asset build median-cuts each kit tileset's trim atlases to a
+  256-colour `CLUT<tileset>` lump, which `textures` can decode. The
+  direct-colour renderer now exists too, since the GPU backend uploads each
+  texture as direct RGBA, but it still expands the pak's globally-quantized
+  indices through the shared game palette, so the per-tileset colour fidelity is
+  not realized yet. The remaining work is feeding the GPU textures their own
+  per-tileset colour instead of the shared cube, and binding the baked CLUT per
+  primitive on the PS1 path. (An earlier plan reserved a fixed band of a single
+  global palette for sprites and the UI while swapping a per-biome texture band.
+  That was a concession to an 8-bit indexed framebuffer, dropped along with
+  MS-DOS.)
 - [partial] (0.27.0) The sector map format, foundation landed. Sectors are
   regions of open cells carrying a floor and ceiling height, added over the
   wall grid (MAP_VERSION 10, GEN_VERSION 4). The wall grid stays the movement
