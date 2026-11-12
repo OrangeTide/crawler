@@ -420,7 +420,8 @@ procedure RenderViewGL;
 var
   mc: TMeshCam;
   ex, ey, cyaw, syaw: double;
-  tx, ty, x0, y0, x1, y1: longint;
+  tx, ty, x0, y0, x1, y1, shorizon: longint;
+  skyZen, skyHor: TColor;
 begin
   if not VideoIsGL then exit;
   if gtTileset <> CurTileset then BuildGridTex;   { the grid wall/floor textures }
@@ -433,6 +434,15 @@ begin
   y0 := max(0, trunc(ey) - VIEW_R); y1 := min(MapH - 1, trunc(ey) + VIEW_R);
 
   GLSceneBegin(mc);
+  { the surface-map sky gradient, behind the geometry }
+  if CurMapSurface then begin
+    shorizon := round(FBH / 2 + Cam.pitch);
+    skyZen := SkyColorAt(0, shorizon);
+    skyHor := SkyColorAt(shorizon, shorizon);
+    GLDrawSky(shorizon,
+      ((skyZen shr 16) and $FF) / 255, ((skyZen shr 8) and $FF) / 255, (skyZen and $FF) / 255,
+      ((skyHor shr 16) and $FF) / 255, ((skyHor shr 8) and $FF) / 255, (skyHor and $FF) / 255);
+  end;
   CladMeshHook := @GLDrawMesh;
   gEmitGL := true;
   { the procedural non-kit grid, emitted to the GPU }

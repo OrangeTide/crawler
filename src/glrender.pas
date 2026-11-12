@@ -29,6 +29,12 @@ procedure GLRenderTestFrame;
   through GLDrawMesh (whose signature matches clad.CladMeshHook); End swaps.
   Call Begin/End around the cladding passes with the hook pointed here. }
 procedure GLSceneBegin(const mc: TMeshCam);
+{ Fill the scene target with the surface-map sky: a vertical gradient from the
+  zenith colour to the horizon colour, split at horizonY (top-down pixel row).
+  Drawn after GLSceneBegin and before the geometry, with depth off, so the
+  geometry overdraws it. Colours are 0..1. Matches world.SkyColorAt, which is
+  linear between the two band ends. }
+procedure GLDrawSky(horizonY: longint; zr, zg, zb, hr, hg, hb: double);
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
   mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
 { One world-space textured quad (two triangles), for the procedural grid walls,
@@ -115,6 +121,23 @@ const
     'uniform sampler2D uTex;'#10 +
     'void main() { gl_FragColor = texture2D(uTex, vUV); }'#10;
 
+  { The surface-map sky gradient, drawn as a fullscreen quad in the scene
+    target. }
+  SKY_VERT =
+    'attribute vec2 aPos;'#10 +
+    'void main() { gl_Position = vec4(aPos, 0.999, 1.0); }'#10;
+  SKY_FRAG =
+    'precision mediump float;'#10 +
+    'uniform vec3 uZenith;'#10 +
+    'uniform vec3 uHorizon;'#10 +
+    'uniform float uHorizonY;'#10 +
+    'uniform float uFBH;'#10 +
+    'void main() {'#10 +
+    '  float sy = uFBH - gl_FragCoord.y;'#10 +        { top-down row }
+    '  float f = clamp(sy / max(uHorizonY, 1.0), 0.0, 1.0);'#10 +
+    '  gl_FragColor = vec4(mix(uZenith, uHorizon, f), 1.0);'#10 +
+    '}'#10;
+
   { fullscreen quad (x, y, u, v); uv maps straight to clip, no flip, since the
     scene target and the window share GL's bottom-left origin. }
   PQUAD: array[0 .. 15] of GLfloat = (
@@ -157,6 +180,10 @@ var
   presentProg: GLuint = 0;
   presentVBO: GLuint = 0;
   presentPos, presentUV, presentTexLoc: GLint;
+  skyReady: boolean = false;
+  skyProg: GLuint = 0;
+  skyVBO: GLuint = 0;
+  skyPos, skyZenithLoc, skyHorizonLoc, skyHorizonYLoc, skyFBHLoc: GLint;
 
   { per-mesh vertex buffers and per-atlas textures, cached by source pointer.
     Meshes are resident for the session (clad's cache), so their keys are
@@ -573,6 +600,44 @@ begin
   glActiveTexture(GL_TEXTURE1);         { the dither matrix stays on unit 1 }
   glBindTexture(GL_TEXTURE_2D, bayerTex);
   glActiveTexture(GL_TEXTURE0);
+end;
+
+function EnsureSky: boolean;
+begin
+  if skyReady then begin EnsureSky := true; exit; end;
+  EnsureSky := false;
+  skyProg := BuildProgram(SKY_VERT, SKY_FRAG);
+  if skyProg = 0 then exit;
+  skyPos := glGetAttribLocation(skyProg, 'aPos');
+  skyZenithLoc := glGetUniformLocation(skyProg, 'uZenith');
+  skyHorizonLoc := glGetUniformLocation(skyProg, 'uHorizon');
+  skyHorizonYLoc := glGetUniformLocation(skyProg, 'uHorizonY');
+  skyFBHLoc := glGetUniformLocation(skyProg, 'uFBH');
+  glGenBuffers(1, @skyVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, skyVBO);
+  glBufferData(GL_ARRAY_BUFFER, SizeOf(PQUAD), @PQUAD[0], GL_STATIC_DRAW);
+  skyReady := true;
+  EnsureSky := true;
+end;
+
+procedure GLDrawSky(horizonY: longint; zr, zg, zb, hr, hg, hb: double);
+begin
+  if not VideoIsGL then exit;
+  if not EnsureSky then exit;
+  { no depth test, so the quad neither reads nor writes depth and the geometry
+    drawn after overdraws it wherever it stands }
+  glDisable(GL_DEPTH_TEST);
+  glUseProgram(skyProg);
+  glUniform3f(skyZenithLoc, zr, zg, zb);
+  glUniform3f(skyHorizonLoc, hr, hg, hb);
+  glUniform1f(skyHorizonYLoc, horizonY);
+  glUniform1f(skyFBHLoc, FBH);
+  glBindBuffer(GL_ARRAY_BUFFER, skyVBO);
+  glEnableVertexAttribArray(GLuint(skyPos));
+  glVertexAttribPointer(GLuint(skyPos), 2, GL_FLOAT, GL_FALSE,
+    4 * SizeOf(GLfloat), Pointer(0));
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glEnable(GL_DEPTH_TEST);
 end;
 
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
