@@ -37,11 +37,6 @@ FPCFLAGS  = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild -FUbuild
 TOOLFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Fibuild -FEbuild/tools -FUbuild/tools
 TESTFLAGS = -Mobjfpc -Scghi $(MODE) -Fusrc -Fusrc/ui -Futests -FEbuild/tests -FUbuild/tests
 TESTSRC   = $(wildcard tests/t_*.pas)
-# Build everything on a bare `make`. The CLUT rule below is the first target in
-# the file, so without this make would take it as the default goal and skip the
-# binary.
-.DEFAULT_GOAL := all
-
 TARGET    = build/crawler$(EXE)
 PAK       = build/game.pak
 MKASSETS  = build/tools/mkassets$(EXE)
@@ -168,6 +163,12 @@ CLUT_16 = content/rooms/trim_volc_ground.ppm content/rooms/trim_volc_wall.ppm
 CLUTPPM = $(foreach t,$(CLUTTILES),build/clut/clut_$(t).ppm)
 CLUTARG = $(foreach t,$(CLUTTILES),clut $(t) build/clut/clut_$(t).ppm)
 
+# all must be the FIRST target in the file. The Windows FPC toolchain bundles an
+# old GNU make that ignores .DEFAULT_GOAL, so the default goal is whichever
+# target appears first; keep this above the build/clut rule or a bare `make`
+# builds only the CLUT and skips the binary.
+all: $(TARGET) $(PAK)
+
 build/clut:
 	mkdir -p build/clut
 
@@ -194,8 +195,6 @@ TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             encounters $(ENCOUNTERS) kits $(TILESETS) world $(WORLD)
 
 .PHONY: all run clean tools meshtools shottool test release-check
-
-all: $(TARGET) $(PAK)
 
 $(TARGET): crawler.lpr src/*.pas src/ui/*.pas build/version.inc | build
 	$(FPC) $(FPCFLAGS) -o$(TARGET) crawler.lpr
