@@ -988,6 +988,47 @@ a party on it.
   battles on the server, which is the main combat-layer rework multiplayer
   needs.
 
+### PvP and PvE consent
+
+As a principle, a player is never pulled into a PvP fight against their will.
+Consent is a per-session flag: for a session a player is either PvP or PvE-only.
+A PvE-only player is excluded from many of the optional mechanics and cannot take
+part in some events. The exact set of excluded mechanics and events is still to
+define. PvE and PvP players may render differently to each other. A candidate is
+to draw a PvE-only player as only a silhouette or a translucent sprite in another
+player's first-person view.
+
+The flag is a party property as well, and a party may not mix the two. A party
+carries one PvE or PvP flag, so a player whose flag differs cannot belong to it.
+Changing your own flag forces you out of your party, with the same mechanics and
+restrictions as the leave-party command. This holds for the leader too: a leader
+who changes the flag is ejected exactly as if they had left, and leadership
+transfers by the normal rule.
+
+In PvP, battle acceptance is automatic outside a short cooldown. After a party
+wins or flees a battle it gains a one-step cooldown during which it cannot be
+pulled into a new battle. The cooldown clears the moment the party takes a step,
+so holding position keeps the ground a party earned in battle while a single step
+forfeits that protection. This makes repeated grief battles harder without
+blocking real fighting. There is no cooldown during a battle: while one is in
+progress any number of parties may join the brawl, under the join-a-side rule
+above.
+
+### Disconnect and character persistence
+
+A character is decoupled from its connection. The character instance persists on
+the shard well after its player disconnects, and stays a live combatant: it can
+be attacked and acted on while no one is driving it. An optional safe-disconnect
+timeout lets a player step away cleanly, but it only waits for the character
+instance to time out on its own, and disconnecting early does not shorten that
+timeout. This character-instance timeout is distinct from the leader
+auto-promotion timeout, which only governs who may move the party.
+
+A disconnected character still in a battle is run by a default AI until its owner
+returns or it times out. The tactics will be configurable later. For now the AI
+is defensive: it makes simple attacks, does not consume items, and tries to move
+to the back row or take a defensive stance.
+
 ### Persistence
 
 The shard is persistent and checkpoints periodically. A checkpoint is the
@@ -1019,8 +1060,6 @@ need not lead, and anyone can prefer a shard closer to them.
 
 Design gaps to settle before the wire format:
 
-- **PvP consent.** Whether open-world PvP is always on or opt-in and
-  server-configurable per shard, like WAN join.
 - **AI authority.** Whether the server or the party leader runs the hired NPCs
   and hirelings during combat.
 - **Single-player unification.** Whether single-player becomes a one-player

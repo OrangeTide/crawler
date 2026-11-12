@@ -332,8 +332,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   The clock is shared and runs in real time, with battles still turn based.
   Characters are saved on the shard, which keeps a client from forging one; a
   connected player can export a copy to re-import into a local game or hand to an
-  admin, but there is no live transfer between shards. Section 24 holds the open
-  design points: PvP consent, AI authority, and whether single player folds into
+  admin, but there is no live transfer between shards. PvP is consent-based: a
+  per-session PvP or PvE-only flag that a party also carries and may not mix, so
+  changing it ejects you from the party like a leave. In PvP, battles are
+  auto-accepted outside a one-step post-battle cooldown that lets a winner hold
+  ground. A disconnected character is decoupled from its connection and persists
+  as an attackable, AI-run combatant until it times out. Section 24 holds the
+  remaining open design points: AI authority and whether single player folds into
   a one-player shard.
 
 ### F. World content and the critical path (design section 17)
