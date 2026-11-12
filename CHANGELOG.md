@@ -9,6 +9,8 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-11-12
+
 ### Added
 - An OpenGL ES 2.0 present backend, the first stage of the renderer backend
   seam. A new `video` unit owns the window and the present path and prefers a
@@ -586,6 +588,7 @@ World content and the critical path.
 - Refreshed the README and the screenshots to the current six-zone game, and
   regenerated the module layout from the current source tree.
 
+[0.29.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.29.0
 [0.27.1]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.1
 [0.27.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.27.0
 [0.24.0]: https://gitlab.com/OrangeTide/crawler/-/tags/v0.24.0

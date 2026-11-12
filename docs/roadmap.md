@@ -125,6 +125,19 @@ per primitive the way the PlayStation will, so each tileset keeps its own colour
 rather than the shared cube. The near-term focus stays on x86-64 and aarch64
 Linux; the Windows and macOS port (desktop GL 3.x or ANGLE) is deferred.
 
+Release 0.29.0 rounds out that first hardware-track pass. A TEXTURE COLOR
+option toggles the GPU between the per-tileset CLUT for the PlayStation look and
+full direct colour, and in true-colour mode the procedural biome walls, floors
+and ceilings render from their own RGBA, so the toggle reaches the non-kit maps.
+The dialog overlay composites over the GPU scene through a dimming GL veil
+rather than re-drawing the backdrop in software. Away from the renderer, roaming
+hunters gained patrol, alarm and convergence behaviour, and the visited-map
+snapshot store took an LRU resident-memory bound against the 2 MB budget. On
+code structure, the fight now lives in a single `TCombat` instance reached
+through `Active^`, the first single-player-side step toward the multiplayer
+shared-shard design. That design is recorded in design section 24 but is not
+scheduled, and no network code exists yet.
+
 ## Open backlog by theme
 
 Tags: [gap] not started, [partial] exists but incomplete, [future] recorded but
