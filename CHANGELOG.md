@@ -41,6 +41,9 @@ whose development history is summarized in docs/roadmap.md.
   Emission stays a direct additive channel, outside the CLUT, and a tileset with
   no CLUT falls back to the shared palette. The software renderer still samples
   the shared-palette indexed atlas, so its output is unchanged.
+- A TEXTURE COLOR option in the settings menu, choosing how the GPU renders kit
+  cladding: the per-tileset CLUT for the PlayStation look (the default) or full
+  direct colour. The choice persists in the settings file.
 - Per-piece multi-material meshes for the modular kits. A kit piece's mesh now
   carries a material per triangle, and the kit text names a trim atlas and an
   optional emission atlas per material slot, so one piece clads from several
