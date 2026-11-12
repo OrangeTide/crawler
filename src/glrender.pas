@@ -182,6 +182,7 @@ var
   uResLoc, uBayerLoc: GLint;
   bayerTex: GLuint = 0;
   quadVBO: GLuint = 0;        { reused for the per-frame world quads }
+  matVBO: GLuint = 0;         { reused for a multi-material mesh's per-material runs }
   posLoc, uvLoc: GLint;
   angle: GLfloat = 0;
 
@@ -665,20 +666,12 @@ procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
 var
   model, mv, mvp: TMat4;
   buf, t: GLuint;
-  count: longint;
+  count, matCount, mi, tri, nTris, j, k, outN: longint;
   lf: GLfloat;
+  data: array of GLfloat;
 begin
   if not progReady then exit;
   if Length(m.verts) = 0 then exit;
-  { an embedded mesh (a prop) carries its own texture; a shared mesh (a kit
-    piece) samples the atlas passed in mats[0] }
-  if (m.texKind = TEXKIND_EMBED) and (Length(m.tex) > 0) then
-    t := AtlasTexture(@m.tex[0], m.texW, m.texH)
-  else if Length(mats) > 0 then
-    t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th)
-  else
-    t := 0;
-  if t = 0 then exit;
 
   { model = translate * rotateZ(yaw) * scale, matching the software path }
   model := MatMul(MatTrans(mx, my, mz), MatMul(MatRotZ(yaw), MatScale(sx, sy, sz)));
@@ -691,12 +684,65 @@ begin
   if lf > 2.0 then lf := 2.0;
   glUniform1f(uLightLoc, lf);
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, t);
 
-  buf := MeshBuffer(m, count);
-  glBindBuffer(GL_ARRAY_BUFFER, buf);
-  BindVertexAttribs;
-  glDrawArrays(GL_TRIANGLES, 0, count);
+  { an embedded mesh (a prop) carries its own texture; it is single-material }
+  if (m.texKind = TEXKIND_EMBED) and (Length(m.tex) > 0) then begin
+    t := AtlasTexture(@m.tex[0], m.texW, m.texH);
+    if t = 0 then exit;
+    glBindTexture(GL_TEXTURE_2D, t);
+    buf := MeshBuffer(m, count);
+    glBindBuffer(GL_ARRAY_BUFFER, buf);
+    BindVertexAttribs;
+    glDrawArrays(GL_TRIANGLES, 0, count);
+    exit;
+  end;
+
+  if Length(mats) = 0 then exit;
+  matCount := MeshMatCount(m);
+
+  { a single-material shared mesh samples mats[0] in one draw of its whole
+    cached buffer }
+  if (matCount <= 1) or (Length(m.mat) = 0) or (Length(mats) = 1) then begin
+    t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th);
+    if t = 0 then exit;
+    glBindTexture(GL_TEXTURE_2D, t);
+    buf := MeshBuffer(m, count);
+    glBindBuffer(GL_ARRAY_BUFFER, buf);
+    BindVertexAttribs;
+    glDrawArrays(GL_TRIANGLES, 0, count);
+    exit;
+  end;
+
+  { a multi-material piece (for example a window's stone frame and its glass):
+    one draw per material, each binding that material's atlas and gathering only
+    its triangles. Built dynamically since the triangles are not grouped. }
+  nTris := Length(m.verts) div 3;
+  SetLength(data, Length(m.verts) * 5);
+  for mi := 0 to matCount - 1 do begin
+    j := mi;
+    if j > High(mats) then j := High(mats);
+    t := AtlasTexture(mats[j].tex, mats[j].tw, mats[j].th);
+    if t = 0 then continue;
+    outN := 0;
+    for tri := 0 to nTris - 1 do begin
+      if m.mat[tri] <> mi then continue;
+      for k := 0 to 2 do begin
+        data[outN * 5 + 0] := m.verts[tri * 3 + k].x;
+        data[outN * 5 + 1] := m.verts[tri * 3 + k].y;
+        data[outN * 5 + 2] := m.verts[tri * 3 + k].z;
+        data[outN * 5 + 3] := m.verts[tri * 3 + k].u;
+        data[outN * 5 + 4] := m.verts[tri * 3 + k].v;
+        inc(outN);
+      end;
+    end;
+    if outN = 0 then continue;
+    glBindTexture(GL_TEXTURE_2D, t);
+    if matVBO = 0 then glGenBuffers(1, @matVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, matVBO);
+    glBufferData(GL_ARRAY_BUFFER, outN * 5 * SizeOf(GLfloat), @data[0], GL_DYNAMIC_DRAW);
+    BindVertexAttribs;
+    glDrawArrays(GL_TRIANGLES, 0, outN);
+  end;
 end;
 
 procedure GLDrawWorldQuad(
