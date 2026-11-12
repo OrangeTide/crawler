@@ -104,10 +104,18 @@ const
     'uniform sampler2D uTex;'#10 +
     'uniform sampler2D uBayer;'#10 +
     'uniform sampler2D uEmis;'#10 +
+    'uniform sampler2D uClut;'#10 +
     'uniform float uLight;'#10 +
     'uniform float uHasEmis;'#10 +
+    'uniform float uClutMode;'#10 +
     'void main() {'#10 +
-    '  vec4 s = texture2D(uTex, vUV);'#10 +
+    '  vec4 s;'#10 +
+    '  if (uClutMode > 0.5) {'#10 +   { paletted diffuse: uTex holds CLUT indices }
+    '    float idx = floor(texture2D(uTex, vUV).r * 255.0 + 0.5);'#10 +
+    '    s = texture2D(uClut, vec2((idx + 0.5) / 256.0, 0.5));'#10 +
+    '  } else {'#10 +
+    '    s = texture2D(uTex, vUV);'#10 +
+    '  }'#10 +
     '  if (s.a < 0.5) discard;'#10 +   { masks a sprite's keyed texels; opaque geometry is alpha 1 }
     '  vec3 c = s.rgb * uLight + texture2D(uEmis, vUV).rgb * uHasEmis;'#10 +   { emission full-bright }
     '  c = clamp(c, 0.0, 1.0);'#10 +
@@ -183,6 +191,7 @@ var
   tex: GLuint = 0;
   uMVPLoc, uLightLoc, uTexLoc: GLint;
   uResLoc, uBayerLoc, uEmisLoc, uHasEmisLoc: GLint;
+  uClutLoc, uClutModeLoc: GLint;
   bayerTex: GLuint = 0;
   quadVBO: GLuint = 0;        { reused for the per-frame world quads }
   matVBO: GLuint = 0;         { reused for a multi-material mesh's per-material runs }
@@ -425,11 +434,15 @@ begin
   uBayerLoc := glGetUniformLocation(prog, 'uBayer');
   uEmisLoc := glGetUniformLocation(prog, 'uEmis');
   uHasEmisLoc := glGetUniformLocation(prog, 'uHasEmis');
+  uClutLoc := glGetUniformLocation(prog, 'uClut');
+  uClutModeLoc := glGetUniformLocation(prog, 'uClutMode');
   posLoc := glGetAttribLocation(prog, 'aPos');
   uvLoc := glGetAttribLocation(prog, 'aUV');
   glUniform1i(uTexLoc, 0);
   glUniform1i(uBayerLoc, 1);
   glUniform1i(uEmisLoc, 2);
+  glUniform1i(uClutLoc, 3);
+  glUniform1f(uClutModeLoc, 0.0);
   glUniform2f(uResLoc, FBW, FBH);
   progReady := true;
   EnsureProgram := true;
@@ -602,14 +615,76 @@ begin
   AtlasTextureRGBA := t;
 end;
 
-{ The diffuse GL texture for a material: its own per-tileset direct colour
-  when the material carries it, else the shared-palette indexed form. }
-function MatDiffuse(const mat: TMeshMat): GLuint;
+{ A GL texture holding a trim atlas as raw CLUT indices (one 8-bit channel),
+  for the paletted diffuse path. The fragment shader reads the index and looks
+  it up in the bound CLUT, as the PS1 samples an indexed texture against a CLUT.
+  Cached in the same pointer-keyed table; the cidx array is its own allocation. }
+function AtlasIndexTexture(idx: PByte; w, h: longint): GLuint;
+var
+  i, b: longint;
+  t: GLuint;
 begin
-  if mat.texRGBA <> nil then
-    MatDiffuse := AtlasTextureRGBA(mat.texRGBA, mat.tw, mat.th)
-  else
-    MatDiffuse := AtlasTexture(mat.tex, mat.tw, mat.th);
+  AtlasIndexTexture := 0;
+  if (idx = nil) or (w <= 0) or (h <= 0) then exit;
+  for i := 0 to High(atlasKey) do
+    if atlasKey[i] = idx then begin
+      AtlasIndexTexture := atlasTex[i];
+      exit;
+    end;
+  glGenTextures(1, @t);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w, h, 0,
+    GL_LUMINANCE, GL_UNSIGNED_BYTE, idx);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  b := Length(atlasKey);
+  SetLength(atlasKey, b + 1); SetLength(atlasTex, b + 1);
+  atlasKey[b] := idx; atlasTex[b] := t;
+  AtlasIndexTexture := t;
+end;
+
+{ A 256x1 RGBA GL texture for a tileset CLUT, cached by its pointer. The
+  paletted diffuse path binds it to unit 3 and looks up each index against it. }
+function ClutTexture(clut: PColorArray): GLuint;
+var
+  i, b: longint;
+  t: GLuint;
+  rgba: array[0 .. 256 * 4 - 1] of byte;
+  c: TColor;
+begin
+  ClutTexture := 0;
+  if clut = nil then exit;
+  for i := 0 to High(atlasKey) do
+    if atlasKey[i] = PByte(clut) then begin
+      ClutTexture := atlasTex[i];
+      exit;
+    end;
+  for i := 0 to 255 do begin
+    c := (clut + i)^;
+    rgba[i * 4 + 0] := (c shr 16) and $FF;
+    rgba[i * 4 + 1] := (c shr 8) and $FF;
+    rgba[i * 4 + 2] := c and $FF;
+    rgba[i * 4 + 3] := 255;
+  end;
+  glGenTextures(1, @t);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, t);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0,
+    GL_RGBA, GL_UNSIGNED_BYTE, @rgba[0]);
+  b := Length(atlasKey);
+  SetLength(atlasKey, b + 1); SetLength(atlasTex, b + 1);
+  atlasKey[b] := PByte(clut); atlasTex[b] := t;
+  ClutTexture := t;
 end;
 
 { The 320x240 scene render target: a colour texture plus a depth buffer. }
@@ -742,6 +817,37 @@ begin
   glActiveTexture(GL_TEXTURE0);
 end;
 
+{ Bind a material's diffuse and emission for one draw, choosing the paletted
+  CLUT path when the material carries a CLUT (unit 0 holds the indices, unit 3
+  the CLUT, uClutMode on) and the shared-palette indexed path otherwise. Also
+  binds emission to unit 2. Returns false when the diffuse texture is missing,
+  so the caller skips the draw. Leaves the active unit at 0. }
+function BindDiffuse(const mat: TMeshMat): boolean;
+var
+  it, ct: GLuint;
+  mode: GLfloat;
+begin
+  BindDiffuse := false;
+  mode := 0.0; it := 0; ct := 0;
+  if (mat.clut <> nil) and (mat.texClutIdx <> nil) then begin
+    it := AtlasIndexTexture(mat.texClutIdx, mat.tw, mat.th);
+    ct := ClutTexture(mat.clut);
+    if (it <> 0) and (ct <> 0) then mode := 1.0 else it := 0;
+  end;
+  if mode < 0.5 then
+    it := AtlasTexture(mat.tex, mat.tw, mat.th);
+  if it = 0 then exit;
+  BindEmis(mat);
+  glUniform1f(uClutModeLoc, mode);
+  if mode > 0.5 then begin
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, ct);
+  end;
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, it);
+  BindDiffuse := true;
+end;
+
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
   mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
 var
@@ -771,6 +877,7 @@ begin
     t := AtlasTexture(@m.tex[0], m.texW, m.texH);
     if t = 0 then exit;
     glUniform1f(uHasEmisLoc, 0.0);
+    glUniform1f(uClutModeLoc, 0.0);
     glBindTexture(GL_TEXTURE_2D, t);
     buf := MeshBuffer(m, count);
     glBindBuffer(GL_ARRAY_BUFFER, buf);
@@ -785,10 +892,7 @@ begin
   { a single-material shared mesh samples mats[0] in one draw of its whole
     cached buffer, plus its emission atlas if it has one }
   if (matCount <= 1) or (Length(m.mat) = 0) or (Length(mats) = 1) then begin
-    t := MatDiffuse(mats[0]);
-    if t = 0 then exit;
-    BindEmis(mats[0]);
-    glBindTexture(GL_TEXTURE_2D, t);
+    if not BindDiffuse(mats[0]) then exit;
     buf := MeshBuffer(m, count);
     glBindBuffer(GL_ARRAY_BUFFER, buf);
     BindVertexAttribs;
@@ -804,8 +908,6 @@ begin
   for mi := 0 to matCount - 1 do begin
     j := mi;
     if j > High(mats) then j := High(mats);
-    t := MatDiffuse(mats[j]);
-    if t = 0 then continue;
     outN := 0;
     for tri := 0 to nTris - 1 do begin
       if m.mat[tri] <> mi then continue;
@@ -819,8 +921,7 @@ begin
       end;
     end;
     if outN = 0 then continue;
-    BindEmis(mats[j]);
-    glBindTexture(GL_TEXTURE_2D, t);
+    if not BindDiffuse(mats[j]) then continue;
     if matVBO = 0 then glGenBuffers(1, @matVBO);
     glBindBuffer(GL_ARRAY_BUFFER, matVBO);
     glBufferData(GL_ARRAY_BUFFER, outN * 5 * SizeOf(GLfloat), @data[0], GL_DYNAMIC_DRAW);
@@ -861,6 +962,7 @@ begin
   if lf > 2.0 then lf := 2.0;
   glUniform1f(uLightLoc, lf);
   glUniform1f(uHasEmisLoc, 0.0);     { a grid quad has no emission }
+  glUniform1f(uClutModeLoc, 0.0);    { grid and terrain are direct, not paletted }
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, t);
 
@@ -947,6 +1049,7 @@ begin
   if lf > 2.0 then lf := 2.0;
   glUniform1f(uLightLoc, lf);
   glUniform1f(uHasEmisLoc, 0.0);     { a sprite has no emission atlas }
+  glUniform1f(uClutModeLoc, 0.0);    { sprites keep their own direct colour }
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, t);
 

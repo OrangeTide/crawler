@@ -42,22 +42,26 @@ const
 type
   TTexture = array[0 .. TEXSIZE - 1] of TColor;
 
-  { One resident trim-sheet atlas. data holds the indexed form the software
-    renderer samples (quantized to the shared game palette); rgba keeps the
-    atlas in its own direct colour, which the direct-colour backends (desktop
-    OpenGL, the PS1 GPU) upload instead so a tileset is not pinned to the
-    shared cube. }
+  { One resident trim-sheet atlas in three forms. data is the indexed form the
+    software renderer samples (quantized to the shared game palette). rgba keeps
+    the atlas in its own direct colour, used for the emission channel, which is
+    additive and not part of the tileset CLUT. cidx is the atlas remapped to its
+    tileset's CLUT, the paletted diffuse form the direct-colour backends bind
+    and look up through the CLUT, as the PlayStation does. cidx is empty when
+    the tileset carries no CLUT. }
   TTrimSheet = record
     data: array of byte;
     rgba: array of TColor;
+    cidx: array of byte;
     w, h: longint;
   end;
 
   { A baked per-tileset colour lookup table: 256 direct colours, median-cut
     from the tileset's own trim atlases at bake time. The direct-colour
-    backends (desktop OpenGL and the PS1 GPU) bind one CLUT per tileset; the
-    indexed software renderer does not read it yet. }
+    backends (desktop OpenGL and the PS1 GPU) bind one CLUT per tileset and
+    sample the diffuse trim as indices into it. }
   TClut = array[0 .. 255] of TColor;
+  PClut = ^TClut;
 
 var
   Tex: array[0 .. TEX_COUNT - 1] of TTexture;
@@ -76,6 +80,12 @@ var
   TrimSets: array[0 .. MAX_TILESET] of array of TTrimSheet;
   TrimLoaded: array[0 .. MAX_TILESET] of boolean;
 
+  { The resident per-tileset CLUT, loaded alongside the trim atlases. ClutHas
+    is false for a tileset with no baked CLUT lump (the biome tilesets), where
+    the GPU falls back to the shared-palette indexed form. }
+  TrimClut: array[0 .. MAX_TILESET] of TClut;
+  ClutHas: array[0 .. MAX_TILESET] of boolean;
+
   { Atlas 0 of the current tileset, kept as its own fields for the single-atlas
     callers (the authored .room render path and the headless tool). }
   TrimTex: array of byte;
@@ -89,10 +99,15 @@ function TrimPtr(tileset, index: longint; out w, h: longint): PByte;
   non-resident index. Never falls back to atlas 0. }
 function EmisPtr(tileset, index: longint; out w, h: longint): PByte;
 
-{ As TrimPtr and EmisPtr, but the atlas in its own direct colour (ARGB) for
-  the direct-colour backends, rather than shared-palette indices. Same
-  fallback rules as the indexed forms. }
-function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+{ A tileset's diffuse atlas at `index` remapped to its CLUT, the paletted form
+  the direct-colour backends sample and look up through the tileset CLUT. nil
+  when the tileset has no CLUT. Same fallback rules as TrimPtr. }
+function TrimClutIdxPtr(tileset, index: longint; out w, h: longint): PByte;
+{ A tileset's resident CLUT (256 colours), or nil when it has none. }
+function TilesetClut(tileset: longint): PClut;
+{ A tileset's emission atlas at `index` in its own direct colour (ARGB), the
+  additive emission channel which is not part of the CLUT. nil for index 255 or
+  a non-resident index. }
 function EmisRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
 
 { The baked CLUT lump name for a tileset, CLUT<tileset>. }
@@ -185,6 +200,52 @@ begin
   LoadTilesetClut := true;
 end;
 
+{ The CLUT entry nearest a colour, by squared RGB distance. The scan stops on
+  an exact hit, which is common since the CLUT is median-cut from these atlases. }
+function NearestClut(const clut: TClut; c: TColor): byte;
+var
+  i, best, bestd, d, dr, dg, db, r, g, b: longint;
+begin
+  r := (c shr 16) and $FF; g := (c shr 8) and $FF; b := c and $FF;
+  best := 0; bestd := MaxLongint;
+  for i := 0 to 255 do begin
+    dr := r - longint((clut[i] shr 16) and $FF);
+    dg := g - longint((clut[i] shr 8) and $FF);
+    db := b - longint(clut[i] and $FF);
+    d := dr * dr + dg * dg + db * db;
+    if d < bestd then begin
+      bestd := d; best := i;
+      if d = 0 then break;
+    end;
+  end;
+  NearestClut := best;
+end;
+
+{ Remap a tileset's resident trim atlases to its CLUT, filling each sheet's
+  cidx. A 15-bit (5 bits per channel) cache bounds the nearest-colour scans so
+  the whole tileset costs a few thousand searches, not one per texel. }
+procedure BuildClutIndices(tileset: longint);
+var
+  a, i, n, key: longint;
+  c: TColor;
+  cache: array[0 .. 32767] of smallint;
+begin
+  for i := 0 to 32767 do cache[i] := -1;
+  for a := 0 to High(TrimSets[tileset]) do begin
+    n := Length(TrimSets[tileset][a].rgba);
+    SetLength(TrimSets[tileset][a].cidx, n);
+    for i := 0 to n - 1 do begin
+      c := TrimSets[tileset][a].rgba[i];
+      key := (((c shr 19) and 31) shl 10)
+          or (((c shr 11) and 31) shl 5)
+          or ((c shr 3) and 31);
+      if cache[key] < 0 then
+        cache[key] := NearestClut(TrimClut[tileset], c);
+      TrimSets[tileset][a].cidx[i] := byte(cache[key]);
+    end;
+  end;
+end;
+
 { Load the trim atlases of a tileset: TRIM<t>, then TRIM<t>_1, _2, ... until
   one is missing. A tileset with no TRIM<t> lump stays empty, which simply
   means it has no modular pieces. Returns true when at least one loaded. }
@@ -216,6 +277,11 @@ begin
     TrimSets[tileset][a].w := img.w; TrimSets[tileset][a].h := img.h;
     inc(a);
   end;
+  { Load the tileset CLUT and build the paletted diffuse form, so the GPU can
+    sample the trim through the tileset's own palette as the PS1 does. }
+  ClutHas[tileset] := LoadTilesetClut(p, tileset, TrimClut[tileset]);
+  if ClutHas[tileset] and (Length(TrimSets[tileset]) > 0) then
+    BuildClutIndices(tileset);
   LoadTrims := Length(TrimSets[tileset]) > 0;
 end;
 
@@ -247,19 +313,27 @@ begin
   EmisPtr := @TrimSets[tileset][index].data[0];
 end;
 
-function TrimRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;
+function TrimClutIdxPtr(tileset, index: longint; out w, h: longint): PByte;
 var sheets: longint;
 begin
-  TrimRGBAPtr := nil; w := 0; h := 0;
+  TrimClutIdxPtr := nil; w := 0; h := 0;
   if (tileset < 0) or (tileset > MAX_TILESET) then exit;
   sheets := Length(TrimSets[tileset]);
   if sheets = 0 then exit;
   if (index < 0) or (index >= sheets)
-    or (Length(TrimSets[tileset][index].rgba) = 0) then
+    or (Length(TrimSets[tileset][index].cidx) = 0) then
     index := 0;
-  if Length(TrimSets[tileset][index].rgba) = 0 then exit;
+  if Length(TrimSets[tileset][index].cidx) = 0 then exit;
   w := TrimSets[tileset][index].w; h := TrimSets[tileset][index].h;
-  TrimRGBAPtr := @TrimSets[tileset][index].rgba[0];
+  TrimClutIdxPtr := @TrimSets[tileset][index].cidx[0];
+end;
+
+function TilesetClut(tileset: longint): PClut;
+begin
+  TilesetClut := nil;
+  if (tileset < 0) or (tileset > MAX_TILESET) then exit;
+  if not ClutHas[tileset] then exit;
+  TilesetClut := @TrimClut[tileset];
 end;
 
 function EmisRGBAPtr(tileset, index: longint; out w, h: longint): PColorArray;

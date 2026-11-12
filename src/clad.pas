@@ -75,7 +75,7 @@ procedure CladPillars(const mc: TMeshCam; x0, y0, x1, y1: longint;
 implementation
 
 uses
-  textures;
+  textures, gfx;
 
 var
   cacheName: array of string;
@@ -106,7 +106,8 @@ begin
   for s := 0 to mc - 1 do begin
     KitPieceMaterial(Kits[kitIdx].pieces[pieceIdx], s, atlasI, emisI);
     PieceMats[s].tex := TrimPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
-    PieceMats[s].texRGBA := TrimRGBAPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
+    PieceMats[s].texClutIdx := TrimClutIdxPtr(Kits[kitIdx].tileset, atlasI, aw, ah);
+    PieceMats[s].clut := PColorArray(TilesetClut(Kits[kitIdx].tileset));
     PieceMats[s].tw := aw; PieceMats[s].th := ah;
     ew := 0; eh := 0;
     if emisI <> 255 then begin

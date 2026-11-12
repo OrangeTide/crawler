@@ -68,6 +68,7 @@ const
   GL_REPEAT             = $2901;
   GL_TEXTURE1           = $84C1;
   GL_TEXTURE2           = $84C2;
+  GL_TEXTURE3           = $84C3;
   GL_LUMINANCE          = $1909;
   GL_RGB                = $1907;
   GL_BLEND              = $0BE2;

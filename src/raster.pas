@@ -41,10 +41,13 @@ type
   TMeshMat = record
     tex: PByte; tw, th: longint;
     emis: PByte; ew, eh: longint;
-    { Direct-colour (ARGB) forms of the same two atlases, for the GPU backend;
-      nil when only the indexed form is available. The software renderer
-      ignores them and samples tex/emis. }
-    texRGBA: PColorArray;
+    { Direct-colour forms for the GPU backend, nil when unavailable. texClutIdx
+      is the diffuse atlas remapped to clut (the tileset's 256-colour CLUT),
+      which the GPU samples and looks up through clut as the PS1 does; emisRGBA
+      is the additive emission in direct colour, which is not part of the CLUT.
+      The software renderer ignores all three and samples tex/emis. }
+    texClutIdx: PByte;
+    clut: PColorArray;
     emisRGBA: PColorArray;
   end;
 
@@ -677,7 +680,7 @@ function OneMat(atlas: PByte; aw, ah: longint;
 begin
   OneMat.tex := atlas; OneMat.tw := aw; OneMat.th := ah;
   OneMat.emis := emis; OneMat.ew := ew; OneMat.eh := eh;
-  OneMat.texRGBA := nil; OneMat.emisRGBA := nil;
+  OneMat.texClutIdx := nil; OneMat.clut := nil; OneMat.emisRGBA := nil;
 end;
 
 procedure RenderMeshAt(const m: TMesh; const cam: TMeshCam;
