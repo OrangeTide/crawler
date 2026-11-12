@@ -103,11 +103,14 @@ const
     'varying vec2 vUV;'#10 +
     'uniform sampler2D uTex;'#10 +
     'uniform sampler2D uBayer;'#10 +
+    'uniform sampler2D uEmis;'#10 +
     'uniform float uLight;'#10 +
+    'uniform float uHasEmis;'#10 +
     'void main() {'#10 +
     '  vec4 s = texture2D(uTex, vUV);'#10 +
     '  if (s.a < 0.5) discard;'#10 +   { masks a sprite's keyed texels; opaque geometry is alpha 1 }
-    '  vec3 c = s.rgb * uLight;'#10 +
+    '  vec3 c = s.rgb * uLight + texture2D(uEmis, vUV).rgb * uHasEmis;'#10 +   { emission full-bright }
+    '  c = clamp(c, 0.0, 1.0);'#10 +
     '  float b = texture2D(uBayer, gl_FragCoord.xy / 4.0).r;'#10 +
     '  c = clamp(c + (b - 0.5) / 31.0, 0.0, 1.0);'#10 +
     '  c = floor(c * 31.0 + 0.5) / 31.0;'#10 +
@@ -179,7 +182,7 @@ var
   vbo: GLuint = 0;
   tex: GLuint = 0;
   uMVPLoc, uLightLoc, uTexLoc: GLint;
-  uResLoc, uBayerLoc: GLint;
+  uResLoc, uBayerLoc, uEmisLoc, uHasEmisLoc: GLint;
   bayerTex: GLuint = 0;
   quadVBO: GLuint = 0;        { reused for the per-frame world quads }
   matVBO: GLuint = 0;         { reused for a multi-material mesh's per-material runs }
@@ -420,10 +423,13 @@ begin
   uTexLoc := glGetUniformLocation(prog, 'uTex');
   uResLoc := glGetUniformLocation(prog, 'uRes');
   uBayerLoc := glGetUniformLocation(prog, 'uBayer');
+  uEmisLoc := glGetUniformLocation(prog, 'uEmis');
+  uHasEmisLoc := glGetUniformLocation(prog, 'uHasEmis');
   posLoc := glGetAttribLocation(prog, 'aPos');
   uvLoc := glGetAttribLocation(prog, 'aUV');
   glUniform1i(uTexLoc, 0);
   glUniform1i(uBayerLoc, 1);
+  glUniform1i(uEmisLoc, 2);
   glUniform2f(uResLoc, FBW, FBH);
   progReady := true;
   EnsureProgram := true;
@@ -661,6 +667,25 @@ begin
   glEnable(GL_DEPTH_TEST);
 end;
 
+{ Bind a material's emission atlas to texture unit 2 and set uHasEmis, or clear
+  uHasEmis when the material has none. Leaves the active unit at 0, but may have
+  dirtied unit 0's binding (AtlasTexture binds there on a miss), so the caller
+  rebinds the diffuse to unit 0 after this. }
+procedure BindEmis(const mat: TMeshMat);
+var e: GLuint;
+begin
+  e := 0;
+  if (mat.emis <> nil) and (mat.ew > 0) and (mat.eh > 0) then
+    e := AtlasTexture(mat.emis, mat.ew, mat.eh);
+  if e <> 0 then begin
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, e);
+    glUniform1f(uHasEmisLoc, 1.0);
+  end else
+    glUniform1f(uHasEmisLoc, 0.0);
+  glActiveTexture(GL_TEXTURE0);
+end;
+
 procedure GLDrawMesh(const m: TMesh; const mc: TMeshCam;
   mx, my, mz, sx, sy, sz, yaw, light: double; const mats: array of TMeshMat);
 var
@@ -685,10 +710,11 @@ begin
   glUniform1f(uLightLoc, lf);
   glActiveTexture(GL_TEXTURE0);
 
-  { an embedded mesh (a prop) carries its own texture; it is single-material }
+  { an embedded mesh (a prop) carries its own texture, no emission }
   if (m.texKind = TEXKIND_EMBED) and (Length(m.tex) > 0) then begin
     t := AtlasTexture(@m.tex[0], m.texW, m.texH);
     if t = 0 then exit;
+    glUniform1f(uHasEmisLoc, 0.0);
     glBindTexture(GL_TEXTURE_2D, t);
     buf := MeshBuffer(m, count);
     glBindBuffer(GL_ARRAY_BUFFER, buf);
@@ -701,10 +727,11 @@ begin
   matCount := MeshMatCount(m);
 
   { a single-material shared mesh samples mats[0] in one draw of its whole
-    cached buffer }
+    cached buffer, plus its emission atlas if it has one }
   if (matCount <= 1) or (Length(m.mat) = 0) or (Length(mats) = 1) then begin
     t := AtlasTexture(mats[0].tex, mats[0].tw, mats[0].th);
     if t = 0 then exit;
+    BindEmis(mats[0]);
     glBindTexture(GL_TEXTURE_2D, t);
     buf := MeshBuffer(m, count);
     glBindBuffer(GL_ARRAY_BUFFER, buf);
@@ -736,6 +763,7 @@ begin
       end;
     end;
     if outN = 0 then continue;
+    BindEmis(mats[j]);
     glBindTexture(GL_TEXTURE_2D, t);
     if matVBO = 0 then glGenBuffers(1, @matVBO);
     glBindBuffer(GL_ARRAY_BUFFER, matVBO);
@@ -776,6 +804,7 @@ begin
   lf := light / 256.0;
   if lf > 2.0 then lf := 2.0;
   glUniform1f(uLightLoc, lf);
+  glUniform1f(uHasEmisLoc, 0.0);     { a grid quad has no emission }
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, t);
 
@@ -861,6 +890,7 @@ begin
   lf := light / 256.0;
   if lf > 2.0 then lf := 2.0;
   glUniform1f(uLightLoc, lf);
+  glUniform1f(uHasEmisLoc, 0.0);     { a sprite has no emission atlas }
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, t);
 
