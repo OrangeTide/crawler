@@ -27,7 +27,6 @@ var
   dt: double;
   fps, frameCount: longint;
   argi: longint;
-  gl3dTest: boolean;
   goMap, gmStr: string;
   np, gmP: longint;
   gmParts: array[0 .. 3] of string;
@@ -95,8 +94,6 @@ begin
       break;
     end;
 
-  gl3dTest := VideoIsGL and (GetEnvironmentVariable('CRAWLER_GL3D') = '1');
-
   { CRAWLER_GOMAP=MAP:X:Y:DIR drops a pregen party onto a kit-clad map, to test
     the GPU explore path where the game normally opens on the title. }
   goMap := GetEnvironmentVariable('CRAWLER_GOMAP');
@@ -128,15 +125,7 @@ begin
 
     GameHandleEvents;
     GameUpdate(dt);
-    if gl3dTest then begin
-      if State = gsExplore then
-        RenderExploreGL(fps)        { stage 2: GPU explore scene + 2D HUD }
-      else
-        GLRenderTestFrame;          { stage 2 increment 1: GPU pipeline proof }
-    end else begin
-      GameRender(fps);
-      VideoPresent;
-    end;
+    GameRender(fps);                { dispatches to the GPU or software path }
 
     inc(frameCount);
     if nowTicks - lastFpsTick >= 1000 then begin

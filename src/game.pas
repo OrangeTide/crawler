@@ -30,10 +30,11 @@ uses
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   fullmapui, menuui, charsheetui, learnspellui, learnskillui, optionsui,
   keybindui, gameoverui, victoryui,
-  overworldui, gametime, audio, settings, codex, apppaths;
+  overworldui, gametime, audio, settings, codex, apppaths, video;
 
 var
   palIsTitle: boolean = false;   { the title's CLUT is active }
+  useGL3D: boolean = false;      { render the explore scene on the GPU }
 
 procedure QuickBattle;
 {** Delegate to titleui so crawler.lpr's bare QuickBattle still resolves. }
@@ -95,6 +96,10 @@ begin
 
   AudioInit(GamePak);   { silent if the device or libxmp is absent }
   SettingsLoad;         { volumes, difficulty and key bindings, then applied }
+  { Render the explore scene on the GPU whenever a GL context is up. Falls
+    back to the software rasterizer with no GL (CRAWLER_GL=0), and CRAWLER_GL3D=0
+    forces the software explore path even on GL, for comparison. }
+  useGL3D := VideoIsGL and (GetEnvironmentVariable('CRAWLER_GL3D') <> '0');
   keys := PKeyArray(SDL_GetKeyboardState(nil));
   showMap := true;
   QuitRequested := false;
@@ -184,6 +189,13 @@ begin
   end else if palIsTitle then begin
     UseGamePalette; palIsTitle := false;
   end;
+  { The GPU explore path draws the 3D scene and composites the 2D HUD over it,
+    presenting and swapping itself. Every other screen draws into the software
+    framebuffer, which VideoPresent then uploads. }
+  if useGL3D and (State = gsExplore) then begin
+    RenderExploreGL(fps);
+    exit;
+  end;
   case State of
     gsTitle:    TitleRender;
     gsNewParty: CCRender;
@@ -202,6 +214,7 @@ begin
     gsLearnSpell: LearnRender;
     gsLearnSkill: LearnSkillRender;
   end;
+  VideoPresent;
 end;
 
 end.
