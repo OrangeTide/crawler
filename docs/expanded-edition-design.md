@@ -1352,6 +1352,10 @@ licence terms.
   arcing over allies, target selection, friendly fire.
 - **Terrain source.** Whether a battlefield is generated from the encounter's
   biome or authored, how it relates to the first-person map, and its size bounds.
+- **Carve support.** Whether terrain left unsupported by a carve stays floating,
+  the Worms model and the cheap default, or collapses and settles onto what holds
+  it up. This is separate from debris and falling units, which already terminate
+  on bedrock; it is about whether the standing terrain restructures after a dig.
 - **Enemy AI.** Pathfinding across destructible terrain and an aiming solver that
   picks an angle and power for an arc.
 - **Art coverage and palette.** Per-pack attack, hit and death frames, and
