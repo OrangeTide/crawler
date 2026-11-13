@@ -297,6 +297,10 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 .sheet manifest per creature PNG (orc.sheet, rat.sheet, ...).
   archer        ARCHER and seven recolors (ARCHER_BLACK, _BLUE, _BROWN, _GREEN,
                 _PURPLE, _RED, _YELLOW), each idle, walk, shoot, hurt, death.
+  zombie        ZOMBIE and ZOMBIE_V2/_V3/_V4 (four designs), idle, walk, attack,
+                hurt, death read from a wrapping strip (the crawl is left out).
+  skeleton      SKELETON and recolors (_WHITE, _GHOST, _GOLD, _RED, _RETRO),
+                idle, walk, attack, death from a wrapping strip.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

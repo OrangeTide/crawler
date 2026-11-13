@@ -1,0 +1,13 @@
+# Skeleton (bleached white recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet skeleton_white.ppm
+cell 64 64
+
+bank SKELETON_WHITE
+seq IDLE   loop ticks=4 : lin 0-7
+seq WALK   loop ticks=2 : lin 10-19
+seq ATTACK once ticks=2 : lin 40-44
+seq DEATH  once ticks=3 : lin 50-59

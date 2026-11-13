@@ -92,6 +92,16 @@ begin
   Check(SpriteFrame(si, sq, 0, img), 'a wrapped linear walk frame decodes');
   CheckEqI(img.w, 64, 'wrapped frame width is 64');
 
+  { wrap-style enemy strips sliced by linear range }
+  CheckSeq('ZOMBIE', 'IDLE', 10);
+  CheckSeq('ZOMBIE', 'WALK', 9);
+  CheckSeq('ZOMBIE', 'DEATH', 12);
+  CheckSeq('ZOMBIE_V4', 'IDLE', 10);
+  CheckSeq('SKELETON', 'IDLE', 8);
+  CheckSeq('SKELETON', 'WALK', 10);
+  CheckSeq('SKELETON', 'ATTACK', 5);
+  CheckSeq('SKELETON_GOLD', 'DEATH', 10);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

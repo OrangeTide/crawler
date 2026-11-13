@@ -1,0 +1,14 @@
+# Zombie: a shambling corpse. Actions read from one wrapping 10-wide strip (idle 0-9, walk 10-18, attack 19-29, hurt 37-42, death 43-54); the sheet also holds a crawl cycle left unimported.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet zombie_v3.ppm
+cell 64 64
+
+bank ZOMBIE_V3
+seq IDLE   loop ticks=4 : lin 0-9
+seq WALK   loop ticks=2 : lin 10-18
+seq ATTACK once ticks=2 : lin 19-29
+seq HURT   once ticks=3 : lin 37-42
+seq DEATH  once ticks=3 : lin 43-54
