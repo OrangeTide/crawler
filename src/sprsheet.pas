@@ -26,6 +26,8 @@ unit sprsheet;
 
     col C rows A-B     a column run, rows A through B going down
     row R cols A-B     a row run, columns A through B going right
+    lin A-B            cells A through B counted row-major across the sheet, so
+                       a run wraps past the right edge onto the next row
     C,R C,R ...        explicit cell coordinates (column,row), for odd layouts
 
   Rows and columns are zero based. All frames in a sequence share the cell
@@ -115,8 +117,8 @@ end;
 
 { Expand a cell run into parallel (cols,rows) lists. Returns the frame count,
   or -1 with err set. }
-function ExpandRun(const tail: string; out cols, rows: array of longint;
-  out err: string): longint;
+function ExpandRun(const tail: string; gridCols: longint;
+  out cols, rows: array of longint; out err: string): longint;
 var
   tok: array[0 .. 63] of string;
   n, i, a, b, fixed, cp, nf: longint;
@@ -125,7 +127,22 @@ begin
   Tokenize(tail, tok, n);
   if n = 0 then begin err := 'empty frame run'; exit; end;
   nf := 0;
-  if (tok[0] = 'col') or (tok[0] = 'row') then begin
+  if tok[0] = 'lin' then begin
+    { lin A-B : cells A..B counted row-major across the whole sheet, so a
+      run that wraps past the right edge continues on the next row. }
+    if n < 2 then begin err := 'run needs: lin A-B'; exit; end;
+    if gridCols < 1 then begin err := 'lin run needs a sheet width'; exit; end;
+    cp := Pos('-', tok[1]);
+    if cp < 1 then begin err := 'bad lin range ' + tok[1]; exit; end;
+    a := StrToIntDef(Copy(tok[1], 1, cp - 1), -1);
+    b := StrToIntDef(Copy(tok[1], cp + 1, 9), -1);
+    if (a < 0) or (b < a) then begin err := 'bad lin range ' + tok[1]; exit; end;
+    for i := a to b do begin
+      if nf > High(cols) then begin err := 'run too long'; exit; end;
+      cols[nf] := i mod gridCols; rows[nf] := i div gridCols;
+      inc(nf);
+    end;
+  end else if (tok[0] = 'col') or (tok[0] = 'row') then begin
     { col C rows A-B  |  row R cols A-B }
     if n < 4 then begin err := 'run needs: ' + tok[0] + ' N rows/cols A-B'; exit; end;
     fixed := StrToIntDef(tok[1], -1);
@@ -234,7 +251,7 @@ begin
             err := 'line ' + IntToStr(li + 1) + ': unknown option ' + opt; exit;
           end;
         end;
-        nf := ExpandRun(tail, cols, rows, blobErr);
+        nf := ExpandRun(tail, sw div cellW, cols, rows, blobErr);
         if nf < 0 then begin err := 'line ' + IntToStr(li + 1) + ': ' + blobErr; exit; end;
         if nf = 0 then begin err := 'line ' + IntToStr(li + 1) + ': seq has no frames'; exit; end;
         SetLength(banks[bi].bank.seqs[si].frames, nf);

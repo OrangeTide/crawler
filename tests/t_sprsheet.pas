@@ -76,6 +76,22 @@ begin
   CheckSeq('FLYINGWITCH', 'ATTACK', 8);
   CheckSeq('MUSHROOM', 'WALK', 5);
 
+  { single-character action sheets sliced with the linear run (lin A-B), one
+    bank per colour variant }
+  CheckSeq('ARCHER', 'IDLE', 5);
+  CheckSeq('ARCHER', 'WALK', 8);
+  CheckSeq('ARCHER', 'ATTACK', 11);
+  CheckSeq('ARCHER', 'HURT', 5);
+  CheckSeq('ARCHER', 'DEATH', 6);
+  CheckSeq('ARCHER_RED', 'IDLE', 5);
+  CheckSeq('ARCHER_BLUE', 'WALK', 8);
+  { a linear run that wraps past the right edge still decodes a real frame:
+    ARCHER WALK is lin 22-29 on an 11-wide sheet, so frame 0 is cell (0,2) }
+  si := LoadSprite(p, 'ARCHER');
+  sq := SpriteSeqIndex(si, 'WALK');
+  Check(SpriteFrame(si, sq, 0, img), 'a wrapped linear walk frame decodes');
+  CheckEqI(img.w, 64, 'wrapped frame width is 64');
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

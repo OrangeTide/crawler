@@ -295,6 +295,12 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 attack, death); BAT (idle, walk, death); FLYINGWITCH, PUMPKIN
                 (idle, attack, death); MOSQUITO, FLYINGEYE (idle, walk). One
                 .sheet manifest per creature PNG (orc.sheet, rat.sheet, ...).
+  archer        ARCHER and seven recolors (ARCHER_BLACK, _BLUE, _BROWN, _GREEN,
+                _PURPLE, _RED, _YELLOW), each idle, walk, shoot, hurt, death.
+
+Single-character packs ship several recolors and lay their actions out as one
+strip that wraps across rows, so those banks are sliced with the `lin` run (a
+row-major cell range) and one bank is baked per recolor.
 
 Because the pack terms forbid redistributing the art on its own, keep the sheet
 PNGs out of any public mirror of this repository, or replace them there with the

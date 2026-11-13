@@ -1,0 +1,14 @@
+# Crusader archer (green recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet archer_green.ppm
+cell 64 64
+
+bank ARCHER_GREEN
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 22-29
+seq ATTACK once ticks=2 : lin 11-21
+seq HURT   once ticks=3 : lin 33-37
+seq DEATH  once ticks=3 : lin 44-49
