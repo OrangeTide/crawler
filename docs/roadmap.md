@@ -228,10 +228,15 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   `NEWG` lump). The old `GiveClassKit` case, `NAME_POOL`, and the hardcoded
   pregen and default ids are gone; `t_gear` and `t_newgame` pin the tables. (The
   built-in combat spell table was already retired in favour of spells.txt.)
-- [gap] (0.30.0) Prepared-spell subset on top of the known list (optional
-  caster depth): a caster readies a subset of its known spells per rest, the way
-  memorized-spell rules work, instead of casting any known spell at will within
-  its point pool.
+- [done] (0.30.0) Prepared-spell subset on top of the known list (optional
+  caster depth): a settings toggle (PREPARE SPELLS, off by default). With it on,
+  a caster readies a subset of its known spells and may cast only those, the way
+  memorized-spell rules work, while spell points stay the casting cost. The
+  subset is bounded by per-spell-level slots in the AD&D style: one slot when a
+  spell level opens, one more every six character levels (`PreparedSlotsAt`).
+  Spells are readied on the meta SPELLS tab (P), saved with the character, and
+  the combat menu (`combatcore`) casts only readied spells when the option is on.
+  `t_prepared` covers the slots, the ready gate, the combat filter, and pruning.
 - [partial] (0.30.0) Stat more combat-shaped spells. The combat-line count rose
   from 51 to 60: a first pass added cast lines to nine clearly combat-shaped
   prose-only spells (Flame Arrow, Haste, Vampiric Touch, Grease, Trip,
@@ -784,14 +789,15 @@ kit rather than the generated cavern.
 
 Themes C and D, the remaining smaller items gathered into one polish milestone:
 rank capacity by creature size (done), porting the last hardcoded party and class data
-to content files (which the data-driven constraint demands), the optional
-prepared-spell subset and more combat-statted spells, the fuller quest log now
-that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg
-sprite-format evaluation. Independent of the renderer and map threads. Started:
-the data-port cleanup is done. Starting equipment moved to a `content/gear.txt`
-table keyed by the class kit archetype, and the pregen party, name pool and
-char-creation defaults moved to `content/newgame.txt`, so no party or class
-tables remain hardcoded in Pascal.
+to content files (done), the optional prepared-spell subset (done) and more
+combat-statted spells (a first pass done), the fuller quest log now that 0.24.0's
+content shipped, and the low-priority run timer and the dos-rpg sprite-format
+evaluation. Independent of the renderer and map threads. Progress: the data-port
+cleanup is done (starting equipment moved to `content/gear.txt`; the pregen
+party, name pool and char-creation defaults to `content/newgame.txt`), rank
+capacity by size is in, the prepared-spell subset ships behind a toggle, and nine
+more spells gained combat stats. What remains here is the quest log, the run
+timer, the dos-rpg sprite-format evaluation, and further spell-stat tuning.
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 

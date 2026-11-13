@@ -414,7 +414,8 @@ begin
     if SpellDefs[i].castable and (SpellDefs[i].domain = dom)
       and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor]))
       and SpellAllowed(Roster[actor], i)
-      and CharKnows(Roster[actor], i) then begin
+      and CharKnows(Roster[actor], i)
+      and ((not OptPrepared) or CharPrepared(Roster[actor], i)) then begin
       SetLength(gList, Length(gList) + 1);
       gList[High(gList)] := i;
     end;

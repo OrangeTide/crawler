@@ -112,7 +112,11 @@ spells and bows strike over them.
   by level and spell points. Out of combat the SPELLS tab casts too: heals and
   status cures on a chosen member, and party-wide light, read-magic, and
   sense-the-area utility. Spell points are a pool restored by rest, so a caster
-  spends down across a delve rather than refilling each fight.
+  spends down across a delve rather than refilling each fight. An optional
+  PREPARE SPELLS rule (an options toggle, off by default) adds AD&D-style
+  memorization: a caster readies a per-spell-level subset of its known spells on
+  the SPELLS tab (P) and may cast only those in combat, while spell points stay
+  the cost.
 - Arcane schools for the Magic-User list. Each arcane spell belongs to one of
   the eight schools, and a specialist mage (Abjurer, Conjurer, Diviner,
   Enchanter, Invoker, Illusionist, Necronimus, Transmuter) focuses on one:

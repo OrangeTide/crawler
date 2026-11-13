@@ -15,7 +15,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, uihelp, audio, gamestate, party, chardata,
-  codex, monsters, spelldb, spellbook, spellicon, fieldcast;
+  codex, monsters, spelldb, spellbook, spellicon, fieldcast, combatstate;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -120,6 +120,7 @@ begin
   if spellCaster >= nc then spellCaster := nc - 1;
   if spellCaster < 0 then spellCaster := 0;
   cm := casters[spellCaster];
+  if OptPrepared then PrunePrepared(Roster[cm]);
   dom := ClassDomain(Roster[cm].klass);
   total := KnownCount(Roster[cm]);
   if spellSel >= total then spellSel := total - 1;
@@ -136,6 +137,8 @@ begin
       RGB(170, 150, 190));
   if nc > 1 then DrawText(210, 24, 'L/R MEMBER', RGB(130, 140, 110));
   DrawText(210, 34, 'UP/DN SPELL', RGB(130, 140, 110));
+  if OptPrepared then
+    DrawText(16, 44, 'PREPARE: P READIES  R = READIED', RGB(200, 180, 120));
 
   if total = 0 then begin
     DrawText(16, 54, 'Knows no spells yet.', RGB(150, 150, 130));
@@ -162,6 +165,8 @@ begin
     else
       DrawText(26, y + 1, 'L' + IntToStr(SpellDefs[spIdx].level) + ' '
         + SpellDefs[spIdx].name, RGB(160, 165, 150));
+    if OptPrepared and CharPrepared(Roster[cm], spIdx) then
+      DrawText(188, y + 1, 'R', RGB(240, 210, 120));
     inc(y, 11);
   end;
   DrawText(16, 160, IntToStr(spellSel + 1) + ' of ' + IntToStr(total),
@@ -213,6 +218,11 @@ begin
         DrawText(16, FBH - 22, 'FIELD: ' + FieldDesc(kind) + '   COST '
           + IntToStr(FieldCost(spIdx)) + '   (need SP)', RGB(150, 130, 110));
     end;
+    if OptPrepared then
+      DrawText(16, FBH - 12, 'L' + IntToStr(SpellDefs[spIdx].level) + ' READIED '
+        + IntToStr(PreparedCountAt(Roster[cm], SpellDefs[spIdx].level)) + '/'
+        + IntToStr(PreparedSlotsAt(Roster[cm], SpellDefs[spIdx].level))
+        + '   P READY/UNREADY', RGB(200, 180, 120));
   end;
 end;
 
@@ -268,6 +278,27 @@ begin
   end else begin
     castMsg := DoFieldCast(cm, spIdx, -1);
     PlaySfx(SFX_SELECT);
+  end;
+end;
+
+{ P on the SPELLS tab: ready or un-ready the selected known spell, honoring the
+  per-level slots, when the prepared-spells option is on. }
+procedure SpellsTogglePrepare;
+var cm, spIdx: longint; wasPrep, nowPrep: boolean;
+begin
+  if (not OptPrepared) or castTargeting then exit;
+  if not CurCasterSpell(cm, spIdx) then exit;
+  wasPrep := CharPrepared(Roster[cm], spIdx);
+  nowPrep := TogglePrepared(Roster[cm], spIdx);
+  if wasPrep then begin
+    castMsg := 'Un-readied ' + SpellDefs[spIdx].name + '.';
+    PlaySfx(SFX_SELECT);
+  end else if nowPrep then begin
+    castMsg := 'Readied ' + SpellDefs[spIdx].name + '.';
+    PlaySfx(SFX_SELECT);
+  end else begin
+    castMsg := 'Level ' + IntToStr(SpellDefs[spIdx].level) + ' slots are full.';
+    PlaySfx(SFX_MISS);
   end;
 end;
 
@@ -329,6 +360,8 @@ begin
       if menuTab = 2 then begin inc(spellSel); castMsg := ''; end;   { clamped on render }
     SDL_SCANCODE_RETURN:
       if menuTab = 2 then SpellsCast;
+    SDL_SCANCODE_P:
+      if menuTab = 2 then SpellsTogglePrepare;
     SDL_SCANCODE_J, SDL_SCANCODE_ESCAPE: begin
       castMsg := ''; castTargeting := false; State := gsExplore;
     end;

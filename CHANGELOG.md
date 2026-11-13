@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- Optional prepared-spell subset, a settings toggle (PREPARE SPELLS, off by
+  default). With it on, a caster may cast only spells it has readied, and
+  readying is bounded by per-spell-level slots in the AD&D style: one slot when a
+  spell level first opens, and one more every six character levels. Spell points
+  stay the casting cost. Ready and un-ready spells on the meta SPELLS tab with P;
+  the readied set is saved with the character. Off by default, casting works as
+  before (any known spell at will).
 - Rank capacity by creature size. Every combatant carries a size class (tiny,
   small, medium, large, huge, colossal) with a bulk weight, and a rank's cover
   is its summed bulk. The front rank must hold at least as much bulk as the
@@ -21,6 +28,8 @@ whose development history is summarized in docs/roadmap.md.
   (default medium); player characters are medium. `t_size` covers the rule.
 
 ### Changed
+- The save format is version 15: it stores each caster's readied-spell list.
+  Saves from earlier versions no longer load.
 - More of the spell catalog carries combat stats. Nine prose-only spells now
   have a cast line (the castable count rose from 51 to 60): Flame Arrow, Haste,
   Vampiric Touch and Grease (magic-user), Trip, Pyrotechnics, Snare and Hold

@@ -139,11 +139,13 @@ var
   Active: PCombat = @gCombat;   { every site reaches fight state through Active^ }
 
   OptCriticals: boolean;    { natural 20 auto-hits for max damage, 1 fumbles }
+  OptPrepared: boolean;     { casters must ready a per-level subset of known spells }
   CombatBeatScale: double;  { scales the pause between beats, from the options }
 
 implementation
 
 initialization
   OptCriticals := true;
+  OptPrepared := false;
   CombatBeatScale := 1.0;
 end.

@@ -24,6 +24,7 @@ const
 var
   SetPermadeath: boolean;   { a slain member stays dead; no temple revival }
   SetCriticals: boolean;    { the AX&X natural 20/1 and max-damage crit rules }
+  SetPrepared: boolean;     { casters ready a per-level subset of spells per rest }
   SetCombatSpeed: longint;  { CS_* }
   SetGLTrueColour: boolean; { GPU kit trim in full direct colour, not the CLUT }
 
@@ -48,6 +49,7 @@ begin
   volSfx := 90;
   SetPermadeath := false;   { the temple can raise the dead unless turned on }
   SetCriticals := true;
+  SetPrepared := false;     { off by default: cast any known spell at will }
   SetCombatSpeed := CS_NORMAL;
   SetGLTrueColour := false;   { default to the per-tileset CLUT (PS1) look }
   KeyBindDefaults;
@@ -66,6 +68,7 @@ procedure SettingsApply;
 begin
   SetAudioVolumes(volMaster, volMusic, volSfx);
   OptCriticals := SetCriticals;
+  OptPrepared := SetPrepared;
   CombatBeatScale := CombatSpeedScale(SetCombatSpeed);
   { permadeath is read straight from SetPermadeath by the temple service }
 end;
@@ -96,6 +99,7 @@ begin
     lines.Add('volsfx ' + IntToStr(volSfx));
     lines.Add('permadeath ' + IntToStr(ord(SetPermadeath)));
     lines.Add('criticals ' + IntToStr(ord(SetCriticals)));
+    lines.Add('prepared ' + IntToStr(ord(SetPrepared)));
     lines.Add('combatspeed ' + IntToStr(SetCombatSpeed));
     lines.Add('gltruecolour ' + IntToStr(ord(SetGLTrueColour)));
     for a := Low(TGameAction) to High(TGameAction) do
@@ -156,6 +160,7 @@ begin
       else if key = 'volsfx' then volSfx := ClampVol(v)
       else if key = 'permadeath' then SetPermadeath := v <> 0
       else if key = 'criticals' then SetCriticals := v <> 0
+      else if key = 'prepared' then SetPrepared := v <> 0
       else if key = 'combatspeed' then begin
         if (v >= CS_SLOW) and (v <= CS_FAST) then SetCombatSpeed := v;
       end

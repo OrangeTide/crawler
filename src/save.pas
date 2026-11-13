@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 14;
+  SAVE_VERSION = 15;
 
 var
   LoadedMapName: string;
@@ -120,6 +120,8 @@ begin
   end;
   s.WriteByte(c.skillSlots);
   s.WriteByte(ord(c.mended));
+  WI32(s, Length(c.prepared));
+  for i := 0 to High(c.prepared) do WStr(s, c.prepared[i]);
 end;
 
 function RChar(s: TStream): TCharacter;
@@ -156,6 +158,9 @@ begin
   end;
   RChar.skillSlots := s.ReadByte;
   RChar.mended := s.ReadByte <> 0;
+  n := RI32(s);
+  SetLength(RChar.prepared, n);
+  for i := 0 to n - 1 do RChar.prepared[i] := RStr(s);
   RChar.wereform := false;   { recomputed from the moon on the next frame }
   RChar.size := SZ_MEDIUM;   { PCs are medium; a combat attribute, not saved }
 end;

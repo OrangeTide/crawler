@@ -65,6 +65,7 @@ type
     hireling: boolean;   { a temporary hire, owed wages each lunar month }
     wage: smallint;      { their recruitment cost, also the monthly upkeep }
     known: array of string[16]; { catalog ids of the spells this caster knows }
+    prepared: array of string[16]; { readied subset of known, when the option is on }
     portrait: byte;      { index into the PC portrait pool, shown in the strip }
     skills: array of TSkillInst; { the skills this character has trained }
     skillSlots: byte;    { unspent proficiency slots, spent to learn skills }
@@ -386,6 +387,7 @@ begin
   c.size := SZ_MEDIUM;   { player characters are medium bodies }
   c.sp := CharSpellPoints(c);   { a full spell pool, restored later by rest }
   c.known := nil;
+  c.prepared := nil;
   c.portrait := 0;
   c.skills := nil;
   c.skillSlots := CharSkillSlots(c, 1);

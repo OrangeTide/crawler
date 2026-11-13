@@ -46,6 +46,24 @@ function NextLearner: longint;
   castable spells, for generated parties and hirelings. }
 procedure AutoLearn(var c: TCharacter);
 
+{ ---- prepared spells (the optional memorization layer) ---- }
+{ How many spells of a given spell level a caster may ready at once: one slot
+  when the level first opens, and one more every six character levels past
+  that, mirroring an AD&D slots-by-level table. Zero for an unreachable level. }
+function PreparedSlotsAt(const c: TCharacter; spellLevel: longint): longint;
+{ Whether a known spell is currently readied, by id or catalog index. }
+function CharPreparedID(const c: TCharacter; const id: string): boolean;
+function CharPrepared(const c: TCharacter; cat: longint): boolean;
+{ How many spells of a given spell level the caster has readied. }
+function PreparedCountAt(const c: TCharacter; spellLevel: longint): longint;
+{ Ready or un-ready a known spell. Readying fails (returns the unchanged state)
+  when that spell level's slots are full; un-readying always works. Returns the
+  resulting readied state. }
+function TogglePrepared(var c: TCharacter; cat: longint): boolean;
+{ Drop readied ids the caster no longer knows, and any that overflow their
+  level's slots. Called when the known list or level changes. }
+procedure PrunePrepared(var c: TCharacter);
+
 implementation
 
 function MaxSpellLevel(const c: TCharacter): longint;
@@ -103,6 +121,100 @@ begin
   if CharKnowsID(c, SpellDefs[cat].id) then exit;
   SetLength(c.known, Length(c.known) + 1);
   c.known[High(c.known)] := SpellDefs[cat].id;
+end;
+
+{ ---- prepared spells ---- }
+
+function CatOfId(const id: string): longint;
+var i: longint;
+begin
+  CatOfId := -1;
+  for i := 0 to SpellDefCount - 1 do
+    if SpellDefs[i].id = id then begin CatOfId := i; exit; end;
+end;
+
+function PreparedSlotsAt(const c: TCharacter; spellLevel: longint): longint;
+var unlock: longint;
+begin
+  PreparedSlotsAt := 0;
+  if (spellLevel < 1) or (spellLevel > MaxSpellLevel(c)) then exit;
+  unlock := 2 * spellLevel - 1;   { L1 opens at level 1, L2 at 3, L3 at 5, ... }
+  if c.level < unlock then exit;
+  PreparedSlotsAt := 1 + (c.level - unlock) div 6;
+end;
+
+function CharPreparedID(const c: TCharacter; const id: string): boolean;
+var i: longint;
+begin
+  CharPreparedID := true;
+  for i := 0 to High(c.prepared) do
+    if c.prepared[i] = id then exit;
+  CharPreparedID := false;
+end;
+
+function CharPrepared(const c: TCharacter; cat: longint): boolean;
+begin
+  CharPrepared := (cat >= 0) and (cat < SpellDefCount)
+    and CharPreparedID(c, SpellDefs[cat].id);
+end;
+
+function PreparedCountAt(const c: TCharacter; spellLevel: longint): longint;
+var i, cat, cnt: longint;
+begin
+  cnt := 0;
+  for i := 0 to High(c.prepared) do begin
+    cat := CatOfId(c.prepared[i]);
+    if (cat >= 0) and (SpellDefs[cat].level = spellLevel) then inc(cnt);
+  end;
+  PreparedCountAt := cnt;
+end;
+
+procedure RemovePreparedID(var c: TCharacter; const id: string);
+var i, j: longint;
+begin
+  j := 0;
+  for i := 0 to High(c.prepared) do
+    if c.prepared[i] <> id then begin c.prepared[j] := c.prepared[i]; inc(j); end;
+  SetLength(c.prepared, j);
+end;
+
+function TogglePrepared(var c: TCharacter; cat: longint): boolean;
+var lvl: longint;
+begin
+  TogglePrepared := false;
+  if (cat < 0) or (cat >= SpellDefCount) then exit;
+  if not CharKnowsID(c, SpellDefs[cat].id) then exit;
+  if CharPreparedID(c, SpellDefs[cat].id) then begin
+    RemovePreparedID(c, SpellDefs[cat].id);   { un-ready always works }
+    exit;
+  end;
+  lvl := SpellDefs[cat].level;
+  if PreparedCountAt(c, lvl) >= PreparedSlotsAt(c, lvl) then exit;  { slots full }
+  SetLength(c.prepared, Length(c.prepared) + 1);
+  c.prepared[High(c.prepared)] := SpellDefs[cat].id;
+  TogglePrepared := true;
+end;
+
+procedure PrunePrepared(var c: TCharacter);
+var
+  i, cat, lvl: longint;
+  kept: array of string[16];
+  usedAt: array[0 .. 15] of longint;
+begin
+  for i := 0 to 15 do usedAt[i] := 0;
+  SetLength(kept, 0);
+  for i := 0 to High(c.prepared) do begin
+    cat := CatOfId(c.prepared[i]);
+    if cat < 0 then continue;                           { unknown catalog id }
+    if not CharKnowsID(c, c.prepared[i]) then continue; { no longer known }
+    lvl := SpellDefs[cat].level;
+    if (lvl < 1) or (lvl > 15) then continue;
+    if usedAt[lvl] >= PreparedSlotsAt(c, lvl) then continue;  { over its slots }
+    SetLength(kept, Length(kept) + 1);
+    kept[High(kept)] := c.prepared[i];
+    inc(usedAt[lvl]);
+  end;
+  c.prepared := kept;
 end;
 
 { Gather the catalog indices this caster may still learn, level-ordered. }
