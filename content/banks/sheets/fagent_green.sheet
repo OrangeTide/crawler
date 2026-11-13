@@ -1,0 +1,13 @@
+# Female agent (green recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet fagent_green.ppm
+cell 64 64
+
+bank FAGENT_GREEN
+seq IDLE  loop ticks=4 : lin 0-4
+seq WALK  loop ticks=2 : lin 132-139
+seq SHOOT once ticks=2 : lin 36-40
+seq DEATH once ticks=3 : lin 372-383

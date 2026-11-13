@@ -326,6 +326,9 @@ attack, death), each row a sequence with its own frame count. Imported so far:
   maid          MAID and seven recolors, 64x64, idle, walk, death; the serving
                 and curtsy rows, and the pack's "full" outfit variants and the
                 combat/witch-hat sheets, are not imported yet.
+  medieval woman MAIDEN, 64x64, idle, walk, harp, death.
+  female agent  FAGENT and four recolors, 64x64, idle, walk, shoot, death; the
+                aim-angle and prone rows are not imported.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

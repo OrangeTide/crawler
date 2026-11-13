@@ -169,6 +169,13 @@ begin
   CheckSeq('MAID', 'WALK', 8);
   CheckSeq('MAID_RED', 'DEATH', 8);
 
+  CheckSeq('MAIDEN', 'IDLE', 5);
+  CheckSeq('MAIDEN', 'WALK', 8);
+  CheckSeq('MAIDEN', 'HARP', 10);
+  CheckSeq('FAGENT', 'IDLE', 5);
+  CheckSeq('FAGENT', 'WALK', 8);
+  CheckSeq('FAGENT_RED', 'DEATH', 12);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

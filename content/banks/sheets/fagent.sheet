@@ -1,0 +1,13 @@
+# Female agent soldier: 64x64, 12-wide 32-row run-and-gun sheet. idle 0-4, walk 132-139, shoot 36-40, death 372-383; aim-angle and prone rows left out.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet fagent.ppm
+cell 64 64
+
+bank FAGENT
+seq IDLE  loop ticks=4 : lin 0-4
+seq WALK  loop ticks=2 : lin 132-139
+seq SHOOT once ticks=2 : lin 36-40
+seq DEATH once ticks=3 : lin 372-383

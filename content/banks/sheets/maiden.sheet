@@ -1,0 +1,13 @@
+# Medieval woman (MAIDEN): 64x64. idle 0-4, walk 10-17, play harp 70-79, death 62-69; dance and curtsy rows left out.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet maiden.ppm
+cell 64 64
+
+bank MAIDEN
+seq IDLE  loop ticks=4 : lin 0-4
+seq WALK  loop ticks=2 : lin 10-17
+seq HARP  loop ticks=4 : lin 70-79
+seq DEATH once ticks=3 : lin 62-69
