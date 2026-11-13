@@ -312,6 +312,8 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 _RED, _WHITE, _YELLOW), idle, walk, cast, hurt, death; the many
                 extra spell rows are left unimported.
   alien         ALIEN gunner, idle, walk, shoot, death (run-and-gun rows out).
+  knight        KNIGHT and recolors (_BLACK, _BROWN, _GREEN), 69x58 cells,
+                idle, walk, attack, block, death.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

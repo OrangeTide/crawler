@@ -1,0 +1,14 @@
+# Shield knight: 69x58 cells, 5-wide 14-row sheet. idle 0-4, walk 15-19, attack 10-14, block 30-34, death 60-65; extra swing and thrust rows left unimported.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet knight.ppm
+cell 69 58
+
+bank KNIGHT
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 15-19
+seq ATTACK once ticks=2 : lin 10-14
+seq BLOCK  loop ticks=4 : lin 30-34
+seq DEATH  once ticks=3 : lin 60-65
