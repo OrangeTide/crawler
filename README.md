@@ -333,10 +333,12 @@ Gameplay systems and content tables (each `*text` unit is the tool-side parser):
 | `src/fieldcast.pas` | Out-of-combat casting: the SPELLS tab heals, cures, refuels and reveals. |
 | `src/skilldb.pas` / `src/skilltext.pas` | Skill catalog, decoder and table codec. |
 | `src/skillbook.pas` | Trained skills: proficiency slots, ranks and checks. |
-| `src/flags.pas` | Story flags and the quest journal. |
+| `src/flags.pas` | Story flags and the freeform journal log. |
+| `src/quests.pas` | Data-driven quest log: stages, derives and log events. |
 | `src/codex.pas` | Bestiary and item identification knowledge. |
 | `src/save.pas` | Save and load of the whole game to a file. |
 | `src/gametime.pas` | The game clock, day-night cycle and the moon. |
+| `src/runtimer.pas` | The run timer: real play time across a playthrough. |
 | `src/audio.pas` | Software mixer: procedural SFX and music channels. |
 | `src/settings.pas` | Player settings file beside the save. |
 | `src/keymap.pas` | Rebindable key bindings for the core actions. |

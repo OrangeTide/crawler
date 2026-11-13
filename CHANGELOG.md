@@ -10,6 +10,11 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A run timer. Real play time accumulates across a playthrough (a speedrun-style
+  wall clock, not the in-world day-night clock) while the run is in progress, and
+  pauses on the title, during party creation, and at the game-over and victory
+  screens. It shows as H:MM:SS in the JOURNAL tab's foot and on the victory
+  screen, and is part of the save. `t_runtimer` covers the formatting.
 - A data-driven quest log. Quests, their flag-gated stages, completion flags,
   composite derive rules and freeform log events come from
   `content/quests.txt`, baked into the QUST lump, replacing the hardcoded
@@ -35,8 +40,8 @@ whose development history is summarized in docs/roadmap.md.
   (default medium); player characters are medium. `t_size` covers the rule.
 
 ### Changed
-- The save format is version 15: it stores each caster's readied-spell list.
-  Saves from earlier versions no longer load.
+- The save format is version 16: it stores each caster's readied-spell list and
+  the run timer. Saves from earlier versions no longer load.
 - More of the spell catalog carries combat stats. Nine prose-only spells now
   have a cast line (the castable count rose from 51 to 60): Flame Arrow, Haste,
   Vampiric Touch and Grease (magic-user), Trip, Pyrotechnics, Snare and Hold

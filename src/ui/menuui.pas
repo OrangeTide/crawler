@@ -15,7 +15,8 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, uihelp, audio, gamestate, party, chardata,
-  codex, monsters, spelldb, spellbook, spellicon, fieldcast, combatstate, quests;
+  codex, monsters, spelldb, spellbook, spellicon, fieldcast, combatstate, quests,
+  runtimer;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -286,6 +287,9 @@ begin
   { the spells tab fills the foot with its detail box, so hide the hint there }
   if menuTab <> 2 then
     DrawText(12, FBH - 14, 'TAB SWITCH   J/ESC CLOSE', RGB(130, 140, 110));
+  { the run timer sits in the journal tab's foot corner }
+  if menuTab = 0 then
+    DrawText(248, FBH - 14, RunTimeString, RGB(150, 160, 130));
 end;
 
 { The caster the SPELLS tab sits on and its highlighted known spell, as roster

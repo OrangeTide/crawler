@@ -26,6 +26,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
   monsters, dialog, quests, spelldb, spellbook, skilldb, skillbook, shops, encounters,
+  runtimer,
   tilekit, clad, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   fullmapui, menuui, charsheetui, learnspellui, learnskillui, optionsui,
@@ -159,6 +160,9 @@ end;
 
 procedure GameUpdate(dt: double);
 begin
+  { the run timer counts real play time while a run is in progress }
+  if not (State in [gsTitle, gsNewParty, gsGameOver, gsVictory]) then
+    RunTimerTick(dt);
   UpdateLycanthropy;   { the moon acts in every state }
   { a caster that has gained spell slots picks them before play resumes }
   if (State = gsExplore) and (NextLearner >= 0) then State := gsLearnSpell;

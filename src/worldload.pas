@@ -30,7 +30,7 @@ implementation
 uses
   sysutils, pak, world, textures, models, sprites, rng, monsters, encounters,
   mapgen, mapstate, overworld, worldname, worldarea, worldfmt, save, flags,
-  gamestate, pursuit, codex, mappins, apppaths, terrain, heightfmt;
+  gamestate, pursuit, codex, mappins, apppaths, terrain, heightfmt, runtimer;
 
 function SavePath: string;
 begin
@@ -263,6 +263,7 @@ procedure StartGame;
    outside the starter dungeon, a short walk north of town. }
 begin
   FlagsReset;
+  RunTimerReset;                { a fresh run starts its clock at zero }
   MapStateReset;
   PursuitReset;
   CodexReset;                   { a new party knows no monsters yet }

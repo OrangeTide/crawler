@@ -17,7 +17,7 @@ uses
 
 const
   SAVE_MAGIC   = $56415343;  { 'CSAV' }
-  SAVE_VERSION = 15;
+  SAVE_VERSION = 16;
 
 var
   LoadedMapName: string;
@@ -31,7 +31,7 @@ implementation
 
 uses
   classes, sysutils, rules, chardata, gametime, pursuit, gamestate, codex,
-  mappins, beings;
+  mappins, beings, runtimer;
 
 { ---- stream helpers ---- }
 
@@ -202,6 +202,7 @@ begin
     WI32(fs, Round(MoonOffsetDays * 1000.0));
     WI32(fs, TorchFuel);
     WU32(fs, WagesDueClock);
+    WU32(fs, Round(RunSeconds));   { the run timer, whole seconds }
 
     { visited-map snapshots }
     WI32(fs, Length(Snapshots));
@@ -280,6 +281,7 @@ begin
     MoonOffsetDays := RI32(fs) / 1000.0;
     TorchFuel := RI32(fs);
     WagesDueClock := RU32(fs);
+    RunSeconds := RU32(fs);        { the run timer, whole seconds }
 
     MapStateReset;
     n := RI32(fs);

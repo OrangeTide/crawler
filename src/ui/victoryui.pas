@@ -13,7 +13,7 @@ procedure VictoryKeyDown(scancode: longint);
 implementation
 
 uses
-  gfx, uihelp, gamestate;
+  gfx, uihelp, gamestate, runtimer;
 
 procedure VictoryRender;
 begin
@@ -21,7 +21,8 @@ begin
   DrawCenter(72, 'THE GATE STANDS OPEN', RGB(230, 220, 140));
   DrawCenter(88, 'THE LOST CITIES ARE FOUND', RGB(180, 190, 200));
   DrawCenter(104, 'THE SUNLESS DEPTHS AWAIT', RGB(150, 170, 190));
-  DrawCenter(128, 'PRESS A KEY', RGB(130, 140, 150));
+  DrawCenter(128, 'RUN TIME ' + RunTimeString, RGB(200, 200, 160));
+  DrawCenter(152, 'PRESS A KEY', RGB(130, 140, 150));
 end;
 
 procedure VictoryKeyDown(scancode: longint);

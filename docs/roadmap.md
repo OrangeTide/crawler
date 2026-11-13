@@ -253,7 +253,11 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   JOURNAL tab shows active quests with their current objective, marks finished
   ones, and lists events under a LOG heading. Quest state reads from the saved
   flags, so the save is unchanged.
-- [gap] (0.30.0) A run timer or achievements for replay (low priority).
+- [done] (0.30.0) A run timer for replay. Real play time accumulates across a
+  run (a speedrun-style wall clock, not the in-world day-night clock) while the
+  run is in progress, pausing on the title, party creation and the end screens.
+  It shows as H:MM:SS in the JOURNAL foot and on victory, and is saved (format
+  16). Achievements are deferred.
 - [gap] (0.30.0) Evaluate the sprite and portrait file formats from
   ~/DEVEL/dos-rpg for our animated sprites. See its sprfmt.md: the .SPA
   animation bank (named sequences, run-encoded frames that drop the mask plane
@@ -794,15 +798,15 @@ kit rather than the generated cavern.
 Themes C and D, the remaining smaller items gathered into one polish milestone:
 rank capacity by creature size (done), porting the last hardcoded party and class data
 to content files (done), the optional prepared-spell subset (done) and more
-combat-statted spells (a first pass done), the data-driven quest log (done), and
-the low-priority run timer and the dos-rpg sprite-format evaluation. Independent
-of the renderer and map threads. Progress: the data-port cleanup is done
-(starting equipment moved to `content/gear.txt`; the pregen party, name pool and
+combat-statted spells (a first pass done), the data-driven quest log (done), the
+run timer (done), and the dos-rpg sprite-format evaluation. Independent of the
+renderer and map threads. Progress: the data-port cleanup is done (starting
+equipment moved to `content/gear.txt`; the pregen party, name pool and
 char-creation defaults to `content/newgame.txt`), rank capacity by size is in,
 the prepared-spell subset ships behind a toggle, nine more spells gained combat
-stats, and the quest log is data-driven through `content/quests.txt`. What
-remains here is the run timer, the dos-rpg sprite-format evaluation, and further
-spell-stat tuning.
+stats, the quest log is data-driven through `content/quests.txt`, and the run
+timer counts real play time. What remains here is the dos-rpg sprite-format
+evaluation and further spell-stat tuning.
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 

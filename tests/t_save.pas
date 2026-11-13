@@ -7,7 +7,7 @@ program t_save;
 
 uses
   sysutils, pak, rng, rules, items, chardata, mapfmt, world, party, flags,
-  mapstate, gametime, pursuit, monsters, codex, mappins, save, testing;
+  mapstate, gametime, pursuit, monsters, codex, mappins, save, runtimer, testing;
 
 var
   p: TPak;
@@ -51,6 +51,7 @@ begin
   Roster[1].hireling := true;
   Roster[1].wage := 90;
   WagesDueClock := 123456;
+  RunSeconds := 1234.0;
   PartyGold := 137;
   FlagSet('QUEST_X');
   JournalAdd('a journal note');
@@ -84,6 +85,7 @@ begin
   CodexReset;            { clear the codex so the load must restore it }
   PinsReset;             { and the pins }
   WagesDueClock := 0;
+  RunSeconds := 0;
 
   Check(LoadGame(fn), 'load reads');
   CheckEqI(Length(Roster), 2, 'party size restored');
@@ -108,6 +110,7 @@ begin
   Check((Length(Roster) >= 2) and Roster[1].hireling, 'hireling flag restored');
   CheckEqI(Roster[1].wage, 90, 'hireling wage restored');
   CheckEqI(longint(WagesDueClock), 123456, 'the wage due-date restored');
+  CheckEqI(Round(RunSeconds), 1234, 'the run timer restored');
   CheckEqI(ActivePursuerCount, 2, 'both hunters restored');
   Check((Length(Pursuers) >= 2) and (Pursuers[0].mon = 3)
     and (Pursuers[0].map = 'TOWN') and (Pursuers[0].x = 4) and (Pursuers[0].y = 4),
