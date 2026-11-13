@@ -232,9 +232,12 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   caster depth): a caster readies a subset of its known spells per rest, the way
   memorized-spell rules work, instead of casting any known spell at will within
   its point pool.
-- [gap] (0.30.0) Stat more combat-shaped spells. About fifty of the catalog's
-  170 carry a combat line today; the rest fall back to prose only. Extend the
-  thematic combat stats across more of the list as content tuning.
+- [partial] (0.30.0) Stat more combat-shaped spells. The combat-line count rose
+  from 51 to 60: a first pass added cast lines to nine clearly combat-shaped
+  prose-only spells (Flame Arrow, Haste, Vampiric Touch, Grease, Trip,
+  Pyrotechnics, Snare, Hold Plant, Magic Stone), calibrated to the statted
+  spells of each level. The remaining prose-only spells are mostly utility; more
+  of the borderline ones can be statted as content tuning continues.
 
 ### D. Reference, meta, and quality-of-life
 

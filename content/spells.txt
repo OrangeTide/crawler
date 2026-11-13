@@ -302,6 +302,7 @@ spell M_FIREBALL "Fireball" magicuser 3 dodge fire evocation
 spell M_FLAMEARROW "Flame Arrow" magicuser 3 none fire evocation
   icon 24
   "Touched arrows or bolts burn for +1d6 fire, one per Level, one fight."
+  cast 3 enemy damage 2d6 inflict burn
 
 spell M_FLY "Fly" magicuser 3 none none transmutation
   icon 23
@@ -314,6 +315,7 @@ spell M_GUSTOFWIND "Gust of Wind" magicuser 3 none none transmutation
 spell M_HASTE "Haste" magicuser 3 none none transmutation
   icon 40
   "Up to one creature per Level acts twice or moves double, one fight."
+  cast 3 party bless 0d0
 
 spell M_HOLDPERSON "Hold Person" magicuser 3 body none enchantment
   icon 199
@@ -473,6 +475,7 @@ spell D_SPEAKWITHPLANT "Speak with Plants" druid 2 none none
 spell D_TRIP "Trip" druid 2 dodge none
   icon 124
   "A vine, root, or your staff whips out: a moving target in reach saves Dodge or falls prone."
+  cast 2 enemy damage 0d0 inflict offbal
 
 spell D_CUREDISEASE "Cure Disease" druid 3 none none
   icon 66
@@ -487,10 +490,12 @@ spell D_NEUTRALIZEPOIS "Neutralize Poison" druid 3 none none
 spell D_PYROTECHNICS "Pyrotechnics" druid 3 dodge none
   icon 60
   "Spend a nearby fire as blinding fireworks (watchers Dodge or blind a round) or a choking smoke cloud."
+  cast 3 rank damage 0d0 inflict offbal
 
 spell D_SNARE "Snare" druid 3 dodge none
   icon 177
   "Weave a cord, vine, or root into a near-invisible trap. The first to tread it is bound or yanked up, Dodge negates. Holds until sprung."
+  cast 3 enemy damage 0d0 inflict slow
 
 spell D_STONESHAPE "Stone Shape" druid 3 none none
   icon 165
@@ -507,6 +512,7 @@ spell D_WATERBREATHING "Water Breathing" druid 3 none none
 spell D_HOLDPLANT "Hold Plant" druid 3 will none
   icon 127
   "Shamblers, vine horrors, and like growth within Near stop still. Each rolls a Will save; the held are Helpless for 1d4 rounds."
+  cast 3 rank damage 0d0 inflict paral
 
 spell C_CREATEWATER "Create Water" cleric 1 none none
   icon 64
@@ -515,6 +521,7 @@ spell C_CREATEWATER "Create Water" cleric 1 none none
 spell C_MAGICSTONE "Magic Stone" cleric 1 none none
   icon 175
   "Bless up to three sling stones or pebbles. Each throws as a +1 weapon for 1d4, one fight."
+  cast 1 enemy damage 1d4
 
 spell C_DETECTPOISON "Detect Poison" cleric 1 none none
   icon 90
@@ -551,6 +558,7 @@ spell M_COLORSPRAY "Color Spray" magicuser 1 will none illusion
 spell M_GREASE "Grease" magicuser 1 dodge none conjuration
   icon 74
   "A 10 ft patch turns slick, or one held item greasy. A creature caught there saves Dodge or falls prone; a greased grip drops what it holds."
+  cast 1 rank damage 0d0 inflict offbal
 
 spell M_IDENTIFY "Identify" magicuser 1 none none divination
   icon 73
@@ -574,6 +582,7 @@ spell M_SHATTER "Shatter" magicuser 2 body none transmutation
 spell M_VAMPIRICTOUCH "Vampiric Touch" magicuser 3 none none necromancy
   icon 194
   "Your touch deals 1d6 per two Levels and heals you that much. The stolen HP fade at next dawn."
+  cast 3 enemy damage 2d6
 
 spell M_MONSTERSUMMONI "Monster Summoning I" magicuser 3 none none conjuration
   icon 59

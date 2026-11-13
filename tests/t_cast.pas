@@ -55,11 +55,11 @@ begin
   LearnWholeDomain(Roster[0]);
   LearnWholeDomain(Roster[1]);
 
-  { a level-1 Wizard: the three L1 Magic-User combat spells, no L2 yet }
+  { a level-1 Wizard: the six L1 Magic-User combat spells, no L2 yet }
   Active^.CurActor := 0;
   Roster[0].level := 1; ResetSpellList;
   Roster[0].sp := 5;
-  Check(SpellCount = 5, 'a level-1 Wizard lists its five L1 Magic-User spells');
+  Check(SpellCount = 6, 'a level-1 Wizard lists its six L1 Magic-User spells');
   Check(MenuIndexOf('M_MAGICMISSILE') >= 0, 'Magic Missile is castable');
   Check(MenuIndexOf('M_SLEEP') >= 0, 'Sleep is castable at level 1');
   Check(MenuIndexOf('M_ACIDARROW') < 0, 'Acid Arrow (L2) is gated out at level 1');

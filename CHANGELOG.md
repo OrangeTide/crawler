@@ -21,6 +21,12 @@ whose development history is summarized in docs/roadmap.md.
   (default medium); player characters are medium. `t_size` covers the rule.
 
 ### Changed
+- More of the spell catalog carries combat stats. Nine prose-only spells now
+  have a cast line (the castable count rose from 51 to 60): Flame Arrow, Haste,
+  Vampiric Touch and Grease (magic-user), Trip, Pyrotechnics, Snare and Hold
+  Plant (druid), and Magic Stone (cleric). Each is calibrated to its prose and
+  to the already-statted spells of its level; pure-utility spells stay prose
+  only.
 - Starting equipment is data-driven. A new character's gear, the equipped
   weapon, offhand, armor and light plus the starting pack, now comes from a
   `content/gear.txt` table keyed by the class kit archetype, with a common row
