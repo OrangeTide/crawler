@@ -1,0 +1,11 @@
+# Giant mosquito: hovers, darts.
+# GandalfHardcore enemy pack (licensed to the author, not redistributable
+# on its own). 64x64 cells. Row 0 idle, then the action rows. The world
+# view plays IDLE, or WALK when moving, and flips to face the heading.
+
+sheet mosquito.ppm
+cell 64 64
+
+bank MOSQUITO
+seq IDLE loop ticks=3 : row 0 cols 0-3
+seq WALK loop ticks=2 : row 1 cols 0-5

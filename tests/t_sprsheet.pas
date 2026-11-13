@@ -4,7 +4,11 @@ program t_sprsheet;
   female character sheets bake one bank per column through the `sheet` manifest
   (content/banks/sheets/*.sheet). These checks load a few of the baked lumps and
   confirm the slice: each is a bank carrying a 13-frame IDLE cycle of 64x64
-  frames that the store animates like any other bank. }
+  frames that the store animates like any other bank.
+
+  The enemy pack sheets slice by action row instead (idle, walk, attack,
+  death), each row a sequence with its own frame count, so a few of those are
+  checked by sequence to pin the per-row runs. }
 
 {$mode objfpc}{$H+}
 
@@ -29,6 +33,22 @@ begin
   CheckEqI(SpriteReg[idx].bank.seqs[seq].h, 64, lump + ' frame height is 64');
 end;
 
+procedure CheckSeq(const lump, seq: string; frames: longint);
+var idx, s: longint;
+begin
+  idx := LoadSprite(p, lump);
+  Check(idx >= 0, lump + ' loads from the pak');
+  Check(SpriteReg[idx].isBank, lump + ' is a bank');
+  s := SpriteSeqIndex(idx, seq);
+  Check(s >= 0, lump + ' has a ' + seq + ' sequence');
+  if s >= 0 then begin
+    CheckEqI(SpriteReg[idx].bank.seqs[s].frameCount, frames,
+      lump + ' ' + seq + ' frame count');
+    CheckEqI(SpriteReg[idx].bank.seqs[s].w, 64, lump + ' ' + seq + ' width 64');
+    CheckEqI(SpriteReg[idx].bank.seqs[s].h, 64, lump + ' ' + seq + ' height 64');
+  end;
+end;
+
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -41,6 +61,20 @@ begin
   CheckChar('MALE_KNIGHT');
   CheckChar('FEMALE_QUEEN');
   CheckChar('FEMALE_SUCCUBUS');
+
+  { enemy action sheets: per-row sequences with ragged frame counts }
+  CheckSeq('ORC', 'IDLE', 5);
+  CheckSeq('ORC', 'WALK', 8);
+  CheckSeq('ORC', 'ATTACK', 6);
+  CheckSeq('ORC', 'DEATH', 7);
+  CheckSeq('BAT', 'WALK', 6);
+  CheckSeq('BAT', 'DEATH', 6);
+  CheckSeq('PUMPKIN', 'IDLE', 10);
+  CheckSeq('PUMPKIN', 'ATTACK', 9);
+  Check(SpriteSeqIndex(LoadSprite(p, 'PUMPKIN'), 'WALK') < 0,
+    'the rooted pumpkin has no WALK sequence');
+  CheckSeq('FLYINGWITCH', 'ATTACK', 8);
+  CheckSeq('MUSHROOM', 'WALK', 5);
 
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');

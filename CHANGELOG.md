@@ -15,11 +15,14 @@ whose development history is summarized in docs/roadmap.md.
   cell grid and carves it into banks, a column or a row run of cells per
   sequence, baked through a new `mkassets` `sheet` verb. The GandalfHardcore
   male and female character sheets come in this way as twenty animated NPC banks
-  (`MALE_*`, `FEMALE_*`), each a 13-frame idle/walk cycle the world view
-  animates and flips. The source sheet PNGs are licensed art kept out of git
-  (`content/banks/sheets/.gitignore`); the build slices whichever PNGs are
-  present, so a clone without them bakes no sheets. `t_sprsheet` pins the baked
-  lumps and their frames.
+  (`MALE_*`, `FEMALE_*`), each a 13-frame idle cycle the world view animates and
+  flips. The GandalfHardcore enemy pack adds twelve creature banks (`ORC`,
+  `RAT`, `LAMIA`, `BARELAMIA`, `MIMIC`, `MUSHROOM`, `PLANT`, `BAT`,
+  `FLYINGWITCH`, `MOSQUITO`, `FLYINGEYE`, `PUMPKIN`), sliced by action row into
+  idle, walk, attack and death sequences as each creature has them. The source
+  sheet PNGs are licensed art kept out of git (`content/banks/sheets/.gitignore`);
+  the build slices whichever PNGs are present, so a clone without them bakes no
+  sheets. `t_sprsheet` pins the baked lumps and their frames.
 - The sprite animation bank format (design section 27), phase one. A new `SPBK`
   lump holds many named sequences (IDLE, WALKN, HURT), each with its own
   bounding box, a shared anchor, a loop mode, a mirror hint and default frame

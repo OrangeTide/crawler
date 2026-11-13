@@ -1,0 +1,12 @@
+# Cave bat: flaps in place or flies, no attack row.
+# GandalfHardcore enemy pack (licensed to the author, not redistributable
+# on its own). 64x64 cells. Row 0 idle, then the action rows. The world
+# view plays IDLE, or WALK when moving, and flips to face the heading.
+
+sheet bat.ppm
+cell 64 64
+
+bank BAT
+seq IDLE  loop ticks=3 : row 0 cols 0-3
+seq WALK  loop ticks=2 : row 1 cols 0-5
+seq DEATH once ticks=3 : row 2 cols 0-5

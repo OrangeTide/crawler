@@ -281,7 +281,9 @@ of this file.
 content/banks/sheets holds the sheet PNGs and their sliced banks. Each sheet is
 a grid of 64x64 cells, a column per character and a row per animation frame; the
 offline sheet slicer (tools/mkassets `sheet` verb) carves each column into a
-bank lump. The male and female character sheets are imported so far:
+bank lump. The character grids give one bank per column (a 13-frame idle cycle);
+the enemy sheets give one bank per creature, sliced by action row (idle, walk,
+attack, death), each row a sequence with its own frame count. Imported so far:
 
   male.sheet    MALE_GUARD, MALE_PEASANT, MALE_CULTIST, MALE_MERCENARY,
                 MALE_BISHOP, MALE_SOLDIER, MALE_DWARF, MALE_KING, MALE_HUNTER,
@@ -289,6 +291,10 @@ bank lump. The male and female character sheets are imported so far:
   female.sheet  FEMALE_QUEEN, FEMALE_DRYAD, FEMALE_NUN, FEMALE_BARLADY,
                 FEMALE_MAID, FEMALE_KNIGHT, FEMALE_VAMPIRE, FEMALE_MERCHANT,
                 FEMALE_SUCCUBUS
+  enemy pack    ORC, RAT, LAMIA, BARELAMIA, MIMIC, MUSHROOM, PLANT (idle, walk,
+                attack, death); BAT (idle, walk, death); FLYINGWITCH, PUMPKIN
+                (idle, attack, death); MOSQUITO, FLYINGEYE (idle, walk). One
+                .sheet manifest per creature PNG (orc.sheet, rat.sheet, ...).
 
 Because the pack terms forbid redistributing the art on its own, keep the sheet
 PNGs out of any public mirror of this repository, or replace them there with the

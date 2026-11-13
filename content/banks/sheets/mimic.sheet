@@ -1,0 +1,13 @@
+# Mimic: a treasure chest until it opens. Idle is one closed frame.
+# GandalfHardcore enemy pack (licensed to the author, not redistributable
+# on its own). 64x64 cells. Row 0 idle, then the action rows. The world
+# view plays IDLE, or WALK when moving, and flips to face the heading.
+
+sheet mimic.ppm
+cell 64 64
+
+bank MIMIC
+seq IDLE   loop ticks=6 : row 0 cols 0-0
+seq WALK   loop ticks=2 : row 1 cols 0-7
+seq ATTACK once ticks=2 : row 2 cols 0-5
+seq DEATH  once ticks=3 : row 3 cols 0-6

@@ -1,0 +1,12 @@
+# Pumpkin: a rooted jack-o-lantern, bites, bursts. It does not walk.
+# GandalfHardcore enemy pack (licensed to the author, not redistributable
+# on its own). 64x64 cells. Row 0 idle, then the action rows. The world
+# view plays IDLE, or WALK when moving, and flips to face the heading.
+
+sheet pumpkin.ppm
+cell 64 64
+
+bank PUMPKIN
+seq IDLE   loop ticks=4 : row 0 cols 0-9
+seq ATTACK once ticks=2 : row 1 cols 0-8
+seq DEATH  once ticks=3 : row 2 cols 0-6
