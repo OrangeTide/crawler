@@ -1,0 +1,5 @@
+# Acolyte billboard as a single-sequence IDLE bank (design section 27). One
+# frame, the same art the plain CREA15 sprite baked, so the combat and world
+# billboards are unchanged. Animation frames get added here later.
+
+seq IDLE loop : ../sprites/crea15.ppm

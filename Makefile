@@ -126,7 +126,16 @@ HEIGHTSRC = $(foreach n,$(HEIGHTNAMES),content/heightmaps/$(n).ppm)
 # Baked to an uppercase SPBK lump via the bank verb. Frames reuse the same
 # magenta-keyed sprite PPMs as the billboards, so their sources come in through
 # SPRITESRC; the manifests are the extra dependency here.
-BANKIDS   = BANK_SMOKE:content/banks/smoke.txt
+# Monster billboards migrated to single-sequence IDLE banks (design section 27,
+# phase three). Their frame PPMs are still generated through SPRITENAMES, but
+# they bake as a bank under the same CREA<N> lump id, not a plain sprite, so the
+# combat and world billboards are unchanged. SPRITEBAKE is the sprites still
+# baked the plain way.
+BANKSPRITES = crea7 crea15
+SPRITEBAKE  = $(filter-out $(BANKSPRITES),$(SPRITENAMES))
+BANKIDS   = BANK_SMOKE:content/banks/smoke.txt \
+            CREA7:content/banks/crea7.txt \
+            CREA15:content/banks/crea15.txt
 BANKSRC   = $(foreach b,$(BANKIDS),$(word 2,$(subst :, ,$(b))))
 BANKARGS  = $(foreach b,$(BANKIDS),bank $(word 1,$(subst :, ,$(b))) $(word 2,$(subst :, ,$(b))))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(GEAR) $(NEWGAME) $(QUESTS) $(DIALOGS) \
@@ -190,7 +199,7 @@ build/clut/clut_$(1).ppm: $(CLUT_$(1)) | build/clut
 endef
 $(foreach t,$(CLUTTILES),$(eval $(call CLUT_RULE,$(t))))
 
-SPRITEARGS = $(foreach n,$(SPRITENAMES),sprite $(n) content/sprites/$(n).ppm)
+SPRITEARGS = $(foreach n,$(SPRITEBAKE),sprite $(n) content/sprites/$(n).ppm)
 HEIGHTARGS = $(foreach n,$(HEIGHTNAMES),heightmap $(n) content/heightmaps/$(n).ppm)
 PORTRAITARGS = $(foreach n,$(PORTRAITNAMES),sprite $(n) content/portraits/$(n).ppm)
 PCPORTRAITARGS = $(foreach i,$(PCPORTRAITIDS),sprite port_pc$(i) content/portraits/pc$(i).ppm)

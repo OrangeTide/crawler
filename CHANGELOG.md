@@ -18,8 +18,10 @@ whose development history is summarized in docs/roadmap.md.
   verb. The sprite store sniffs the lump magic, so a bank and a plain PIC share
   one id and every existing draw caller keeps working: a bank exposes its first
   frame as the legacy image, with `SpriteSeqIndex` and `SpriteFrame` for the
-  sequences. Nothing animates yet. `t_sprbank` round-trips the directory,
-  decodes frames, and covers the store path.
+  sequences. The skeleton and acolyte billboards (CREA7, CREA15) are now
+  single-sequence IDLE banks under their original lump ids, rendering
+  pixel-identically. Nothing animates yet. `t_sprbank` round-trips the
+  directory, decodes frames, covers the store path, and pins the migration.
 - A run timer. Real play time accumulates across a playthrough (a speedrun-style
   wall clock, not the in-world day-night clock) while the run is in progress, and
   pauses on the title, during party creation, and at the game-over and victory

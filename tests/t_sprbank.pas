@@ -75,6 +75,13 @@ begin
     'store decodes a bank frame');
   CheckEqI(img.w, 64, 'store frame width');
 
+  { the migrated monster billboards are single-sequence IDLE banks }
+  si := LoadSprite(p, 'CREA7');
+  Check((si >= 0) and SpriteReg[si].isBank, 'CREA7 skeleton is a bank');
+  Check(SpriteSeqIndex(si, 'IDLE') >= 0, 'CREA7 has an IDLE sequence');
+  si := LoadSprite(p, 'CREA15');
+  Check((si >= 0) and SpriteReg[si].isBank, 'CREA15 acolyte is a bank');
+
   { a plain PIC sprite is not a bank and has no sequences }
   si := LoadSprite(p, 'CREA1');
   Check(si >= 0, 'store loads a plain sprite');
