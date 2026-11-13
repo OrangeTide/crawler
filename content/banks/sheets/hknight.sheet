@@ -1,0 +1,14 @@
+# Heavy shield knight (HKNIGHT): 91x64, 5-wide 12-row sheet. idle 0-4, walk 15-19, attack 10-14, block 30-34, death 55-59; extra swing and bash rows left out.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet hknight.ppm
+cell 91 64
+
+bank HKNIGHT
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 15-19
+seq ATTACK once ticks=2 : lin 10-14
+seq BLOCK  loop ticks=4 : lin 30-34
+seq DEATH  once ticks=3 : lin 55-59

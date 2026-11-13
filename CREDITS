@@ -321,6 +321,8 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 gallop, death.
   agent soldier AGENT (+_GREEN), 64x64, idle, walk, shoot, death; the many
                 aim-angle and prone rows are left unimported.
+  heavy knight  HKNIGHT and seven recolors, 91x64, idle, walk, attack, block,
+                death (the pack's extra sheet2 and run strips are not imported).
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

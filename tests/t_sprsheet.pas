@@ -161,6 +161,10 @@ begin
   CheckSeq('AGENT', 'WALK', 8);
   CheckSeq('AGENT_GREEN', 'DEATH', 8);
 
+  CheckSeqWH('HKNIGHT', 'IDLE', 5, 91, 64);
+  CheckSeqWH('HKNIGHT', 'BLOCK', 5, 91, 64);
+  CheckSeqWH('HKNIGHT_RED', 'DEATH', 5, 91, 64);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');
