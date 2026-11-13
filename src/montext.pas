@@ -36,7 +36,7 @@ function ParseMonsters(const fn: string; out defs: array of TMonsterDef;
 implementation
 
 uses
-  classes, sysutils, beings;
+  classes, sysutils, beings, rules;
 
 { Map one element name to its EL_* flag, or 0 if unknown. }
 function ElemFlag(const s: string): byte;
@@ -124,6 +124,7 @@ begin
       end;
       if count > High(defs) then begin err := 'too many monsters'; exit; end;
       FillChar(d, SizeOf(d), 0);
+      d.size := SZ_MEDIUM;   { the default unless a size: tag says otherwise }
       d.id := parts[1];
       d.name := name;
       d.hd := StrToInt(parts[2]);
@@ -150,6 +151,18 @@ begin
           else if key = 'inflict' then d.inflict := FlagList(val, false)
           else if key = 'statusimm' then d.statusImm := FlagList(val, false)
           else if key = 'gender' then d.gender := GenderFromStr(val)
+          else if key = 'size' then begin
+            case LowerCase(val) of
+              'tiny':     d.size := SZ_TINY;
+              'small':    d.size := SZ_SMALL;
+              'medium':   d.size := SZ_MEDIUM;
+              'large':    d.size := SZ_LARGE;
+              'huge':     d.size := SZ_HUGE;
+              'colossal': d.size := SZ_COLOSSAL;
+            else
+              err := 'line ' + IntToStr(li + 1) + ': bad size ' + val; exit;
+            end;
+          end
           else if key = 'harry' then begin
             if LowerCase(val) = 'taunt' then d.harry := HARRY_TAUNT
             else if LowerCase(val) = 'throw' then d.harry := HARRY_THROW

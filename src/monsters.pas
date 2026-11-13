@@ -12,7 +12,7 @@ unit monsters;
 interface
 
 uses
-  pak, beings;
+  pak, beings, rules;
 
 const
   MONS_MAGIC = $534E4F4D;  { 'MONS' little-endian }
@@ -68,6 +68,7 @@ type
     statusImm: byte;   { ST_* set it cannot suffer }
     harry: byte;       { HARRY_* ranged disruption trick, 0 = none }
     gender: TGender;   { species-level default, usually unspecified }
+    size: byte;        { SZ_* body size; drives rank bulk, default medium }
   end;
 
 var
@@ -127,6 +128,7 @@ begin
     PutB(a, n, defs[i].statusImm);
     PutB(a, n, defs[i].harry);
     PutB(a, n, GenderToByte(defs[i].gender));
+    PutB(a, n, defs[i].size);
   end;
   SetLength(a, n);
   EncodeMonsters := a;
@@ -179,6 +181,8 @@ begin
     MonDefs[i].statusImm := blob[pos]; inc(pos);
     MonDefs[i].harry := blob[pos]; inc(pos);
     MonDefs[i].gender := GenderFromByte(blob[pos]); inc(pos);
+    if pos < Length(blob) then begin MonDefs[i].size := blob[pos]; inc(pos); end
+    else MonDefs[i].size := SZ_MEDIUM;
   end;
   LoadMonsters := true;
 end;

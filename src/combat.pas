@@ -42,6 +42,10 @@ procedure ActFlee;
 procedure ActSkip;
 procedure ActUseItem(slot, target: longint);
 procedure NextTarget;
+{ Whether the given party member may fall back to the rear rank: it must be
+  in front now, and the front must still carry at least the back's bulk after
+  it leaves, so no back-rank ally is left without cover. }
+function CanFallBack(idx: longint): boolean;
 
 { ---- turn pacing ---- }
 { Advance the combat clock; the game calls this each frame while fighting.
@@ -356,13 +360,64 @@ end;
 
 { ---- setup ---- }
 
+{ Summed bulk of the party's two ranks, over members that are up (alive and
+  not downed), since a fallen body gives no cover. }
+procedure PartyBulk(out frontB, backB: longint);
+var i: longint;
+begin
+  frontB := 0; backB := 0;
+  for i := 0 to High(Roster) do
+    if Roster[i].alive and not Roster[i].downed then
+      if Roster[i].rank = RANK_FRONT then
+        frontB := frontB + SizeBulk(Roster[i].size)
+      else
+        backB := backB + SizeBulk(Roster[i].size);
+end;
+
+function CanFallBack(idx: longint): boolean;
+var frontB, backB, myB: longint;
+begin
+  CanFallBack := false;
+  if (idx < 0) or (idx > High(Roster)) then exit;
+  if Roster[idx].rank <> RANK_FRONT then exit;
+  PartyBulk(frontB, backB);
+  myB := SizeBulk(Roster[idx].size);
+  { after the step the member counts toward the back rank instead of the front }
+  CanFallBack := (frontB - myB) >= (backB + myB);
+end;
+
+{ Promote the largest back-rank foes to the front until the front rank carries
+  at least as much bulk as the back, so every back foe has cover. }
+procedure EnforceFoeCover;
+var i, fB, bB, big, bigBulk, b: longint;
+begin
+  repeat
+    fB := 0; bB := 0;
+    for i := 0 to High(Active^.Foes) do
+      if Active^.Foes[i].alive then
+        if Active^.Foes[i].rank = RANK_FRONT then
+          fB := fB + SizeBulk(MonDefs[Active^.Foes[i].def].size)
+        else
+          bB := bB + SizeBulk(MonDefs[Active^.Foes[i].def].size);
+    if fB >= bB then exit;
+    big := -1; bigBulk := -1;
+    for i := 0 to High(Active^.Foes) do
+      if Active^.Foes[i].alive and (Active^.Foes[i].rank = RANK_BACK) then begin
+        b := SizeBulk(MonDefs[Active^.Foes[i].def].size);
+        if b > bigBulk then begin bigBulk := b; big := i; end;
+      end;
+    if big < 0 then exit;   { nothing left in back to promote }
+    Active^.Foes[big].rank := RANK_FRONT;
+  until false;
+end;
+
 procedure BuildEncounter(depth, tableNum, leadMon: longint);
 {** Build a fight. When leadMon is a valid monster index the first foe is
   that monster (a caught pursuer joins the fight it caused); otherwise all
   foes are drawn from the area table. With leadMon = -1 the draw is
   identical to a plain random encounter. }
 var
-  pick, count, i, j, front, npool, e, mi, wrep: longint;
+  pick, count, i, j, npool, e, mi, wrep: longint;
   pool: array of longint;
 begin
   SetLength(Active^.Foes, 0);
@@ -402,7 +457,6 @@ begin
   count := 1 + Range(0, 2) + (depth div 3);
   if count > MAX_FOES then count := MAX_FOES;
   SetLength(Active^.Foes, count);
-  front := 0;
   for i := 0 to count - 1 do begin
     pick := pool[Range(0, npool - 1)];
     { the lead foe is the pursuer when one is named; the draw above still
@@ -414,19 +468,20 @@ begin
     if Active^.Foes[i].hp < 1 then Active^.Foes[i].hp := 1;
     Active^.Foes[i].hpMax := Active^.Foes[i].hp;
     Active^.Foes[i].alive := true;
-    { ranged monsters hang back; melee forms a front line, up to three }
-    if ((MonDefs[pick].flags and MF_RANGED) <> 0) or (front >= 3) then
+    { ranged monsters hang back; melee forms the front line. Size then settles
+      the ranks: EnforceFoeCover below promotes foes until the front carries at
+      least the back's bulk. }
+    if (MonDefs[pick].flags and MF_RANGED) <> 0 then
       Active^.Foes[i].rank := RANK_BACK
-    else begin
-      Active^.Foes[i].rank := RANK_FRONT; inc(front);
-    end;
+    else
+      Active^.Foes[i].rank := RANK_FRONT;
     { caster and healer foes carry a small pool of spell points }
     if (MonDefs[pick].flags and (MF_MAGE or MF_HEALER)) <> 0 then
       Active^.Foes[i].sp := 4 + depth
     else
       Active^.Foes[i].sp := 0;
   end;
-  if front = 0 then Active^.Foes[0].rank := RANK_FRONT;   { someone must be reachable }
+  EnforceFoeCover;   { front bulk >= back bulk, and so someone is reachable }
   Active^.FoesAtStart := count;
 
   { rebuild the per-caster spell lists in case the party changed or levelled.
@@ -582,6 +637,12 @@ begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
   { step between the front line and the back; this spends the move slot }
   if Roster[Active^.CurActor].rank = RANK_FRONT then begin
+    { falling back needs enough bulk left in front to cover the rear }
+    if not CanFallBack(Active^.CurActor) then begin
+      CombatLog(Roster[Active^.CurActor].name
+        + ' holds the line; the front is too thin to fall back.');
+      exit;   { an illegal move spends nothing }
+    end;
     Roster[Active^.CurActor].rank := RANK_BACK;
     CombatLog(Roster[Active^.CurActor].name + ' falls back.');
   end else begin

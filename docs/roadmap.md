@@ -206,17 +206,19 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### C. RPG systems depth (design section 16)
 
-- [gap] (0.30.0) Rank capacity by creature size. The front rank must hold at
+- [done] (0.30.0) Rank capacity by creature size. The front rank must hold at
   least as much bulk as the back rank, so a back-rank combatant always has cover
   in front of it. Each creature counts as a size multiplier: tiny 1/4, small
-  1/2, medium 1, large 2, huge 3, colossal 4. The front rank's summed size must
-  be greater than or equal to the back rank's, which lets several small
-  creatures shelter behind one big one (up to eight tiny behind a single large).
-  This gates the combat MOVE between ranks and the initial encounter layout.
-  Combat does not enforce this yet: ActMove swaps a member's rank freely and the
-  encounter builder caps the front line at three bodies without weighing size,
-  so the back-rank cover rule the user specified is unimplemented. Needs a size
-  field on the monster and character records to drive the summed-bulk check.
+  1/2, medium 1, large 2, huge 3, colossal 4 (stored as quarter-unit bulk: 1, 2,
+  4, 8, 12, 16). The front rank's summed bulk must be greater than or equal to
+  the back rank's, which lets several small creatures shelter behind one big one
+  (up to eight tiny behind a single large). Monster and character records now
+  carry a size field: monsters from a `size:` tag in `content/monsters.txt`
+  (default medium), characters medium. `ActMove` forbids a fall-back that would
+  leave the rear uncovered (`CanFallBack`), and the encounter builder promotes
+  foes to the front until it covers the back (`EnforceFoeCover`) instead of the
+  old flat three-body cap. `t_size` pins the weights, the baked sizes, the
+  encounter invariant, and the fall-back gate.
 - [done] (0.30.0) Port the remaining hardcoded party and class data to content
   files. The designer-tunable tables that lived in Pascal literals now load from
   content lumps with parsers, the way classes, monsters, and spells do: starting
@@ -778,7 +780,7 @@ kit rather than the generated cavern.
 ### 0.30.0 Systems depth and data cleanup (S/M)
 
 Themes C and D, the remaining smaller items gathered into one polish milestone:
-rank capacity by creature size, porting the last hardcoded party and class data
+rank capacity by creature size (done), porting the last hardcoded party and class data
 to content files (which the data-driven constraint demands), the optional
 prepared-spell subset and more combat-statted spells, the fuller quest log now
 that 0.24.0's content shipped, and the low-priority run timer and the dos-rpg

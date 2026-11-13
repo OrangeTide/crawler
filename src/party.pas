@@ -60,6 +60,7 @@ type
     lycan: boolean;      { cursed with lycanthropy }
     wereform: boolean;   { transformed now, set by the full moon }
     rank: byte;          { 0 front line, 1 back line, for combat reach }
+    size: byte;          { SZ_* body size; drives rank bulk, default medium }
     sp: smallint;        { spell points available this fight }
     hireling: boolean;   { a temporary hire, owed wages each lunar month }
     wage: smallint;      { their recruitment cost, also the monthly upkeep }
@@ -382,6 +383,7 @@ begin
     c.rank := 1
   else
     c.rank := 0;
+  c.size := SZ_MEDIUM;   { player characters are medium bodies }
   c.sp := CharSpellPoints(c);   { a full spell pool, restored later by rest }
   c.known := nil;
   c.portrait := 0;

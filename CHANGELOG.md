@@ -9,6 +9,17 @@ whose development history is summarized in docs/roadmap.md.
 
 ## [Unreleased]
 
+### Added
+- Rank capacity by creature size. Every combatant carries a size class (tiny,
+  small, medium, large, huge, colossal) with a bulk weight, and a rank's cover
+  is its summed bulk. The front rank must hold at least as much bulk as the
+  back, so a back-rank body always has cover and several small foes can shelter
+  behind one large one. This gates the combat MOVE (a front member cannot fall
+  back if it would leave the rear exposed) and the encounter layout (foes are
+  promoted to the front until it covers the back, replacing the old flat
+  three-body cap). Monster sizes come from a `size:` tag in `content/monsters.txt`
+  (default medium); player characters are medium. `t_size` covers the rule.
+
 ### Changed
 - Starting equipment is data-driven. A new character's gear, the equipped
   weapon, offhand, armor and light plus the starting pack, now comes from a

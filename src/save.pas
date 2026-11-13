@@ -157,6 +157,7 @@ begin
   RChar.skillSlots := s.ReadByte;
   RChar.mended := s.ReadByte <> 0;
   RChar.wereform := false;   { recomputed from the moon on the next frame }
+  RChar.size := SZ_MEDIUM;   { PCs are medium; a combat attribute, not saved }
 end;
 
 function SaveGame(const fn: string): boolean;

@@ -8,26 +8,28 @@
 # desert, frozen, volcanic, crypt, cave, infernal. It drives both the
 # encounter table and the per-area sprite cache.
 # Trailing tags tune combat: elem: weak: resist: immune: inflict: statusimm:
-#   harry:
+#   harry: size:
 # Elements: phys fire frost shock holy.
 # Statuses: poison stun slow burn fear paralyze.
 # harry: a brute's ranged disruption, taunt (off balance) or throw (lob).
+# size: body bulk for combat ranks, tiny small medium large huge colossal
+#   (default medium). The front rank must carry at least the back's bulk.
 # Undead (flag 1) are holy-weak and poison-immune by default.
-mon RAT      1 11 1 3 2 2  25 0 CREA4  forest+cave          inflict:disease "Giant Rat"
-mon BAT      1 12 1 3 2 5  25 0 CREA5  cave+forest          inflict:disease "Cave Bat"
-mon GOBLIN   1 13 1 6 4 3  25 0 CREA1  forest+cave          harry:taunt "Goblin"
-mon KOBOLD   1 12 1 4 3 3  25 0 CREA6  cave                 "Kobold"
+mon RAT      1 11 1 3 2 2  25 0 CREA4  forest+cave          inflict:disease size:small "Giant Rat"
+mon BAT      1 12 1 3 2 5  25 0 CREA5  cave+forest          inflict:disease size:tiny "Cave Bat"
+mon GOBLIN   1 13 1 6 4 3  25 0 CREA1  forest+cave          harry:taunt size:small "Goblin"
+mon KOBOLD   1 12 1 4 3 3  25 0 CREA6  cave                 size:small "Kobold"
 mon SKELETON 1 12 1 6 4 2  25 1 CREA7  crypt                resist:phys "Skeleton"
 mon ZOMBIE   2 11 2 6 5 1  50 1 FLESH1 crypt+infernal       inflict:paralyze "Zombie"
 mon ORC      1 13 1 8 4 2  25 0 CREA2  forest+cave          harry:throw "Orc"
-mon SPIDER   1 13 1 4 3 4  25 0 CREA8  forest+cave+crypt    inflict:poison "Giant Spider"
-mon CRAB     1 14 1 6 2 1  25 0 CREA9  coast                resist:phys weak:shock "Shore Crab"
-mon WOLF     2 13 2 6 3 5  50 0 CREA10 forest+frozen        resist:frost "Dire Wolf"
+mon SPIDER   1 13 1 4 3 4  25 0 CREA8  forest+cave+crypt    inflict:poison size:large "Giant Spider"
+mon CRAB     1 14 1 6 2 1  25 0 CREA9  coast                resist:phys weak:shock size:small "Shore Crab"
+mon WOLF     2 13 2 6 3 5  50 0 CREA10 forest+frozen        resist:frost size:large "Dire Wolf"
 mon BANDIT   1 12 1 6 4 3  25 0 CREA16 forest+coast+desert  harry:throw "Bandit"
 mon GHOUL    2 13 2 6 5 3  50 1 CREA11 crypt                inflict:stun "Ghoul"
-mon IMP      1 13 1 4 3 4  25 2 CREA12 volcanic+infernal    elem:fire immune:fire weak:frost inflict:burn "Imp"
+mon IMP      1 13 1 4 3 4  25 2 CREA12 volcanic+infernal    elem:fire immune:fire weak:frost inflict:burn size:small "Imp"
 mon OOZE     2 10 2 6 4 1  50 0 FLESH2 cave+crypt           resist:phys weak:fire inflict:poison "Grey Ooze"
-mon WEREWOLF 4 14 4 8 8 4 180 4 CREA14 frozen+infernal      resist:phys weak:holy inflict:fear "Werewolf"
+mon WEREWOLF 4 14 4 8 8 4 180 4 CREA14 frozen+infernal      resist:phys weak:holy inflict:fear size:large "Werewolf"
 mon CULTIST  2 12 2 4 3 3  60 10 CREA3 crypt+infernal+desert elem:fire inflict:burn "Cultist"
 mon ACOLYTE  2 12 2 3 4 3  60 18 CREA15 forest+coast+crypt   "Acolyte"
-mon DEMON    8 17 6 10 6 3 500 0 CREA13 infernal  elem:fire resist:fire weak:holy inflict:fear "Demon Lord"
+mon DEMON    8 17 6 10 6 3 500 0 CREA13 infernal  elem:fire resist:fire weak:holy inflict:fear size:huge "Demon Lord"
