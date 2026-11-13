@@ -343,6 +343,13 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 FAIRY, FEMWIZARD, MAGE, SERVANT, NOBLELADY, NUN, SCRIBE,
                 INQUISITOR, TOWNCRIER, WIZARDTOAD, WOUNDEDKNIGHT, TOAD, READER,
                 FLOWERDRYAD. The pack's bare/bathing/bikini sheets are skipped.
+  npc pack 2    clean NPCs from the characters-npc pack (64x64): ARTLADY,
+                BABAYAGA, BARD, BISHOP, BUTCHER, DRUID, ELFARCHER, EVILWIZARD,
+                JMUSICIAN, KNEELKNIGHT, PIRATE, PUMPKINKNIGHT, RATTHIEF,
+                SEAMSTRESS, SITWITCH, STEAMPUNKER, SWORDSPIRIT, WITCHBROOM,
+                WITCHCHEST. Most are a single idle row; DRUID, EVILWIZARD,
+                KNEELKNIGHT, and SITWITCH also carry a walk row. The pack's
+                suggestive sheets are skipped.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

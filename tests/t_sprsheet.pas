@@ -189,6 +189,10 @@ begin
   CheckSeq('COACHWOMAN', 'IDLE', 5);
   CheckSeq('COACHWOMAN', 'WALK', 8);
 
+  { the registry holds 64 resident sprites; the slice checks above are done
+    with their banks, so free the slots before loading the collection packs }
+  SpritesReset;
+
   { collection-pack NPCs (clean subset): single-row idles and idle+walk pairs }
   CheckSeq('CRUSADER', 'IDLE', 5);
   CheckSeq('BEGGAR', 'IDLE', 5);
@@ -197,6 +201,24 @@ begin
   CheckSeq('NUN', 'WALK', 8);
   CheckSeq('BARONESS', 'WALK', 8);
   CheckSeq('SCRIBE', 'WALK', 8);
+
+  { second collection pack (clean subset): single-row idles, a few idle+walk }
+  CheckSeq('PIRATE', 'IDLE', 5);
+  CheckSeq('BARD', 'IDLE', 5);
+  CheckSeq('BISHOP', 'IDLE', 5);
+  CheckSeq('BABAYAGA', 'IDLE', 5);
+  CheckSeq('ELFARCHER', 'IDLE', 12);
+  CheckSeq('JMUSICIAN', 'IDLE', 10);
+  CheckSeq('PUMPKINKNIGHT', 'IDLE', 16);
+  CheckSeq('SWORDSPIRIT', 'IDLE', 12);
+  CheckSeq('DRUID', 'IDLE', 5);
+  CheckSeq('DRUID', 'WALK', 8);
+  CheckSeq('KNEELKNIGHT', 'IDLE', 8);
+  CheckSeq('KNEELKNIGHT', 'WALK', 8);
+  CheckSeq('EVILWIZARD', 'IDLE', 12);
+  CheckSeq('EVILWIZARD', 'WALK', 12);
+  CheckSeq('SITWITCH', 'IDLE', 5);
+  CheckSeq('SITWITCH', 'WALK', 5);
 
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');

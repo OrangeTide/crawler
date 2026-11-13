@@ -1,0 +1,10 @@
+# ARTLADY NPC (idle cycle).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet artlady.ppm
+cell 64 64
+
+bank ARTLADY
+seq IDLE loop ticks=4 : lin 0-6
