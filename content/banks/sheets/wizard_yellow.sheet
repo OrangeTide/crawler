@@ -1,0 +1,14 @@
+# Wizard (Yellow recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet wizard_yellow.ppm
+cell 64 64
+
+bank WIZARD_YELLOW
+seq IDLE  loop ticks=4 : lin 0-5
+seq WALK  loop ticks=3 : lin 6-11
+seq CAST  once ticks=2 : lin 12-17
+seq HURT  once ticks=3 : lin 48-53
+seq DEATH once ticks=3 : lin 60-64

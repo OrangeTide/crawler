@@ -133,6 +133,13 @@ begin
   CheckSeqWH('ANGEL', 'IDLE', 8, 96, 96);
   CheckSeqWH('ANGEL', 'WALK', 10, 96, 96);
 
+  CheckSeq('WIZARD', 'IDLE', 6);
+  CheckSeq('WIZARD', 'CAST', 6);
+  CheckSeq('WIZARD_RED', 'DEATH', 5);
+  CheckSeq('ALIEN', 'IDLE', 5);
+  CheckSeq('ALIEN', 'WALK', 8);
+  CheckSeq('ALIEN', 'ATTACK', 5);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

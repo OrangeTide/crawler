@@ -1,0 +1,13 @@
+# Alien gunner: 64x64. idle 0-4, run as walk 16-23, shoot 32-36, death 48-54; run-and-gun rows left unimported.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet alien.ppm
+cell 64 64
+
+bank ALIEN
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 16-23
+seq ATTACK once ticks=2 : lin 32-36
+seq DEATH  once ticks=3 : lin 48-54

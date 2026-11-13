@@ -308,6 +308,10 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 _RED, _WHITE, _YELLOW), 96x64 cells, idle, walk, attack, hurt,
                 death; the many extra slash and spin rows are left unimported.
   angel         ANGEL, 96x96 cells, idle, flight (as walk), a light cast.
+  wizard        WIZARD and seven recolors (_BLACK, _BROWN, _GREEN, _PURPLE,
+                _RED, _WHITE, _YELLOW), idle, walk, cast, hurt, death; the many
+                extra spell rows are left unimported.
+  alien         ALIEN gunner, idle, walk, shoot, death (run-and-gun rows out).
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
