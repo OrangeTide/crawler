@@ -1,0 +1,10 @@
+# Sleeping dragon (breathing idle cycle).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet dragon.ppm
+cell 208 128
+
+bank DRAGON
+seq IDLE loop ticks=5 : lin 0-24

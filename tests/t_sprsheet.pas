@@ -220,6 +220,20 @@ begin
   CheckSeq('SITWITCH', 'IDLE', 5);
   CheckSeq('SITWITCH', 'WALK', 5);
 
+  { special-size sheets: a wide tiger, the ferryman's boat, a fallen knight,
+    and a 208x128 dragon whose frames exceed the old 64 KB per-sequence cap }
+  CheckSeqWH('TIGER', 'IDLE', 10, 80, 64);
+  CheckSeqWH('FERRYMAN', 'IDLE', 20, 96, 64);
+  CheckSeq('FALLENKNIGHT', 'IDLE', 12);
+  CheckSeqWH('DRAGON', 'IDLE', 25, 208, 128);
+  { the dragon's first frame is over 64 KB, so the u32 frame-offset table is
+    what lets it decode; a u16 table would truncate the length }
+  si := LoadSprite(p, 'DRAGON');
+  sq := SpriteSeqIndex(si, 'IDLE');
+  Check(SpriteFrame(si, sq, 0, img), 'a >64 KB bank frame decodes');
+  CheckEqI(img.w, 208, 'dragon frame width is 208');
+  Check(SpriteFrame(si, sq, 24, img), 'the last dragon frame decodes');
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

@@ -1,0 +1,10 @@
+# Ferryman NPC (poling his boat; idle cycle).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet ferryman.ppm
+cell 96 64
+
+bank FERRYMAN
+seq IDLE loop ticks=4 : lin 0-19

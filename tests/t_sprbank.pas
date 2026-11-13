@@ -17,6 +17,44 @@ var
   idle, walk, bob, ping, si: longint;
   cur: TBankCursor;
 
+{ A sequence whose frames total more than 64 KB forces the u32 frame-offset
+  table; a u16 table would wrap and truncate a frame's length. Two 200x100
+  noise frames are ~80 KB each, so frame 1 sits well past the old 64 KB cap. }
+procedure BigBankRoundTrip;
+var
+  b: TSpriteBank;
+  big: TImage;
+  blob: pak.TByteArray;
+  rb2: TRTBank;
+  out1: TImage;
+  i: longint;
+begin
+  ImgNew(big, 200, 100);
+  for i := 0 to Length(big.pix) - 1 do
+    big.pix[i] := UInt32((qword(i) * 2654435761) and $FFFFFFFF);  { noise, RLE-proof }
+
+  b.flags := 0;
+  SetLength(b.seqs, 1);
+  b.seqs[0].name := 'IDLE';
+  b.seqs[0].w := 200; b.seqs[0].h := 100;
+  b.seqs[0].sflags := LOOP_LOOP;
+  b.seqs[0].ox := 0; b.seqs[0].oy := 0;
+  b.seqs[0].ticks := 4;
+  SetLength(b.seqs[0].frames, 2);
+  b.seqs[0].frames[0] := PicEncodeDirect(big);
+  b.seqs[0].frames[1] := PicEncodeDirect(big);
+  Check(Length(b.seqs[0].frames[0]) > 65535,
+    'a noise frame is over 64 KB, past the old u16 cap');
+
+  blob := EncodeBank(b);
+  Check(DecodeBank(blob, rb2), 'a >64 KB bank decodes');
+  CheckEqI(rb2.seqs[0].frameCount, 2, 'the big bank keeps both frames');
+  Check(BankFrame(rb2, 0, 0, out1), 'the first >64 KB frame decodes');
+  CheckEqI(out1.w, 200, 'big frame 0 width');
+  Check(BankFrame(rb2, 0, 1, out1), 'the frame past 64 KB decodes');
+  CheckEqI(out1.w, 200, 'big frame 1 width');
+end;
+
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -125,6 +163,8 @@ begin
   Check(not SpriteReg[si].isBank, 'a plain sprite is not a bank');
   Check(SpriteSeqIndex(si, 'IDLE') < 0, 'a plain sprite has no sequence');
   Check(not SpriteFrame(si, 0, 0, img), 'a plain sprite yields no bank frame');
+
+  BigBankRoundTrip;
 
   TestSummary('sprbank');
   halt(TestExit);

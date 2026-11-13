@@ -14,14 +14,19 @@ unit sprbank;
   Layout:
 
     header (8 bytes):
-      magic 'SPBK' (4) · flags u8 · seqCount u8 · reserved u16
+      magic 'SPBK' (4) · flags u8 · seqCount u8 · version u8 · reserved u8
     seqDir[seqCount], 24 bytes each:
       name[8] · w u8 · h u8 · frames u8 · sflags u8 · ox s8 · oy s8
-      · ticks u8 · pad u8 · dirOff u16
+      · ticks u8 · pad u8 · dirOff u32 · pad u32
     per sequence at bank+dirOff:
-      frameOff u16 [frames+1]  (offsets into the frame region after this table,
+      frameOff u32 [frames+1]  (offsets into the frame region after this table,
                                 last entry = total frame-region size)
       the frames' CPIC blobs, concatenated
+
+  The offsets are u32 so a sequence may hold more than 64 KB of frames (a
+  large-cell sheet such as a boss can exceed that). Banks are rebuilt from
+  their sheets on every build, so the version byte only guards against a
+  stale pak paired with a newer engine.
 
   sflags: bits 0-1 loop mode (0 loop, 1 once, 2 pingpong); bit 7 mirror hint. }
 
@@ -34,6 +39,7 @@ uses
 
 const
   SPBK_MAGIC = $4B425053;   { 'SPBK' little-endian }
+  SPBK_VER   = 1;           { layout version; bump when the byte layout changes }
 
   LOOP_LOOP     = 0;
   LOOP_ONCE     = 1;
@@ -118,6 +124,12 @@ begin
   PutB(a, n, v and $FF); PutB(a, n, (v shr 8) and $FF);
 end;
 
+procedure PutU32(var a: pak.TByteArray; var n: longint; v: longint);
+begin
+  PutB(a, n, v and $FF); PutB(a, n, (v shr 8) and $FF);
+  PutB(a, n, (v shr 16) and $FF); PutB(a, n, (v shr 24) and $FF);
+end;
+
 procedure PutName(var a: pak.TByteArray; var n: longint; const s: string; len: longint);
 var i: longint;
 begin
@@ -136,6 +148,12 @@ begin
   RU16 := a[p] or (a[p + 1] shl 8);
 end;
 
+function RU32(const a: pak.TByteArray; p: longint): longint;
+begin
+  RU32 := a[p] or (a[p + 1] shl 8) or (a[p + 2] shl 16)
+    or (longint(a[p + 3]) shl 24);
+end;
+
 function RName(const a: pak.TByteArray; p, len: longint): string;
 var i: longint; s: string;
 begin
@@ -149,7 +167,7 @@ end;
 function SeqBlockSize(const s: TBankSeq): longint;
 var i, sz: longint;
 begin
-  sz := (Length(s.frames) + 1) * 2;
+  sz := (Length(s.frames) + 1) * 4;
   for i := 0 to High(s.frames) do sz := sz + Length(s.frames[i]);
   SeqBlockSize := sz;
 end;
@@ -167,7 +185,8 @@ begin
   PutB(a, n, (SPBK_MAGIC shr 24) and $FF);
   PutB(a, n, b.flags);
   PutB(a, n, Length(b.seqs));
-  PutU16(a, n, 0);                 { reserved }
+  PutB(a, n, SPBK_VER);            { version }
+  PutB(a, n, 0);                   { reserved }
 
   { sequence directory; each dirOff points past the header and the whole dir }
   dirOff := 8 + Length(b.seqs) * 24;
@@ -181,8 +200,8 @@ begin
     PutB(a, n, byte(b.seqs[i].oy));
     PutB(a, n, b.seqs[i].ticks);
     PutB(a, n, 0);                 { pad }
-    PutU16(a, n, dirOff);
-    PutU16(a, n, 0); PutU16(a, n, 0); PutU16(a, n, 0);  { pad entry to 24 }
+    PutU32(a, n, dirOff);
+    PutU32(a, n, 0);               { pad entry to 24 }
     dirOff := dirOff + SeqBlockSize(b.seqs[i]);
   end;
 
@@ -190,10 +209,10 @@ begin
   for i := 0 to High(b.seqs) do begin
     foff := 0;
     for j := 0 to High(b.seqs[i].frames) do begin
-      PutU16(a, n, foff);
+      PutU32(a, n, foff);
       foff := foff + Length(b.seqs[i].frames[j]);
     end;
-    PutU16(a, n, foff);            { tail: total frame-region size }
+    PutU32(a, n, foff);            { tail: total frame-region size }
     for j := 0 to High(b.seqs[i].frames) do
       PutBytes(a, n, b.seqs[i].frames[j]);
   end;
@@ -212,6 +231,7 @@ begin
   if Length(blob) < 8 then exit;
   m := blob[0] or (blob[1] shl 8) or (blob[2] shl 16) or (longword(blob[3]) shl 24);
   if m <> SPBK_MAGIC then exit;
+  if blob[6] <> SPBK_VER then exit;
   rb.raw := blob;
   rb.flags := blob[4];
   seqCount := blob[5];
@@ -226,15 +246,15 @@ begin
     rb.seqs[i].ox := shortint(blob[p + 12]);
     rb.seqs[i].oy := shortint(blob[p + 13]);
     rb.seqs[i].ticks := blob[p + 14];
-    dirOff := RU16(blob, p + 16);
+    dirOff := RU32(blob, p + 16);
     { the frame region starts past the (frameCount+1)-entry offset table }
     tableBase := dirOff;
     SetLength(rb.seqs[i].off, rb.seqs[i].frameCount);
     SetLength(rb.seqs[i].len, rb.seqs[i].frameCount);
     for j := 0 to rb.seqs[i].frameCount - 1 do begin
-      frOff := RU16(blob, tableBase + j * 2);
-      nextOff := RU16(blob, tableBase + (j + 1) * 2);
-      rb.seqs[i].off[j] := tableBase + (rb.seqs[i].frameCount + 1) * 2 + frOff;
+      frOff := RU32(blob, tableBase + j * 4);
+      nextOff := RU32(blob, tableBase + (j + 1) * 4);
+      rb.seqs[i].off[j] := tableBase + (rb.seqs[i].frameCount + 1) * 4 + frOff;
       rb.seqs[i].len[j] := nextOff - frOff;
     end;
   end;

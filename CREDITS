@@ -350,6 +350,11 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 WITCHCHEST. Most are a single idle row; DRUID, EVILWIZARD,
                 KNEELKNIGHT, and SITWITCH also carry a walk row. The pack's
                 suggestive sheets are skipped.
+  pack 2 extras the non-64 sheets from the same pack: TIGER (80x64, lounging
+                idle), FERRYMAN (96x64, poling his boat), FALLENKNIGHT (64x64,
+                a wounded knight), and DRAGON (208x128, a sleeping dragon on
+                its hoard). The dragon's frames are large, so its bank relies
+                on the u32 frame-offset table in the sprite-bank format.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

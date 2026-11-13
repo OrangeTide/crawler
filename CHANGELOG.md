@@ -20,13 +20,18 @@ whose development history is summarized in docs/roadmap.md.
   `RAT`, `LAMIA`, `BARELAMIA`, `MIMIC`, `MUSHROOM`, `PLANT`, `BAT`,
   `FLYINGWITCH`, `MOSQUITO`, `FLYINGEYE`, `PUMPKIN`), sliced by action row into
   idle, walk, attack and death sequences as each creature has them. The
-  single-character packs (archer so far, with its seven recolors) add a bank per
-  recolor, sliced with a new linear `lin A-B` run that counts cells row-major
-  across a sheet, so an action that wraps past the right edge stays one
-  sequence. The source sheet PNGs are licensed art kept out of git
-  (`content/banks/sheets/.gitignore`); the build slices whichever PNGs are
-  present, so a clone without them bakes no sheets. `t_sprsheet` pins the baked
-  lumps and their frames.
+  single-character packs add a bank per recolor, sliced with a new linear
+  `lin A-B` run that counts cells row-major across a sheet, so an action that
+  wraps past the right edge stays one sequence. The import now covers the
+  archer, zombie, skeleton, goblin, spider, samurai, angel, wizard, alien,
+  knight and heavy knight, the farm animals and the mounted rider, the agents
+  and townsfolk, the 2d-pack standalone creatures, and the two clean NPC
+  collections (Baroness, Beggar, Bard, Bishop, Baba Yaga and the rest, with the
+  packs' suggestive sheets skipped), plus the oversized specials TIGER,
+  FERRYMAN, FALLENKNIGHT and the 208x128 DRAGON. The source sheet PNGs are
+  licensed art kept out of git (`content/banks/sheets/.gitignore`); the build
+  slices whichever PNGs are present, so a clone without them bakes no sheets.
+  `t_sprsheet` pins the baked lumps and their frames.
 - The sprite animation bank format (design section 27), phase one. A new `SPBK`
   lump holds many named sequences (IDLE, WALKN, HURT), each with its own
   bounding box, a shared anchor, a loop mode, a mirror hint and default frame
@@ -84,6 +89,15 @@ whose development history is summarized in docs/roadmap.md.
   (default medium); player characters are medium. `t_size` covers the rule.
 
 ### Changed
+- The sprite-bank format uses 32-bit frame offsets (layout version 1), so a
+  sequence may hold more than 64 KB of frames. The old 16-bit offset table
+  capped a sequence at 64 KB and silently truncated a larger one; the 208x128
+  dragon, whose first frame alone is over 64 KB, needs the wider table. Banks
+  rebuild from their sheets every build, so there is nothing to migrate.
+  `t_sprbank` round-trips a sequence past the old cap.
+- Several bestiary monsters draw their new animated banks: RAT, BAT, GOBLIN,
+  ORC, SKELETON, ZOMBIE and SPIDER point their `content/monsters.txt` MODEL
+  column at the imported sheets instead of the old Dungeon Crawl billboards.
 - The save format is version 16: it stores each caster's readied-spell list and
   the run timer. Saves from earlier versions no longer load.
 - More of the spell catalog carries combat stats. Nine prose-only spells now
