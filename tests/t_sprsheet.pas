@@ -125,6 +125,14 @@ begin
   CheckSeqWH('SPIDER', 'WALK', 16, 96, 96);
   CheckSeqWH('SPIDER', 'DEATH', 10, 96, 96);
 
+  { samurai is a wide 96x64 cell; angel a 96x96 cell }
+  CheckSeqWH('SAMURAI', 'IDLE', 5, 96, 64);
+  CheckSeqWH('SAMURAI', 'WALK', 8, 96, 64);
+  CheckSeqWH('SAMURAI', 'DEATH', 9, 96, 64);
+  CheckSeqWH('SAMURAI_RED', 'ATTACK', 8, 96, 64);
+  CheckSeqWH('ANGEL', 'IDLE', 8, 96, 96);
+  CheckSeqWH('ANGEL', 'WALK', 10, 96, 96);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

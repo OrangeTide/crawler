@@ -1,0 +1,12 @@
+# Angel: 96x96 cells. Idle 0-7, flight as walk 30-39, a light cast 50-59; the hover and ascend rows are left unimported (best-effort read).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet angel.ppm
+cell 96 96
+
+bank ANGEL
+seq IDLE loop ticks=4 : lin 0-7
+seq WALK loop ticks=2 : lin 30-39
+seq CAST once ticks=2 : lin 50-59

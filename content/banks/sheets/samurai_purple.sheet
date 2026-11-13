@@ -1,0 +1,14 @@
+# Samurai (purple recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet samurai_purple.ppm
+cell 96 64
+
+bank SAMURAI_PURPLE
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 8-15
+seq ATTACK once ticks=2 : lin 24-31
+seq HURT   once ticks=3 : lin 96-99
+seq DEATH  once ticks=3 : lin 128-136
