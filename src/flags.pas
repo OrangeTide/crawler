@@ -20,6 +20,9 @@ procedure FlagSet(const name: string);
 procedure FlagClear(const name: string);
 function FlagHas(const name: string): boolean;
 procedure JournalAdd(const line: string);
+{ Add a line only if it is not already in the journal, so a repeated sync does
+  not duplicate it across saves and reloads. }
+procedure JournalAddOnce(const line: string);
 
 implementation
 
@@ -65,6 +68,14 @@ procedure JournalAdd(const line: string);
 begin
   SetLength(Journal, Length(Journal) + 1);
   Journal[High(Journal)] := line;
+end;
+
+procedure JournalAddOnce(const line: string);
+var i: longint;
+begin
+  for i := 0 to High(Journal) do
+    if Journal[i] = line then exit;
+  JournalAdd(line);
 end;
 
 end.

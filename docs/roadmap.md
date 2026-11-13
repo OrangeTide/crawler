@@ -246,9 +246,13 @@ listed here; it is recorded in CHANGELOG.md and the git history.
 
 ### D. Reference, meta, and quality-of-life
 
-- [partial] (0.30.0) Journal and quest expansion: map pins and auto-markers on
-  the full map are done. A fuller quest log can now proceed since the 0.24.0
-  quest content shipped.
+- [done] (0.30.0) Journal and quest expansion: map pins and auto-markers on the
+  full map, and a data-driven quest log. Quests, flag-gated stages, completion
+  flags, composite derive rules and freeform log events live in
+  content/quests.txt (the QUST lump), replacing the hardcoded journal sync. The
+  JOURNAL tab shows active quests with their current objective, marks finished
+  ones, and lists events under a LOG heading. Quest state reads from the saved
+  flags, so the save is unchanged.
 - [gap] (0.30.0) A run timer or achievements for replay (low priority).
 - [gap] (0.30.0) Evaluate the sprite and portrait file formats from
   ~/DEVEL/dos-rpg for our animated sprites. See its sprfmt.md: the .SPA
@@ -790,14 +794,15 @@ kit rather than the generated cavern.
 Themes C and D, the remaining smaller items gathered into one polish milestone:
 rank capacity by creature size (done), porting the last hardcoded party and class data
 to content files (done), the optional prepared-spell subset (done) and more
-combat-statted spells (a first pass done), the fuller quest log now that 0.24.0's
-content shipped, and the low-priority run timer and the dos-rpg sprite-format
-evaluation. Independent of the renderer and map threads. Progress: the data-port
-cleanup is done (starting equipment moved to `content/gear.txt`; the pregen
-party, name pool and char-creation defaults to `content/newgame.txt`), rank
-capacity by size is in, the prepared-spell subset ships behind a toggle, and nine
-more spells gained combat stats. What remains here is the quest log, the run
-timer, the dos-rpg sprite-format evaluation, and further spell-stat tuning.
+combat-statted spells (a first pass done), the data-driven quest log (done), and
+the low-priority run timer and the dos-rpg sprite-format evaluation. Independent
+of the renderer and map threads. Progress: the data-port cleanup is done
+(starting equipment moved to `content/gear.txt`; the pregen party, name pool and
+char-creation defaults to `content/newgame.txt`), rank capacity by size is in,
+the prepared-spell subset ships behind a toggle, nine more spells gained combat
+stats, and the quest log is data-driven through `content/quests.txt`. What
+remains here is the run timer, the dos-rpg sprite-format evaluation, and further
+spell-stat tuning.
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 

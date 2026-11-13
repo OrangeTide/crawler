@@ -1,0 +1,27 @@
+# Quest log. A quest is a title with flag-gated stages and a completion flag.
+# The current objective is the last stage whose flag is set; a quest is active
+# once any stage flag is set and complete once its done flag is set.
+#
+#   quest ID "Title"
+#   stage FLAG "objective shown once FLAG is set"
+#   done  FLAG "line shown when the quest completes"
+#
+# A 'derive' sets a flag once all its source flags are set (a composite
+# objective, like assembling the relic from its three shards). A 'log' adds a
+# journal line when its flag is first set, for events that are not a quest stage.
+# Flags come from the dialog and map scripts.
+
+quest Q_RELIC "The Broken Relic"
+  stage QUEST_MAIN   "Gather the three relic shards: crypt, cave, and the infernal deep."
+  stage QUEST_RELIC  "The relic is whole. Return it to the elder."
+  stage QUEST_DEPTHS "The relic is a key. Descend to the Sunless Depths and find the lost cities."
+  done  QUEST_WON    "You walked into the lost cities of the Sunless Depths."
+
+quest Q_CRYPT "The Reeve's Crypt"
+  stage QUEST_CRYPT  "Clear the crypt beneath the town for the reeve."
+  done  SHARD_CRYPT  "Took the crypt shard from its shrine."
+
+derive QUEST_RELIC SHARD_CRYPT SHARD_CAVE SHARD_INFER
+
+log SHARD_CAVE  "Took the cave shard from the grotto."
+log SHARD_INFER "Tore the last shard from the demon lord."

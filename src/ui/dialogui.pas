@@ -17,7 +17,7 @@ implementation
 uses
   sysutils, sdl2min, gfx, polyrender, glrender, video, dialog, flags, uihelp,
   gamestate, party, settings, combatui, monsters, gametime, rng, sprites, pic,
-  spellbook, pcportrait, chardata;
+  spellbook, pcportrait, chardata, quests;
 
 { Blit a portrait image at its native size, skipping the keyed background. }
 procedure DrawPortrait(px, py: longint; const img: TImage);
@@ -100,48 +100,12 @@ begin
   VideoSwap;
 end;
 
-procedure SyncJournal;
-{** Turn freshly set quest flags into journal lines, once each, and derive the
-  assembled-relic flag once all three shards are in hand. }
-begin
-  if FlagHas('QUEST_MAIN') and (not FlagHas('J_MAIN')) then begin
-    JournalAdd('Gather the three relic shards: crypt, cave, and the infernal deep.');
-    FlagSet('J_MAIN');
-  end;
-  if FlagHas('QUEST_CRYPT') and (not FlagHas('J_CRYPT')) then begin
-    JournalAdd('Clear the crypt beneath the town for the reeve.');
-    FlagSet('J_CRYPT');
-  end;
-  if FlagHas('SHARD_CRYPT') and (not FlagHas('J_SHARD_CRYPT')) then begin
-    JournalAdd('Took the crypt shard from its shrine.');
-    FlagSet('J_SHARD_CRYPT');
-  end;
-  if FlagHas('SHARD_CAVE') and (not FlagHas('J_SHARD_CAVE')) then begin
-    JournalAdd('Took the cave shard from the grotto.');
-    FlagSet('J_SHARD_CAVE');
-  end;
-  if FlagHas('SHARD_INFER') and (not FlagHas('J_SHARD_INFER')) then begin
-    JournalAdd('Tore the last shard from the demon lord.');
-    FlagSet('J_SHARD_INFER');
-  end;
-  { all three shards assembled: the relic is whole }
-  if FlagHas('SHARD_CRYPT') and FlagHas('SHARD_CAVE') and FlagHas('SHARD_INFER')
-    and (not FlagHas('QUEST_RELIC')) then begin
-    FlagSet('QUEST_RELIC');
-    JournalAdd('The relic is whole. Return it to the elder.');
-  end;
-  if FlagHas('QUEST_DEPTHS') and (not FlagHas('J_DEPTHS')) then begin
-    JournalAdd('The relic is a key. Descend to the Sunless Depths and find the lost cities.');
-    FlagSet('J_DEPTHS');
-  end;
-end;
-
 procedure DialogAfterChoice;
 var
   raised, cost: longint;
   wasFirst: boolean;
 begin
-  SyncJournal;
+  QuestsUpdate;   { derive composite flags and append new journal lines }
   if FlagHas('QUEST_WON') then begin
     State := gsVictory;
     exit;

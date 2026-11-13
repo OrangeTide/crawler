@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- A data-driven quest log. Quests, their flag-gated stages, completion flags,
+  composite derive rules and freeform log events come from
+  `content/quests.txt`, baked into the QUST lump, replacing the hardcoded
+  journal sync. The meta JOURNAL tab now shows each active quest by title with
+  its current objective, marks a finished quest with its completion line, and
+  lists freeform events under a LOG heading. Quest state reads from the story
+  flags, so the save is unchanged. `t_quests` covers the table and the queries.
 - Optional prepared-spell subset, a settings toggle (PREPARE SPELLS, off by
   default). With it on, a caster may cast only spells it has readied, and
   readying is bounded by per-spell-level slots in the AD&D style: one slot when a

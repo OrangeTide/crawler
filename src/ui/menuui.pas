@@ -15,7 +15,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, flags, uihelp, audio, gamestate, party, chardata,
-  codex, monsters, spelldb, spellbook, spellicon, fieldcast, combatstate;
+  codex, monsters, spelldb, spellbook, spellicon, fieldcast, combatstate, quests;
 
 var
   spellCaster: longint = 0;   { which party caster the spells tab shows }
@@ -39,18 +39,59 @@ begin
   Add(EL_HOLY, 'HOLY'); Add(EL_PHYS, 'PHYS');
 end;
 
-procedure JournalBody;
-var i, y: longint;
+{ Count the lines DrawWrapped would produce for s at widthChars columns, so the
+  cursor can advance past a wrapped entry. }
+function WrapLines(const s: string; widthChars: longint): longint;
+var i, ln, llen, wlen, start, len: longint;
 begin
-  if Length(Journal) = 0 then
-    DrawText(16, 36, 'No quests recorded yet.', RGB(150, 150, 130))
-  else begin
-    y := 36;
-    for i := 0 to High(Journal) do begin
-      DrawWrapped(16, y, 48, '- ' + Journal[i], RGB(195, 200, 180));
-      inc(y, 22);
+  ln := 1; llen := 0; start := 1; len := Length(s);
+  for i := 1 to len + 1 do
+    if (i > len) or (s[i] = ' ') then begin
+      wlen := i - start;
+      if wlen > 0 then begin
+        if (llen > 0) and (llen + 1 + wlen > widthChars) then begin
+          inc(ln); llen := wlen;
+        end else if llen = 0 then
+          llen := wlen
+        else
+          llen := llen + 1 + wlen;
+      end;
+      start := i + 1;
+    end;
+  WrapLines := ln;
+end;
+
+procedure JournalBody;
+var i, y, nActive: longint;
+begin
+  y := 30;
+  nActive := 0;
+  { The quests: title, then the current objective or the completion line. }
+  for i := 0 to High(QuestDefs) do begin
+    if not QuestActive(QuestDefs[i]) then continue;
+    inc(nActive);
+    DrawText(16, y, QuestDefs[i].title, RGB(230, 210, 120));
+    inc(y, 12);
+    if QuestComplete(QuestDefs[i]) then begin
+      DrawWrapped(24, y, 44, QuestDefs[i].doneText, RGB(150, 190, 150));
+      inc(y, WrapLines(QuestDefs[i].doneText, 44) * 10 + 8);
+    end else begin
+      DrawWrapped(24, y, 44, QuestObjective(QuestDefs[i]), RGB(195, 200, 180));
+      inc(y, WrapLines(QuestObjective(QuestDefs[i]), 44) * 10 + 8);
     end;
   end;
+  { The log: freeform events in the order they happened. }
+  if Length(Journal) > 0 then begin
+    inc(y, 2);
+    DrawText(16, y, 'LOG', RGB(150, 150, 130));
+    inc(y, 12);
+    for i := 0 to High(Journal) do begin
+      DrawWrapped(16, y, 48, '- ' + Journal[i], RGB(170, 175, 160));
+      inc(y, WrapLines('- ' + Journal[i], 48) * 10 + 2);
+    end;
+  end;
+  if (nActive = 0) and (Length(Journal) = 0) then
+    DrawText(16, 36, 'No quests recorded yet.', RGB(150, 150, 130));
 end;
 
 procedure BestiaryBody;

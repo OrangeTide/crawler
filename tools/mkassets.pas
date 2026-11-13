@@ -16,7 +16,7 @@ uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
-  skilldb, skilltext, tilekit, kittext, heightfmt;
+  skilldb, skilltext, tilekit, kittext, heightfmt, quests;
 
 var
   w: TPakWriter;
@@ -185,6 +185,16 @@ begin
   PakWAdd(w, 'NEWG', EncodeNewGame(d));
   writeln('  newgame (', Length(d.names), ' names, ', Length(d.pregen),
     ' pregen) from ', fn);
+end;
+
+procedure AddQuests(const fn: string);
+var err: string;
+begin
+  if not ParseQuests(fn, err) then begin
+    writeln(StdErr, 'mkassets: ', fn, ': ', err); halt(1);
+  end;
+  PakWAdd(w, 'QUST', EncodeQuests);
+  writeln('  quests (', Length(QuestDefs), ') from ', fn);
 end;
 
 procedure AddDialogs(const fn: string);
@@ -504,6 +514,8 @@ begin
       AddGear(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'newgame' then begin
       AddNewGame(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'quests' then begin
+      AddQuests(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin
       AddDialogs(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'spells' then begin

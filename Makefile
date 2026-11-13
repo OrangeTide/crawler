@@ -48,6 +48,7 @@ CLASSES   = content/classes.txt
 BACKG     = content/backgrounds.txt
 GEAR      = content/gear.txt
 NEWGAME   = content/newgame.txt
+QUESTS    = content/quests.txt
 DIALOGS   = content/dialogs.txt
 SPELLS    = content/spells.txt
 SKILLS    = content/skills.txt
@@ -120,7 +121,7 @@ MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst
 # subdivision (terrain.TERRAIN_SUBDIV) sets the rendered density.
 HEIGHTNAMES = hm_hill
 HEIGHTSRC = $(foreach n,$(HEIGHTNAMES),content/heightmaps/$(n).ppm)
-CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(GEAR) $(NEWGAME) $(DIALOGS) \
+CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(GEAR) $(NEWGAME) $(QUESTS) $(DIALOGS) \
             $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
@@ -193,7 +194,7 @@ MUSICARGS = $(foreach t,$(MUSICTRACKS),music $(word 1,$(subst :, ,$(t))) \
             $(firstword $(wildcard content/music/$(word 2,$(subst :, ,$(t))).*) content/music/$(word 2,$(subst :, ,$(t))).mod))
 TABLEARGS = items $(ITEMS) monsters $(MONSTERS) species $(SPECIES) \
             classes $(CLASSES) backgrounds $(BACKG) gear $(GEAR) \
-            newgame $(NEWGAME) dialogs $(DIALOGS) \
+            newgame $(NEWGAME) quests $(QUESTS) dialogs $(DIALOGS) \
             spells $(SPELLS) skills $(SKILLS) shops $(SHOPS) \
             encounters $(ENCOUNTERS) kits $(TILESETS) world $(WORLD)
 

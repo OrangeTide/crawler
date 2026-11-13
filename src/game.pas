@@ -25,7 +25,7 @@ implementation
 
 uses
   sysutils, sdl2min, gfx, pak, world, models, hud, textures, items, chardata,
-  monsters, dialog, spelldb, spellbook, skilldb, skillbook, shops, encounters,
+  monsters, dialog, quests, spelldb, spellbook, skilldb, skillbook, shops, encounters,
   tilekit, clad, worldfmt, overworld, gamestate,
   worldload, combatui, exploreui, charcreateui, titleui, dialogui, shopui,
   fullmapui, menuui, charsheetui, learnspellui, learnskillui, optionsui,
@@ -80,6 +80,7 @@ begin
     writeln(StdErr, 'game: missing monster table in ', pakPath);
     exit;
   end;
+  LoadQuests(GamePak);    { optional; quest log definitions }
   LoadDialogs(GamePak);   { optional; dialogs just will not open if absent }
   LoadSpells(GamePak);    { optional; the imported spell catalog }
   LoadSkills(GamePak);    { optional; the skill catalog }
