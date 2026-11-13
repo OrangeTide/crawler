@@ -16,7 +16,7 @@ uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
-  skilldb, skilltext, tilekit, kittext, heightfmt, quests;
+  skilldb, skilltext, tilekit, kittext, heightfmt, quests, sprbank, sprbanktext;
 
 var
   w: TPakWriter;
@@ -185,6 +185,22 @@ begin
   PakWAdd(w, 'NEWG', EncodeNewGame(d));
   writeln('  newgame (', Length(d.names), ' names, ', Length(d.pregen),
     ' pregen) from ', fn);
+end;
+
+procedure AddBank(const name, manifestFn: string);
+var
+  bank: TSpriteBank;
+  err: string;
+  i, nf: longint;
+begin
+  if not ParseBank(manifestFn, bank, err) then begin
+    writeln(StdErr, 'mkassets: ', manifestFn, ': ', err); halt(1);
+  end;
+  PakWAdd(w, UpperCase(name), EncodeBank(bank));
+  nf := 0;
+  for i := 0 to High(bank.seqs) do nf := nf + Length(bank.seqs[i].frames);
+  writeln('  bank ', UpperCase(name), ' (', Length(bank.seqs), ' seqs, ',
+    nf, ' frames) from ', manifestFn);
 end;
 
 procedure AddQuests(const fn: string);
@@ -514,6 +530,8 @@ begin
       AddGear(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'newgame' then begin
       AddNewGame(ParamStr(i + 1)); inc(i, 2);
+    end else if ParamStr(i) = 'bank' then begin
+      AddBank(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
     end else if ParamStr(i) = 'quests' then begin
       AddQuests(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin

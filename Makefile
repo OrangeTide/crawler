@@ -121,11 +121,19 @@ MUSICSRC  = $(foreach t,$(MUSICTRACKS),$(wildcard content/music/$(word 2,$(subst
 # subdivision (terrain.TERRAIN_SUBDIV) sets the rendered density.
 HEIGHTNAMES = hm_hill
 HEIGHTSRC = $(foreach n,$(HEIGHTNAMES),content/heightmaps/$(n).ppm)
+# Sprite animation banks (design section 27): each lump id paired with its
+# manifest in content/banks, which lists the sequences and their frame PPMs.
+# Baked to an uppercase SPBK lump via the bank verb. Frames reuse the same
+# magenta-keyed sprite PPMs as the billboards, so their sources come in through
+# SPRITESRC; the manifests are the extra dependency here.
+BANKIDS   = BANK_SMOKE:content/banks/smoke.txt
+BANKSRC   = $(foreach b,$(BANKIDS),$(word 2,$(subst :, ,$(b))))
+BANKARGS  = $(foreach b,$(BANKIDS),bank $(word 1,$(subst :, ,$(b))) $(word 2,$(subst :, ,$(b))))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(GEAR) $(NEWGAME) $(QUESTS) $(DIALOGS) \
             $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
-            $(MUSICSRC) $(HEIGHTSRC) $(CLUTPPM)
+            $(MUSICSRC) $(HEIGHTSRC) $(CLUTPPM) $(BANKSRC)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
@@ -253,7 +261,7 @@ build/tools/shot: tools/shot.pas src/*.pas src/ui/*.pas build/version.inc | buil
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(CLUTARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(CLUTARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS) $(BANKARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.

@@ -10,6 +10,13 @@ whose development history is summarized in docs/roadmap.md.
 ## [Unreleased]
 
 ### Added
+- The sprite animation bank format (design section 27), phase one. A new `SPBK`
+  lump holds many named sequences (IDLE, WALKN, HURT), each with its own
+  bounding box, a shared anchor, a loop mode, a mirror hint and default frame
+  ticks, wrapping the existing CPIC frames behind a frame-offset table. Banks
+  bake from a text manifest in `content/banks` through a new `mkassets` `bank`
+  verb. This is the offline format and baker only; nothing animates yet.
+  `t_sprbank` round-trips the directory and decodes frames.
 - A run timer. Real play time accumulates across a playthrough (a speedrun-style
   wall clock, not the in-world day-night clock) while the run is in progress, and
   pauses on the title, during party creation, and at the game-over and victory

@@ -1,0 +1,9 @@
+# Smoke-test sprite bank (design section 27). It reuses creature billboard
+# frames to exercise the bank format end to end: the manifest parser, the
+# encoder, and the runtime loader (t_sprbank). It carries two sequences with
+# different frame counts, loop modes, anchor and the mirror hint, so the
+# round-trip test has real metadata to check. Frame paths are relative to this
+# manifest's directory.
+
+seq IDLE loop ticks=6 oy=4 : ../sprites/crea1.ppm
+seq WALK once mirror ticks=3 ox=-2 : ../sprites/crea1.ppm ../sprites/crea2.ppm ../sprites/crea3.ppm
