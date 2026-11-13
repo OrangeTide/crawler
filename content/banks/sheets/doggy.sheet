@@ -1,0 +1,11 @@
+# Doggy companion: 32x32, idle 0-5, walk 6-11.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet doggy.ppm
+cell 32 32
+
+bank DOGGY
+seq IDLE loop ticks=5 : lin 0-5
+seq WALK loop ticks=3 : lin 6-11

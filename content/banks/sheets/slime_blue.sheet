@@ -1,0 +1,12 @@
+# Slime (blue).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet slime_blue.ppm
+cell 32 32
+
+bank SLIME_BLUE
+seq IDLE  loop ticks=5 : lin 0-4
+seq WALK  loop ticks=3 : lin 8-15
+seq DEATH once ticks=3 : lin 16-21

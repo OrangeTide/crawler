@@ -1,0 +1,10 @@
+# Wisp: 32x32, a 5-frame idle glow.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet wisp.ppm
+cell 32 32
+
+bank WISP
+seq IDLE loop ticks=4 : lin 0-4

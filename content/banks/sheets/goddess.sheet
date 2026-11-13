@@ -1,0 +1,10 @@
+# Goddess NPC: 64x64, a 13-frame idle cycle.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet goddess.ppm
+cell 64 64
+
+bank GODDESS
+seq IDLE loop ticks=4 : lin 0-12

@@ -176,6 +176,16 @@ begin
   CheckSeq('FAGENT', 'WALK', 8);
   CheckSeq('FAGENT_RED', 'DEATH', 12);
 
+  { 2d-pack standalone sheets }
+  CheckSeqWH('SLIME', 'IDLE', 5, 32, 32);
+  CheckSeqWH('SLIME', 'WALK', 8, 32, 32);
+  CheckSeqWH('SLIME_RED', 'DEATH', 6, 32, 32);
+  CheckSeqWH('WARRIOR', 'IDLE', 5, 80, 64);
+  CheckSeqWH('WARRIOR', 'DEATH', 10, 80, 64);
+  CheckSeq('GODDESS', 'IDLE', 13);
+  CheckSeqWH('DOGGY', 'WALK', 6, 32, 32);
+  CheckSeqWH('WISP', 'IDLE', 5, 32, 32);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

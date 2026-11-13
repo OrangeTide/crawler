@@ -1,0 +1,13 @@
+# Warrior: 80x64, 10-wide 17-row sheet. idle 0-4, walk 10-17, slash 140-145, death 160-169; many extra run/jump/sword rows left out.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet warrior.ppm
+cell 80 64
+
+bank WARRIOR
+seq IDLE   loop ticks=4 : lin 0-4
+seq WALK   loop ticks=2 : lin 10-17
+seq ATTACK once ticks=2 : lin 140-145
+seq DEATH  once ticks=3 : lin 160-169

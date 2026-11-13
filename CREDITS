@@ -329,6 +329,12 @@ attack, death), each row a sequence with its own frame count. Imported so far:
   medieval woman MAIDEN, 64x64, idle, walk, harp, death.
   female agent  FAGENT and four recolors, 64x64, idle, walk, shoot, death; the
                 aim-angle and prone rows are not imported.
+  2d pack       standalone sheets from the modular 2d character pack: SLIME
+                (+_BLUE, _RED) 32x32 idle/walk/death; WARRIOR 80x64 idle/walk/
+                attack/death; GODDESS 64x64 idle; DOGGY, FOX 32x32 idle/walk;
+                WISP 32x32 idle. The pack's paper-doll layer sheets (hats, hair,
+                clothing, arms, hands, masks) and the nude base skins are not
+                imported.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
