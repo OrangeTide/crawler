@@ -120,7 +120,8 @@ procedure DrawFloorGlow(const cam: TMeshCam; tx, ty: longint; z: double;
   world behind, and the depth buffer occludes the sprite behind nearer walls
   and sprites. }
 procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light: double; baseZ: double = 0);
+  wx, wy, wscale, hscale, light: double; baseZ: double = 0;
+  mirror: boolean = false);
 
 implementation
 
@@ -538,7 +539,8 @@ begin
 end;
 
 procedure DrawSpriteBillboard(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light: double; baseZ: double = 0);
+  wx, wy, wscale, hscale, light: double; baseZ: double = 0;
+  mirror: boolean = false);
 const
   { A billboard shares the floor's depth buffer, and its base is coplanar with
     the floor of the tile it stands on, so at distance the floor wins the
@@ -568,10 +570,13 @@ begin
     if d < NEAR then d := NEAR;
     c[k].iz := 1.0 / d;
   end;
-  c[0].u := 0; c[0].v := 0;
-  c[1].u := 1; c[1].v := 0;
-  c[2].u := 1; c[2].v := 1;
-  c[3].u := 0; c[3].v := 1;
+  { the west view reuses the east art flipped, so swap the horizontal texel }
+  if mirror then begin
+    c[0].u := 1; c[1].u := 0; c[2].u := 0; c[3].u := 1;
+  end else begin
+    c[0].u := 0; c[1].u := 1; c[2].u := 1; c[3].u := 0;
+  end;
+  c[0].v := 0; c[1].v := 0; c[2].v := 1; c[3].v := 1;
   FillTriSpr(c[0], c[1], c[2], @img.pix[0], img.w, img.h, light);
   FillTriSpr(c[0], c[2], c[3], @img.pix[0], img.w, img.h, light);
 end;

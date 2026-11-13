@@ -306,22 +306,24 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   variant its own extension and magic rather than ship an incompatible file that
   claims to be .qoi. Candidate uses beyond screenshots are an intermediate or a
   baked texture lump in the pak.
-- [in progress] Sprite animation banks (design section 27). Implement the .SPA
+- [done] Sprite animation banks (design section 27). Implemented the .SPA
   bank structure over our CPIC frames so foes animate and world NPCs face a
   direction. A new `SPBK` lump holds a header, a sequence directory (name, bbox,
   frame count, loop and mirror flags, signed anchor, ticks, block offset) and
   per-sequence a frame-offset table with the CPIC frames concatenated; frames
   stay direct-colour for now, with indexed or QOI frames a later tie-in to the
-  image-format item above. Phases, each independently green: P1 the format,
-  manifest parser, `mkassets` `bank` verb and a round-trip test (offline, no
-  runtime change); P2 load a bank through the existing sprite store, with magic
+  image-format item above. The phases, each landed independently green: P1 the
+  format, manifest parser, `mkassets` `bank` verb and a round-trip test (offline,
+  no runtime change); P2 load a bank through the existing sprite store, with magic
   sniffing so a bank and a plain PIC share one id and callers stay untouched; P3
   re-bake a couple of billboards as single-sequence IDLE banks with no visible
   change; P4 animation playback in combat (a per-foe anim cursor advanced by
-  dt, idle/attack/hurt sequences); P5 directional world NPCs (facing by name
-  suffix, mirror the east art for west in both the software and GL billboard
-  paths). The LRU asset cache and .PRT portrait banks stay deferred. Starting
-  with P1.
+  dt, idle/attack/hurt sequences); P5 directional world NPCs (the view bearing
+  picks the NPC side it sees, drawing that cardinal's IDLE<dir> sequence and
+  reusing the east art flipped for west in both the software and GL billboard
+  paths). The LRU asset cache and .PRT portrait banks stay deferred; the engine
+  animates and faces any bank, so multi-frame or directional NPC art is a
+  content-only manifest edit.
 - [gap] Online help for the keyboard commands: a HELP overlay bound to F1 and
   reachable from a main-menu HELP item, listing the controls. Source the key
   list from the same binding table the game already uses so it stays in step.

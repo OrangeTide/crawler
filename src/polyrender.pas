@@ -36,7 +36,7 @@ implementation
 
 uses
   math, gfx, textures, world, mapfmt, raster, models, meshfmt,
-  sprites, worldspr, tilekit, clad, terrain, glrender, video;
+  sprites, worldspr, tilekit, clad, terrain, glrender, video, pic;
 
 const
   VIEW_R = 14;          { tiles drawn around the camera }
@@ -340,6 +340,8 @@ var
   ents: array[0 .. 63] of TWorldSprite;
   n, i, ptx, pty: longint;
   px, py, dist, fwd, light, wscale: double;
+  spr, frame: TImage;
+  mirror: boolean;
 begin
   n := GatherWorldSprites(ents);
   for i := 0 to n - 1 do begin
@@ -350,14 +352,21 @@ begin
     if dist > VIEW_R + 1 then continue;
     ptx := trunc(px); pty := trunc(py);
     light := TileLight(ptx, pty, dist);
-    with SpriteReg[ents[i].img].img do
-      if h > 0 then wscale := ents[i].wh * w / h else wscale := ents[i].wh;
-    if gEmitGL then
-      GLDrawSprite(mc, SpriteReg[ents[i].img].img, px, py, wscale,
-        ents[i].wh, light, GroundZAt(px, py))
+    { an animated NPC resolves to its facing frame; everything else draws the
+      sprite's default image }
+    mirror := false;
+    if WorldSpriteFrame(ents[i].anim, ex, ey, frame, mirror) then
+      spr := frame
     else
-      DrawSpriteBillboard(mc, SpriteReg[ents[i].img].img, px, py, wscale,
-        ents[i].wh, light, GroundZAt(px, py));
+      spr := SpriteReg[ents[i].img].img;
+    if spr.h > 0 then wscale := ents[i].wh * spr.w / spr.h
+    else wscale := ents[i].wh;
+    if gEmitGL then
+      GLDrawSprite(mc, spr, px, py, wscale,
+        ents[i].wh, light, GroundZAt(px, py), mirror)
+    else
+      DrawSpriteBillboard(mc, spr, px, py, wscale,
+        ents[i].wh, light, GroundZAt(px, py), mirror);
   end;
 end;
 

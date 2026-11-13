@@ -55,7 +55,7 @@ procedure GLInvalidateAtlas(p: Pointer);
   transparent texels. A small depth-offset biases it toward the camera so its
   base wins the z-fight with the floor it stands on. }
 procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light, baseZ: double);
+  wx, wy, wscale, hscale, light, baseZ: double; mirror: boolean = false);
 { A translucent emissive glow decal over floor cell (tx,ty) at height z, the
   colour alpha-blended over the scene at a (0..1). Depth-tested so walls occlude
   it, but it writes no depth. Stands in for raster.DrawFloorGlow on light-well,
@@ -1068,13 +1068,13 @@ begin
 end;
 
 procedure GLDrawSprite(const cam: TMeshCam; const img: TImage;
-  wx, wy, wscale, hscale, light, baseZ: double);
+  wx, wy, wscale, hscale, light, baseZ: double; mirror: boolean = false);
 var
   rx, ry, hw: double;
   v: array[0 .. 29] of GLfloat;
   mvp: TMat4;
   t: GLuint;
-  lf: GLfloat;
+  lf, ul, ur: GLfloat;
 begin
   if not progReady then exit;
   if Length(img.pix) = 0 then exit;
@@ -1083,17 +1083,19 @@ begin
 
   { camera right vector in the world XY plane, so the quad faces the eye;
     v mirrors raster.DrawSpriteBillboard's corners, with the image's top row at
-    the top (u left..right, v 0 at the top as GL uploads it) }
+    the top (u left..right, v 0 at the top as GL uploads it). The west view
+    reuses the east art flipped, so swap the left and right u. }
   rx := sin(cam.yaw); ry := -cos(cam.yaw);
   hw := wscale * 0.5;
+  if mirror then begin ul := 1; ur := 0; end else begin ul := 0; ur := 1; end;
   { triangle BL, BR, TR }
-  v[0] := wx - rx * hw; v[1] := wy - ry * hw; v[2] := baseZ;           v[3] := 0; v[4] := 1;
-  v[5] := wx + rx * hw; v[6] := wy + ry * hw; v[7] := baseZ;           v[8] := 1; v[9] := 1;
-  v[10] := wx + rx * hw; v[11] := wy + ry * hw; v[12] := baseZ + hscale; v[13] := 1; v[14] := 0;
+  v[0] := wx - rx * hw; v[1] := wy - ry * hw; v[2] := baseZ;           v[3] := ul; v[4] := 1;
+  v[5] := wx + rx * hw; v[6] := wy + ry * hw; v[7] := baseZ;           v[8] := ur; v[9] := 1;
+  v[10] := wx + rx * hw; v[11] := wy + ry * hw; v[12] := baseZ + hscale; v[13] := ur; v[14] := 0;
   { triangle BL, TR, TL }
-  v[15] := wx - rx * hw; v[16] := wy - ry * hw; v[17] := baseZ;           v[18] := 0; v[19] := 1;
-  v[20] := wx + rx * hw; v[21] := wy + ry * hw; v[22] := baseZ + hscale; v[23] := 1; v[24] := 0;
-  v[25] := wx - rx * hw; v[26] := wy - ry * hw; v[27] := baseZ + hscale; v[28] := 0; v[29] := 0;
+  v[15] := wx - rx * hw; v[16] := wy - ry * hw; v[17] := baseZ;           v[18] := ul; v[19] := 1;
+  v[20] := wx + rx * hw; v[21] := wy + ry * hw; v[22] := baseZ + hscale; v[23] := ur; v[24] := 0;
+  v[25] := wx - rx * hw; v[26] := wy - ry * hw; v[27] := baseZ + hscale; v[28] := ul; v[29] := 0;
 
   if quadVBO = 0 then glGenBuffers(1, @quadVBO);
   mvp := MatMul(sceneProj, sceneView);

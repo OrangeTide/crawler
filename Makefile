@@ -134,6 +134,7 @@ HEIGHTSRC = $(foreach n,$(HEIGHTNAMES),content/heightmaps/$(n).ppm)
 BANKSPRITES = crea7 crea15
 SPRITEBAKE  = $(filter-out $(BANKSPRITES),$(SPRITENAMES))
 BANKIDS   = BANK_SMOKE:content/banks/smoke.txt \
+            BANK_DIR:content/banks/dirnpc.txt \
             CREA7:content/banks/crea7.txt \
             CREA15:content/banks/crea15.txt
 BANKSRC   = $(foreach b,$(BANKIDS),$(word 2,$(subst :, ,$(b))))

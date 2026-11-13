@@ -1,0 +1,10 @@
+# Directional NPC test bank (design section 27, P5). It exercises the world
+# view's facing pick: three cardinal idle sequences, N, E and S, and no W, so
+# the west view falls back to the east art flipped. It reuses creature frames
+# as stand-in art to drive the format end to end (t_worldspr); real directional
+# NPC art replaces it with a content-only edit. Frame paths are relative to
+# this manifest's directory.
+
+seq IDLEN loop ticks=6 : ../sprites/crea1.ppm ../sprites/crea2.ppm
+seq IDLEE loop ticks=6 : ../sprites/crea3.ppm ../sprites/crea4.ppm
+seq IDLES loop ticks=6 : ../sprites/crea5.ppm ../sprites/crea6.ppm

@@ -39,7 +39,7 @@ uses
   flags, gametime, party, rules, rng, items, encounters, monsters, audio,
   gamestate, worldload, combatui, combatstate, save, pathfind, maproute,
   pursuit, overworldui, keymap, mappins, skilldb, skillbook,
-  settings, glrender;
+  settings, glrender, worldspr;
 
 const
   MAX_HUNTERS      = 3;    { at most this many roaming hunters at once }
@@ -878,6 +878,7 @@ begin
   end;
 
   UpdateMotion(dt);
+  WorldAnimTick(dt);
   if saveMsgT > 0 then saveMsgT := saveMsgT - dt;
   CheckTileEvents;
 end;
