@@ -335,6 +335,9 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 WISP 32x32 idle. The pack's paper-doll layer sheets (hats, hair,
                 clothing, arms, hands, masks) and the nude base skins are not
                 imported.
+  coachwoman    COACHWOMAN, 64x64, idle, walk. The carriage vehicle sheet has
+                272px-wide frames (over the bank format's 255px cap), so the
+                carriage itself is not baked.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
