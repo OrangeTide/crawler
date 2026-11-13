@@ -8,13 +8,13 @@ program t_sprbank;
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, pic, sprbank, testing;
+  sysutils, pak, pic, sprbank, sprites, testing;
 
 var
   p: TPak;
   rb: TRTBank;
   img: TImage;
-  idle, walk: longint;
+  idle, walk, si: longint;
 
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -57,6 +57,30 @@ begin
   { out-of-range frame and sequence are refused }
   Check(not BankFrame(rb, idle, 1, img), 'frame past the end is refused');
   Check(not BankFrame(rb, 99, 0, img), 'bad sequence index is refused');
+
+  { the sprite store sniffs the magic and holds the bank }
+  SpritesReset;
+  si := LoadSprite(p, 'BANK_SMOKE');
+  Check(si >= 0, 'store loads the bank by id');
+  Check(SpriteReg[si].isBank, 'the entry is flagged a bank');
+  { the default .img is the first sequence's first frame, so legacy draw works }
+  CheckEqI(SpriteReg[si].img.w, 64, 'default frame width for legacy callers');
+  CheckEqI(SpriteReg[si].img.h, 64, 'default frame height for legacy callers');
+  Check(LoadSprite(p, 'BANK_SMOKE') = si, 'a cached bank returns the same slot');
+
+  { the store accessors reach the sequences and frames }
+  Check(SpriteSeqIndex(si, 'WALK') >= 0, 'store finds the WALK sequence');
+  Check(SpriteSeqIndex(si, 'NOPE') < 0, 'store rejects an unknown sequence');
+  Check(SpriteFrame(si, SpriteSeqIndex(si, 'WALK'), 1, img),
+    'store decodes a bank frame');
+  CheckEqI(img.w, 64, 'store frame width');
+
+  { a plain PIC sprite is not a bank and has no sequences }
+  si := LoadSprite(p, 'CREA1');
+  Check(si >= 0, 'store loads a plain sprite');
+  Check(not SpriteReg[si].isBank, 'a plain sprite is not a bank');
+  Check(SpriteSeqIndex(si, 'IDLE') < 0, 'a plain sprite has no sequence');
+  Check(not SpriteFrame(si, 0, 0, img), 'a plain sprite yields no bank frame');
 
   TestSummary('sprbank');
   halt(TestExit);

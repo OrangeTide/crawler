@@ -15,8 +15,11 @@ whose development history is summarized in docs/roadmap.md.
   bounding box, a shared anchor, a loop mode, a mirror hint and default frame
   ticks, wrapping the existing CPIC frames behind a frame-offset table. Banks
   bake from a text manifest in `content/banks` through a new `mkassets` `bank`
-  verb. This is the offline format and baker only; nothing animates yet.
-  `t_sprbank` round-trips the directory and decodes frames.
+  verb. The sprite store sniffs the lump magic, so a bank and a plain PIC share
+  one id and every existing draw caller keeps working: a bank exposes its first
+  frame as the legacy image, with `SpriteSeqIndex` and `SpriteFrame` for the
+  sequences. Nothing animates yet. `t_sprbank` round-trips the directory,
+  decodes frames, and covers the store path.
 - A run timer. Real play time accumulates across a playthrough (a speedrun-style
   wall clock, not the in-world day-night clock) while the run is in progress, and
   pauses on the title, during party creation, and at the game-over and victory
