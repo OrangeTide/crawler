@@ -11,6 +11,9 @@ unit combatstate;
 
 interface
 
+uses
+  sprbank;
+
 const
   MAX_FOES = 6;
   LOG_LINES = 5;
@@ -74,6 +77,8 @@ type
     alive: boolean;
     rank: byte;              { 0 front, 1 back }
     sp: smallint;            { spell points, for caster and healer foes }
+    spriteIdx: longint;      { cached sprite-store index; -2 unresolved }
+    anim: TBankCursor;       { idle animation play head when the sprite is a bank }
   end;
 
   { status timers for one combatant, in turns remaining }

@@ -14,7 +14,8 @@ var
   p: TPak;
   rb: TRTBank;
   img: TImage;
-  idle, walk, si: longint;
+  idle, walk, bob, ping, si: longint;
+  cur: TBankCursor;
 
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -22,12 +23,16 @@ begin
     halt(2);
   end;
   Check(LoadBank(p, 'BANK_SMOKE', rb), 'load the smoke bank');
-  CheckEqI(Length(rb.seqs), 2, 'two sequences');
+  CheckEqI(Length(rb.seqs), 4, 'four sequences');
 
   idle := BankSeqIndex(rb, 'IDLE');
   walk := BankSeqIndex(rb, 'WALK');
+  bob  := BankSeqIndex(rb, 'BOB');
+  ping := BankSeqIndex(rb, 'PING');
   Check(idle >= 0, 'IDLE present');
   Check(walk >= 0, 'WALK present');
+  Check(bob >= 0, 'BOB present');
+  Check(ping >= 0, 'PING present');
   Check(BankSeqIndex(rb, 'MISSING') < 0, 'unknown sequence is -1');
 
   { IDLE: one frame, loop, anchor oy=4, ticks 6, no mirror }
@@ -57,6 +62,38 @@ begin
   { out-of-range frame and sequence are refused }
   Check(not BankFrame(rb, idle, 1, img), 'frame past the end is refused');
   Check(not BankFrame(rb, 99, 0, img), 'bad sequence index is refused');
+
+  { a single-frame IDLE never advances }
+  CursorStart(cur, idle);
+  Check(not CursorTick(rb, cur, 1.0), 'single-frame IDLE does not animate');
+  CheckEqI(cur.frame, 0, 'IDLE stays on frame 0');
+
+  { BOB loops two frames at ticks=1 (1/12 s each): 0 -> 1 -> 0 }
+  CursorStart(cur, bob);
+  Check(CursorTick(rb, cur, 0.09), 'BOB advances past one frame of time');
+  CheckEqI(cur.frame, 1, 'BOB on frame 1');
+  Check(CursorTick(rb, cur, 0.09), 'BOB advances again');
+  CheckEqI(cur.frame, 0, 'BOB wraps to frame 0');
+  Check(not CursorTick(rb, cur, 0.04), 'a short tick holds the frame');
+  CheckEqI(cur.frame, 0, 'BOB unchanged within a frame');
+
+  { WALK plays once over three frames, then holds the last }
+  CursorStart(cur, walk);
+  Check(CursorTick(rb, cur, 0.26), 'WALK to frame 1');
+  CheckEqI(cur.frame, 1, 'WALK frame 1');
+  Check(CursorTick(rb, cur, 0.26), 'WALK to frame 2');
+  CheckEqI(cur.frame, 2, 'WALK frame 2');
+  Check(CursorAtEnd(rb, cur), 'WALK reports done at the last frame');
+  Check(not CursorTick(rb, cur, 1.0), 'a finished once-sequence holds');
+  CheckEqI(cur.frame, 2, 'WALK still on the last frame');
+
+  { PING bounces 0 -> 1 -> 2 -> 1 -> 0 }
+  CursorStart(cur, ping);
+  CursorTick(rb, cur, 0.09); CheckEqI(cur.frame, 1, 'PING up to 1');
+  CursorTick(rb, cur, 0.09); CheckEqI(cur.frame, 2, 'PING up to 2');
+  CursorTick(rb, cur, 0.09); CheckEqI(cur.frame, 1, 'PING bounces to 1');
+  CursorTick(rb, cur, 0.09); CheckEqI(cur.frame, 0, 'PING back to 0');
+  CursorTick(rb, cur, 0.09); CheckEqI(cur.frame, 1, 'PING up again');
 
   { the sprite store sniffs the magic and holds the bank }
   SpritesReset;

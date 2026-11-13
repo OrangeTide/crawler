@@ -23,7 +23,7 @@ procedure CombatAutoTurn(dt: double);
 implementation
 
 uses
-  sysutils, sdl2min, gfx, pic, sprites, party, chardata, items,
+  sysutils, sdl2min, gfx, pic, sprites, sprbank, party, chardata, items,
   monsters, combat, combatstate, combatcore, audio, gamestate, world, codex,
   pcportrait, spellicon, skilldb, skillicon;
 
@@ -387,6 +387,7 @@ var
   i, n, living, slot, cx, cy, x, tx, mi, rk, half, col, ny: longint;
   c, body: TColor;
   s: string;
+  frameImg: TImage;
 begin
   { backdrop: a dim vault receding behind the foes, a lit floor the party
     stands on, a horizon seam where the two sides meet }
@@ -416,8 +417,12 @@ begin
       if (not Active^.Foes[i].alive) or (Active^.Foes[i].rank <> rk) then continue;
       cx := slot * col + slot div 2;
       body := FOE_PAL[Active^.Foes[i].def mod 6];
-      mi := LoadSprite(GamePak, MonDefs[Active^.Foes[i].def].model);
-      if mi >= 0 then
+      mi := Active^.Foes[i].spriteIdx;
+      if mi = -2 then mi := LoadSprite(GamePak, MonDefs[Active^.Foes[i].def].model);
+      if (mi >= 0) and SpriteReg[mi].isBank
+        and SpriteFrame(mi, Active^.Foes[i].anim.seq, Active^.Foes[i].anim.frame, frameImg) then
+        DrawFoeSprite(frameImg, cx, cy, 2 * half)
+      else if mi >= 0 then
         DrawFoeSprite(SpriteReg[mi].img, cx, cy, 2 * half)
       else
         DrawFoeGlyph(cx, cy, 2 * half, 2 * half, body);
@@ -916,11 +921,35 @@ begin
   EnterCombat;
 end;
 
+procedure FoeAnimTick(dt: double);
+{** Resolve each living foe's sprite once, then advance its idle animation.
+  A foe on a plain (non-bank) sprite, or a single-frame bank, does not move. }
+var i, mi, sq: longint;
+begin
+  for i := 0 to High(Active^.Foes) do begin
+    if not Active^.Foes[i].alive then continue;
+    if Active^.Foes[i].spriteIdx = -2 then begin
+      mi := LoadSprite(GamePak, MonDefs[Active^.Foes[i].def].model);
+      Active^.Foes[i].spriteIdx := mi;
+      if (mi >= 0) and SpriteReg[mi].isBank then begin
+        sq := SpriteSeqIndex(mi, 'IDLE');
+        if sq < 0 then sq := 0;
+        CursorStart(Active^.Foes[i].anim, sq);
+        Active^.Foes[i].anim.clock := i * 0.13;   { desync identical foes }
+      end;
+    end;
+    mi := Active^.Foes[i].spriteIdx;
+    if (mi >= 0) and SpriteReg[mi].isBank then
+      CursorTick(SpriteReg[mi].bank, Active^.Foes[i].anim, dt);
+  end;
+end;
+
 procedure CombatAutoTurn(dt: double);
 {** Advance the combat clock, then, if the member now up has lost control
   to the were-beast, take its turn for it. Pacing handles the rest. }
 begin
   CombatUpdate(dt);
+  FoeAnimTick(dt);
   if Active^.CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
   Active^.CombatSfxCue := CUE_NONE;
   if (Active^.CombatPhase = CP_INPUT) and (not Active^.CombatOver)

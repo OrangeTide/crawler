@@ -7,3 +7,5 @@
 
 seq IDLE loop ticks=6 oy=4 : ../sprites/crea1.ppm
 seq WALK once mirror ticks=3 ox=-2 : ../sprites/crea1.ppm ../sprites/crea2.ppm ../sprites/crea3.ppm
+seq BOB loop ticks=1 : ../sprites/crea1.ppm ../sprites/crea2.ppm
+seq PING pingpong ticks=1 : ../sprites/crea1.ppm ../sprites/crea2.ppm ../sprites/crea3.ppm

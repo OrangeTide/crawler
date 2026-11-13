@@ -20,8 +20,13 @@ whose development history is summarized in docs/roadmap.md.
   frame as the legacy image, with `SpriteSeqIndex` and `SpriteFrame` for the
   sequences. The skeleton and acolyte billboards (CREA7, CREA15) are now
   single-sequence IDLE banks under their original lump ids, rendering
-  pixel-identically. Nothing animates yet. `t_sprbank` round-trips the
-  directory, decodes frames, covers the store path, and pins the migration.
+  pixel-identically. Combat foes now play their bank's IDLE sequence: each
+  foe carries an animation cursor advanced by real time, honoring the loop,
+  once and pingpong modes, drawing the current frame. Shipped monsters have a
+  single IDLE frame, so nothing moves on screen until multi-frame art lands;
+  the playback is exercised by `t_sprbank` through the smoke bank. `t_sprbank`
+  round-trips the directory, decodes frames, covers the store path, pins the
+  migration, and drives the cursor through every loop mode.
 - A run timer. Real play time accumulates across a playthrough (a speedrun-style
   wall clock, not the in-world day-night clock) while the run is in progress, and
   pauses on the title, during party creation, and at the game-over and victory

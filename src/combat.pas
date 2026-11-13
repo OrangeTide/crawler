@@ -26,7 +26,7 @@ interface
 
 uses
   sysutils, rng, rules, items, monsters, party, chardata, spelldb, skilldb,
-  skillbook, encounters, codex, flags, combatstate, combatcore, combatai;
+  skillbook, encounters, codex, flags, combatstate, combatcore, combatai, sprbank;
 
 { Start a fight at a dungeon depth. tableNum selects the weighted encounter
   table to draw foes from; an empty or unknown table draws from every
@@ -468,6 +468,10 @@ begin
     if Active^.Foes[i].hp < 1 then Active^.Foes[i].hp := 1;
     Active^.Foes[i].hpMax := Active^.Foes[i].hp;
     Active^.Foes[i].alive := true;
+    Active^.Foes[i].spriteIdx := -2;      { resolved on the first draw/update }
+    CursorStart(Active^.Foes[i].anim, -1);
+    { phase identical foes so a rank of the same creature does not lockstep }
+    Active^.Foes[i].anim.clock := i * 0.13;
     { ranged monsters hang back; melee forms the front line. Size then settles
       the ranks: EnforceFoeCover below promotes foes until the front carries at
       least the back's bulk. }

@@ -40,6 +40,8 @@ const
   LOOP_PINGPONG = 2;
   SEQ_MIRROR    = $80;
 
+  ANIM_FPS = 12.0;   { a frame of ticks=1 lasts 1/12 s, a retro cadence }
+
 type
   { Author-side sequence: its metadata and the already-encoded CPIC frames. }
   TBankSeq = record
@@ -71,6 +73,14 @@ type
     seqs: array of TRTSeq;
   end;
 
+  { A play head into a bank: the sequence, the current frame, time toward the
+    next frame, and the pingpong direction. }
+  TBankCursor = record
+    seq, frame: longint;
+    clock: double;
+    fwd: boolean;
+  end;
+
 { Encode an author-side bank into the SPBK lump bytes. }
 function EncodeBank(const b: TSpriteBank): pak.TByteArray;
 { Decode the SPBK lump bytes into a runtime bank. }
@@ -81,6 +91,14 @@ function LoadBank(const p: TPak; const name: string; out rb: TRTBank): boolean;
 function BankSeqIndex(const rb: TRTBank; const name: string): longint;
 { Decode one frame of a sequence to an image. }
 function BankFrame(const rb: TRTBank; seq, frame: longint; out img: TImage): boolean;
+
+{ Start a cursor on a sequence, at frame 0. }
+procedure CursorStart(out c: TBankCursor; seq: longint);
+{ Advance a cursor by dt seconds, honoring the sequence's loop mode. Returns
+  true when the frame changed. A single-frame sequence never advances. }
+function CursorTick(const rb: TRTBank; var c: TBankCursor; dt: double): boolean;
+{ True when a once-mode sequence has reached its last frame. }
+function CursorAtEnd(const rb: TRTBank; const c: TBankCursor): boolean;
 
 implementation
 
@@ -253,6 +271,61 @@ begin
   SetLength(sub, len);
   for i := 0 to len - 1 do sub[i] := rb.raw[off + i];
   BankFrame := PicDecode(sub, img);
+end;
+
+procedure CursorStart(out c: TBankCursor; seq: longint);
+begin
+  c.seq := seq; c.frame := 0; c.clock := 0; c.fwd := true;
+end;
+
+{ Advance the frame one step in the sequence's loop mode. }
+procedure StepFrame(const rb: TRTBank; var c: TBankCursor; fcount: longint;
+  var changed: boolean);
+begin
+  case rb.seqs[c.seq].sflags and $03 of
+    LOOP_ONCE:
+      if c.frame < fcount - 1 then begin inc(c.frame); changed := true; end;
+    LOOP_PINGPONG:
+      begin
+        if c.fwd then begin
+          if c.frame < fcount - 1 then inc(c.frame)
+          else begin c.fwd := false; if c.frame > 0 then dec(c.frame); end;
+        end else begin
+          if c.frame > 0 then dec(c.frame)
+          else begin c.fwd := true; if c.frame < fcount - 1 then inc(c.frame); end;
+        end;
+        changed := true;
+      end;
+  else   { LOOP_LOOP }
+    c.frame := (c.frame + 1) mod fcount;
+    changed := true;
+  end;
+end;
+
+function CursorTick(const rb: TRTBank; var c: TBankCursor; dt: double): boolean;
+var fcount: longint; dur: double; changed: boolean;
+begin
+  CursorTick := false;
+  if (c.seq < 0) or (c.seq > High(rb.seqs)) then exit;
+  fcount := rb.seqs[c.seq].frameCount;
+  if fcount <= 1 then exit;                  { nothing to animate }
+  if CursorAtEnd(rb, c) then exit;           { a finished once-sequence holds }
+  dur := rb.seqs[c.seq].ticks / ANIM_FPS;
+  if dur <= 0 then dur := 1.0 / ANIM_FPS;
+  changed := false;
+  c.clock := c.clock + dt;
+  while (c.clock >= dur) and not CursorAtEnd(rb, c) do begin
+    c.clock := c.clock - dur;
+    StepFrame(rb, c, fcount, changed);
+  end;
+  CursorTick := changed;
+end;
+
+function CursorAtEnd(const rb: TRTBank; const c: TBankCursor): boolean;
+begin
+  CursorAtEnd := (c.seq >= 0) and (c.seq <= High(rb.seqs))
+    and ((rb.seqs[c.seq].sflags and $03) = LOOP_ONCE)
+    and (c.frame >= rb.seqs[c.seq].frameCount - 1);
 end;
 
 end.
