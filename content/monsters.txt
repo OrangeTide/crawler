@@ -15,14 +15,14 @@
 # size: body bulk for combat ranks, tiny small medium large huge colossal
 #   (default medium). The front rank must carry at least the back's bulk.
 # Undead (flag 1) are holy-weak and poison-immune by default.
-mon RAT      1 11 1 3 2 2  25 0 CREA4  forest+cave          inflict:disease size:small "Giant Rat"
-mon BAT      1 12 1 3 2 5  25 0 CREA5  cave+forest          inflict:disease size:tiny "Cave Bat"
-mon GOBLIN   1 13 1 6 4 3  25 0 CREA1  forest+cave          harry:taunt size:small "Goblin"
+mon RAT      1 11 1 3 2 2  25 0 RAT  forest+cave          inflict:disease size:small "Giant Rat"
+mon BAT      1 12 1 3 2 5  25 0 BAT  cave+forest          inflict:disease size:tiny "Cave Bat"
+mon GOBLIN   1 13 1 6 4 3  25 0 GOBLIN  forest+cave          harry:taunt size:small "Goblin"
 mon KOBOLD   1 12 1 4 3 3  25 0 CREA6  cave                 size:small "Kobold"
-mon SKELETON 1 12 1 6 4 2  25 1 CREA7  crypt                resist:phys "Skeleton"
-mon ZOMBIE   2 11 2 6 5 1  50 1 FLESH1 crypt+infernal       inflict:paralyze "Zombie"
-mon ORC      1 13 1 8 4 2  25 0 CREA2  forest+cave          harry:throw "Orc"
-mon SPIDER   1 13 1 4 3 4  25 0 CREA8  forest+cave+crypt    inflict:poison size:large "Giant Spider"
+mon SKELETON 1 12 1 6 4 2  25 1 SKELETON  crypt                resist:phys "Skeleton"
+mon ZOMBIE   2 11 2 6 5 1  50 1 ZOMBIE crypt+infernal       inflict:paralyze "Zombie"
+mon ORC      1 13 1 8 4 2  25 0 ORC  forest+cave          harry:throw "Orc"
+mon SPIDER   1 13 1 4 3 4  25 0 SPIDER  forest+cave+crypt    inflict:poison size:large "Giant Spider"
 mon CRAB     1 14 1 6 2 1  25 0 CREA9  coast                resist:phys weak:shock size:small "Shore Crab"
 mon WOLF     2 13 2 6 3 5  50 0 CREA10 forest+frozen        resist:frost size:large "Dire Wolf"
 mon BANDIT   1 12 1 6 4 3  25 0 CREA16 forest+coast+desert  harry:throw "Bandit"
