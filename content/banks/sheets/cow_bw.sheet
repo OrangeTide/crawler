@@ -1,0 +1,12 @@
+# Cow (black and white).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet cow_bw.ppm
+cell 112 80
+
+bank COW_BW
+seq IDLE  loop ticks=5 : lin 0-7
+seq WALK  loop ticks=3 : lin 8-14
+seq GRAZE loop ticks=5 : lin 16-23

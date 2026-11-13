@@ -145,6 +145,15 @@ begin
   CheckSeqWH('KNIGHT', 'BLOCK', 5, 69, 58);
   CheckSeqWH('KNIGHT_GREEN', 'DEATH', 6, 69, 58);
 
+  { farm animals on their own cell sizes }
+  CheckSeqWH('HORSE', 'IDLE', 6, 128, 90);
+  CheckSeqWH('HORSE', 'RUN', 6, 128, 90);
+  CheckSeqWH('COW', 'IDLE', 8, 112, 80);
+  CheckSeqWH('COW', 'GRAZE', 8, 112, 80);
+  CheckSeqWH('PIG', 'WALK', 7, 80, 48);
+  CheckSeqWH('CHICKEN', 'IDLE', 6, 32, 32);
+  CheckSeqWH('CHICKEN_WHITE', 'PECK', 6, 32, 32);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

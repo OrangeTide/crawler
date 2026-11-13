@@ -1,0 +1,12 @@
+# Pig (brown).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet pig_brown.ppm
+cell 80 48
+
+bank PIG_BROWN
+seq IDLE  loop ticks=5 : lin 0-7
+seq WALK  loop ticks=3 : lin 8-14
+seq GRAZE loop ticks=5 : lin 16-23

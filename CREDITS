@@ -314,6 +314,9 @@ attack, death), each row a sequence with its own frame count. Imported so far:
   alien         ALIEN gunner, idle, walk, shoot, death (run-and-gun rows out).
   knight        KNIGHT and recolors (_BLACK, _BROWN, _GREEN), 69x58 cells,
                 idle, walk, attack, block, death.
+  horse         HORSE (+_BLACK, _WHITE), 128x90, idle, walk, run, death.
+  farm animals  COW (+_BW, _RED) 112x80, PIG (+_BLACK, _BROWN) 80x48 idle/walk/
+                graze; CHICKEN (+_BLACK, _WHITE) 32x32 idle/walk/peck.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
