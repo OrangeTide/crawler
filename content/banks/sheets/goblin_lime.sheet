@@ -1,0 +1,14 @@
+# Goblin (lime recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet goblin_lime.ppm
+cell 72 80
+
+bank GOBLIN_LIME
+seq IDLE   loop ticks=4 : lin 0-6
+seq WALK   loop ticks=2 : lin 7-12
+seq ATTACK once ticks=2 : lin 13-20
+seq HURT   once ticks=3 : lin 25-27
+seq DEATH  once ticks=3 : lin 49-55

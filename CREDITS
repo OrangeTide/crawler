@@ -301,6 +301,9 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 hurt, death read from a wrapping strip (the crawl is left out).
   skeleton      SKELETON and recolors (_WHITE, _GHOST, _GOLD, _RED, _RETRO),
                 idle, walk, attack, death from a wrapping strip.
+  goblin        GOBLIN and recolors (_BRIGHT, _BROWN, _DARK, _LIME, _RED),
+                72x80 cells, idle, walk, attack, hurt, death from a strip.
+  spider        SPIDER, 96x96 cells, idle, walk, attack, death (16-wide sheet).
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

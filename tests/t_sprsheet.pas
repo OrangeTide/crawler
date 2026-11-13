@@ -49,6 +49,21 @@ begin
   end;
 end;
 
+procedure CheckSeqWH(const lump, seq: string; frames, w, h: longint);
+var idx, s: longint;
+begin
+  idx := LoadSprite(p, lump);
+  Check(idx >= 0, lump + ' loads from the pak');
+  s := SpriteSeqIndex(idx, seq);
+  Check(s >= 0, lump + ' has a ' + seq + ' sequence');
+  if s >= 0 then begin
+    CheckEqI(SpriteReg[idx].bank.seqs[s].frameCount, frames,
+      lump + ' ' + seq + ' frame count');
+    CheckEqI(SpriteReg[idx].bank.seqs[s].w, w, lump + ' ' + seq + ' width');
+    CheckEqI(SpriteReg[idx].bank.seqs[s].h, h, lump + ' ' + seq + ' height');
+  end;
+end;
+
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -101,6 +116,14 @@ begin
   CheckSeq('SKELETON', 'WALK', 10);
   CheckSeq('SKELETON', 'ATTACK', 5);
   CheckSeq('SKELETON_GOLD', 'DEATH', 10);
+
+  { non-square cells (goblin 72x80) and large cells (spider 96x96) }
+  CheckSeqWH('GOBLIN', 'IDLE', 7, 72, 80);
+  CheckSeqWH('GOBLIN', 'WALK', 6, 72, 80);
+  CheckSeqWH('GOBLIN_RED', 'DEATH', 7, 72, 80);
+  CheckSeqWH('SPIDER', 'IDLE', 12, 96, 96);
+  CheckSeqWH('SPIDER', 'WALK', 16, 96, 96);
+  CheckSeqWH('SPIDER', 'DEATH', 10, 96, 96);
 
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');

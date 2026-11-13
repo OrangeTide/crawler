@@ -1,0 +1,13 @@
+# Giant spider: idle 0-11, walk 16-31, attack 48-59, death 80-89 off a 16-wide sheet; rear-up and recovery rows left unimported.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet spider.ppm
+cell 96 96
+
+bank SPIDER
+seq IDLE   loop ticks=4 : lin 0-11
+seq WALK   loop ticks=2 : lin 16-31
+seq ATTACK once ticks=2 : lin 48-59
+seq DEATH  once ticks=3 : lin 80-89
