@@ -1,0 +1,7 @@
+# Generated magenta-keyed PPMs (built from the source PNGs).
+*.ppm
+# Source character sheets (GandalfHardcore, licensed to the author). The pack
+# terms forbid redistributing the art on its own, so the PNGs stay local and
+# out of any public mirror. The .sheet manifests are tracked; supply the
+# matching PNGs here to rebuild the sliced banks.
+*.png

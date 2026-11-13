@@ -139,11 +139,21 @@ BANKIDS   = BANK_SMOKE:content/banks/smoke.txt \
             CREA15:content/banks/crea15.txt
 BANKSRC   = $(foreach b,$(BANKIDS),$(word 2,$(subst :, ,$(b))))
 BANKARGS  = $(foreach b,$(BANKIDS),bank $(word 1,$(subst :, ,$(b))) $(word 2,$(subst :, ,$(b))))
+# Grid character sheets: one .sheet manifest carves a whole sheet into many
+# banks (a column per character). Each manifest reads a magenta-keyed .ppm
+# beside it, converted from the pack .png at native size (no billboard resize).
+# The source PNGs are licensed art kept out of git, so the set is whichever
+# PNGs are present: a clone without them simply bakes no sheets. A .sheet whose
+# PNG is missing is skipped; one whose PNG is present must have its manifest.
+SHEETPNG  = $(wildcard content/banks/sheets/*.png)
+SHEETS    = $(SHEETPNG:.png=.sheet)
+SHEETPPM  = $(SHEETPNG:.png=.ppm)
+SHEETARGS = $(foreach s,$(SHEETS),sheet $(s))
 CONTENT   = $(ITEMS) $(MONSTERS) $(SPECIES) $(CLASSES) $(BACKG) $(GEAR) $(NEWGAME) $(QUESTS) $(DIALOGS) \
             $(SPELLS) $(SKILLS) $(SHOPS) $(ENCOUNTERS) $(TILESETS) $(WORLD) $(MAPS) \
             $(MODELSRC) $(TILESRC) $(TRIMSRC) $(SPRITESRC) $(PORTRAITSRC) \
             $(PCPORTRAITSRC) $(SPELLICONSRC) $(SKILLICONSRC) $(TITLEBGSRC) \
-            $(MUSICSRC) $(HEIGHTSRC) $(CLUTPPM) $(BANKSRC)
+            $(MUSICSRC) $(HEIGHTSRC) $(CLUTPPM) $(BANKSRC) $(SHEETS) $(SHEETPPM)
 MAPARGS   = $(foreach m,$(MAPS),map $(m))
 MODELARGS = $(foreach n,$(MODELNAMES),model $(n) content/models/$(n).obj content/models/$(n).ppm)
 # Modular tiles share the trim atlas, so they bake with the tile verb (no
@@ -271,12 +281,18 @@ build/tools/shot: tools/shot.pas src/*.pas src/ui/*.pas build/version.inc | buil
 	$(FPC) $(TOOLFLAGS) -obuild/tools/shot tools/shot.pas
 
 $(PAK): $(MKASSETS) $(CONTENT)
-	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(CLUTARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS) $(BANKARGS)
+	$(MKASSETS) $(PAK) $(TABLEARGS) $(MAPARGS) $(MODELARGS) $(TILEARGS) $(TRIMARG) $(CLUTARG) $(SPRITEARGS) $(PORTRAITARGS) $(PCPORTRAITARGS) $(SPELLICONARGS) $(SKILLICONARGS) $(TITLEBGARG) $(MUSICARGS) $(HEIGHTARGS) $(BANKARGS) $(SHEETARGS)
 
 # Billboard source: a PNG (with alpha) flattened onto the magenta key and
 # scaled to a billboard-sized PPM for the asset builder.
 content/sprites/%.ppm: content/sprites/%.png
 	$(IM) $< -filter point -resize 64x96 -alpha on -channel A -threshold 50% +channel \
+	  -background '#FF00FF' -flatten -depth 8 ppm:$@
+
+# Character sheet source: a grid PNG (with alpha) flattened onto the magenta key
+# at native size, so each cell stays its authored pixel size for the slicer.
+content/banks/sheets/%.ppm: content/banks/sheets/%.png
+	$(IM) $< -alpha on -channel A -threshold 50% +channel \
 	  -background '#FF00FF' -flatten -depth 8 ppm:$@
 
 # Portrait source: a 64x64 PNG (with alpha) flattened onto the magenta key.

@@ -16,7 +16,8 @@ uses
   classes, sysutils, gfx, pic, pak, texgen, mapfmt, maptext, items, itemtext,
   monsters, montext, chardata, chartext, dialog, dialogtext, shops, shoptext,
   encounters, enctext, worldfmt, worldtext, meshfmt, models, spelldb, spelltext,
-  skilldb, skilltext, tilekit, kittext, heightfmt, quests, sprbank, sprbanktext;
+  skilldb, skilltext, tilekit, kittext, heightfmt, quests, sprbank, sprbanktext,
+  sprsheet;
 
 var
   w: TPakWriter;
@@ -201,6 +202,25 @@ begin
   for i := 0 to High(bank.seqs) do nf := nf + Length(bank.seqs[i].frames);
   writeln('  bank ', UpperCase(name), ' (', Length(bank.seqs), ' seqs, ',
     nf, ' frames) from ', manifestFn);
+end;
+
+procedure AddSheet(const manifestFn: string);
+var
+  banks: TSheetBankArray;
+  err: string;
+  bi, i, nf: longint;
+begin
+  if not ParseSheet(manifestFn, banks, err) then begin
+    writeln(StdErr, 'mkassets: ', manifestFn, ': ', err); halt(1);
+  end;
+  for bi := 0 to High(banks) do begin
+    PakWAdd(w, banks[bi].name, EncodeBank(banks[bi].bank));
+    nf := 0;
+    for i := 0 to High(banks[bi].bank.seqs) do
+      nf := nf + Length(banks[bi].bank.seqs[i].frames);
+    writeln('  bank ', banks[bi].name, ' (', Length(banks[bi].bank.seqs),
+      ' seqs, ', nf, ' frames) from ', manifestFn);
+  end;
 end;
 
 procedure AddQuests(const fn: string);
@@ -532,6 +552,8 @@ begin
       AddNewGame(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'bank' then begin
       AddBank(ParamStr(i + 1), ParamStr(i + 2)); inc(i, 3);
+    end else if ParamStr(i) = 'sheet' then begin
+      AddSheet(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'quests' then begin
       AddQuests(ParamStr(i + 1)); inc(i, 2);
     end else if ParamStr(i) = 'dialogs' then begin

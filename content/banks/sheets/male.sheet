@@ -1,0 +1,43 @@
+# Male character sheet (GandalfHardcore pack), sliced into one bank per column.
+# The sheet is an 11-column by 14-row grid of 64x64 cells: row 0 is the
+# portraits, rows 1..13 are each character's animation cycle (one facing; the
+# world view flips it to face the other way). Column order reads left to right
+# off the portrait row. Names are best-effort from the pack's character list
+# (dwarf, king, hunter, mercenary, blacksmith, cultist, peasant, bishop, guard,
+# barrel, knight) and can be renamed without touching the slicer.
+
+sheet male.ppm
+cell 64 64
+
+bank MALE_GUARD
+seq IDLE loop ticks=4 : col 0 rows 1-13
+
+bank MALE_PEASANT
+seq IDLE loop ticks=4 : col 1 rows 1-13
+
+bank MALE_CULTIST
+seq IDLE loop ticks=4 : col 2 rows 1-13
+
+bank MALE_MERCENARY
+seq IDLE loop ticks=4 : col 3 rows 1-13
+
+bank MALE_BISHOP
+seq IDLE loop ticks=4 : col 4 rows 1-13
+
+bank MALE_SOLDIER
+seq IDLE loop ticks=4 : col 5 rows 1-13
+
+bank MALE_DWARF
+seq IDLE loop ticks=4 : col 6 rows 1-13
+
+bank MALE_KING
+seq IDLE loop ticks=4 : col 7 rows 1-13
+
+bank MALE_HUNTER
+seq IDLE loop ticks=4 : col 8 rows 1-13
+
+bank MALE_BARREL
+seq IDLE loop ticks=4 : col 9 rows 1-13
+
+bank MALE_KNIGHT
+seq IDLE loop ticks=4 : col 10 rows 1-13

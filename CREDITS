@@ -266,6 +266,34 @@ The crawler reads the prose as the real behaviour and maps each spell's damage
 type onto its own five elements thematically, so combat that wires a spell up
 approximates the intent rather than reproducing exact tabletop mechanics.
 
+Animated character sheets (GandalfHardcore)
+-------------------------------------------
+
+Source: character and NPC pixel-art packs by GandalfHardcore
+(gandalfhardcore.itch.io), purchased and licensed by the author for personal
+and commercial use.
+License: the pack terms permit use in free and commercial games and projects
+and editing the art. They do NOT permit redistributing or reselling the images
+on their own or as part of an asset-pack compilation, nor use for AI training.
+This is not a CC0 asset: the terms above govern it, not the CC0 note at the top
+of this file.
+
+content/banks/sheets holds the sheet PNGs and their sliced banks. Each sheet is
+a grid of 64x64 cells, a column per character and a row per animation frame; the
+offline sheet slicer (tools/mkassets `sheet` verb) carves each column into a
+bank lump. The male and female character sheets are imported so far:
+
+  male.sheet    MALE_GUARD, MALE_PEASANT, MALE_CULTIST, MALE_MERCENARY,
+                MALE_BISHOP, MALE_SOLDIER, MALE_DWARF, MALE_KING, MALE_HUNTER,
+                MALE_BARREL, MALE_KNIGHT
+  female.sheet  FEMALE_QUEEN, FEMALE_DRYAD, FEMALE_NUN, FEMALE_BARLADY,
+                FEMALE_MAID, FEMALE_KNIGHT, FEMALE_VAMPIRE, FEMALE_MERCHANT,
+                FEMALE_SUCCUBUS
+
+Because the pack terms forbid redistributing the art on its own, keep the sheet
+PNGs out of any public mirror of this repository, or replace them there with the
+baked pak, which embeds only the game's own use of the frames.
+
 Bundled libraries (macOS)
 -------------------------
 

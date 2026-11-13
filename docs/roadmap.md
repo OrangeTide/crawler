@@ -324,6 +324,17 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   GL billboard paths). The LRU asset cache and .PRT portrait banks stay
   deferred; the engine animates and flips any bank, so animated character art is
   a content-only manifest edit.
+- [in progress] Import the licensed character art. A grid sheet slicer (a
+  `.sheet` manifest plus the `mkassets` `sheet` verb) carves a packed sprite
+  sheet into one bank per column or row, so a whole multi-character sheet bakes
+  from one file. The GandalfHardcore male and female sheets are in (twenty
+  `MALE_*`/`FEMALE_*` NPC banks). The source PNGs are licensed, so they stay out
+  of git and the build slices whichever are present. Still to do: wire the new
+  banks onto the town and world NPCs (replacing the Dungeon Crawl billboards
+  where wanted), the irregular female columns (the wide "goddess"), and the
+  enemy and single-character action sheets (warrior, succubus, goblin, zombie
+  and the rest), whose ragged named-action rows need a per-sheet layout. Split
+  idle from walk where a cycle warrants it.
 - [gap] Online help for the keyboard commands: a HELP overlay bound to F1 and
   reachable from a main-menu HELP item, listing the controls. Source the key
   list from the same binding table the game already uses so it stays in step.
