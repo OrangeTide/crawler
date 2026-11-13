@@ -1,0 +1,13 @@
+# Agent soldier: 64x64, 10-wide 31-row run-and-gun sheet. idle 0-4, walk 110-117, shoot 30-34, death 300-307; the many aim-angle and prone rows are left unimported.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet agent.ppm
+cell 64 64
+
+bank AGENT
+seq IDLE  loop ticks=4 : lin 0-4
+seq WALK  loop ticks=2 : lin 110-117
+seq SHOOT once ticks=2 : lin 30-34
+seq DEATH once ticks=3 : lin 300-307

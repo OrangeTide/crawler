@@ -1,0 +1,14 @@
+# Mounted knight (black recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet rider_black.ppm
+cell 128 111
+
+bank RIDER_BLACK
+seq IDLE   loop ticks=5 : lin 0-9
+seq WALK   loop ticks=3 : lin 20-29
+seq ATTACK once ticks=2 : lin 30-39
+seq GALLOP loop ticks=2 : lin 40-49
+seq DEATH  once ticks=3 : lin 52-57

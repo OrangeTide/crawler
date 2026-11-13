@@ -317,6 +317,10 @@ attack, death), each row a sequence with its own frame count. Imported so far:
   horse         HORSE (+_BLACK, _WHITE), 128x90, idle, walk, run, death.
   farm animals  COW (+_BW, _RED) 112x80, PIG (+_BLACK, _BROWN) 80x48 idle/walk/
                 graze; CHICKEN (+_BLACK, _WHITE) 32x32 idle/walk/peck.
+  mounted knight RIDER and seven recolors, 128x111, idle, walk, lance charge,
+                gallop, death.
+  agent soldier AGENT (+_GREEN), 64x64, idle, walk, shoot, death; the many
+                aim-angle and prone rows are left unimported.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
