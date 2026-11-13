@@ -26,33 +26,29 @@ type
     x, y: double;    { world position, tile centered }
     wh: double;      { billboard height in tiles }
     img: longint;    { index into sprites.SpriteReg }
-    anim: longint;   { slot in the NPC animation table, or -1 when static }
+    hx, hy: double;  { heading, (0,0) when the entity is not moving }
+    phase: double;   { animation phase offset, so like entities desync }
   end;
 
 { Fill lst with the current map's drawable sprites, up to its length, and
   return how many were written. }
 function GatherWorldSprites(var lst: array of TWorldSprite): longint;
 
-{ Advance every resident NPC animation cursor by dt. Call once per explore
-  frame; a plain-sprite or single-frame NPC costs nothing. }
+{ Advance the shared world animation clock by dt. Call once per explore frame. }
 procedure WorldAnimTick(dt: double);
 
-{ Which of an NPC's four sides faces an observer: the DIR_* the observer at
-  (ox,oy) stands in, as seen from the NPC at (nx,ny). }
-function WorldViewDir(nx, ny, ox, oy: double): longint;
+{ The frame of a looping bank sequence at the current clock plus a phase
+  offset, so like entities animate out of step. 0 for a plain sprite or a
+  single-frame sequence. Exposed for the world view and its test. }
+function BankLoopFrame(si, seq: longint; phase: double): longint;
 
-{ The idle sequence of bank sprite si to show for view direction dir: the
-  directional IDLE<dir>, the east art flipped for the west view (mirror set),
-  or a plain IDLE for a non-directional bank. Returns -1 and mirror false when
-  si is not a bank or carries no idle. }
-function BankIdleForDir(si, dir: longint; out mirror: boolean): longint;
-
-{ The frame to draw for an animated entry, given the camera position so the
-  view picks which side of the NPC it sees. Returns false for a static entry
-  or a plain (non-bank) sprite, leaving the caller to draw the default image.
-  On true, img is the chosen frame and mirror asks for a horizontal flip, the
-  east art reused for the west view. }
-function WorldSpriteFrame(anim: longint; camx, camy: double;
+{ The frame to draw for a world entry, with the camera right vector (rx,ry)
+  for the facing flip. Returns false for a plain (non-bank) sprite, leaving
+  the caller to draw the default image. On true, img is the chosen frame and
+  mirror asks for a horizontal flip, the one art facing reused for the other
+  side. A moving entity walks (its WALK sequence when present), flipped when
+  its heading reads to the screen-left; a still entity idles, unflipped. }
+function WorldSpriteFrame(const e: TWorldSprite; rx, ry: double;
   out img: TImage; out mirror: boolean): boolean;
 
 implementation
@@ -67,100 +63,51 @@ const
   FOLIAGE_SPRITE = 'FOLIAGE_TREE';
   FOLIAGE_H = 1.6;      { billboard height in tiles }
   FOLIAGE_R = 16;       { only gather foliage within this many tiles of the party }
-  DIRLET: array[0 .. 3] of char = ('N', 'E', 'S', 'W');   { indexed by DIR_* }
-
-type
-  TNpcAnim = record
-    si: longint;        { sprite reg slot, -1 when unresolved this map }
-    nx, ny: double;     { the NPC's world centre, for the view bearing }
-    cur: TBankCursor;
-    seqIdx: longint;    { the sequence the cursor plays, -1 before the first }
-  end;
+  PHASE_STEP = 0.37;    { seconds of phase between successive like entities }
 
 var
-  npcAnim: array of TNpcAnim;
-  animMap: string;      { the map name npcAnim belongs to }
-
-{ (Re)size the per-NPC animation table for the current map, resetting its
-  cursors when the resident map or the NPC count changed. }
-procedure EnsureNpcAnim;
-var
-  i, cnt: longint;
-begin
-  cnt := Length(CurMap.npcs);
-  if (animMap = CurMapName) and (Length(npcAnim) = cnt) then exit;
-  SetLength(npcAnim, cnt);
-  for i := 0 to cnt - 1 do begin
-    npcAnim[i].si := -1;
-    npcAnim[i].seqIdx := -1;
-    CursorStart(npcAnim[i].cur, -1);
-  end;
-  animMap := CurMapName;
-end;
-
-{ The axes match the world's DIR_* (east is +x, south is +y); the 45 degree
-  quadrant split is the same partition atan2 rounding would give. }
-function WorldViewDir(nx, ny, ox, oy: double): longint;
-var
-  dx, dy: double;
-begin
-  dx := ox - nx; dy := oy - ny;
-  if Abs(dx) >= Abs(dy) then begin
-    if dx >= 0 then WorldViewDir := DIR_E else WorldViewDir := DIR_W;
-  end else begin
-    if dy >= 0 then WorldViewDir := DIR_S else WorldViewDir := DIR_N;
-  end;
-end;
-
-function BankIdleForDir(si, dir: longint; out mirror: boolean): longint;
-var
-  sq: longint;
-begin
-  mirror := false;
-  BankIdleForDir := -1;
-  if (si < 0) or not SpriteReg[si].isBank then exit;
-  if (dir < 0) or (dir > 3) then exit;
-  { a directional IDLE<dir>, else the east art flipped for the west view, else
-    a single plain IDLE for a non-directional bank }
-  sq := SpriteSeqIndex(si, 'IDLE' + DIRLET[dir]);
-  if (sq < 0) and (dir = DIR_W) then begin
-    sq := SpriteSeqIndex(si, 'IDLEE');
-    if sq >= 0 then mirror := true;
-  end;
-  if sq < 0 then sq := SpriteSeqIndex(si, 'IDLE');
-  BankIdleForDir := sq;
-end;
+  animClock: double;    { the shared world animation clock, in seconds }
 
 procedure WorldAnimTick(dt: double);
-var
-  i, si: longint;
 begin
-  for i := 0 to High(npcAnim) do begin
-    si := npcAnim[i].si;
-    if (si < 0) or not SpriteReg[si].isBank then continue;
-    if npcAnim[i].seqIdx < 0 then continue;   { no frame chosen yet }
-    CursorTick(SpriteReg[si].bank, npcAnim[i].cur, dt);
-  end;
+  animClock := animClock + dt;
 end;
 
-function WorldSpriteFrame(anim: longint; camx, camy: double;
+function BankLoopFrame(si, seq: longint; phase: double): longint;
+var
+  fc: longint;
+  dur: double;
+begin
+  BankLoopFrame := 0;
+  if (si < 0) or not SpriteReg[si].isBank then exit;
+  if (seq < 0) or (seq > High(SpriteReg[si].bank.seqs)) then exit;
+  fc := SpriteReg[si].bank.seqs[seq].frameCount;
+  if fc <= 1 then exit;
+  dur := SpriteReg[si].bank.seqs[seq].ticks / ANIM_FPS;   { seconds per frame }
+  if dur <= 0 then exit;
+  BankLoopFrame := trunc((animClock + phase) / dur) mod fc;
+end;
+
+function WorldSpriteFrame(const e: TWorldSprite; rx, ry: double;
   out img: TImage; out mirror: boolean): boolean;
 var
-  si, dir, sq: longint;
+  si, sq, fr: longint;
+  moving: boolean;
 begin
   WorldSpriteFrame := false;
   mirror := false;
-  if (anim < 0) or (anim > High(npcAnim)) then exit;
-  si := npcAnim[anim].si;
+  si := e.img;
   if (si < 0) or not SpriteReg[si].isBank then exit;
-  dir := WorldViewDir(npcAnim[anim].nx, npcAnim[anim].ny, camx, camy);
-  sq := BankIdleForDir(si, dir, mirror);
-  if sq < 0 then exit;                 { a bank with no idle: use the default }
-  if sq <> npcAnim[anim].seqIdx then begin
-    CursorStart(npcAnim[anim].cur, sq);
-    npcAnim[anim].seqIdx := sq;
-  end;
-  WorldSpriteFrame := SpriteFrame(si, sq, npcAnim[anim].cur.frame, img);
+  moving := (e.hx <> 0) or (e.hy <> 0);
+  sq := -1;
+  if moving then sq := SpriteSeqIndex(si, 'WALK');
+  if sq < 0 then sq := SpriteSeqIndex(si, 'IDLE');
+  if sq < 0 then exit;                 { a bank with neither: use the default }
+  { the art faces the camera's right; a heading that reads to the screen-left
+    (a negative projection on the camera right vector) flips it to face left }
+  if moving then mirror := (e.hx * rx + e.hy * ry) < 0;
+  fr := BankLoopFrame(si, sq, e.phase);
+  WorldSpriteFrame := SpriteFrame(si, sq, fr, img);
 end;
 
 { The billboard art and height for a portal of this kind. An unknown kind
@@ -186,7 +133,8 @@ var
   eh: double;
 begin
   n := 0;
-  EnsureNpcAnim;
+  { NPCs stand where the map places them, facing the camera; a bank-backed one
+    idle-animates in place (no heading, so no flip) }
   for i := 0 to High(CurMap.npcs) do begin
     if n > High(lst) then break;
     spr := CurMap.npcs[i].sprite;
@@ -194,16 +142,16 @@ begin
     si := LoadSprite(GamePak, spr);
     if si < 0 then si := LoadSprite(GamePak, NPC_SPRITE);
     if si < 0 then continue;
-    npcAnim[i].si := si;
-    npcAnim[i].nx := CurMap.npcs[i].x + 0.5;
-    npcAnim[i].ny := CurMap.npcs[i].y + 0.5;
-    lst[n].x := npcAnim[i].nx;
-    lst[n].y := npcAnim[i].ny;
+    lst[n].x := CurMap.npcs[i].x + 0.5;
+    lst[n].y := CurMap.npcs[i].y + 0.5;
     lst[n].wh := ENT_H;
     lst[n].img := si;
-    lst[n].anim := i;
+    lst[n].hx := 0; lst[n].hy := 0;
+    lst[n].phase := i * PHASE_STEP;
     inc(n);
   end;
+  { pursuers carry a heading from their last step, so a bank-backed one walks
+    and flips to face the way it moves }
   for i := 0 to High(Pursuers) do begin
     if n > High(lst) then break;
     if not Pursuers[i].active then continue;
@@ -214,7 +162,8 @@ begin
     lst[n].y := Pursuers[i].y + 0.5;
     lst[n].wh := ENT_H;
     lst[n].img := si;
-    lst[n].anim := -1;
+    lst[n].hx := Pursuers[i].fx; lst[n].hy := Pursuers[i].fy;
+    lst[n].phase := i * PHASE_STEP;
     inc(n);
   end;
   { the map's exits: a door, stair, ladder or cave mouth standing on its
@@ -229,7 +178,7 @@ begin
     lst[n].y := CurMap.portals[i].y + 0.5;
     lst[n].wh := eh;
     lst[n].img := si;
-    lst[n].anim := -1;
+    lst[n].hx := 0; lst[n].hy := 0; lst[n].phase := 0;
     inc(n);
   end;
   { decorative foliage: trees and rocks the party walks among, billboarded on
@@ -246,7 +195,7 @@ begin
         lst[n].y := CurMap.foliage[i].y + 0.5;
         lst[n].wh := FOLIAGE_H;
         lst[n].img := si;
-        lst[n].anim := -1;
+        lst[n].hx := 0; lst[n].hy := 0; lst[n].phase := 0;
         inc(n);
       end;
   end;

@@ -26,15 +26,17 @@ whose development history is summarized in docs/roadmap.md.
   single IDLE frame, so nothing moves on screen until multi-frame art lands;
   the playback is exercised by `t_sprbank` through the smoke bank. `t_sprbank`
   round-trips the directory, decodes frames, covers the store path, pins the
-  migration, and drives the cursor through every loop mode. World NPCs now face
-  the party: the camera bearing picks which of the NPC's four sides it sees, and
-  the view draws that cardinal's `IDLE<dir>` sequence, reusing the east art
-  flipped for the west view. Both billboard paths, the software rasterizer and
-  the GL renderer, take a horizontal-mirror flag. A plain sprite or a
-  non-directional bank is unchanged, so the world render stays byte-identical
-  until directional NPC art lands as a content-only manifest edit. `t_worldspr`
-  pins the bearing-to-cardinal split and the sequence pick with its mirror
-  fallback against a directional test bank.
+  migration, and drives the cursor through every loop mode. World entities now
+  animate and face by a sprite flip, matching single-facing character art: a
+  bank-backed NPC idle-animates in place, while a pursuer plays its `WALK`
+  sequence and flips horizontally to face the way it heads (its last step
+  projected on the camera right vector). A shared clock drives the looping
+  frame, phased per entity so like creatures desync. Both billboard paths, the
+  software rasterizer and the GL renderer, take a horizontal-mirror flag. A
+  plain sprite is unchanged, so the world render stays byte-identical until
+  animated character art lands as a content-only manifest edit. `t_worldspr`
+  pins the looping frame pick and the walk-or-idle sequence choice with its
+  heading flip against a two-sequence test bank.
 - A run timer. Real play time accumulates across a playthrough (a speedrun-style
   wall clock, not the in-world day-night clock) while the run is in progress, and
   pauses on the title, during party creation, and at the game-over and victory

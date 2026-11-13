@@ -1,22 +1,31 @@
 program t_worldspr;
 
-{** Directional world NPCs (design section 27, P5). The world view picks which
-  side of an NPC it sees from the camera bearing, then draws that cardinal's
-  idle sequence, reusing the east art flipped for the west view. These checks
-  pin the two pure pieces: the bearing-to-cardinal split (WorldViewDir) and the
-  sequence pick with its mirror fallback (BankIdleForDir). The BANK_DIR fixture
-  (content/banks/dirnpc.txt) carries IDLEN, IDLEE and IDLES but no IDLEW, so the
-  west view must fall back to the east art. }
+{** World NPC facing by a sprite flip (design section 27, P5). The source art
+  animates one facing, so the world view reuses it flipped for the other side:
+  a moving entity walks and faces the way it heads, a still one idles. These
+  checks pin the three pure pieces: the looping frame pick off the shared clock
+  (BankLoopFrame) and the sequence-and-flip decision (WorldSpriteFrame). The
+  BANK_WALK fixture (content/banks/walker.txt) carries a two-frame IDLE and a
+  three-frame WALK. }
 
 {$mode objfpc}{$H+}
 
 uses
-  sysutils, pak, mapfmt, sprites, worldspr, testing;
+  sysutils, pak, pic, sprites, worldspr, testing;
 
 var
   p: TPak;
-  dir, si, smoke, plain: longint;
+  e: TWorldSprite;
+  img: TImage;
+  si: longint;
   mir: boolean;
+
+{ a world entry at the origin, sprite si, heading (hx,hy), no phase }
+function Ent(si: longint; hx, hy: double): TWorldSprite;
+begin
+  Ent.x := 0; Ent.y := 0; Ent.wh := 1; Ent.img := si;
+  Ent.hx := hx; Ent.hy := hy; Ent.phase := 0;
+end;
 
 begin
   if not PakLoad('build/game.pak', p) then begin
@@ -24,55 +33,59 @@ begin
     halt(2);
   end;
 
-  { the camera bearing resolves to the NPC side it faces. NPC sits at (5,5). }
-  CheckEqI(WorldViewDir(5, 5, 7, 5), DIR_E, 'camera to the east sees the E side');
-  CheckEqI(WorldViewDir(5, 5, 3, 5), DIR_W, 'camera to the west sees the W side');
-  CheckEqI(WorldViewDir(5, 5, 5, 7), DIR_S, 'camera to the south sees the S side');
-  CheckEqI(WorldViewDir(5, 5, 5, 3), DIR_N, 'camera to the north sees the N side');
-  { the dominant axis wins the 45 degree quadrant split }
-  CheckEqI(WorldViewDir(5, 5, 7, 6), DIR_E, 'east dominates a shallow diagonal');
-  CheckEqI(WorldViewDir(5, 5, 6, 7), DIR_S, 'south dominates a shallow diagonal');
-
-  { the directional bank: N, E and S resolve to their own sequence unflipped }
   SpritesReset;
-  si := LoadSprite(p, 'BANK_DIR');
-  Check(si >= 0, 'the directional bank loads');
-  Check(SpriteReg[si].isBank, 'BANK_DIR is a bank');
-  Check(SpriteSeqIndex(si, 'IDLEW') < 0, 'BANK_DIR has no west sequence');
+  si := LoadSprite(p, 'BANK_WALK');
+  Check(si >= 0, 'the walk bank loads');
+  Check(SpriteReg[si].isBank, 'BANK_WALK is a bank');
 
-  dir := BankIdleForDir(si, DIR_N, mir);
-  CheckEqI(dir, SpriteSeqIndex(si, 'IDLEN'), 'north picks IDLEN');
-  Check(not mir, 'north is not mirrored');
-  dir := BankIdleForDir(si, DIR_E, mir);
-  CheckEqI(dir, SpriteSeqIndex(si, 'IDLEE'), 'east picks IDLEE');
-  Check(not mir, 'east is not mirrored');
-  dir := BankIdleForDir(si, DIR_S, mir);
-  CheckEqI(dir, SpriteSeqIndex(si, 'IDLES'), 'south picks IDLES');
-  Check(not mir, 'south is not mirrored');
+  { a still entity idles and never flips. The camera right vector here is the
+    east axis (1,0). }
+  e := Ent(si, 0, 0);
+  Check(WorldSpriteFrame(e, 1, 0, img, mir), 'a still bank entity resolves a frame');
+  CheckEqI(img.w, 64, 'the idle frame decodes');
+  Check(not mir, 'a still entity is not flipped');
 
-  { west has no art, so it reuses the east sequence flipped }
-  dir := BankIdleForDir(si, DIR_W, mir);
-  CheckEqI(dir, SpriteSeqIndex(si, 'IDLEE'), 'west falls back to IDLEE');
-  Check(mir, 'the west fallback is mirrored');
+  { a mover walks. Heading east, with the camera right along east, reads to the
+    screen-right: no flip. }
+  e := Ent(si, 1, 0);
+  Check(WorldSpriteFrame(e, 1, 0, img, mir), 'a moving entity resolves a frame');
+  Check(not mir, 'moving with the camera right is not flipped');
 
-  { a non-directional bank (a plain IDLE) ignores the direction and never flips }
-  smoke := LoadSprite(p, 'BANK_SMOKE');
-  Check((smoke >= 0) and SpriteReg[smoke].isBank, 'BANK_SMOKE is a bank');
-  dir := BankIdleForDir(smoke, DIR_N, mir);
-  CheckEqI(dir, SpriteSeqIndex(smoke, 'IDLE'), 'a plain bank picks IDLE for north');
-  Check(not mir, 'a plain bank north is not mirrored');
-  dir := BankIdleForDir(smoke, DIR_W, mir);
-  CheckEqI(dir, SpriteSeqIndex(smoke, 'IDLE'), 'a plain bank picks IDLE for west');
-  Check(not mir, 'a plain bank west is not mirrored');
+  { heading west against the same camera right reads to the screen-left: flip. }
+  e := Ent(si, -1, 0);
+  Check(WorldSpriteFrame(e, 1, 0, img, mir), 'the opposite heading resolves');
+  Check(mir, 'moving against the camera right flips');
 
-  { a plain PIC sprite is not a bank: no sequence, never mirrored }
-  plain := LoadSprite(p, 'CREA1');
-  Check((plain >= 0) and not SpriteReg[plain].isBank, 'CREA1 is a plain sprite');
-  Check(BankIdleForDir(plain, DIR_E, mir) < 0, 'a plain sprite yields no sequence');
-  Check(not mir, 'a plain sprite is not mirrored');
+  { the flip follows the camera, not the world: the same west heading seen with
+    a flipped camera right (facing the other way) reads to the screen-right. }
+  e := Ent(si, -1, 0);
+  Check(WorldSpriteFrame(e, -1, 0, img, mir), 'the turned-camera case resolves');
+  Check(not mir, 'the same heading under a flipped camera does not flip');
 
-  { an out-of-range direction is refused }
-  Check(BankIdleForDir(si, 7, mir) < 0, 'a bad direction is refused');
+  { the shared clock drives the looping frame. The process starts the clock at
+    zero; advance it 0.3 s. WALK runs at ticks=3 (0.25 s a frame), so 0.3 s is
+    frame 1; IDLE at ticks=6 (0.5 s a frame) is still frame 0. }
+  WorldAnimTick(0.3);
+  CheckEqI(BankLoopFrame(si, SpriteSeqIndex(si, 'WALK'), 0), 1,
+    'the walk cycle is on frame 1 at 0.3 s');
+  CheckEqI(BankLoopFrame(si, SpriteSeqIndex(si, 'IDLE'), 0), 0,
+    'the idle cycle is still on frame 0 at 0.3 s');
+  { a phase offset shifts the same clock onto a later frame }
+  CheckEqI(BankLoopFrame(si, SpriteSeqIndex(si, 'WALK'), 0.25), 2,
+    'a quarter-second phase advances the walk a frame');
+
+  { a non-looping call with a single-frame sequence never leaves frame 0 }
+  si := LoadSprite(p, 'CREA7');          { a one-frame IDLE bank }
+  CheckEqI(BankLoopFrame(si, SpriteSeqIndex(si, 'IDLE'), 0), 0,
+    'a single-frame sequence holds frame 0');
+
+  { a plain PIC sprite is not a bank: no frame, never flipped }
+  si := LoadSprite(p, 'CREA1');
+  Check((si >= 0) and not SpriteReg[si].isBank, 'CREA1 is a plain sprite');
+  e := Ent(si, 1, 0);
+  Check(not WorldSpriteFrame(e, 1, 0, img, mir), 'a plain sprite yields no frame');
+  Check(not mir, 'a plain sprite is not flipped');
+  CheckEqI(BankLoopFrame(si, 0, 0), 0, 'a plain sprite loop frame is 0');
 
   TestSummary('worldspr');
   halt(TestExit);

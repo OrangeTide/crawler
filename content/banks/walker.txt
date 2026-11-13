@@ -1,0 +1,9 @@
+# Walking NPC test bank (design section 27, P5). The world view animates a
+# bank-backed entity and flips it to face the way it moves, so this fixture
+# carries a two-frame IDLE and a three-frame WALK. It reuses creature frames as
+# stand-in art to drive the format end to end (t_worldspr); real single-facing
+# character art replaces it with a content-only edit. Frame paths are relative
+# to this manifest's directory.
+
+seq IDLE loop ticks=6 : ../sprites/crea1.ppm ../sprites/crea2.ppm
+seq WALK loop ticks=3 : ../sprites/crea3.ppm ../sprites/crea4.ppm ../sprites/crea5.ppm

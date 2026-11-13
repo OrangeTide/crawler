@@ -37,6 +37,7 @@ type
     active: boolean;
     mode: byte;        { PM_*, how it moves this tick }
     gx, gy: longint;   { its goal tile on its own map (patrol or converge) }
+    fx, fy: longint;   { last step delta, the heading the world view faces }
   end;
 
 var
@@ -251,6 +252,8 @@ begin
     if (p.x <> tX) or (p.y <> tY) then
       if FindPath(m, p.x, p.y, tX, tY, true, path, nsteps) and (nsteps >= 2) then
       begin
+        p.fx := path[1].x - p.x;
+        p.fy := path[1].y - p.y;
         p.x := path[1].x;
         p.y := path[1].y;
       end;
@@ -263,6 +266,8 @@ begin
   if (p.x <> wx) or (p.y <> wy) then
     if FindPath(m, p.x, p.y, wx, wy, true, path, nsteps) and (nsteps >= 2) then
     begin
+      p.fx := path[1].x - p.x;
+      p.fy := path[1].y - p.y;
       p.x := path[1].x;
       p.y := path[1].y;
     end;

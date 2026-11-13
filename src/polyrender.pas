@@ -352,10 +352,11 @@ begin
     if dist > VIEW_R + 1 then continue;
     ptx := trunc(px); pty := trunc(py);
     light := TileLight(ptx, pty, dist);
-    { an animated NPC resolves to its facing frame; everything else draws the
-      sprite's default image }
+    { a bank entry resolves to its current frame, flipped to face the way it
+      moves; everything else draws the sprite's default image. The camera right
+      vector is (syaw, -cyaw). }
     mirror := false;
-    if WorldSpriteFrame(ents[i].anim, ex, ey, frame, mirror) then
+    if WorldSpriteFrame(ents[i], syaw, -cyaw, frame, mirror) then
       spr := frame
     else
       spr := SpriteReg[ents[i].img].img;
