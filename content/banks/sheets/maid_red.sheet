@@ -1,0 +1,12 @@
+# Maid (red recolor).
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet maid_red.ppm
+cell 64 64
+
+bank MAID_RED
+seq IDLE  loop ticks=4 : lin 0-7
+seq WALK  loop ticks=2 : lin 24-31
+seq DEATH once ticks=3 : lin 60-67

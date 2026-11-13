@@ -323,6 +323,9 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 aim-angle and prone rows are left unimported.
   heavy knight  HKNIGHT and seven recolors, 91x64, idle, walk, attack, block,
                 death (the pack's extra sheet2 and run strips are not imported).
+  maid          MAID and seven recolors, 64x64, idle, walk, death; the serving
+                and curtsy rows, and the pack's "full" outfit variants and the
+                combat/witch-hat sheets, are not imported yet.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
