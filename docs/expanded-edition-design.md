@@ -1361,3 +1361,85 @@ licence terms.
 - **Art coverage and palette.** Per-pack attack, hit and death frames, and
   whether the sprites keep their full colour or are brought into the project's
   palette discipline.
+
+## 27. Animated sprite format (evaluation of the dos-rpg .SPA/.SPC)
+
+Sprites in this engine are static today. A monster or NPC is one `CPIC`
+lump decoded to an ARGB image and drawn as a billboard, loaded on demand
+and cached by name in a flat 64-slot store (`src/sprites.pas`,
+`src/pic.pas`). There is no frame or sequence concept, no anchor, and no
+loop metadata. Animated foes and directional NPCs need all of that, so
+before authoring animation this section settles which parts of the
+dos-rpg sprite work to borrow. That project's formats are specified in
+`~/DEVEL/dos-rpg/sprfmt.md`: the single-sequence `.SPC` (2bpp) and `.SPV`
+(8bpp) with a 4-byte `struct sprhdr` (w, h, frames, flags), the planned
+`.SPA` animation bank of many named sequences, and the `.PRT` portrait
+container of fixed cells.
+
+### What the .SPA bank offers
+
+The bank is a good container design. One file holds many named sequences
+(`WALKN`, `HURTS`, `IDLE`), each with its own bounding box but a shared
+anchor so sequences swap without the sprite jumping. Direction lives in
+the sequence name, not a format field, so the format stays policy-free
+and the engine owns the naming and any fallback (mirror the east walk for
+west, fall back from run to walk). Each sequence carries a loop mode,
+default frame duration, anchor offset and a mirror hint, and a frame
+offset table for variable-length frames. These concerns are what our
+`CPIC` lump lacks, and they are renderer-agnostic: a bank index is just
+metadata around whatever the per-frame pixels are.
+
+### Where our targets diverge
+
+The dos-rpg run encoding does not fit our backends. Its frames are run
+segments of `skip, count, pixels` that drop the mask plane and encode
+transparency as skips, and its blitter consumes those runs directly from
+far memory with no decode step. That is a software-rasterizer win on an
+80286 with a 400-500 KB budget: it shrinks resident RAM and avoids a
+decode-to-buffer pass. Our targets are the PS1 GPU and desktop OpenGL
+(see section 23 and the target-backend notes), which draw sprites as
+textured quads sampled from VRAM through a per-texture CLUT. A GPU cannot
+sample a run stream; the sprite has to be decoded to a rectangular
+texture and uploaded regardless. So the run encoding's main payoff is
+absent on our GPU path and would cost us a decode step we do not want.
+Disk size is better handled where we already handle it, by PackBits in
+`CPIC` today and by the planned QOI-based codec (see the QOI backlog
+item), both orthogonal to the bank. The DOS 2bpp palette limit is also
+moot here: our content is 32 colours or fewer, so animated sprites use
+the indexed `CPIC` path (format 1), which is our per-sprite CLUT and
+matches the per-tileset palette decision for the target backends.
+
+### Decision
+
+Adopt the bank structure, not the pixel encoding.
+
+- Define an animation bank that wraps our existing per-frame `CPIC`
+  payload: a header, then a sequence directory modeled on `seq_dir`
+  (name, w, h, frame count, loop mode and mirror hint, signed anchor
+  `ox, oy`, default ticks, and an offset to the sequence block), then
+  per-sequence a frame offset table and the frames. Keep frames as
+  indexed `CPIC` so the decoded form is a texture with a CLUT, which both
+  backends can upload. Bake it as a new uppercase pak lump through
+  `mkassets`, from a text manifest like `png2spr -b` so authoring is a
+  tracked file, not ad-hoc runs.
+- Keep direction and fallback in the engine. The bank stores a flat set
+  of named sequences; the sprite code requests `WALKN` and decides any
+  mirroring or fallback. A single-sequence bank is the animated
+  replacement for a plain billboard, so static sprites migrate without a
+  separate format.
+- Do not port the run-segment frame encoding, the mask plane, or the
+  2bpp packing. Transparency stays the `CPIC` alpha key; size stays
+  PackBits now and QOI later.
+
+### Deferred
+
+- The reference-counted LRU asset cache (`cache_acquire` /
+  `cache_release`, acquire-before-release across a map change) is a sound
+  pattern for loading a map's whole asset set on entry without reloading
+  shared assets. Our store loads on demand into a fixed registry and
+  current scenes are small, so this is premature. Adopt it when sprites
+  move to bulk on-entry loading and scenes grow, and size the budget to
+  the 2 MB target.
+- Portraits (`.PRT`, a container of fixed 32x32 cells) map to a small
+  multi-frame bank or a simple atlas. Low priority; the current
+  single-image portrait path is adequate until portraits animate.

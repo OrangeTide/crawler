@@ -258,16 +258,18 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   run is in progress, pausing on the title, party creation and the end screens.
   It shows as H:MM:SS in the JOURNAL foot and on victory, and is saved (format
   16). Achievements are deferred.
-- [gap] (0.30.0) Evaluate the sprite and portrait file formats from
-  ~/DEVEL/dos-rpg for our animated sprites. See its sprfmt.md: the .SPA
-  animation bank (named sequences, run-encoded frames that drop the mask plane
-  and skip transparent pixels) and the single-sequence .SPC/.SPV with struct
-  sprhdr; portraits ship in SPR/PORTRAIT.SPC. Its asset tools are C
-  (tools/sprite-split.c, sprite-sheet.c). The main project stays Pascal, but C
-  is permitted for off-line tools and support libraries, especially when porting
-  from another project. The DOS original's hard limit was a tiny palette; our
-  content is mostly 32 colours or fewer, so that constraint is not a real
-  blocker.
+- [done] (0.30.0) Evaluate the sprite and portrait file formats from
+  ~/DEVEL/dos-rpg for our animated sprites. Written up as design section 27.
+  Decision: adopt the .SPA bank structure (many named sequences, per-sequence
+  bbox with a shared anchor, loop and mirror metadata, direction encoded in the
+  sequence name) wrapping our existing indexed CPIC frames, baked from a
+  manifest into a new pak lump. Do not port the run-segment frame encoding or
+  the mask plane: our GPU backends (PS1, desktop OpenGL) decode sprites to a
+  CLUT texture regardless, so the DOS software-blitter run form has no payoff
+  here; disk size stays PackBits now and QOI later. The reference-counted LRU
+  asset cache and the .PRT portrait container are deferred until sprites move to
+  bulk on-entry loading and portraits animate. Implementing the bank is a
+  separate build-order item, not this evaluation.
 - [done] (0.19.0) Remove the AI-generated exit and prop art. Every exit and prop
   now uses source art with a CREDITS entry. The doorway and the ladder are 3D
   prop meshes (content/models/doorway.* from the CC0 loafbrr Low Poly Doors kit,
@@ -799,14 +801,16 @@ Themes C and D, the remaining smaller items gathered into one polish milestone:
 rank capacity by creature size (done), porting the last hardcoded party and class data
 to content files (done), the optional prepared-spell subset (done) and more
 combat-statted spells (a first pass done), the data-driven quest log (done), the
-run timer (done), and the dos-rpg sprite-format evaluation. Independent of the
-renderer and map threads. Progress: the data-port cleanup is done (starting
-equipment moved to `content/gear.txt`; the pregen party, name pool and
-char-creation defaults to `content/newgame.txt`), rank capacity by size is in,
-the prepared-spell subset ships behind a toggle, nine more spells gained combat
-stats, the quest log is data-driven through `content/quests.txt`, and the run
-timer counts real play time. What remains here is the dos-rpg sprite-format
-evaluation and further spell-stat tuning.
+run timer (done), and the dos-rpg sprite-format evaluation (done, design section
+27). Independent of the renderer and map threads. Progress: the data-port
+cleanup is done (starting equipment moved to `content/gear.txt`; the pregen
+party, name pool and char-creation defaults to `content/newgame.txt`), rank
+capacity by size is in, the prepared-spell subset ships behind a toggle, nine
+more spells gained combat stats, the quest log is data-driven through
+`content/quests.txt`, the run timer counts real play time, and the sprite-format
+evaluation settled on adopting the .SPA bank structure over our CPIC frames. All
+0.30.0 items are now resolved; what remains is ongoing spell-stat tuning and the
+follow-on work each decision opened (implementing the sprite bank).
 
 ### 0.31.0 Target backends: PS1 and desktop OpenGL (L)
 
