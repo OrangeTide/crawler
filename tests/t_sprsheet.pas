@@ -189,6 +189,15 @@ begin
   CheckSeq('COACHWOMAN', 'IDLE', 5);
   CheckSeq('COACHWOMAN', 'WALK', 8);
 
+  { collection-pack NPCs (clean subset): single-row idles and idle+walk pairs }
+  CheckSeq('CRUSADER', 'IDLE', 5);
+  CheckSeq('BEGGAR', 'IDLE', 5);
+  CheckSeq('TOAD', 'IDLE', 12);
+  CheckSeq('NUN', 'IDLE', 5);
+  CheckSeq('NUN', 'WALK', 8);
+  CheckSeq('BARONESS', 'WALK', 8);
+  CheckSeq('SCRIBE', 'WALK', 8);
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

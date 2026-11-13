@@ -338,6 +338,11 @@ attack, death), each row a sequence with its own frame count. Imported so far:
   coachwoman    COACHWOMAN, 64x64, idle, walk. The carriage vehicle sheet has
                 272px-wide frames (over the bank format's 255px cap), so the
                 carriage itself is not baked.
+  npc pack 1    clean NPCs from the npc-characters pack (64x64): BARONESS,
+                BEGGAR, BELLADONNA, DEALER, XMASLADY, CRUSADER, DRUNKLADY,
+                FAIRY, FEMWIZARD, MAGE, SERVANT, NOBLELADY, NUN, SCRIBE,
+                INQUISITOR, TOWNCRIER, WIZARDTOAD, WOUNDEDKNIGHT, TOAD, READER,
+                FLOWERDRYAD. The pack's bare/bathing/bikini sheets are skipped.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a
