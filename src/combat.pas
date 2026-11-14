@@ -49,8 +49,15 @@ function CanFallBack(idx: longint): boolean;
 
 { ---- turn pacing ---- }
 { Advance the combat clock; the game calls this each frame while fighting.
-  It paces the pause after an action and each foe's turn. }
+  It paces the pause after an action and each foe's turn. Acts on the Active
+  fight. }
 procedure CombatUpdate(dt: double);
+
+{ Advance every live fight by one tick under the shared clock, each as its own
+  turn-based instance (design section 24). Active is repointed at each in turn
+  and restored afterward, so the caller keeps whichever fight it was showing.
+  Single player has one live fight, so this equals CombatUpdate on it. }
+procedure CombatUpdateAll(dt: double);
 
 { True while combat resolves on its own (a beat or a foe turn), so the
   game ignores input until the next party member is ready. }
@@ -346,6 +353,19 @@ begin
         AdvanceTurn;
     CP_ENEMY: begin ResolveEnemyTurn; EndTurn; end;
   end;
+end;
+
+procedure CombatUpdateAll(dt: double);
+var prev: PCombat; i: longint; c: PCombat;
+begin
+  prev := Active;
+  for i := 0 to MAX_COMBATS - 1 do begin
+    c := CombatSlot(i);
+    if (c = nil) or (not c^.Live) then continue;
+    SetActiveCombat(c);
+    CombatUpdate(dt);
+  end;
+  SetActiveCombat(prev);
 end;
 
 procedure CombatSettle;

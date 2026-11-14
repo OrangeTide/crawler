@@ -71,9 +71,24 @@ begin
   c2 := BeginCombatAt('CAVE', 5, 4);
   Check(c2 <> c1, 'a different cell takes a different slot');
   Check(CombatAt('CAVE', 3, 4) = c1, 'the first cell keeps its own fight');
+  { the multi-instance driver advances every live fight, not just Active. Both
+    cells hold a live fight; a tick decrements both beat timers even though only
+    one is Active. }
+  c1^.CombatOver := false; c1^.CombatTimer := 5.0;
+  c2^.CombatOver := false; c2^.CombatTimer := 5.0;
+  SetActiveCombat(c1);
+  CombatUpdateAll(1.0);
+  Check(Active = c1, 'the driver restores the shown fight as Active');
+  Check(Abs(c1^.CombatTimer - 4.0) < 0.001, 'the active fight advanced');
+  Check(Abs(c2^.CombatTimer - 4.0) < 0.001, 'the non-active fight advanced too');
+
   EndCombatInstance(c1);
   Check(CombatAt('CAVE', 3, 4) = nil, 'ending a fight frees its cell');
   Check(not c1^.Live, 'the freed slot is no longer live');
+  { a freed fight is skipped by the driver }
+  c2^.CombatTimer := 5.0;
+  CombatUpdateAll(1.0);
+  Check(Abs(c1^.CombatTimer - 4.0) < 0.001, 'the freed fight is not advanced');
   EndCombatInstance(c2);
   Check(CombatAt('CAVE', 5, 4) = nil, 'ending the second fight frees its cell too');
 

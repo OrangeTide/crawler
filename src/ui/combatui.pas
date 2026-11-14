@@ -954,7 +954,7 @@ procedure CombatAutoTurn(dt: double);
 {** Advance the combat clock, then, if the member now up has lost control
   to the were-beast, take its turn for it. Pacing handles the rest. }
 begin
-  CombatUpdate(dt);
+  CombatUpdateAll(dt);   { advance every live fight; the shown one stays Active }
   FoeAnimTick(dt);
   if Active^.CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
   Active^.CombatSfxCue := CUE_NONE;

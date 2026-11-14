@@ -156,6 +156,10 @@ var
   OptPrepared: boolean;     { casters must ready a per-level subset of known spells }
   CombatBeatScale: double;  { scales the pause between beats, from the options }
 
+{ The fight slot at table index i (0 .. MAX_COMBATS-1), or nil out of range.
+  For iterating the table, e.g. a driver that ticks every live fight. }
+function CombatSlot(i: longint): PCombat;
+
 { The live fight located at a map cell, or nil when none. One fight per cell. }
 function CombatAt(const map: string; x, y: longint): PCombat;
 
@@ -172,6 +176,12 @@ procedure SetActiveCombat(c: PCombat);
 procedure EndCombatInstance(c: PCombat);
 
 implementation
+
+function CombatSlot(i: longint): PCombat;
+begin
+  if (i >= 0) and (i < MAX_COMBATS) then CombatSlot := @gCombats[i]
+  else CombatSlot := nil;
+end;
 
 function CombatAt(const map: string; x, y: longint): PCombat;
 var i: longint;

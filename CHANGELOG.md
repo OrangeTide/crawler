@@ -218,6 +218,14 @@ whose development history is summarized in docs/roadmap.md.
   that a fight now has a durable, collision-free identity the later scheduler
   and network layer drive. `t_combat` covers the claim, the one-per-cell reuse,
   and the free.
+- A multi-instance combat tick, so battles advance as independent turn-based
+  instances under one shared clock (design section 24). `combat.CombatUpdateAll`
+  repoints `Active` at each live fight in turn, advances it, and restores the
+  shown fight, and the per-frame combat tick now calls it. Single player has one
+  live fight, so play is byte-identical (the combat shot is unchanged); the
+  mechanism is what lets several map-located battles resolve at once later.
+  `t_combat` drives two live fights and confirms both advance from one tick
+  while only one is active, and that a freed fight is skipped.
 - Roaming hunters survive a fight the party breaks off. A hunter that catches
   the party is no longer consumed on contact: a win finishes it, but fleeing
   leaves it alive and set back a short way, so it picks up the trail again. A
