@@ -87,6 +87,44 @@ whose development history is summarized in docs/roadmap.md.
   promoted to the front until it covers the back, replacing the old flat
   three-body cap). Monster sizes come from a `size:` tag in `content/monsters.txt`
   (default medium); player characters are medium. `t_size` covers the rule.
+- Combat is addressed by map cell, continuing the 0.29.0 `TCombat` instance
+  toward the section 24 map-located battles. The single resident fight becomes a
+  small fixed table of `TCombat` slots keyed by a cell `(map, x, y)`, one fight
+  per cell. A new `combatstate` seam, `BeginCombatAt` / `CombatAt` /
+  `SetActiveCombat` / `EndCombatInstance`, claims a cell's slot on encounter,
+  finds the fight at a cell, repoints `Active`, and frees the slot when the fight
+  ends. Single player keeps one live slot at a time, so play is byte-identical
+  (the combat shot is unchanged); the gain is that a fight now has a durable,
+  collision-free identity. `t_combat` covers the claim, the one-per-cell reuse,
+  and the free.
+- A multi-instance combat tick, so battles advance as independent turn-based
+  instances under one shared clock (design section 24). `combat.CombatUpdateAll`
+  repoints `Active` at each live fight in turn, advances it, and restores the
+  shown fight, and the per-frame combat tick now calls it. Single player has one
+  live fight, so play is byte-identical; the mechanism is what lets several
+  map-located battles resolve at once later. `t_combat` drives two live fights
+  and confirms both advance from one tick while one is active, and a freed fight
+  is skipped.
+- A fight reaches its party side through its own pointer, not the global
+  `Roster`, finishing the symmetry with the foe side (`Active^.Foes` was already
+  per-fight). `TCombat` gains a `Party: PRoster` set to the resident party, and
+  the four combat units read the party through `Active^.Party^`. The fight shares
+  the live party (it does not copy it), so damage and spoils carry over as before
+  and play is byte-identical; the gain is that a later battle can point two
+  fights, or two sides of one battle, at two parties. `t_combat` checks the fight
+  points at the party and that a write through the fight is seen in the roster.
+- A uniform combatant seam: a fight's combatants are addressed as `(side, idx)`
+  through one small API (`CombatantCount`/`CombatantUp`/`CombatantName`/
+  `CombatantStatus`/`FrontRank`/`FlashCombatant`/`AfflictCombatant`/
+  `DamageCombatant`) that dispatches to the foe path or the party path. The
+  combat units speak the uniform API instead of the old `FrontFoeRank`/
+  `FrontPartyRank`, `AfflictFoe`/`AfflictMember`, `FlashFoe`/`FlashAlly`,
+  `DamageFoe` pairs, which become the private dispatch targets. The three places
+  that branched on side (`TurnEntAlive`, the start-of-turn status, the turn-order
+  build) collapse to one path each. `TFoe` and `TCharacter` stay distinct and no
+  side holds more than its one group, so play is byte-identical; the seam is the
+  vocabulary the later two-sided battle model needs. `t_combat` checks the
+  uniform accessors agree with the typed state.
 
 ### Changed
 - The sprite-bank format uses 32-bit frame offsets (layout version 1), so a
@@ -208,45 +246,6 @@ whose development history is summarized in docs/roadmap.md.
   fight, so play is unchanged; the gain is that the fight is now addressable,
   which the later multi-instance work needs. The cross-fight options (criticals
   and combat speed) stay separate, since they persist across fights.
-- Combat is addressed by map cell, the next step toward map-located battles.
-  The single resident fight becomes a small fixed table of `TCombat` slots keyed
-  by a cell `(map, x, y)`, with one fight per cell. A new `combatstate` seam,
-  `BeginCombatAt` / `CombatAt` / `SetActiveCombat` / `EndCombatInstance`, claims
-  a cell's slot on encounter, finds the fight at a cell, repoints `Active`, and
-  frees the slot when the fight ends. Single player keeps one live slot at a
-  time, so play is byte-identical (the combat shot is unchanged); the gain is
-  that a fight now has a durable, collision-free identity the later scheduler
-  and network layer drive. `t_combat` covers the claim, the one-per-cell reuse,
-  and the free.
-- A fight reaches its party side through its own pointer, not the global
-  `Roster`, finishing the symmetry with the foe side (`Active^.Foes` was already
-  per-fight). `TCombat` gains a `Party: PRoster` set to the resident party, and
-  the four combat units read the party through `Active^.Party^`. The fight
-  shares the live party (it does not copy it), so damage and spoils carry over
-  as before and single-player play is byte-identical; the gain is that a later
-  battle can point two fights, or two sides of one battle, at two parties.
-  `t_combat` checks the fight points at the party and that a write through the
-  fight is seen in the roster.
-- A uniform combatant seam: a fight's combatants are addressed as `(side, idx)`
-  through one small API (`CombatantCount`/`CombatantUp`/`CombatantName`/
-  `CombatantStatus`/`FrontRank`/`FlashCombatant`/`AfflictCombatant`/
-  `DamageCombatant`) that dispatches to the foe path or the party path. The
-  combat units speak the uniform API instead of the old `FrontFoeRank`/
-  `FrontPartyRank`, `AfflictFoe`/`AfflictMember`, `FlashFoe`/`FlashAlly`,
-  `DamageFoe` pairs, which become the private dispatch targets. The three places
-  that branched on side (`TurnEntAlive`, the start-of-turn status, the turn-order
-  build) collapse to one path each. `TFoe` and `TCharacter` stay distinct and no
-  side holds more than its one group, so play is byte-identical (the combat shot
-  is unchanged); the seam is the vocabulary the later two-sided battle model
-  needs. `t_combat` checks the uniform accessors agree with the typed state.
-- A multi-instance combat tick, so battles advance as independent turn-based
-  instances under one shared clock (design section 24). `combat.CombatUpdateAll`
-  repoints `Active` at each live fight in turn, advances it, and restores the
-  shown fight, and the per-frame combat tick now calls it. Single player has one
-  live fight, so play is byte-identical (the combat shot is unchanged); the
-  mechanism is what lets several map-located battles resolve at once later.
-  `t_combat` drives two live fights and confirms both advance from one tick
-  while only one is active, and that a freed fight is skipped.
 - Roaming hunters survive a fight the party breaks off. A hunter that catches
   the party is no longer consumed on contact: a win finishes it, but fleeing
   leaves it alive and set back a short way, so it picks up the trail again. A
