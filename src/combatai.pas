@@ -67,7 +67,7 @@ begin
           pool[n] := i; inc(n);
         end;
   end else begin
-    fr := FrontPartyRank;
+    fr := FrontRank(SIDE_PARTY);
     for i := 0 to High(Active^.Party^) do
       if Active^.Party^[i].alive and (not Active^.Party^[i].downed)
         and (Active^.Party^[i].rank = fr) and (n <= High(pool)) then begin
@@ -105,7 +105,7 @@ begin
       EnemyMaybeMove := true;
     end;
   end else begin
-    if (Active^.Foes[fi].rank <> FrontFoeRank) and (D(100) <= 75) then
+    if (Active^.Foes[fi].rank <> FrontRank(SIDE_FOE)) and (D(100) <= 75) then
     begin
       Active^.Foes[fi].rank := RANK_FRONT;
       CombatLog(MonDefs[Active^.Foes[fi].def].name + ' surges to the front.');
@@ -129,7 +129,7 @@ begin
         if tgt < 0 then tgt := FirstConscious;
         if tgt < 0 then exit;
         CombatLog(MonDefs[Active^.Foes[fi].def].name + ' taunts ' + Active^.Party^[tgt].name + '.');
-        AfflictMember(tgt, ST_OFFBAL, 2);
+        AfflictCombatant(SIDE_PARTY, tgt, ST_OFFBAL, 2);
         EnemyHarry := true;
       end;
     HARRY_THROW:
@@ -142,11 +142,11 @@ begin
         CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hurls a weapon at '
           + Active^.Party^[tgt].name + ' for ' + IntToStr(dmg) + '.');
         PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
-        FlashAlly(tgt);
+        FlashCombatant(SIDE_PARTY, tgt);
         Active^.CombatSfxCue := CUE_HIT;
         HurtMember(tgt, dmg);
         if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed) then
-          AfflictMember(tgt, ST_OFFBAL, 2);    { a solid throw rattles them }
+          AfflictCombatant(SIDE_PARTY, tgt, ST_OFFBAL, 2);    { a solid throw rattles them }
         EnemyHarry := true;
       end;
   end;
@@ -169,12 +169,12 @@ begin
   CombatLog(MonDefs[Active^.Foes[fi].def].name + ' conjures a bolt at '
     + Active^.Party^[tgt].name + ' for ' + IntToStr(dmg) + '.');
   PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
-  FlashAlly(tgt);
+  FlashCombatant(SIDE_PARTY, tgt);
   Active^.CombatSfxCue := CUE_HIT;
   HurtMember(tgt, dmg);
   if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed)
      and (MonDefs[Active^.Foes[fi].def].inflict <> 0) then
-    AfflictMember(tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
+    AfflictCombatant(SIDE_PARTY, tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
   EnemyCastBolt := true;
 end;
 
@@ -199,7 +199,7 @@ begin
   CombatLog(MonDefs[Active^.Foes[fi].def].name + ' mends '
     + MonDefs[Active^.Foes[best].def].name + ' (+' + IntToStr(amt) + ').');
   PushPop(0, best, POPC_HEAL, '+' + IntToStr(amt));
-  FlashFoe(best);
+  FlashCombatant(SIDE_FOE, best);
   EnemyCastHeal := true;
 end;
 
@@ -227,7 +227,7 @@ begin
   CombatLog(MonDefs[Active^.Foes[fi].def].name + ' raises '
     + MonDefs[Active^.Foes[best].def].name + '.');
   PushPop(0, best, POPC_HEAL, 'RAISE');
-  FlashFoe(best);
+  FlashCombatant(SIDE_FOE, best);
   EnemyCastRevive := true;
 end;
 

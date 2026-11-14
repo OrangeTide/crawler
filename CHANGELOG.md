@@ -227,6 +227,18 @@ whose development history is summarized in docs/roadmap.md.
   battle can point two fights, or two sides of one battle, at two parties.
   `t_combat` checks the fight points at the party and that a write through the
   fight is seen in the roster.
+- A uniform combatant seam: a fight's combatants are addressed as `(side, idx)`
+  through one small API (`CombatantCount`/`CombatantUp`/`CombatantName`/
+  `CombatantStatus`/`FrontRank`/`FlashCombatant`/`AfflictCombatant`/
+  `DamageCombatant`) that dispatches to the foe path or the party path. The
+  combat units speak the uniform API instead of the old `FrontFoeRank`/
+  `FrontPartyRank`, `AfflictFoe`/`AfflictMember`, `FlashFoe`/`FlashAlly`,
+  `DamageFoe` pairs, which become the private dispatch targets. The three places
+  that branched on side (`TurnEntAlive`, the start-of-turn status, the turn-order
+  build) collapse to one path each. `TFoe` and `TCharacter` stay distinct and no
+  side holds more than its one group, so play is byte-identical (the combat shot
+  is unchanged); the seam is the vocabulary the later two-sided battle model
+  needs. `t_combat` checks the uniform accessors agree with the typed state.
 - A multi-instance combat tick, so battles advance as independent turn-based
   instances under one shared clock (design section 24). `combat.CombatUpdateAll`
   repoints `Active` at each live fight in turn, advances it, and restores the

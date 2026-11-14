@@ -189,7 +189,7 @@ end;
 procedure NewRound;
 var
   init: array of longint;
-  i, n, a, b: longint;
+  i, n, a, b, sd: longint;
   tmpEnt: TTurnEnt;
   tmpInit: longint;
 begin
@@ -200,20 +200,17 @@ begin
   SetLength(Active^.TurnQueue, 0);
   SetLength(init, 0);
   n := 0;
-  for i := 0 to High(Active^.Party^) do
-    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) then begin
-      SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
-      Active^.TurnQueue[n].side := 1; Active^.TurnQueue[n].idx := i;
-      init[n] := PartySpeed(i) + Range(1, 4);
-      inc(n);
-    end;
-  for i := 0 to High(Active^.Foes) do
-    if Active^.Foes[i].alive then begin
-      SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
-      Active^.TurnQueue[n].side := 0; Active^.TurnQueue[n].idx := i;
-      init[n] := FoeSpeed(i) + Range(1, 4);
-      inc(n);
-    end;
+  { party first (SIDE_PARTY = 1), then foes, so the initiative rolls fall in
+    the same order as before }
+  for sd := SIDE_PARTY downto SIDE_FOE do
+    for i := 0 to CombatantCount(sd) - 1 do
+      if CombatantUp(sd, i) then begin
+        SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
+        Active^.TurnQueue[n].side := sd; Active^.TurnQueue[n].idx := i;
+        if sd = SIDE_PARTY then init[n] := PartySpeed(i) + Range(1, 4)
+        else init[n] := FoeSpeed(i) + Range(1, 4);
+        inc(n);
+      end;
 
   { insertion sort, descending initiative }
   for a := 1 to n - 1 do begin
@@ -233,71 +230,40 @@ end;
 
 function TurnEntAlive(const e: TTurnEnt): boolean;
 begin
-  if e.side = 1 then
-    TurnEntAlive := (e.idx <= High(Active^.Party^)) and Active^.Party^[e.idx].alive
-      and (not Active^.Party^[e.idx].downed)
-  else
-    TurnEntAlive := (e.idx <= High(Active^.Foes)) and Active^.Foes[e.idx].alive;
+  TurnEntAlive := CombatantUp(e.side, e.idx);
 end;
 
 { Run the start-of-turn status for a combatant: damage over time, then a
   skipped turn if stunned. Returns true when the turn is spent (the actor
   died or was stunned) so the caller advances past it. }
 function StartOfTurnSpent(const e: TTurnEnt): boolean;
-var i, bd: longint;
+var i, side: longint; st: PStatus;
 begin
   StartOfTurnSpent := false;
-  if e.side = 0 then begin
-    i := e.idx;
-    if Active^.FoeStatus[i].poison > 0 then begin
-      DamageFoe(i, POISON_DMG, EL_PHYS); dec(Active^.FoeStatus[i].poison);
-    end;
-    if Active^.Foes[i].alive and (Active^.FoeStatus[i].burn > 0) then begin
-      DamageFoe(i, BURN_DMG, EL_FIRE); dec(Active^.FoeStatus[i].burn);
-    end;
-    if Active^.FoeStatus[i].slow > 0 then dec(Active^.FoeStatus[i].slow);
-    if Active^.FoeStatus[i].offbal > 0 then dec(Active^.FoeStatus[i].offbal);
-    if Active^.FoeStatus[i].fear > 0 then dec(Active^.FoeStatus[i].fear);
-    if not Active^.Foes[i].alive then begin StartOfTurnSpent := true; exit; end;
-    if Active^.FoeStatus[i].paralyze > 0 then begin
-      dec(Active^.FoeStatus[i].paralyze);
-      CombatLog(MonDefs[Active^.Foes[i].def].name + ' is held fast.');
-      PushPop(0, i, POPC_MISS, 'HELD');
-      StartOfTurnSpent := true;
-    end else if Active^.FoeStatus[i].stun > 0 then begin
-      dec(Active^.FoeStatus[i].stun);
-      CombatLog(MonDefs[Active^.Foes[i].def].name + ' is stunned.');
-      PushPop(0, i, POPC_MISS, 'STUN');
-      StartOfTurnSpent := true;
-    end;
-  end else begin
-    i := e.idx;
-    if Active^.PartyStatus[i].poison > 0 then begin
-      PushPop(1, i, POPC_PARTYDMG, IntToStr(POISON_DMG)); FlashAlly(i);
-      HurtMember(i, POISON_DMG); dec(Active^.PartyStatus[i].poison);
-    end;
-    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) and (Active^.PartyStatus[i].burn > 0) then begin
-      bd := ResistedHit(i, BURN_DMG, EL_FIRE);
-      PushPop(1, i, POPC_PARTYDMG, IntToStr(bd)); FlashAlly(i);
-      HurtMember(i, bd); dec(Active^.PartyStatus[i].burn);
-    end;
-    if Active^.PartyStatus[i].slow > 0 then dec(Active^.PartyStatus[i].slow);
-    if Active^.PartyStatus[i].offbal > 0 then dec(Active^.PartyStatus[i].offbal);
-    if Active^.PartyStatus[i].fear > 0 then dec(Active^.PartyStatus[i].fear);
-    if (not Active^.Party^[i].alive) or Active^.Party^[i].downed then begin
-      StartOfTurnSpent := true; exit;
-    end;
-    if Active^.PartyStatus[i].paralyze > 0 then begin
-      dec(Active^.PartyStatus[i].paralyze);
-      CombatLog(Active^.Party^[i].name + ' is held fast.');
-      PushPop(1, i, POPC_MISS, 'HELD');
-      StartOfTurnSpent := true;
-    end else if Active^.PartyStatus[i].stun > 0 then begin
-      dec(Active^.PartyStatus[i].stun);
-      CombatLog(Active^.Party^[i].name + ' is stunned.');
-      PushPop(1, i, POPC_MISS, 'STUN');
-      StartOfTurnSpent := true;
-    end;
+  side := e.side; i := e.idx;
+  st := CombatantStatus(side, i);
+  { damage over time: poison ticks whether up or not, burn only while up }
+  if st^.poison > 0 then begin
+    DamageCombatant(side, i, POISON_DMG, EL_PHYS); dec(st^.poison);
+  end;
+  if CombatantUp(side, i) and (st^.burn > 0) then begin
+    DamageCombatant(side, i, BURN_DMG, EL_FIRE); dec(st^.burn);
+  end;
+  if st^.slow > 0 then dec(st^.slow);
+  if st^.offbal > 0 then dec(st^.offbal);
+  if st^.fear > 0 then dec(st^.fear);
+  if not CombatantUp(side, i) then begin StartOfTurnSpent := true; exit; end;
+  { a held or stunned combatant loses its turn }
+  if st^.paralyze > 0 then begin
+    dec(st^.paralyze);
+    CombatLog(CombatantName(side, i) + ' is held fast.');
+    PushPop(side, i, POPC_MISS, 'HELD');
+    StartOfTurnSpent := true;
+  end else if st^.stun > 0 then begin
+    dec(st^.stun);
+    CombatLog(CombatantName(side, i) + ' is stunned.');
+    PushPop(side, i, POPC_MISS, 'STUN');
+    StartOfTurnSpent := true;
   end;
 end;
 
@@ -318,7 +284,7 @@ begin
   e := Active^.TurnQueue[Active^.TurnPos];
   if StartOfTurnSpent(e) then begin EndTurn; exit; end;
 
-  if e.side = 1 then begin
+  if e.side = SIDE_PARTY then begin
     Active^.CurActor := e.idx;
     Active^.Party^[e.idx].guarding := false;   { the defence held until now }
     Active^.TurnMoved := false;                { a fresh move and action this turn }
@@ -577,7 +543,7 @@ begin
   if ranged then begin
     { a caster slips back behind cover when it can }
     if EnemyMaybeMove(fi, true) then exit;
-  end else if Active^.Foes[fi].rank <> FrontFoeRank then begin
+  end else if Active^.Foes[fi].rank <> FrontRank(SIDE_FOE) then begin
     { out of melee reach: harass from range, surge up, or hold the line }
     if hasHarry and (D(100) <= 45) and EnemyHarry(fi) then exit;
     if EnemyMaybeMove(fi, false) then exit;
@@ -610,12 +576,12 @@ begin
     CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hits ' + Active^.Party^[tgt].name
       + ' for ' + IntToStr(dmg) + '.');
     PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
-    FlashAlly(tgt);
+    FlashCombatant(SIDE_PARTY, tgt);
     Active^.CombatSfxCue := CUE_HIT;
     HurtMember(tgt, dmg);
     if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed) then begin
       if MonDefs[Active^.Foes[fi].def].inflict <> 0 then
-        AfflictMember(tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
+        AfflictCombatant(SIDE_PARTY, tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
       { a lycanthrope's wound can pass on the curse, on a failed save }
       if ((MonDefs[Active^.Foes[fi].def].flags and MF_LYCAN) <> 0)
         and (not Active^.Party^[tgt].lycan)
@@ -734,7 +700,7 @@ begin
   CombatLog(Active^.Party^[Active^.CurActor].name + ' uses ' + ItemDefs[def].name
     + ' on ' + Active^.Party^[target].name + ' (+' + IntToStr(heal) + ').');
   PushPop(1, target, POPC_HEAL, '+' + IntToStr(heal));
-  FlashAlly(target);
+  FlashCombatant(SIDE_PARTY, target);
   FinishSubAction(false);
 end;
 
@@ -777,9 +743,9 @@ begin
         target := FirstLivingFoe;
       if target < 0 then begin FinishSubAction(false); exit; end;
       CombatLog(Active^.Party^[Active^.CurActor].name + ' casts ' + sp.name + '.');
-      DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
+      DamageCombatant(SIDE_FOE, target, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
       if Active^.Foes[target].alive and (sp.inflict <> 0) then
-        AfflictFoe(target, sp.inflict, 3, edge);
+        AfflictCombatant(SIDE_FOE, target, sp.inflict, 3, edge);
     end;
     TGT_ENEMY_RANK: begin
       if (target < 0) or (target > High(Active^.Foes)) or (not Active^.Foes[target].alive) then
@@ -789,9 +755,9 @@ begin
       CombatLog(Active^.Party^[Active^.CurActor].name + ' casts ' + sp.name + '.');
       for i := 0 to High(Active^.Foes) do
         if Active^.Foes[i].alive and (Active^.Foes[i].rank = rk) then begin
-          DamageFoe(i, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
+          DamageCombatant(SIDE_FOE, i, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
           if Active^.Foes[i].alive and (sp.inflict <> 0) then
-            AfflictFoe(i, sp.inflict, 3, edge);
+            AfflictCombatant(SIDE_FOE, i, sp.inflict, 3, edge);
         end;
     end;
     TGT_ALLY: begin
@@ -807,7 +773,7 @@ begin
       CombatLog(Active^.Party^[Active^.CurActor].name + ' mends ' + Active^.Party^[target].name
         + ' (+' + IntToStr(amt) + ').');
       PushPop(1, target, POPC_HEAL, '+' + IntToStr(amt));
-      FlashAlly(target);
+      FlashCombatant(SIDE_PARTY, target);
     end;
     TGT_PARTY: begin
       Active^.PartyBless := 1;

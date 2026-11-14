@@ -54,6 +54,19 @@ procedure HurtMember(mi, dmg: longint);
 procedure AfflictFoe(fi, st, turns: longint; dcBonus: longint = 0);
 { Try to lay a status on a party member; a save shrugs it. }
 procedure AfflictMember(mi, st, turns: longint);
+
+{ ---- the uniform combatant seam: address a combatant as (side, idx) ----
+  Each call dispatches to the foe path (SIDE_FOE, over TFoe/MonDefs) or the
+  party path (SIDE_PARTY, over TCharacter), so a caller need not branch on the
+  side. The typed procedures above are the dispatch targets. }
+function CombatantCount(side: longint): longint;
+function CombatantUp(side, idx: longint): boolean;      { foe alive; member up }
+function CombatantName(side, idx: longint): string;
+function CombatantStatus(side, idx: longint): PStatus;  { the status timers }
+function FrontRank(side: longint): longint;             { frontmost living rank }
+procedure FlashCombatant(side, idx: longint);
+procedure AfflictCombatant(side, idx, st, turns: longint; dcBonus: longint = 0);
+procedure DamageCombatant(side, idx, amount, element: longint);
 { Resolve one party melee or ranged attack; off balance rolls at disadvantage.
   hitMod and dmgMod bend a maneuver's swing (power attack trades hit for
   damage, an aimed shot buys hit); inflict lays a status on the foe when the
@@ -193,6 +206,69 @@ begin
       FrontPartyRank := RANK_FRONT; exit;
     end;
   FrontPartyRank := RANK_BACK;
+end;
+
+{ ---- the uniform combatant seam ---- }
+
+function CombatantCount(side: longint): longint;
+begin
+  if side = SIDE_FOE then CombatantCount := Length(Active^.Foes)
+  else CombatantCount := Length(Active^.Party^);
+end;
+
+function CombatantUp(side, idx: longint): boolean;
+begin
+  if side = SIDE_FOE then
+    CombatantUp := (idx >= 0) and (idx <= High(Active^.Foes))
+      and Active^.Foes[idx].alive
+  else
+    CombatantUp := (idx >= 0) and (idx <= High(Active^.Party^))
+      and Active^.Party^[idx].alive and (not Active^.Party^[idx].downed);
+end;
+
+function CombatantName(side, idx: longint): string;
+begin
+  if side = SIDE_FOE then CombatantName := MonDefs[Active^.Foes[idx].def].name
+  else CombatantName := Active^.Party^[idx].name;
+end;
+
+function CombatantStatus(side, idx: longint): PStatus;
+begin
+  if side = SIDE_FOE then CombatantStatus := @Active^.FoeStatus[idx]
+  else CombatantStatus := @Active^.PartyStatus[idx];
+end;
+
+function FrontRank(side: longint): longint;
+begin
+  if side = SIDE_FOE then FrontRank := FrontFoeRank
+  else FrontRank := FrontPartyRank;
+end;
+
+procedure FlashCombatant(side, idx: longint);
+begin
+  if side = SIDE_FOE then FlashFoe(idx) else FlashAlly(idx);
+end;
+
+procedure AfflictCombatant(side, idx, st, turns: longint; dcBonus: longint = 0);
+begin
+  if side = SIDE_FOE then AfflictFoe(idx, st, turns, dcBonus)
+  else AfflictMember(idx, st, turns);
+end;
+
+{ Damage a combatant on either side. The foe path bundles the element
+  multiplier, pop, flash and kill; the party path applies worn-gear resistance,
+  then the floating number, flash and the brush-with-death drop. }
+procedure DamageCombatant(side, idx, amount, element: longint);
+var dmg: longint;
+begin
+  if side = SIDE_FOE then
+    DamageFoe(idx, amount, element)
+  else begin
+    dmg := ResistedHit(idx, amount, element);
+    PushPop(SIDE_PARTY, idx, POPC_PARTYDMG, IntToStr(dmg));
+    FlashAlly(idx);
+    HurtMember(idx, dmg);
+  end;
 end;
 
 function WeaponRanged(const c: TCharacter): boolean;

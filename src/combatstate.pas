@@ -21,6 +21,10 @@ const
   RANK_FRONT = 0;
   RANK_BACK  = 1;
 
+  { the two sides of a fight; a combatant is addressed as (side, idx) }
+  SIDE_FOE   = 0;
+  SIDE_PARTY = 1;
+
   { ability targeting modes }
   TGT_ENEMY      = 0;   { one enemy, any rank }
   TGT_ENEMY_RANK = 1;   { every enemy in the target's rank }
@@ -85,6 +89,7 @@ type
   TStatus = record
     poison, stun, slow, burn, offbal, fear, paralyze: smallint;
   end;
+  PStatus = ^TStatus;
 
   TPop = record
     side: byte;        { 0 a foe, 1 a party member }

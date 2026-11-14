@@ -7,7 +7,7 @@ program t_combat;
 
 uses
   sysutils, pak, rng, rules, items, chardata, monsters, party, combat,
-  combatstate, testing;
+  combatstate, combatcore, testing;
 
 var
   p: TPak;
@@ -64,6 +64,18 @@ begin
   Check(Active^.Party = @Roster, 'a built fight points at the resident party');
   Active^.Party^[0].hp := 7;
   Check(Roster[0].hp = 7, 'a write through the fight is seen in the party');
+
+  { the uniform (side, idx) combatant seam agrees with the typed state }
+  StartRandomEncounter(3, 0);
+  Check(CombatantCount(SIDE_FOE) = Length(Active^.Foes), 'foe count matches the foe array');
+  Check(CombatantCount(SIDE_PARTY) = Length(Active^.Party^), 'party count matches the roster');
+  Check(CombatantUp(SIDE_PARTY, 0)
+    = (Active^.Party^[0].alive and (not Active^.Party^[0].downed)),
+    'party up-state matches the typed check');
+  if Length(Active^.Foes) > 0 then
+    Check(CombatantUp(SIDE_FOE, 0) = Active^.Foes[0].alive, 'foe up-state matches');
+  Check(FrontRank(SIDE_FOE) = FrontFoeRank, 'FrontRank dispatches to the foe rank');
+  Check(FrontRank(SIDE_PARTY) = FrontPartyRank, 'FrontRank dispatches to the party rank');
 
   { the cell-keyed fight table: a fight is addressed by its map cell, one per
     cell, and its slot frees when the fight ends }
