@@ -141,6 +141,22 @@ build issues: a bare `make` had stopped building the binary once the CLUT
 rule became the first target, and the macOS cross-build was missing the
 `src/ui` unit path.
 
+Since 0.29.0 the single-player-side combat-instance refactor has continued,
+still byte-identical and with no network code, carrying the section 24
+shared-shard groundwork further. The one resident fight became a small fixed
+table of `TCombat` instances addressed by map cell, one fight per cell, with a
+begin, set-active and end seam (`BeginCombatAt`, `CombatAt`, `EndCombatInstance`).
+A multi-instance tick (`CombatUpdateAll`) advances every live fight under the
+shared clock. Each fight now reaches its party side through a pointer rather than
+the global roster, matching the per-fight foe side. And a uniform `(side, idx)`
+combatant seam dispatches to the foe path or the party path, so the combat units
+no longer hardwire party-versus-foes. Single player runs one fight in one slot
+throughout, so play is unchanged; the gain is that a fight is now an addressable,
+side-generic instance, the shape the later multi-party and PvP battles need. The
+remaining combat-layer work for the design is the full two-sided model (a side
+holding one or more parties or monster groups, a party on either side) and the
+server-authority action seam, left until multiplayer is scheduled.
+
 ## Open backlog by theme
 
 Tags: [gap] not started, [partial] exists but incomplete, [future] recorded but
@@ -440,8 +456,12 @@ listed here; it is recorded in CHANGELOG.md and the git history.
   apply to single player. The unification is incremental and single-player
   first, with the authority and combat-instance refactors landing in the
   single-player engine before the transport goes on top, so no separate
-  multiplayer combat system is written. Section 24's design points are now all
-  settled.
+  multiplayer combat system is written. Those combat-instance refactors have
+  begun landing single-player first (see Where things stand): the fight is now a
+  cell-addressed `TCombat` instance with a multi-instance tick, a per-fight party
+  reference, and a uniform `(side, idx)` combatant seam, all byte-identical. The
+  full two-sided battle model, the server-authority action seam, and the
+  transport remain. Section 24's design points are now all settled.
 
 ### F. World content and the critical path (design section 17)
 
