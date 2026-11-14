@@ -97,7 +97,10 @@ whose development history is summarized in docs/roadmap.md.
   `t_sprbank` round-trips a sequence past the old cap.
 - Several bestiary monsters draw their new animated banks: RAT, BAT, GOBLIN,
   ORC, SKELETON, ZOMBIE and SPIDER point their `content/monsters.txt` MODEL
-  column at the imported sheets instead of the old Dungeon Crawl billboards.
+  column at the imported sheets instead of the old Dungeon Crawl billboards,
+  and the Imp now uses the winged `FEMALE_IMP` sprite.
+- A Tiger joins the bestiary, a large forest-and-desert cat drawn with the new
+  `TIGER` sprite.
 - The save format is version 16: it stores each caster's readied-spell list and
   the run timer. Saves from earlier versions no longer load.
 - More of the spell catalog carries combat stats. Nine prose-only spells now
