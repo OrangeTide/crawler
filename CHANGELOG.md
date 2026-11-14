@@ -218,6 +218,15 @@ whose development history is summarized in docs/roadmap.md.
   that a fight now has a durable, collision-free identity the later scheduler
   and network layer drive. `t_combat` covers the claim, the one-per-cell reuse,
   and the free.
+- A fight reaches its party side through its own pointer, not the global
+  `Roster`, finishing the symmetry with the foe side (`Active^.Foes` was already
+  per-fight). `TCombat` gains a `Party: PRoster` set to the resident party, and
+  the four combat units read the party through `Active^.Party^`. The fight
+  shares the live party (it does not copy it), so damage and spoils carry over
+  as before and single-player play is byte-identical; the gain is that a later
+  battle can point two fights, or two sides of one battle, at two parties.
+  `t_combat` checks the fight points at the party and that a write through the
+  fight is seen in the roster.
 - A multi-instance combat tick, so battles advance as independent turn-based
   instances under one shared clock (design section 24). `combat.CombatUpdateAll`
   repoints `Active` at each live fight in turn, advances it, and restores the

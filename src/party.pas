@@ -72,8 +72,11 @@ type
     mended: boolean;     { first aid already used this scene, cleared by rest }
   end;
 
+  TRoster = array of TCharacter;
+  PRoster = ^TRoster;
+
 var
-  Roster: array of TCharacter;
+  Roster: TRoster;
   PartyGold: longint;
   WagesDueClock: longword;   { clock minute the next month's wages fall due }
 

@@ -59,6 +59,12 @@ begin
   Check(maxRounds < 4000, 'none hit the action cap');
   Check(wins > 0, 'the party wins some fights');
 
+  { the fight reaches the party through its own pointer, and shares the live
+    party rather than copying it }
+  Check(Active^.Party = @Roster, 'a built fight points at the resident party');
+  Active^.Party^[0].hp := 7;
+  Check(Roster[0].hp = 7, 'a write through the fight is seen in the party');
+
   { the cell-keyed fight table: a fight is addressed by its map cell, one per
     cell, and its slot frees when the fight ends }
   Check(CombatAt('CAVE', 3, 4) = nil, 'no fight at a cell before it begins');

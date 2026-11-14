@@ -188,8 +188,8 @@ end;
 function FrontPartyRank: longint;
 var i: longint;
 begin
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and (not Roster[i].downed) and (Roster[i].rank = RANK_FRONT) then begin
+  for i := 0 to High(Active^.Party^) do
+    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) and (Active^.Party^[i].rank = RANK_FRONT) then begin
       FrontPartyRank := RANK_FRONT; exit;
     end;
   FrontPartyRank := RANK_BACK;
@@ -218,11 +218,11 @@ function FoeReachable(actor, foe: longint): boolean;
 begin
   FoeReachable := false;
   if (foe < 0) or (foe > High(Active^.Foes)) or (not Active^.Foes[foe].alive) then exit;
-  if WeaponRanged(Roster[actor]) then begin
+  if WeaponRanged(Active^.Party^[actor]) then begin
     FoeReachable := true;           { arrows and bolts reach the back rank }
     exit;
   end;
-  if Roster[actor].rank <> RANK_FRONT then exit;   { no melee from the back }
+  if Active^.Party^[actor].rank <> RANK_FRONT then exit;   { no melee from the back }
   FoeReachable := Active^.Foes[foe].rank = FrontFoeRank;
 end;
 
@@ -296,20 +296,20 @@ var
 begin
   if st = 0 then exit;
   if st = ST_FEAR then
-    save := AbilMod(Roster[mi].abil[abWIS])
+    save := AbilMod(Active^.Party^[mi].abil[abWIS])
   else
-    save := AbilMod(Roster[mi].abil[abCON]);
-  if SaveThrow(GameRng, save, Roster[mi].level, STATUS_DC) then exit;
+    save := AbilMod(Active^.Party^[mi].abil[abCON]);
+  if SaveThrow(GameRng, save, Active^.Party^[mi].level, STATUS_DC) then exit;
   { disease is not an in-fight timer: it rides out on the character and is
     shaken off only by resting it out. }
   if st = ST_DISEASE then begin
-    if Roster[mi].disease < DISEASE_DAYS then Roster[mi].disease := DISEASE_DAYS;
-    CombatLog(Roster[mi].name + ' is ' + StatusName(st) + '.');
+    if Active^.Party^[mi].disease < DISEASE_DAYS then Active^.Party^[mi].disease := DISEASE_DAYS;
+    CombatLog(Active^.Party^[mi].name + ' is ' + StatusName(st) + '.');
     PushPop(1, mi, POPC_MISS, StatusName(st));
     exit;
   end;
   SetStatus(Active^.PartyStatus[mi], st, turns);
-  CombatLog(Roster[mi].name + ' is ' + StatusName(st) + '.');
+  CombatLog(Active^.Party^[mi].name + ' is ' + StatusName(st) + '.');
   PushPop(1, mi, POPC_MISS, StatusName(st));
 end;
 
@@ -352,19 +352,19 @@ end;
 procedure HurtMember(mi, dmg: longint);
 var roll: longint;
 begin
-  Roster[mi].hp := Roster[mi].hp - dmg;
-  if Roster[mi].hp <= 0 then begin
-    Roster[mi].hp := 0;
+  Active^.Party^[mi].hp := Active^.Party^[mi].hp - dmg;
+  if Active^.Party^[mi].hp <= 0 then begin
+    Active^.Party^[mi].hp := 0;
     { Brush with Death: 1d6 + prior brushes; 7+ is slain. }
-    inc(Roster[mi].brushes);
-    roll := D(6) + (Roster[mi].brushes - 1);
+    inc(Active^.Party^[mi].brushes);
+    roll := D(6) + (Active^.Party^[mi].brushes - 1);
     if roll >= 7 then begin
-      Roster[mi].alive := false;
-      Roster[mi].downed := true;
-      CombatLog(Roster[mi].name + ' is slain!');
+      Active^.Party^[mi].alive := false;
+      Active^.Party^[mi].downed := true;
+      CombatLog(Active^.Party^[mi].name + ' is slain!');
     end else begin
-      Roster[mi].downed := true;
-      CombatLog(Roster[mi].name + ' falls, gravely wounded.');
+      Active^.Party^[mi].downed := true;
+      CombatLog(Active^.Party^[mi].name + ' falls, gravely wounded.');
     end;
   end;
 end;
@@ -387,10 +387,10 @@ function ResistedHit(mi, dmg, element: longint): longint;
   since no gear resists them. }
 begin
   ResistedHit := dmg;
-  if (element <> 0) and ((CharResist(Roster[mi]) and element) <> 0) then begin
+  if (element <> 0) and ((CharResist(Active^.Party^[mi]) and element) <> 0) then begin
     ResistedHit := dmg div 2;
     if ResistedHit < 1 then ResistedHit := 1;
-    CombatLog(Roster[mi].name + ' shrugs off ' + ElementName(element) + '.');
+    CombatLog(Active^.Party^[mi].name + ' shrugs off ' + ElementName(element) + '.');
   end;
 end;
 
@@ -405,17 +405,17 @@ var dom, i, j, tmp: longint;
 begin
   gListActor := actor;
   SetLength(gList, 0);
-  if (actor < 0) or (actor > High(Roster)) then exit;
-  dom := ClassDomain(Roster[actor].klass);
+  if (actor < 0) or (actor > High(Active^.Party^)) then exit;
+  dom := ClassDomain(Active^.Party^[actor].klass);
   if dom = SPD_NONE then exit;
   { the castable spells of the domain the caster has learned and its level
     reaches, so the combat menu holds only known, reachable spells }
   for i := 0 to SpellDefCount - 1 do
     if SpellDefs[i].castable and (SpellDefs[i].domain = dom)
-      and (SpellDefs[i].level <= MaxSpellLevel(Roster[actor]))
-      and SpellAllowed(Roster[actor], i)
-      and CharKnows(Roster[actor], i)
-      and ((not OptPrepared) or CharPrepared(Roster[actor], i)) then begin
+      and (SpellDefs[i].level <= MaxSpellLevel(Active^.Party^[actor]))
+      and SpellAllowed(Active^.Party^[actor], i)
+      and CharKnows(Active^.Party^[actor], i)
+      and ((not OptPrepared) or CharPrepared(Active^.Party^[actor], i)) then begin
       SetLength(gList, Length(gList) + 1);
       gList[High(gList)] := i;
     end;
@@ -489,18 +489,18 @@ end;
 function ActorCanCast(actor, spellIdx: longint): boolean;
 begin
   ActorCanCast := false;
-  if (actor < 0) or (actor > High(Roster)) then exit;
+  if (actor < 0) or (actor > High(Active^.Party^)) then exit;
   EnsureList(actor);
   if (spellIdx < 0) or (spellIdx >= Length(gList)) then exit;
-  if not (Roster[actor].alive and (not Roster[actor].downed)) then exit;
-  ActorCanCast := Roster[actor].sp >= SpellDefs[gList[spellIdx]].castCost;
+  if not (Active^.Party^[actor].alive and (not Active^.Party^[actor].downed)) then exit;
+  ActorCanCast := Active^.Party^[actor].sp >= SpellDefs[gList[spellIdx]].castCost;
 end;
 
 { The spell ability modifier: the caster's class prime ability. }
 function CasterMod(actor: longint): longint;
 begin
-  CasterMod := AbilMod(Roster[actor].abil[
-    TAbility(ClassDefs[Roster[actor].klass].prime)]);
+  CasterMod := AbilMod(Active^.Party^[actor].abil[
+    TAbility(ClassDefs[Active^.Party^[actor].klass].prime)]);
 end;
 
 { ---- party attack resolution ---- }
@@ -511,24 +511,24 @@ var
   melee, hit: boolean;
   roll, roll2, atk, dmg, die: longint;
 begin
-  melee := not WeaponRanged(Roster[actor]);
-  if melee and (Roster[actor].rank <> RANK_FRONT) then begin
-    CombatLog(Roster[actor].name + ' has no reach from the back rank.');
+  melee := not WeaponRanged(Active^.Party^[actor]);
+  if melee and (Active^.Party^[actor].rank <> RANK_FRONT) then begin
+    CombatLog(Active^.Party^[actor].name + ' has no reach from the back rank.');
     exit;
   end;
   if melee and (Active^.Foes[foe].rank <> FrontFoeRank) then begin
-    CombatLog(Roster[actor].name + ' cannot reach the back rank.');
+    CombatLog(Active^.Party^[actor].name + ' cannot reach the back rank.');
     exit;
   end;
-  die := CharWeaponDie(Roster[actor]);
+  die := CharWeaponDie(Active^.Party^[actor]);
   roll := D(20);
   if Active^.PartyStatus[actor].offbal > 0 then begin
     roll2 := D(20);                       { off balance: roll at disadvantage }
     if roll2 < roll then roll := roll2;
   end;
-  atk := CharAttack(Roster[actor], melee) + Active^.PartyBless - Active^.PartyDark + hitMod;
+  atk := CharAttack(Active^.Party^[actor], melee) + Active^.PartyBless - Active^.PartyDark + hitMod;
   if Active^.PartyStatus[actor].fear > 0 then dec(atk, FEAR_ATK);   { afraid: shaky aim }
-  if CharEncumbered(Roster[actor]) then dec(atk, ENCUMBER_ATK);  { overladen }
+  if CharEncumbered(Active^.Party^[actor]) then dec(atk, ENCUMBER_ATK);  { overladen }
   if OptCriticals then
     hit := (roll <> 1) and ((roll = 20) or (roll + atk >= MonDefs[Active^.Foes[foe].def].ac))
   else
@@ -537,14 +537,14 @@ begin
   begin
     if OptCriticals and (roll = 20) then dmg := die   { a crit for max damage }
     else dmg := D(die);
-    if melee then dmg := dmg + AbilMod(Roster[actor].abil[abSTR]);
+    if melee then dmg := dmg + AbilMod(Active^.Party^[actor].abil[abSTR]);
     dmg := dmg + dmgMod;
     if dmg < 1 then dmg := 1;
-    CombatLog(Roster[actor].name + ' hits ' + MonDefs[Active^.Foes[foe].def].name + '.');
-    DamageFoe(foe, dmg, WeaponElement(Roster[actor]));
+    CombatLog(Active^.Party^[actor].name + ' hits ' + MonDefs[Active^.Foes[foe].def].name + '.');
+    DamageFoe(foe, dmg, WeaponElement(Active^.Party^[actor]));
     if Active^.Foes[foe].alive and (inflict <> 0) then AfflictFoe(foe, inflict, 3);
   end else begin
-    CombatLog(Roster[actor].name + ' misses.');
+    CombatLog(Active^.Party^[actor].name + ' misses.');
     PushPop(0, foe, POPC_MISS, 'MISS');
   end;
 end;
@@ -566,9 +566,9 @@ var i, cat: longint;
 begin
   gKActor := actor;
   SetLength(gKList, 0);
-  if (actor < 0) or (actor > High(Roster)) then exit;
-  for i := 0 to KnownSkillCount(Roster[actor]) - 1 do begin
-    cat := KnownSkillNth(Roster[actor], i);
+  if (actor < 0) or (actor > High(Active^.Party^)) then exit;
+  for i := 0 to KnownSkillCount(Active^.Party^[actor]) - 1 do begin
+    cat := KnownSkillNth(Active^.Party^[actor], i);
     if (cat >= 0) and (SkillDefs[cat].arena = SKA_COMBAT) then begin
       SetLength(gKList, Length(gKList) + 1);
       gKList[High(gKList)] := cat;
@@ -626,14 +626,14 @@ function ActorCanManeuver(actor, i: longint): boolean;
 var cat: longint;
 begin
   ActorCanManeuver := false;
-  if (actor < 0) or (actor > High(Roster)) then exit;
-  if not (Roster[actor].alive and (not Roster[actor].downed)) then exit;
+  if (actor < 0) or (actor > High(Active^.Party^)) then exit;
+  if not (Active^.Party^[actor].alive and (not Active^.Party^[actor].downed)) then exit;
   cat := CombatSkillCat(i);
   if cat < 0 then exit;
   { a maneuver may demand gear: a shield to bash, a ranged weapon to aim }
   case SkillDefs[cat].effect of
-    SKE_BASH:      if not CharHasShield(Roster[actor]) then exit;
-    SKE_AIMEDSHOT: if not WeaponRanged(Roster[actor]) then exit;
+    SKE_BASH:      if not CharHasShield(Active^.Party^[actor]) then exit;
+    SKE_AIMEDSHOT: if not WeaponRanged(Active^.Party^[actor]) then exit;
   end;
   if (SkillDefs[cat].maxUses > 0) and (CombatSkillUsesLeft(actor, i) <= 0) then exit;
   ActorCanManeuver := true;

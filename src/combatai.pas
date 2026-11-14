@@ -39,7 +39,7 @@ var i, best: longint;
 begin
   best := -1;
   for i := 0 to n - 1 do
-    if (best < 0) or (Roster[pool[i]].hp < Roster[best].hp) then
+    if (best < 0) or (Active^.Party^[pool[i]].hp < Active^.Party^[best].hp) then
       best := pool[i];
   MostWounded := best;
 end;
@@ -56,21 +56,21 @@ begin
   n := 0;
   if ranged then begin
     { prefer the back rank; fall back to anyone conscious }
-    for i := 0 to High(Roster) do
-      if Roster[i].alive and (not Roster[i].downed)
-        and (Roster[i].rank = RANK_BACK) and (n <= High(pool)) then begin
+    for i := 0 to High(Active^.Party^) do
+      if Active^.Party^[i].alive and (not Active^.Party^[i].downed)
+        and (Active^.Party^[i].rank = RANK_BACK) and (n <= High(pool)) then begin
         pool[n] := i; inc(n);
       end;
     if n = 0 then
-      for i := 0 to High(Roster) do
-        if Roster[i].alive and (not Roster[i].downed) and (n <= High(pool)) then begin
+      for i := 0 to High(Active^.Party^) do
+        if Active^.Party^[i].alive and (not Active^.Party^[i].downed) and (n <= High(pool)) then begin
           pool[n] := i; inc(n);
         end;
   end else begin
     fr := FrontPartyRank;
-    for i := 0 to High(Roster) do
-      if Roster[i].alive and (not Roster[i].downed)
-        and (Roster[i].rank = fr) and (n <= High(pool)) then begin
+    for i := 0 to High(Active^.Party^) do
+      if Active^.Party^[i].alive and (not Active^.Party^[i].downed)
+        and (Active^.Party^[i].rank = fr) and (n <= High(pool)) then begin
         pool[n] := i; inc(n);
       end;
   end;
@@ -128,7 +128,7 @@ begin
         tgt := EnemyPickTarget(fi, false);     { a front-line attacker }
         if tgt < 0 then tgt := FirstConscious;
         if tgt < 0 then exit;
-        CombatLog(MonDefs[Active^.Foes[fi].def].name + ' taunts ' + Roster[tgt].name + '.');
+        CombatLog(MonDefs[Active^.Foes[fi].def].name + ' taunts ' + Active^.Party^[tgt].name + '.');
         AfflictMember(tgt, ST_OFFBAL, 2);
         EnemyHarry := true;
       end;
@@ -140,12 +140,12 @@ begin
         if dmg < 1 then dmg := 1;
         dmg := ResistedHit(tgt, dmg, MonDefs[Active^.Foes[fi].def].element);
         CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hurls a weapon at '
-          + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
+          + Active^.Party^[tgt].name + ' for ' + IntToStr(dmg) + '.');
         PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
         FlashAlly(tgt);
         Active^.CombatSfxCue := CUE_HIT;
         HurtMember(tgt, dmg);
-        if Roster[tgt].alive and (not Roster[tgt].downed) then
+        if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed) then
           AfflictMember(tgt, ST_OFFBAL, 2);    { a solid throw rattles them }
         EnemyHarry := true;
       end;
@@ -167,12 +167,12 @@ begin
   if dmg < 1 then dmg := 1;
   dmg := ResistedHit(tgt, dmg, MonDefs[Active^.Foes[fi].def].element);
   CombatLog(MonDefs[Active^.Foes[fi].def].name + ' conjures a bolt at '
-    + Roster[tgt].name + ' for ' + IntToStr(dmg) + '.');
+    + Active^.Party^[tgt].name + ' for ' + IntToStr(dmg) + '.');
   PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
   FlashAlly(tgt);
   Active^.CombatSfxCue := CUE_HIT;
   HurtMember(tgt, dmg);
-  if Roster[tgt].alive and (not Roster[tgt].downed)
+  if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed)
      and (MonDefs[Active^.Foes[fi].def].inflict <> 0) then
     AfflictMember(tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
   EnemyCastBolt := true;

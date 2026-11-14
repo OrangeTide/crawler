@@ -174,7 +174,7 @@ end;
   off Dexterity, foes off their speed stat; slow drags either down. }
 function PartySpeed(i: longint): longint;
 begin
-  PartySpeed := 4 + AbilMod(Roster[i].abil[abDEX]);
+  PartySpeed := 4 + AbilMod(Active^.Party^[i].abil[abDEX]);
   if Active^.PartyStatus[i].slow > 0 then PartySpeed := PartySpeed - 4;
 end;
 
@@ -200,8 +200,8 @@ begin
   SetLength(Active^.TurnQueue, 0);
   SetLength(init, 0);
   n := 0;
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and (not Roster[i].downed) then begin
+  for i := 0 to High(Active^.Party^) do
+    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) then begin
       SetLength(Active^.TurnQueue, n + 1); SetLength(init, n + 1);
       Active^.TurnQueue[n].side := 1; Active^.TurnQueue[n].idx := i;
       init[n] := PartySpeed(i) + Range(1, 4);
@@ -234,8 +234,8 @@ end;
 function TurnEntAlive(const e: TTurnEnt): boolean;
 begin
   if e.side = 1 then
-    TurnEntAlive := (e.idx <= High(Roster)) and Roster[e.idx].alive
-      and (not Roster[e.idx].downed)
+    TurnEntAlive := (e.idx <= High(Active^.Party^)) and Active^.Party^[e.idx].alive
+      and (not Active^.Party^[e.idx].downed)
   else
     TurnEntAlive := (e.idx <= High(Active^.Foes)) and Active^.Foes[e.idx].alive;
 end;
@@ -276,7 +276,7 @@ begin
       PushPop(1, i, POPC_PARTYDMG, IntToStr(POISON_DMG)); FlashAlly(i);
       HurtMember(i, POISON_DMG); dec(Active^.PartyStatus[i].poison);
     end;
-    if Roster[i].alive and (not Roster[i].downed) and (Active^.PartyStatus[i].burn > 0) then begin
+    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) and (Active^.PartyStatus[i].burn > 0) then begin
       bd := ResistedHit(i, BURN_DMG, EL_FIRE);
       PushPop(1, i, POPC_PARTYDMG, IntToStr(bd)); FlashAlly(i);
       HurtMember(i, bd); dec(Active^.PartyStatus[i].burn);
@@ -284,17 +284,17 @@ begin
     if Active^.PartyStatus[i].slow > 0 then dec(Active^.PartyStatus[i].slow);
     if Active^.PartyStatus[i].offbal > 0 then dec(Active^.PartyStatus[i].offbal);
     if Active^.PartyStatus[i].fear > 0 then dec(Active^.PartyStatus[i].fear);
-    if (not Roster[i].alive) or Roster[i].downed then begin
+    if (not Active^.Party^[i].alive) or Active^.Party^[i].downed then begin
       StartOfTurnSpent := true; exit;
     end;
     if Active^.PartyStatus[i].paralyze > 0 then begin
       dec(Active^.PartyStatus[i].paralyze);
-      CombatLog(Roster[i].name + ' is held fast.');
+      CombatLog(Active^.Party^[i].name + ' is held fast.');
       PushPop(1, i, POPC_MISS, 'HELD');
       StartOfTurnSpent := true;
     end else if Active^.PartyStatus[i].stun > 0 then begin
       dec(Active^.PartyStatus[i].stun);
-      CombatLog(Roster[i].name + ' is stunned.');
+      CombatLog(Active^.Party^[i].name + ' is stunned.');
       PushPop(1, i, POPC_MISS, 'STUN');
       StartOfTurnSpent := true;
     end;
@@ -320,7 +320,7 @@ begin
 
   if e.side = 1 then begin
     Active^.CurActor := e.idx;
-    Roster[e.idx].guarding := false;   { the defence held until now }
+    Active^.Party^[e.idx].guarding := false;   { the defence held until now }
     Active^.TurnMoved := false;                { a fresh move and action this turn }
     Active^.TurnActed := false;
     Active^.CombatPhase := CP_INPUT;
@@ -386,22 +386,22 @@ procedure PartyBulk(out frontB, backB: longint);
 var i: longint;
 begin
   frontB := 0; backB := 0;
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and not Roster[i].downed then
-      if Roster[i].rank = RANK_FRONT then
-        frontB := frontB + SizeBulk(Roster[i].size)
+  for i := 0 to High(Active^.Party^) do
+    if Active^.Party^[i].alive and not Active^.Party^[i].downed then
+      if Active^.Party^[i].rank = RANK_FRONT then
+        frontB := frontB + SizeBulk(Active^.Party^[i].size)
       else
-        backB := backB + SizeBulk(Roster[i].size);
+        backB := backB + SizeBulk(Active^.Party^[i].size);
 end;
 
 function CanFallBack(idx: longint): boolean;
 var frontB, backB, myB: longint;
 begin
   CanFallBack := false;
-  if (idx < 0) or (idx > High(Roster)) then exit;
-  if Roster[idx].rank <> RANK_FRONT then exit;
+  if (idx < 0) or (idx > High(Active^.Party^)) then exit;
+  if Active^.Party^[idx].rank <> RANK_FRONT then exit;
   PartyBulk(frontB, backB);
-  myB := SizeBulk(Roster[idx].size);
+  myB := SizeBulk(Active^.Party^[idx].size);
   { after the step the member counts toward the back rank instead of the front }
   CanFallBack := (frontB - myB) >= (backB + myB);
 end;
@@ -440,6 +440,7 @@ var
   pick, count, i, j, npool, e, mi, wrep: longint;
   pool: array of longint;
 begin
+  Active^.Party := @Roster;    { the party side; MP later keys a joining party }
   SetLength(Active^.Foes, 0);
   Active^.CombatOver := false;
   Active^.Victory := false;
@@ -516,16 +517,16 @@ begin
   { clear hit feedback and status for the new fight }
   SetLength(Active^.Pops, 0);
   SetLength(Active^.FoeFlash, Length(Active^.Foes));
-  SetLength(Active^.PartyFlash, Length(Roster));
+  SetLength(Active^.PartyFlash, Length(Active^.Party^));
   SetLength(Active^.FoeStatus, Length(Active^.Foes));
-  SetLength(Active^.PartyStatus, Length(Roster));
+  SetLength(Active^.PartyStatus, Length(Active^.Party^));
   for i := 0 to High(Active^.FoeStatus) do FillChar(Active^.FoeStatus[i], SizeOf(TStatus), 0);
   for i := 0 to High(Active^.PartyStatus) do FillChar(Active^.PartyStatus[i], SizeOf(TStatus), 0);
 
   { reset the per-fight maneuver tallies and the cached skill menu, so each
     fight starts with every limited maneuver's uses restored }
   ResetSkillMenu;
-  SetLength(Active^.SkillUse, Length(Roster));
+  SetLength(Active^.SkillUse, Length(Active^.Party^));
   for i := 0 to High(Active^.SkillUse) do begin
     SetLength(Active^.SkillUse[i], SkillDefCount);
     for j := 0 to High(Active^.SkillUse[i]) do Active^.SkillUse[i][j] := 0;
@@ -590,8 +591,8 @@ begin
   if tgt < 0 then exit;
 
   roll := D(20);
-  effAC := CharAC(Roster[tgt]);
-  if Roster[tgt].guarding then effAC := effAC + 2;   { braced to parry }
+  effAC := CharAC(Active^.Party^[tgt]);
+  if Active^.Party^[tgt].guarding then effAC := effAC + 2;   { braced to parry }
   atkB := MonDefs[Active^.Foes[fi].def].atkBonus;
   if Active^.FoeStatus[fi].fear > 0 then dec(atkB, FEAR_ATK);   { afraid: swings wide }
   if OptCriticals then
@@ -602,31 +603,31 @@ begin
   begin
     dmg := D(MonDefs[Active^.Foes[fi].def].dmgSides);
     if dmg < 1 then dmg := 1;
-    if Roster[tgt].guarding then dmg := dmg div 2;          { defend halves }
-    if ranged and (Roster[tgt].rank = RANK_BACK) then dmg := dmg div 2;
+    if Active^.Party^[tgt].guarding then dmg := dmg div 2;          { defend halves }
+    if ranged and (Active^.Party^[tgt].rank = RANK_BACK) then dmg := dmg div 2;
     if dmg < 1 then dmg := 1;
     dmg := ResistedHit(tgt, dmg, MonDefs[Active^.Foes[fi].def].element);
-    CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hits ' + Roster[tgt].name
+    CombatLog(MonDefs[Active^.Foes[fi].def].name + ' hits ' + Active^.Party^[tgt].name
       + ' for ' + IntToStr(dmg) + '.');
     PushPop(1, tgt, POPC_PARTYDMG, IntToStr(dmg));
     FlashAlly(tgt);
     Active^.CombatSfxCue := CUE_HIT;
     HurtMember(tgt, dmg);
-    if Roster[tgt].alive and (not Roster[tgt].downed) then begin
+    if Active^.Party^[tgt].alive and (not Active^.Party^[tgt].downed) then begin
       if MonDefs[Active^.Foes[fi].def].inflict <> 0 then
         AfflictMember(tgt, MonDefs[Active^.Foes[fi].def].inflict, 3);
       { a lycanthrope's wound can pass on the curse, on a failed save }
       if ((MonDefs[Active^.Foes[fi].def].flags and MF_LYCAN) <> 0)
-        and (not Roster[tgt].lycan)
-        and (not SaveThrow(GameRng, AbilMod(Roster[tgt].abil[abCON]),
-                           Roster[tgt].level, 13)) then
+        and (not Active^.Party^[tgt].lycan)
+        and (not SaveThrow(GameRng, AbilMod(Active^.Party^[tgt].abil[abCON]),
+                           Active^.Party^[tgt].level, 13)) then
       begin
-        Roster[tgt].lycan := true;
-        CombatLog(Roster[tgt].name + ' is marked by the curse!');
+        Active^.Party^[tgt].lycan := true;
+        CombatLog(Active^.Party^[tgt].name + ' is marked by the curse!');
       end;
     end;
   end else begin
-    CombatLog(MonDefs[Active^.Foes[fi].def].name + ' misses ' + Roster[tgt].name + '.');
+    CombatLog(MonDefs[Active^.Foes[fi].def].name + ' misses ' + Active^.Party^[tgt].name + '.');
     PushPop(1, tgt, POPC_MISS, 'MISS');
   end;
 end;
@@ -639,7 +640,7 @@ begin
   if not FoeReachable(Active^.CurActor, Active^.CurTarget) then
     Active^.CurTarget := FirstReachable(Active^.CurActor);
   if Active^.CurTarget < 0 then begin
-    CombatLog(Roster[Active^.CurActor].name + ' has no target in reach.');
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' has no target in reach.');
     exit;   { the turn is not spent; pick another action or retarget }
   end;
   ResolvePartyAttack(Active^.CurActor, Active^.CurTarget);
@@ -651,8 +652,8 @@ end;
 procedure ActGuard;
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
-  Roster[Active^.CurActor].guarding := true;
-  CombatLog(Roster[Active^.CurActor].name + ' braces to defend.');
+  Active^.Party^[Active^.CurActor].guarding := true;
+  CombatLog(Active^.Party^[Active^.CurActor].name + ' braces to defend.');
   FinishSubAction(false);
 end;
 
@@ -660,18 +661,18 @@ procedure ActMove;
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
   { step between the front line and the back; this spends the move slot }
-  if Roster[Active^.CurActor].rank = RANK_FRONT then begin
+  if Active^.Party^[Active^.CurActor].rank = RANK_FRONT then begin
     { falling back needs enough bulk left in front to cover the rear }
     if not CanFallBack(Active^.CurActor) then begin
-      CombatLog(Roster[Active^.CurActor].name
+      CombatLog(Active^.Party^[Active^.CurActor].name
         + ' holds the line; the front is too thin to fall back.');
       exit;   { an illegal move spends nothing }
     end;
-    Roster[Active^.CurActor].rank := RANK_BACK;
-    CombatLog(Roster[Active^.CurActor].name + ' falls back.');
+    Active^.Party^[Active^.CurActor].rank := RANK_BACK;
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' falls back.');
   end else begin
-    Roster[Active^.CurActor].rank := RANK_FRONT;
-    CombatLog(Roster[Active^.CurActor].name + ' steps up to the front.');
+    Active^.Party^[Active^.CurActor].rank := RANK_FRONT;
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' steps up to the front.');
   end;
   FinishSubAction(true);
 end;
@@ -688,7 +689,7 @@ begin
     Active^.CombatPhase := CP_DONE;
     CombatLog('The party breaks off and flees.');
   end else begin
-    CombatLog(Roster[Active^.CurActor].name + ' fails to break away.');
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' fails to break away.');
     EndTurn;
   end;
 end;
@@ -697,7 +698,7 @@ end;
 procedure ActSkip;
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
-  CombatLog(Roster[Active^.CurActor].name + ' waits.');
+  CombatLog(Active^.Party^[Active^.CurActor].name + ' waits.');
   EndTurn;
 end;
 
@@ -710,28 +711,28 @@ var
   reviving: boolean;
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
-  if (slot < 0) or (slot > High(Roster[Active^.CurActor].pack)) then exit;
-  if Roster[Active^.CurActor].pack[slot].qty <= 0 then exit;
-  def := Roster[Active^.CurActor].pack[slot].def;
+  if (slot < 0) or (slot > High(Active^.Party^[Active^.CurActor].pack)) then exit;
+  if Active^.Party^[Active^.CurActor].pack[slot].qty <= 0 then exit;
+  def := Active^.Party^[Active^.CurActor].pack[slot].def;
   if (def < 0) or (def > High(ItemDefs)) then exit;
   if ItemDefs[def].kind <> IK_POTION then exit;
-  if (target < 0) or (target > High(Roster)) or (not Roster[target].alive) then exit;
+  if (target < 0) or (target > High(Active^.Party^)) or (not Active^.Party^[target].alive) then exit;
   reviving := (ItemDefs[def].flags and IF_REVIVE) <> 0;
-  if reviving and (not Roster[target].downed) then exit;
-  if (not reviving) and Roster[target].downed then exit;
+  if reviving and (not Active^.Party^[target].downed) then exit;
+  if (not reviving) and Active^.Party^[target].downed then exit;
 
-  dec(Roster[Active^.CurActor].pack[slot].qty);
+  dec(Active^.Party^[Active^.CurActor].pack[slot].qty);
   MarkItemKnown(def);   { quaffing an unknown potion reveals what it is }
   heal := RngRoll(GameRng, 1, 8) + 2;
   if reviving then begin
-    Roster[target].downed := false;
-    Roster[target].hp := heal;
+    Active^.Party^[target].downed := false;
+    Active^.Party^[target].hp := heal;
   end else
-    Roster[target].hp := Roster[target].hp + heal;
-  if Roster[target].hp > Roster[target].hpMax then
-    Roster[target].hp := Roster[target].hpMax;
-  CombatLog(Roster[Active^.CurActor].name + ' uses ' + ItemDefs[def].name
-    + ' on ' + Roster[target].name + ' (+' + IntToStr(heal) + ').');
+    Active^.Party^[target].hp := Active^.Party^[target].hp + heal;
+  if Active^.Party^[target].hp > Active^.Party^[target].hpMax then
+    Active^.Party^[target].hp := Active^.Party^[target].hpMax;
+  CombatLog(Active^.Party^[Active^.CurActor].name + ' uses ' + ItemDefs[def].name
+    + ' on ' + Active^.Party^[target].name + ' (+' + IntToStr(heal) + ').');
   PushPop(1, target, POPC_HEAL, '+' + IntToStr(heal));
   FlashAlly(target);
   FinishSubAction(false);
@@ -759,23 +760,23 @@ var
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
   if not ActorCanCast(Active^.CurActor, spellIdx) then begin
-    CombatLog(Roster[Active^.CurActor].name + ' cannot cast that.');
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' cannot cast that.');
     exit;
   end;
   sp := SpellInfo(spellIdx);
-  dec(Roster[Active^.CurActor].sp, sp.cost);
+  dec(Active^.Party^[Active^.CurActor].sp, sp.cost);
   m := CasterMod(Active^.CurActor);
   { a specialist casting in its favored school presses the save harder }
   edge := 0;
   if (sp.school <> SCH_NONE)
-    and (ClassSchool(Roster[Active^.CurActor].klass) = sp.school) then edge := 1;
+    and (ClassSchool(Active^.Party^[Active^.CurActor].klass) = sp.school) then edge := 1;
 
   case sp.mode of
     TGT_ENEMY: begin
       if (target < 0) or (target > High(Active^.Foes)) or (not Active^.Foes[target].alive) then
         target := FirstLivingFoe;
       if target < 0 then begin FinishSubAction(false); exit; end;
-      CombatLog(Roster[Active^.CurActor].name + ' casts ' + sp.name + '.');
+      CombatLog(Active^.Party^[Active^.CurActor].name + ' casts ' + sp.name + '.');
       DamageFoe(target, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
       if Active^.Foes[target].alive and (sp.inflict <> 0) then
         AfflictFoe(target, sp.inflict, 3, edge);
@@ -785,7 +786,7 @@ begin
         target := FirstLivingFoe;
       if target < 0 then begin FinishSubAction(false); exit; end;
       rk := Active^.Foes[target].rank;
-      CombatLog(Roster[Active^.CurActor].name + ' casts ' + sp.name + '.');
+      CombatLog(Active^.Party^[Active^.CurActor].name + ' casts ' + sp.name + '.');
       for i := 0 to High(Active^.Foes) do
         if Active^.Foes[i].alive and (Active^.Foes[i].rank = rk) then begin
           DamageFoe(i, RngRoll(GameRng, sp.dice, sp.sides) + m, sp.element);
@@ -794,23 +795,23 @@ begin
         end;
     end;
     TGT_ALLY: begin
-      if (target < 0) or (target > High(Roster)) or (not Roster[target].alive) then
+      if (target < 0) or (target > High(Active^.Party^)) or (not Active^.Party^[target].alive) then
         target := Active^.CurActor;
       amt := RngRoll(GameRng, sp.dice, sp.sides) + m;
       if amt < 1 then amt := 1;
-      if Roster[target].downed and Roster[target].alive then
-        Roster[target].downed := false;    { a mend brings them to their feet }
-      Roster[target].hp := Roster[target].hp + amt;
-      if Roster[target].hp > Roster[target].hpMax then
-        Roster[target].hp := Roster[target].hpMax;
-      CombatLog(Roster[Active^.CurActor].name + ' mends ' + Roster[target].name
+      if Active^.Party^[target].downed and Active^.Party^[target].alive then
+        Active^.Party^[target].downed := false;    { a mend brings them to their feet }
+      Active^.Party^[target].hp := Active^.Party^[target].hp + amt;
+      if Active^.Party^[target].hp > Active^.Party^[target].hpMax then
+        Active^.Party^[target].hp := Active^.Party^[target].hpMax;
+      CombatLog(Active^.Party^[Active^.CurActor].name + ' mends ' + Active^.Party^[target].name
         + ' (+' + IntToStr(amt) + ').');
       PushPop(1, target, POPC_HEAL, '+' + IntToStr(amt));
       FlashAlly(target);
     end;
     TGT_PARTY: begin
       Active^.PartyBless := 1;
-      CombatLog(Roster[Active^.CurActor].name + ' blesses the party.');
+      CombatLog(Active^.Party^[Active^.CurActor].name + ' blesses the party.');
     end;
   end;
 
@@ -824,16 +825,16 @@ var
 begin
   if Active^.CombatOver or (Active^.CurActor < 0) or (Active^.CombatPhase <> CP_INPUT) then exit;
   if not ActorCanManeuver(Active^.CurActor, skillIdx) then begin
-    CombatLog(Roster[Active^.CurActor].name + ' cannot do that.');
+    CombatLog(Active^.Party^[Active^.CurActor].name + ' cannot do that.');
     exit;
   end;
   sk := CombatSkillInfo(skillIdx);
-  rk := SkillRank(Roster[Active^.CurActor], CombatSkillCat(skillIdx));
+  rk := SkillRank(Active^.Party^[Active^.CurActor], CombatSkillCat(skillIdx));
   if rk < 0 then rk := 0;
   bonus := 0;
   if sk.dice > 0 then bonus := RngRoll(GameRng, sk.dice, sk.sides);
   SpendManeuver(Active^.CurActor, skillIdx);
-  CombatLog(Roster[Active^.CurActor].name + ' uses ' + sk.name + '.');
+  CombatLog(Active^.Party^[Active^.CurActor].name + ' uses ' + sk.name + '.');
 
   case sk.effect of
     SKE_POWERATTACK:
@@ -850,10 +851,10 @@ begin
       ResolvePartyAttack(Active^.CurActor, target, 2 + rk, bonus);
     SKE_RALLY: begin
       { steady the party: fear lifts and a short blessing takes hold }
-      for i := 0 to High(Roster) do
-        if Roster[i].alive then Active^.PartyStatus[i].fear := 0;
+      for i := 0 to High(Active^.Party^) do
+        if Active^.Party^[i].alive then Active^.PartyStatus[i].fear := 0;
       Active^.PartyBless := 1;
-      CombatLog(Roster[Active^.CurActor].name + ' rallies the party.');
+      CombatLog(Active^.Party^[Active^.CurActor].name + ' rallies the party.');
     end;
   end;
 
@@ -884,10 +885,10 @@ begin
   if ItemIndex('ELIXIR') < 0 then exit;
   if Range(1, 100) > LOOT_CHANCE then exit;
   wi := -1;
-  for i := 0 to High(Roster) do
-    if Roster[i].alive and (not Roster[i].downed) then begin wi := i; break; end;
+  for i := 0 to High(Active^.Party^) do
+    if Active^.Party^[i].alive and (not Active^.Party^[i].downed) then begin wi := i; break; end;
   if wi < 0 then exit;
-  PackAdd(Roster[wi], 'ELIXIR', 1);
+  PackAdd(Active^.Party^[wi], 'ELIXIR', 1);
   GrantVictoryLoot := true;
 end;
 

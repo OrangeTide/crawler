@@ -159,9 +159,9 @@ function CombatItemUsable(slot: longint): boolean;
 begin
   CombatItemUsable := false;
   if Active^.CurActor < 0 then exit;
-  if (slot < 0) or (slot > High(Roster[Active^.CurActor].pack)) then exit;
-  if Roster[Active^.CurActor].pack[slot].qty <= 0 then exit;
-  CombatItemUsable := ItemUsableInCombat(Roster[Active^.CurActor].pack[slot].def);
+  if (slot < 0) or (slot > High(Active^.Party^[Active^.CurActor].pack)) then exit;
+  if Active^.Party^[Active^.CurActor].pack[slot].qty <= 0 then exit;
+  CombatItemUsable := ItemUsableInCombat(Active^.Party^[Active^.CurActor].pack[slot].def);
 end;
 
 { Whether the item in that pack slot raises a fallen ally (vs heals). }
@@ -169,8 +169,8 @@ function CombatSlotRevives(slot: longint): boolean;
 begin
   CombatSlotRevives := false;
   if Active^.CurActor < 0 then exit;
-  if (slot < 0) or (slot > High(Roster[Active^.CurActor].pack)) then exit;
-  CombatSlotRevives := ItemRevives(Roster[Active^.CurActor].pack[slot].def);
+  if (slot < 0) or (slot > High(Active^.Party^[Active^.CurActor].pack)) then exit;
+  CombatSlotRevives := ItemRevives(Active^.Party^[Active^.CurActor].pack[slot].def);
 end;
 
 { A command whose slot the current actor has already spent this turn is
@@ -201,7 +201,7 @@ begin
   { the window belongs to the acting character, named across its head;
     on a beat or the foe turn it stands by with no list }
   if (Active^.CombatPhase = CP_INPUT) and (Active^.CurActor >= 0) then
-    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Roster[Active^.CurActor].name, 1, 12),
+    DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, Copy(Active^.Party^[Active^.CurActor].name, 1, 12),
       RGB(245, 230, 140))
   else if Active^.CombatPhase = CP_ENEMY then
     DrawText(CMDBOX_X + 6, CMDBOX_Y + 5, 'FOE TURN', RGB(210, 150, 140))
@@ -302,20 +302,20 @@ begin
     CB_ITEM: begin
       any := false;
       row := 0;
-      for i := 0 to High(Roster[Active^.CurActor].pack) do
+      for i := 0 to High(Active^.Party^[Active^.CurActor].pack) do
         if CombatItemUsable(i) then begin
           y := y0 + row * 11;
           if i = itemSel then c := RGB(185, 215, 245)
           else c := RGB(150, 160, 185);
           if i = itemSel then DrawText(CMDBOX_X + 5, y, '>', c);
-          if Roster[Active^.CurActor].pack[i].qty > 1 then begin
+          if Active^.Party^[Active^.CurActor].pack[i].qty > 1 then begin
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemLabel(Roster[Active^.CurActor].pack[i].def), 1, 10), c);
+              Copy(ItemLabel(Active^.Party^[Active^.CurActor].pack[i].def), 1, 10), c);
             DrawText(CMDBOX_X + CMDBOX_W - 16, y,
-              'x' + IntToStr(Roster[Active^.CurActor].pack[i].qty), c);
+              'x' + IntToStr(Active^.Party^[Active^.CurActor].pack[i].qty), c);
           end else
             DrawText(CMDBOX_X + 15, y,
-              Copy(ItemLabel(Roster[Active^.CurActor].pack[i].def), 1, 14), c);
+              Copy(ItemLabel(Active^.Party^[Active^.CurActor].pack[i].def), 1, 14), c);
           inc(row);
           any := true;
         end;
@@ -325,7 +325,7 @@ begin
       if pendingItem >= 0 then DrawText(CMDBOX_X + 6, y0, 'USE', RGB(140, 220, 200))
       else DrawText(CMDBOX_X + 6, y0, 'HEAL', RGB(140, 220, 200));
       DrawText(CMDBOX_X + 6, y0 + 12,
-        Copy(Roster[allySel].name, 1, 12), RGB(140, 220, 200));
+        Copy(Active^.Party^[allySel].name, 1, 12), RGB(140, 220, 200));
       DrawText(CMDBOX_X + 6, y0 + 32, 'UP/DN PICK', RGB(150, 150, 130));
       DrawText(CMDBOX_X + 6, y0 + 42, 'ENT  OK', RGB(150, 150, 130));
       DrawText(CMDBOX_X + 6, y0 + 52, 'ESC  BACK', RGB(150, 150, 130));
@@ -452,46 +452,46 @@ begin
 
   { --- party, in depth ranks: front rank forward near the clash, back
     rank to the rear near the viewer. Same rank spreads across columns. --- }
-  n := Length(Roster);
+  n := Length(Active^.Party^);
   for rk := RANK_FRONT to RANK_BACK do begin
     living := 0;
-    for i := 0 to n - 1 do if Roster[i].rank = rk then inc(living);
+    for i := 0 to n - 1 do if Active^.Party^[i].rank = rk then inc(living);
     if living < 1 then continue;
     if rk = RANK_FRONT then ny := PTY_FRONT_Y else ny := PTY_BACK_Y;
     slot := (FBW - 24) div living;
     if slot > 96 then slot := 96;
     col := 0;
     for i := 0 to n - 1 do begin
-      if Roster[i].rank <> rk then continue;
+      if Active^.Party^[i].rank <> rk then continue;
       x := 16 + col * slot;
       tx := x + 18;   { text clears the portrait thumbnail on the left }
       if (i = Active^.CurActor) and (Active^.CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(245, 230, 140));
       if (cbMenu = CB_ALLY) and (i = allySel) and (Active^.CombatPhase = CP_INPUT) then
         DrawText(x - 10, ny, '>', RGB(120, 220, 200));
-      if not Roster[i].alive then c := RGB(160, 80, 80)
-      else if Roster[i].downed then c := RGB(175, 135, 85)
+      if not Active^.Party^[i].alive then c := RGB(160, 80, 80)
+      else if Active^.Party^[i].downed then c := RGB(175, 135, 85)
       else if (i = Active^.CurActor) and (Active^.CombatPhase = CP_INPUT) then c := RGB(245, 230, 140)
       else c := RGB(205, 210, 190);
       FrameRect(x, ny, 16, 16, RGB(50, 46, 38));
-      DrawPCPortraitScaled(x, ny, 16, 16, Roster[i].portrait);
-      DrawText(tx, ny, Copy(Roster[i].name, 1, 8), c);
-      if (i <= High(Active^.PartyStatus)) and Roster[i].alive and (not Roster[i].downed) then begin
+      DrawPCPortraitScaled(x, ny, 16, 16, Active^.Party^[i].portrait);
+      DrawText(tx, ny, Copy(Active^.Party^[i].name, 1, 8), c);
+      if (i <= High(Active^.PartyStatus)) and Active^.Party^[i].alive and (not Active^.Party^[i].downed) then begin
         s := StatusTag(Active^.PartyStatus[i]);
         if s <> '' then DrawText(tx + 50, ny, s, RGB(190, 120, 215));
       end;
-      if not Roster[i].alive then
+      if not Active^.Party^[i].alive then
         DrawText(tx, ny + 9, 'SLAIN', RGB(190, 90, 90))
-      else if Roster[i].downed then
+      else if Active^.Party^[i].downed then
         DrawText(tx, ny + 9, 'DOWN', RGB(190, 140, 90))
       else begin
-        DrawText(tx, ny + 9, IntToStr(Roster[i].hp) + '/'
-          + IntToStr(Roster[i].hpMax), RGB(170, 175, 160));
-        if Roster[i].guarding then DrawText(x + slot - 24, ny, 'GRD', RGB(150, 170, 210));
-        if Roster[i].sp > 0 then
-          DrawText(x + slot - 28, ny + 9, 'sp' + IntToStr(Roster[i].sp),
+        DrawText(tx, ny + 9, IntToStr(Active^.Party^[i].hp) + '/'
+          + IntToStr(Active^.Party^[i].hpMax), RGB(170, 175, 160));
+        if Active^.Party^[i].guarding then DrawText(x + slot - 24, ny, 'GRD', RGB(150, 170, 210));
+        if Active^.Party^[i].sp > 0 then
+          DrawText(x + slot - 28, ny + 9, 'sp' + IntToStr(Active^.Party^[i].sp),
             RGB(150, 160, 205));
-        DrawBar(x, ny + 18, slot - 16, 3, Roster[i].hp, Roster[i].hpMax,
+        DrawBar(x, ny + 18, slot - 16, 3, Active^.Party^[i].hp, Active^.Party^[i].hpMax,
           RGB(70, 170, 70), RGB(40, 20, 20));
       end;
       if (i <= High(Active^.PartyFlash)) then
@@ -576,13 +576,13 @@ end;
 function CombatAllyTargetable(i: longint): boolean;
 begin
   CombatAllyTargetable := false;
-  if (i < 0) or (i > High(Roster)) then exit;
-  if not Roster[i].alive then exit;
+  if (i < 0) or (i > High(Active^.Party^)) then exit;
+  if not Active^.Party^[i].alive then exit;
   if pendingItem >= 0 then begin
     if CombatSlotRevives(pendingItem) then
-      CombatAllyTargetable := Roster[i].downed
+      CombatAllyTargetable := Active^.Party^[i].downed
     else
-      CombatAllyTargetable := not Roster[i].downed;
+      CombatAllyTargetable := not Active^.Party^[i].downed;
   end else
     CombatAllyTargetable := true;
 end;
@@ -592,7 +592,7 @@ procedure CombatCycleAlly(dir: longint);
 var
   start, i, n: longint;
 begin
-  n := Length(Roster);
+  n := Length(Active^.Party^);
   if n = 0 then exit;
   i := allySel;
   if (i < 0) or (i >= n) then i := 0;
@@ -609,7 +609,7 @@ var
   start, i, n: longint;
 begin
   if Active^.CurActor < 0 then exit;
-  n := Length(Roster[Active^.CurActor].pack);
+  n := Length(Active^.Party^[Active^.CurActor].pack);
   if n = 0 then exit;
   i := itemSel;
   if (i < 0) or (i >= n) then i := 0;
@@ -678,7 +678,7 @@ begin
       pendingSpell := -1;
       Active^.CurTarget := FirstReachable(Active^.CurActor);
       if Active^.CurTarget < 0 then begin
-        CombatLog(Roster[Active^.CurActor].name + ' has no target in reach.');
+        CombatLog(Active^.Party^[Active^.CurActor].name + ' has no target in reach.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_TARGET; PlaySfx(SFX_SELECT);
@@ -689,7 +689,7 @@ begin
       for i := 0 to SpellCount - 1 do
         if ActorCanCast(Active^.CurActor, i) then begin spellSel := i; break; end;
       if spellSel < 0 then begin
-        CombatLog(Roster[Active^.CurActor].name + ' has no spell to cast.');
+        CombatLog(Active^.Party^[Active^.CurActor].name + ' has no spell to cast.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_SPELL; PlaySfx(SFX_SELECT);
@@ -700,7 +700,7 @@ begin
       for i := 0 to CombatSkillCount - 1 do
         if ActorCanManeuver(Active^.CurActor, i) then begin skillSel := i; break; end;
       if skillSel < 0 then begin
-        CombatLog(Roster[Active^.CurActor].name + ' has no maneuver ready.');
+        CombatLog(Active^.Party^[Active^.CurActor].name + ' has no maneuver ready.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_SKILL; PlaySfx(SFX_SELECT);
@@ -708,10 +708,10 @@ begin
     end;
     CMD_ITEM: begin
       itemSel := -1;
-      for i := 0 to High(Roster[Active^.CurActor].pack) do
+      for i := 0 to High(Active^.Party^[Active^.CurActor].pack) do
         if CombatItemUsable(i) then begin itemSel := i; break; end;
       if itemSel < 0 then begin
-        CombatLog(Roster[Active^.CurActor].name + ' has no item to use.');
+        CombatLog(Active^.Party^[Active^.CurActor].name + ' has no item to use.');
         PlaySfx(SFX_DOWN);
       end else begin
         cbMenu := CB_ITEM; PlaySfx(SFX_SELECT);
@@ -738,7 +738,7 @@ begin
     end;
     TGT_ALLY: begin
       allySel := Active^.CurActor;
-      if not Roster[allySel].alive then CombatCycleAlly(1);
+      if not Active^.Party^[allySel].alive then CombatCycleAlly(1);
       cbMenu := CB_ALLY; PlaySfx(SFX_SELECT);
     end;
     TGT_PARTY: begin
@@ -959,9 +959,9 @@ begin
   if Active^.CombatSfxCue = CUE_HIT then PlaySfx(SFX_HIT);
   Active^.CombatSfxCue := CUE_NONE;
   if (Active^.CombatPhase = CP_INPUT) and (not Active^.CombatOver)
-    and (Active^.CurActor >= 0) and (Active^.CurActor <= High(Roster))
-    and Roster[Active^.CurActor].wereform and Roster[Active^.CurActor].alive
-    and (not Roster[Active^.CurActor].downed) then begin
+    and (Active^.CurActor >= 0) and (Active^.CurActor <= High(Active^.Party^))
+    and Active^.Party^[Active^.CurActor].wereform and Active^.Party^[Active^.CurActor].alive
+    and (not Active^.Party^[Active^.CurActor].downed) then begin
     ActAttack;
     PlaySfx(SFX_HIT);
     { back-rank with nothing in reach: guard so the turn still passes }

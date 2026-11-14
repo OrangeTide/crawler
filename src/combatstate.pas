@@ -12,7 +12,7 @@ unit combatstate;
 interface
 
 uses
-  sprbank;
+  sprbank, party;
 
 const
   MAX_FOES = 6;
@@ -106,6 +106,7 @@ type
     Live: boolean;             { this slot holds a fight in progress }
     Map: string[16];           { the map cell this fight is located at }
     CellX, CellY: longint;
+    Party: PRoster;            { the party side; single player points at @Roster }
     Foes: array of TFoe;
     CombatOver: boolean;
     Victory: boolean;
@@ -229,8 +230,15 @@ begin
   Active := @gCombats[0];
 end;
 
+var
+  initSlot: longint;
+
 initialization
   OptCriticals := true;
   OptPrepared := false;
   CombatBeatScale := 1.0;
+  { every fight defaults to the one resident party; MP later points a slot at a
+    joining party instead }
+  for initSlot := 0 to MAX_COMBATS - 1 do
+    gCombats[initSlot].Party := @Roster;
 end.
