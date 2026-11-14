@@ -7,7 +7,7 @@ that release's section below.
 This is the first tagged release. It builds on milestones 0.1.0 through 0.23.0,
 whose development history is summarized in docs/roadmap.md.
 
-## [Unreleased]
+## [0.30.0] - 2026-11-13
 
 ### Added
 - A grid sprite-sheet slicer, so licensed character packs import without hand

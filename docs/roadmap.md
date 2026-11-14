@@ -72,9 +72,9 @@ source-art pass that replaced the last image-generated exits and props: the
 doorway, ladder and barrel are now 3D meshes, the stair, cave and shaft exits
 draw Dungeon Crawl tiles, and a new crate joins the barrel as clutter the
 generators scatter through a level. With the navigation milestone 0.20.0 since
-complete (below), the open forward work is theme E's hardware track, theme G's
-remaining sector and content passes, the 0.30.0 systems depth, and the
-follow-on world content.
+complete (below), and the 0.30.0 systems-depth milestone shipped (see the 0.30.0
+summary below), the open forward work is theme E's hardware track, theme G's
+remaining sector and content passes, and the follow-on world content.
 
 Recent work past the build order added cross-map pathfinding (`pathfind`,
 `maproute`), player-known party auto-travel, and omniscient monster pursuit on
@@ -141,7 +141,25 @@ build issues: a bare `make` had stopped building the binary once the CLUT
 rule became the first target, and the macOS cross-build was missing the
 `src/ui` unit path.
 
-Since 0.29.0 the single-player-side combat-instance refactor has continued,
+Release 0.30.0 bundles the systems-depth milestone with two presentation and
+code passes that landed alongside it. The systems depth adds rank capacity by
+creature size (a size class and bulk per combatant, the front rank covering the
+back), data-driven starting equipment (`content/gear.txt`) and new-game tables
+(`content/newgame.txt`), an optional AD&D-style prepared-spell subset, nine more
+combat-statted spells (the castable count rose from 51 to 60), a data-driven
+quest log (`content/quests.txt`), a real-time run timer, and save format 16.
+
+The same release opens animated sprites. A new `SPBK` bank format (design section
+27, phase one) wraps the existing frames behind a sequence directory, and a grid
+sheet slicer imports the licensed GandalfHardcore character and creature packs as
+animated banks, column or row runs of cells per sequence, with the source PNGs
+kept out of git. Combat foes play their idle cycle and world NPCs face by a
+horizontal flip. The bank frame-offset table widened to 32 bits (layout version
+1) so a large sprite such as the 208x128 dragon is not truncated, and the
+bestiary wires RAT, BAT, GOBLIN, ORC, SKELETON, ZOMBIE, SPIDER and the Imp to
+their new banks, with a new Tiger joining as a large cat.
+
+The third 0.30.0 pass continued the single-player-side combat-instance refactor,
 still byte-identical and with no network code, carrying the section 24
 shared-shard groundwork further. The one resident fight became a small fixed
 table of `TCombat` instances addressed by map cell, one fight per cell, with a
