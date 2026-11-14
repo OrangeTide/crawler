@@ -1,0 +1,10 @@
+# Heavy knight run strip: 91x64, 6-frame run.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet hkrun.ppm
+cell 91 64
+
+bank HKRUN
+seq RUN loop ticks=2 : lin 0-5

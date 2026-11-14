@@ -1,11 +1,10 @@
 # Female character sheet (GandalfHardcore pack), sliced into one bank per
 # column. A 12-column by 14-row grid of 64x64 cells: row 0 is portraits, rows
 # 1..13 each character's cycle (one facing; the world view flips it). Columns 0
-# through 8 are the standing characters taken here. Column 9 is blank, and
-# columns 10-11 hold a wide reclining "goddess" that spans two cells per frame,
-# so those are left for a later per-frame pass. Names are best-effort from the
-# pack list (bar lady, nun, knight, dryad, queen, succubus, vampire, merchant,
-# maid, goddess).
+# through 8 are the standing characters, column 9 a winged demon, column 11 a
+# red-haired woman in a white gown. Column 10 holds a bare reclining figure and
+# is left out. Names are best-effort from the pack list (bar lady, nun, knight,
+# dryad, queen, succubus, vampire, merchant, maid).
 
 sheet female.ppm
 cell 64 64
@@ -36,3 +35,9 @@ seq IDLE loop ticks=4 : col 7 rows 1-13
 
 bank FEMALE_SUCCUBUS
 seq IDLE loop ticks=4 : col 8 rows 1-13
+
+bank FEMALE_IMP
+seq IDLE loop ticks=4 : col 9 rows 1-13
+
+bank FEMALE_LADY
+seq IDLE loop ticks=4 : col 11 rows 1-13

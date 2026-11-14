@@ -234,6 +234,20 @@ begin
   CheckEqI(img.w, 208, 'dragon frame width is 208');
   Check(SpriteFrame(si, sq, 24, img), 'the last dragon frame decodes');
 
+  { leftover extras: the maid's full outfit, the heavy knight's run and second
+    action sheet, and two more columns of the female grid }
+  CheckSeq('MAIDFULL', 'IDLE', 8);
+  CheckSeq('MAIDFULL', 'WALK', 8);
+  CheckSeq('MAIDFULL_BROWN', 'DEATH', 8);
+  CheckSeqWH('HKRUN', 'RUN', 6, 91, 64);
+  CheckSeqWH('HKRUN_BLUE', 'RUN', 6, 91, 64);
+  CheckSeqWH('HKNIGHT2', 'GUARD', 7, 91, 64);
+  CheckSeqWH('HKNIGHT2', 'LUNGE', 7, 91, 64);
+  CheckSeqWH('HKNIGHT2', 'SWING', 5, 91, 64);
+  CheckSeqWH('HKNIGHT2_WHITE', 'GUARD', 7, 91, 64);
+  CheckChar('FEMALE_IMP');
+  CheckChar('FEMALE_LADY');
+
   { a sliced frame decodes, and the whole column reads back in range }
   si := LoadSprite(p, 'MALE_KING');
   sq := SpriteSeqIndex(si, 'IDLE');

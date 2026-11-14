@@ -355,6 +355,12 @@ attack, death), each row a sequence with its own frame count. Imported so far:
                 a wounded knight), and DRAGON (208x128, a sleeping dragon on
                 its hoard). The dragon's frames are large, so its bank relies
                 on the u32 frame-offset table in the sprite-bank format.
+  leftovers     MAIDFULL (the maid's full outfit, 64x64, seven recolors), the
+                heavy knight's run strip (HKRUN, 91x64) and second action sheet
+                (HKNIGHT2, 91x64, guard/lunge/swing), and two more columns of
+                the female grid: FEMALE_IMP (a winged demon) and FEMALE_LADY (a
+                woman in a white gown). The female sheet's bare reclining column
+                is left out.
 
 Single-character packs ship several recolors and lay their actions out as one
 strip that wraps across rows, so those banks are sliced with the `lin` run (a

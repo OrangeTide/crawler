@@ -1,0 +1,12 @@
+# Heavy knight sheet 2 (white): 91x64.
+# GandalfHardcore pack (licensed to the author, not redistributable on
+# its own). The world view plays IDLE, or WALK when moving, and flips
+# to face the heading. Action rows beyond idle/walk bake for later use.
+
+sheet hknight2_white.ppm
+cell 91 64
+
+bank HKNIGHT2_WHITE
+seq GUARD loop ticks=4 : lin 0-6
+seq LUNGE once ticks=2 : lin 7-13
+seq SWING once ticks=2 : lin 14-18
