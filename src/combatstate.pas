@@ -103,6 +103,9 @@ type
     through Active^; the design (section 24) grows this into many concurrent,
     map-located battles, so every site reads the fight through the pointer. }
   TCombat = record
+    Live: boolean;             { this slot holds a fight in progress }
+    Map: string[16];           { the map cell this fight is located at }
+    CellX, CellY: longint;
     Foes: array of TFoe;
     CombatOver: boolean;
     Victory: boolean;
@@ -139,15 +142,82 @@ type
   end;
   PCombat = ^TCombat;
 
+const
+  MAX_COMBATS = 8;          { concurrent fights; single-player uses slot 0 }
+
 var
-  gCombat: TCombat;             { the one resident fight }
-  Active: PCombat = @gCombat;   { every site reaches fight state through Active^ }
+  { The fight table, addressed by map cell. A fixed array keeps every slot's
+    address stable, so Active (a pointer into it) never dangles across a claim
+    and there is no heap churn. Single-player keeps one Live slot at a time. }
+  gCombats: array[0 .. MAX_COMBATS - 1] of TCombat;
+  Active: PCombat = @gCombats[0];   { every site reaches fight state through Active^ }
 
   OptCriticals: boolean;    { natural 20 auto-hits for max damage, 1 fumbles }
   OptPrepared: boolean;     { casters must ready a per-level subset of known spells }
   CombatBeatScale: double;  { scales the pause between beats, from the options }
 
+{ The live fight located at a map cell, or nil when none. One fight per cell. }
+function CombatAt(const map: string; x, y: longint): PCombat;
+
+{ Claim (or reuse) the fight slot for a cell and make it Active. One-per-cell:
+  an existing fight at the cell is returned as-is; otherwise a free slot is
+  taken and keyed. The caller fills the fight next (BuildEncounter). }
+function BeginCombatAt(const map: string; x, y: longint): PCombat;
+
+{ Repoint Active at a fight instance (the later scheduler's per-cell switch). }
+procedure SetActiveCombat(c: PCombat);
+
+{ Free a fight's slot once its post-combat reads are done, and return Active to
+  the resident default so between-fights reads stay valid. }
+procedure EndCombatInstance(c: PCombat);
+
 implementation
+
+function CombatAt(const map: string; x, y: longint): PCombat;
+var i: longint;
+begin
+  CombatAt := nil;
+  for i := 0 to MAX_COMBATS - 1 do
+    if gCombats[i].Live and (gCombats[i].CellX = x) and (gCombats[i].CellY = y)
+      and (gCombats[i].Map = map) then begin
+      CombatAt := @gCombats[i];
+      exit;
+    end;
+end;
+
+function BeginCombatAt(const map: string; x, y: longint): PCombat;
+var i: longint;
+begin
+  BeginCombatAt := CombatAt(map, x, y);
+  if BeginCombatAt <> nil then begin
+    Active := BeginCombatAt;
+    exit;
+  end;
+  { claim the first free slot; a full table cannot happen in single-player, so
+    fall back to slot 0 rather than fail a fight }
+  BeginCombatAt := @gCombats[0];
+  for i := 0 to MAX_COMBATS - 1 do
+    if not gCombats[i].Live then begin
+      BeginCombatAt := @gCombats[i];
+      break;
+    end;
+  BeginCombatAt^.Live := true;
+  BeginCombatAt^.Map := map;
+  BeginCombatAt^.CellX := x;
+  BeginCombatAt^.CellY := y;
+  Active := BeginCombatAt;
+end;
+
+procedure SetActiveCombat(c: PCombat);
+begin
+  if c <> nil then Active := c;
+end;
+
+procedure EndCombatInstance(c: PCombat);
+begin
+  if c <> nil then c^.Live := false;
+  Active := @gCombats[0];
+end;
 
 initialization
   OptCriticals := true;

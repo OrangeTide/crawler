@@ -14,6 +14,7 @@ var
   ab: TAbilityScores;
   i, enc, rounds, maxRounds, wins, losses: longint;
   allTerminate: boolean;
+  c1, c2: PCombat;
 begin
   if not PakLoad('build/game.pak', p) then begin
     writeln('  FAIL could not load build/game.pak (run make first)');
@@ -57,6 +58,24 @@ begin
   Check(allTerminate, '200 encounters all terminate');
   Check(maxRounds < 4000, 'none hit the action cap');
   Check(wins > 0, 'the party wins some fights');
+
+  { the cell-keyed fight table: a fight is addressed by its map cell, one per
+    cell, and its slot frees when the fight ends }
+  Check(CombatAt('CAVE', 3, 4) = nil, 'no fight at a cell before it begins');
+  c1 := BeginCombatAt('CAVE', 3, 4);
+  Check(c1 <> nil, 'beginning a fight claims a slot');
+  Check(c1^.Live, 'the claimed slot is live');
+  Check(Active = c1, 'beginning a fight makes it active');
+  Check(CombatAt('CAVE', 3, 4) = c1, 'the fight is found at its cell');
+  Check(BeginCombatAt('CAVE', 3, 4) = c1, 'one fight per cell: the cell reuses its slot');
+  c2 := BeginCombatAt('CAVE', 5, 4);
+  Check(c2 <> c1, 'a different cell takes a different slot');
+  Check(CombatAt('CAVE', 3, 4) = c1, 'the first cell keeps its own fight');
+  EndCombatInstance(c1);
+  Check(CombatAt('CAVE', 3, 4) = nil, 'ending a fight frees its cell');
+  Check(not c1^.Live, 'the freed slot is no longer live');
+  EndCombatInstance(c2);
+  Check(CombatAt('CAVE', 5, 4) = nil, 'ending the second fight frees its cell too');
 
   TestSummary('combat');
   halt(TestExit);

@@ -79,6 +79,9 @@ begin
     State := gsExplore
   else
     State := gsGameOver;
+  { the fight is resolved and its spoils read; free its cell slot and return
+    Active to the resident default }
+  EndCombatInstance(Active);
 end;
 
 const
@@ -899,6 +902,7 @@ end;
 procedure StartCombat(depth: longint);
 begin
   BossRewardFlag := '';
+  BeginCombatAt(CurMapName, TileX, TileY);
   StartRandomEncounter(depth, CurEncTable);
   EnterCombat;
 end;
@@ -908,6 +912,7 @@ procedure StartMonsterCombat(leadMon, depth: longint);
   caught the party. }
 begin
   BossRewardFlag := '';
+  BeginCombatAt(CurMapName, TileX, TileY);
   StartMonsterEncounter(leadMon, depth, CurEncTable);
   EnterCombat;
 end;
@@ -917,6 +922,7 @@ procedure StartBossCombat(leadMon, depth: longint; const winFlag: string);
   winFlag, which the quest reads to grant a reward. }
 begin
   BossRewardFlag := winFlag;
+  BeginCombatAt(CurMapName, TileX, TileY);
   StartMonsterEncounter(leadMon, depth, CurEncTable);
   EnterCombat;
 end;

@@ -208,6 +208,16 @@ whose development history is summarized in docs/roadmap.md.
   fight, so play is unchanged; the gain is that the fight is now addressable,
   which the later multi-instance work needs. The cross-fight options (criticals
   and combat speed) stay separate, since they persist across fights.
+- Combat is addressed by map cell, the next step toward map-located battles.
+  The single resident fight becomes a small fixed table of `TCombat` slots keyed
+  by a cell `(map, x, y)`, with one fight per cell. A new `combatstate` seam,
+  `BeginCombatAt` / `CombatAt` / `SetActiveCombat` / `EndCombatInstance`, claims
+  a cell's slot on encounter, finds the fight at a cell, repoints `Active`, and
+  frees the slot when the fight ends. Single player keeps one live slot at a
+  time, so play is byte-identical (the combat shot is unchanged); the gain is
+  that a fight now has a durable, collision-free identity the later scheduler
+  and network layer drive. `t_combat` covers the claim, the one-per-cell reuse,
+  and the free.
 - Roaming hunters survive a fight the party breaks off. A hunter that catches
   the party is no longer consumed on contact: a win finishes it, but fleeing
   leaves it alive and set back a short way, so it picks up the trail again. A
